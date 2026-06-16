@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LolaMarket — Tez Kunda</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- Navigation -->
+  <nav class="nav" id="nav">
+    <div class="nav-logo">
+      <img class="nav-logo-img" src="Photo/logo/IMG_0408.JPG" alt="LolaMarket" />
+      <span class="nav-logo-text">LolaMarket</span>
+    </div>
+    <ul class="nav-links">
+      <li><a href="#">Materiallar</a></li>
+      <li><a href="#">B2B</a></li>
+      <li><a href="https://t.me/furqattukhsanov" target="_blank">Aloqa</a></li>
+    </ul>
+  </nav>
+
+  <!-- Hero -->
+  <section class="hero">
+    <img class="hero-img" src="Photo/Main/hf_20260616_000610_60e07d79-8b56-4bc9-a8cf-74e72cdaa96e.png" alt="LolaMarket fabrics" />
+    <div class="hero-overlay"></div>
+    <div class="hero-content">
+      <p class="hero-label">O'zbekiston · B2B · To'qima bozori</p>
+      <h1 class="hero-title">Lola<em>market</em></h1>
+    </div>
+    <div class="scroll-line">
+      <span>Scroll</span>
+      <div class="scroll-line-bar"></div>
+    </div>
+  </section>
+
+  <!-- Announce -->
+  <section class="announce">
+    <div class="announce-tag fade-up">
+      <div class="announce-dot"></div>
+      Qurilmoqda
+    </div>
+
+    <h2 class="announce-heading fade-up">
+      To'qima materiallar uchun<br>
+      <em>yagona B2B platforma</em>
+    </h2>
+
+    <div class="loading-block fade-up">
+      <div class="loading-label">LolaMarket is building</div>
+      <div class="loading-track">
+        <div class="loading-sweep"></div>
+      </div>
+    </div>
+
+    <form class="notify-form fade-up" onsubmit="handleSubmit(event)">
+      <input type="email" placeholder="Email manzilingiz" required />
+      <button type="submit">Xabardor qil</button>
+    </form>
+    <p class="success-msg" id="success">Rahmat — tez kunda xabar beramiz.</p>
+  </section>
+
+  <!-- Features -->
+  <section class="features-section">
+    <p class="features-label fade-up">Nima taklif qilamiz</p>
+    <div class="features">
+      <div class="feature-card fade-up">
+        <div class="feature-number">01</div>
+        <div class="feature-title">Faqat materiallar</div>
+        <p class="feature-text">Bitta kategoriya — to'qima gazlamalar. Zappos kabi ixtisoslashgan platforma.</p>
+      </div>
+      <div class="feature-card fade-up">
+        <div class="feature-number">02</div>
+        <div class="feature-title">Rulon formatida</div>
+        <p class="feature-text">Materiallarni rulon holida, ulgurji miqdorda xarid qilish imkoniyati.</p>
+      </div>
+      <div class="feature-card fade-up">
+        <div class="feature-number">03</div>
+        <div class="feature-title">B2B format</div>
+        <p class="feature-text">Ishlab chiqaruvchilar, distribyutorlar va tikuvchilik korxonalari uchun.</p>
+      </div>
+      <div class="feature-card fade-up">
+        <div class="feature-number">04</div>
+        <div class="feature-title">Keng assortiment</div>
+        <p class="feature-text">Yuzlab turdagi gazlamalar — ip, kashtali mato, jun, atlas va yana ko'plar.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Showcase cards -->
+  <section class="showcase-section">
+    <div class="showcase-header fade-up">
+      <p class="showcase-label">Kolleksiya</p>
+      <h2 class="showcase-title">Materiallar <em>turkumi</em></h2>
+    </div>
+    <div class="showcase-grid">
+
+      <div class="showcase-card slide-right">
+        <div class="showcase-img-wrap">
+          <img src="Photo/textile/186e363817f29c3d01029ef64db8aae6.jpg" alt="Ko'k Gul" />
+          <div class="showcase-overlay">
+            <div class="showcase-overlay-name">Ko'k Gul</div>
+            <div class="showcase-overlay-sub">Chit mato · Rulon</div>
+          </div>
+        </div>
+        <div class="showcase-info">
+          <div class="showcase-name">Ko'k Gul</div>
+          <div class="showcase-sub">Chit mato · Rulon</div>
+        </div>
+      </div>
+
+      <div class="showcase-card slide-right">
+        <div class="showcase-img-wrap">
+          <img src="Photo/textile/2563ba9a9ee78e0305adc5ab277db180.jpg" alt="Pushti Gullar" />
+          <div class="showcase-overlay">
+            <div class="showcase-overlay-name">Pushti Gullar</div>
+            <div class="showcase-overlay-sub">Chit mato · Rulon</div>
+          </div>
+        </div>
+        <div class="showcase-info">
+          <div class="showcase-name">Pushti Gullar</div>
+          <div class="showcase-sub">Chit mato · Rulon</div>
+        </div>
+      </div>
+
+      <div class="showcase-card slide-right">
+        <div class="showcase-img-wrap">
+          <img src="Photo/textile/3b60658c5d1d11daaa938e227d976395.jpg" alt="Qizil Atirgul" />
+          <div class="showcase-overlay">
+            <div class="showcase-overlay-name">Qizil Atirgul</div>
+            <div class="showcase-overlay-sub">Sitsa · Rulon</div>
+          </div>
+        </div>
+        <div class="showcase-info">
+          <div class="showcase-name">Qizil Atirgul</div>
+          <div class="showcase-sub">Sitsa · Rulon</div>
+        </div>
+      </div>
+
+      <div class="showcase-card slide-right">
+        <div class="showcase-img-wrap">
+          <img src="Photo/textile/668f7de0e14d13ef96a6a44b2b4c51ba.jpg" alt="Feruza Naqsh" />
+          <div class="showcase-overlay">
+            <div class="showcase-overlay-name">Feruza Naqsh</div>
+            <div class="showcase-overlay-sub">Gilam mato · Rulon</div>
+          </div>
+        </div>
+        <div class="showcase-info">
+          <div class="showcase-name">Feruza Naqsh</div>
+          <div class="showcase-sub">Gilam mato · Rulon</div>
+        </div>
+      </div>
+
+      <div class="showcase-card slide-right">
+        <div class="showcase-img-wrap">
+          <img src="Photo/textile/7a30c608f6f3c6c8d04c74769563733e.jpg" alt="Ko'k Naqsh" />
+          <div class="showcase-overlay">
+            <div class="showcase-overlay-name">Ko'k Naqsh</div>
+            <div class="showcase-overlay-sub">Gilam mato · Rulon</div>
+          </div>
+        </div>
+        <div class="showcase-info">
+          <div class="showcase-name">Ko'k Naqsh</div>
+          <div class="showcase-sub">Gilam mato · Rulon</div>
+        </div>
+      </div>
+
+      <div class="showcase-card slide-right">
+        <div class="showcase-img-wrap">
+          <img src="Photo/textile/7ccb84b1de861ff78297268a4f524212.jpg" alt="Moviy Atirgul" />
+          <div class="showcase-overlay">
+            <div class="showcase-overlay-name">Moviy Atirgul</div>
+            <div class="showcase-overlay-sub">Chit mato · Rulon</div>
+          </div>
+        </div>
+        <div class="showcase-info">
+          <div class="showcase-name">Moviy Atirgul</div>
+          <div class="showcase-sub">Chit mato · Rulon</div>
+        </div>
+      </div>
+
+      <div class="showcase-card slide-right">
+        <div class="showcase-img-wrap">
+          <img src="Photo/textile/961c4a2920e63b71e8f864dafac1ce63.jpg" alt="Yashil Bog'" />
+          <div class="showcase-overlay">
+            <div class="showcase-overlay-name">Yashil Bog'</div>
+            <div class="showcase-overlay-sub">Chit mato · Rulon</div>
+          </div>
+        </div>
+        <div class="showcase-info">
+          <div class="showcase-name">Yashil Bog'</div>
+          <div class="showcase-sub">Chit mato · Rulon</div>
+        </div>
+      </div>
+
+      <div class="showcase-card slide-right">
+        <div class="showcase-img-wrap">
+          <img src="Photo/textile/9933cd587d27967384d036d3e711bf32.jpg" alt="Sharq Naqshi" />
+          <div class="showcase-overlay">
+            <div class="showcase-overlay-name">Sharq Naqshi</div>
+            <div class="showcase-overlay-sub">Atlas · Rulon</div>
+          </div>
+        </div>
+        <div class="showcase-info">
+          <div class="showcase-name">Sharq Naqshi</div>
+          <div class="showcase-sub">Atlas · Rulon</div>
+        </div>
+      </div>
+
+      <div class="showcase-card slide-right">
+        <div class="showcase-img-wrap">
+          <img src="Photo/textile/c20cdf0e31d225c802bb8876d207ac3b.jpg" alt="Qizil Gulsafsar" />
+          <div class="showcase-overlay">
+            <div class="showcase-overlay-name">Qizil Gulsafsar</div>
+            <div class="showcase-overlay-sub">Atlas · Rulon</div>
+          </div>
+        </div>
+        <div class="showcase-info">
+          <div class="showcase-name">Qizil Gulsafsar</div>
+          <div class="showcase-sub">Atlas · Rulon</div>
+        </div>
+      </div>
+
+      <div class="showcase-card slide-right">
+        <div class="showcase-img-wrap">
+          <img src="Photo/textile/d7928cec4d1373dfd77b18311ebdca10.jpg" alt="Sariq Chamanzor" />
+          <div class="showcase-overlay">
+            <div class="showcase-overlay-name">Sariq Chamanzor</div>
+            <div class="showcase-overlay-sub">Chit mato · Rulon</div>
+          </div>
+        </div>
+        <div class="showcase-info">
+          <div class="showcase-name">Sariq Chamanzor</div>
+          <div class="showcase-sub">Chit mato · Rulon</div>
+        </div>
+      </div>
+
+      <div class="showcase-card slide-right">
+        <div class="showcase-img-wrap">
+          <img src="Photo/textile/fca2f726729aef582747b447f6955e08.jpg" alt="Tun Ko'ki" />
+          <div class="showcase-overlay">
+            <div class="showcase-overlay-name">Tun Ko'ki</div>
+            <div class="showcase-overlay-sub">Atlas · Rulon</div>
+          </div>
+        </div>
+        <div class="showcase-info">
+          <div class="showcase-name">Tun Ko'ki</div>
+          <div class="showcase-sub">Atlas · Rulon</div>
+        </div>
+      </div>
+
+      <div class="showcase-card slide-right">
+        <div class="showcase-img-wrap">
+          <img src="Photo/textile/Без названия (1).png" alt="Vintage Atirgul" />
+          <div class="showcase-overlay">
+            <div class="showcase-overlay-name">Vintage Atirgul</div>
+            <div class="showcase-overlay-sub">Chit mato · Rulon</div>
+          </div>
+        </div>
+        <div class="showcase-info">
+          <div class="showcase-name">Vintage Atirgul</div>
+          <div class="showcase-sub">Chit mato · Rulon</div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Founder -->
+  <section class="founder-section">
+    <div class="founder-inner fade-up">
+      <img class="founder-photo" src="Photo/IMG_0147.JPG" alt="Furqat Tukhsanov" />
+      <div class="founder-divider"></div>
+      <div class="founder-info">
+        <div class="founder-name">Furqat Tukhsanov</div>
+        <div class="founder-role">Founder & CEO — LolaMarket</div>
+        <a class="tg-btn" href="https://t.me/furqattukhsanov" target="_blank" rel="noopener">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm4.93 6.686-1.686 7.939c-.124.553-.453.687-.918.427l-2.538-1.87-1.225 1.178c-.135.135-.249.249-.51.249l.181-2.584 4.693-4.238c.204-.181-.044-.281-.315-.1L8.34 14.356l-2.5-.781c-.543-.17-.553-.543.113-.804l9.726-3.75c.453-.164.849.1.251.665z"/>
+          </svg>
+          @furqattukhsanov
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <span class="footer-copy">© 2025 LolaMarket. Barcha huquqlar himoyalangan.</span>
+    <nav class="social-links">
+      <a href="https://instagram.com/furqattukhsanov" target="_blank" rel="noopener">Instagram</a>
+      <a href="https://t.me/furqattukhsanov" target="_blank" rel="noopener">Telegram</a>
+      <a href="https://facebook.com/furqattukhsanov" target="_blank" rel="noopener">Facebook</a>
+    </nav>
+  </footer>
+
+  <script>
+    /* ── Hero parallax ── */
+    const heroEl  = document.querySelector('.hero');
+    const heroImg = document.querySelector('.hero-img');
+
+    heroEl.addEventListener('mousemove', (e) => {
+      const { left, top, width, height } = heroEl.getBoundingClientRect();
+      const x = ((e.clientX - left) / width  - 0.5) * 18;
+      const y = ((e.clientY - top)  / height - 0.5) * 10;
+      heroImg.style.transform = `translate(${x}px, ${y}px)`;
+    });
+
+    heroEl.addEventListener('mouseleave', () => {
+      heroImg.style.transform = 'translate(0, 0)';
+    });
+
+    /* ── Nav scroll ── */
+    const nav = document.getElementById('nav');
+    window.addEventListener('scroll', () => {
+      nav.classList.toggle('scrolled', window.scrollY > 60);
+    });
+
+    /* ── Scroll fade-up ── */
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry, i) => {
+        if (entry.isIntersecting) {
+          entry.target.style.transitionDelay = (i * 0.08) + 's';
+          entry.target.classList.add('visible');
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.1 });
+
+    document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
+
+    /* ── Slide-right (showcase cards) ── */
+    const rowObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          const cards = entry.target.querySelectorAll('.slide-right');
+          cards.forEach((card, i) => {
+            setTimeout(() => card.classList.add('visible'), i * 80);
+          });
+          rowObserver.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.05 });
+
+    const showcaseGrid = document.querySelector('.showcase-grid');
+    if (showcaseGrid) rowObserver.observe(showcaseGrid);
+
+    /* ── Email form ── */
+    function handleSubmit(e) {
+      e.preventDefault();
+      e.target.style.display = 'none';
+      document.getElementById('success').style.display = 'block';
+    }
+  </script>
+
+</body>
+</html>
