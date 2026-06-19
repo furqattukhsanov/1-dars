@@ -1,4 +1,4 @@
-name: Deploy to Server
+name: Build & Deploy to Server
 
 on:
   push:
@@ -9,14 +9,79 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Deploy to server
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Next.js (standalone)
+        run: npm run build
+
+      - name: Prepare deploy package
+        run: |
+          mkdir -p deploy
+          cp -r .next/standalone/. deploy/
+          cp -r .next/static deploy/.next/static
+          cp -r public deploy/public
+          cp ecosystem.config.js deploy/
+          cp nginx.conf deploy/
+
+      - name: Setup server (first time)
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            # Node.js va PM2 yo'q bo'lsa o'rnatadi
+            if ! command -v node &> /dev/null; then
+              curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+              sudo apt-get install -y nodejs
+            fi
+            if ! command -v pm2 &> /dev/null; then
+              sudo npm install -g pm2
+            fi
+            sudo mkdir -p /var/www/lolamarket
+            sudo chown -R $USER:$USER /var/www/lolamarket
+
+      - name: Upload build to server
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SERVER_IP }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "index.html,style.css,script.js,Photo/"
-          target: /var/www/lolamarket
+          source: "deploy/"
+          target: /tmp/lolamarket-deploy
+          strip_components: 1
+
+      - name: Restart application
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            # Deploy fayllarni joyiga ko'chirish
+            rsync -a --delete /tmp/lolamarket-deploy/ /var/www/lolamarket/
+            rm -rf /tmp/lolamarket-deploy
+
+            # Nginx config yangilash
+            sudo cp /var/www/lolamarket/nginx.conf /etc/nginx/sites-available/lolamarket
+            sudo ln -sf /etc/nginx/sites-available/lolamarket /etc/nginx/sites-enabled/lolamarket
+            sudo nginx -t && sudo systemctl reload nginx
+
+            # PM2 bilan ishga tushirish
+            cd /var/www/lolamarket
+            pm2 delete lolamarket 2>/dev/null || true
+            pm2 start ecosystem.config.js
+            pm2 save
+            pm2 startup --no-daemon 2>/dev/null || true
+
+            echo "✅ Deploy muvaffaqiyatli!"
