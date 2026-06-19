@@ -7,28 +7,34 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - name: External connectivity test
+      - name: Setup SSL and nginx
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SERVER_IP }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            echo "=== SERVER IPv4 (to'liq) ==="
-            ip -4 addr show | grep 'inet ' | awk '{print $2}'
+            echo "=== SELF-SIGNED SSL YARATISH ==="
+            sudo mkdir -p /etc/nginx/ssl
+            sudo openssl req -x509 -nodes -days 3650 -newkey rsa:2048 \
+              -keyout /etc/nginx/ssl/lolamarket.key \
+              -out /etc/nginx/ssl/lolamarket.crt \
+              -subj "/C=UZ/ST=Tashkent/L=Tashkent/O=LolaMarket/CN=lolamarket.uz" 2>/dev/null
+            echo "SSL yaratildi ✅"
 
-            echo "=== CADDY CONFIG ==="
-            cat /etc/caddy/Caddyfile 2>/dev/null | head -20 || echo "Caddyfile topilmadi"
-            ls /etc/caddy/ 2>/dev/null || echo "caddy folder yo'q"
+            echo "=== NGINX CONFIG YANGILASH ==="
+            sudo cp /var/www/lolamarket/nginx.conf /etc/nginx/sites-available/lolamarket
+            sudo nginx -t 2>&1
 
-            echo "=== NGINX ACCESS LOG (so'nggi) ==="
-            sudo tail -5 /var/log/nginx/access.log 2>/dev/null || echo "log yo'q"
-            sudo tail -5 /var/log/nginx/error.log 2>/dev/null || echo "error log yo'q"
+            echo "=== UFW 443 RUXSAT ==="
+            sudo ufw allow 443/tcp 2>/dev/null || true
 
-            echo "=== NGINX STATUS ==="
+            echo "=== NGINX RESTART ==="
+            sudo systemctl restart nginx
+            sleep 1
             sudo systemctl status nginx --no-pager | grep Active
 
-      - name: Test server from GitHub runner
-        run: |
-          echo "=== GitHub runner dan serverga ulanish ==="
-          curl -sv --connect-timeout 5 http://${{ secrets.SERVER_IP }}/ 2>&1 | grep -E "Connected|HTTP|Failed|refused" | head -5 || echo "ulanib bo'lmadi"
+            echo "=== TEST ==="
+            curl -sk -o /dev/null -w "https://localhost: %{http_code}" https://localhost/
+            echo ""
+            curl -s -o /dev/null -w "http://localhost: %{http_code}" http://localhost/

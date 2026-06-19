@@ -72,10 +72,25 @@ jobs:
             rsync -a --delete /tmp/lolamarket-deploy/ /var/www/lolamarket/
             rm -rf /tmp/lolamarket-deploy
 
+            # SSL sertifikat yo'q bo'lsa yaratish
+            if [ ! -f /etc/nginx/ssl/lolamarket.crt ]; then
+              sudo mkdir -p /etc/nginx/ssl
+              sudo openssl req -x509 -nodes -days 3650 -newkey rsa:2048 \
+                -keyout /etc/nginx/ssl/lolamarket.key \
+                -out /etc/nginx/ssl/lolamarket.crt \
+                -subj "/C=UZ/ST=Tashkent/L=Tashkent/O=LolaMarket/CN=lolamarket.uz" 2>/dev/null
+            fi
+
             # Nginx config yangilash
             sudo cp /var/www/lolamarket/nginx.conf /etc/nginx/sites-available/lolamarket
             sudo ln -sf /etc/nginx/sites-available/lolamarket /etc/nginx/sites-enabled/lolamarket
+            sudo ufw allow 80/tcp 2>/dev/null || true
+            sudo ufw allow 443/tcp 2>/dev/null || true
             sudo nginx -t
+
+            # Caddy ni to'xtatish (port band qilmasligi uchun)
+            sudo systemctl stop caddy 2>/dev/null || true
+            sudo systemctl disable caddy 2>/dev/null || true
 
             # Nginx ishga tushirish yoki qayta yuklash
             if sudo systemctl is-active --quiet nginx; then
