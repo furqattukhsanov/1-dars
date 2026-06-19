@@ -18,13 +18,15 @@ jobs:
             curl -s ifconfig.me
             echo ""
             echo "=== NGINX STATUS ==="
-            sudo systemctl status nginx --no-pager | head -5
+            sudo systemctl status nginx --no-pager | head -8
+            echo "=== NGINX ERROR LOG ==="
+            sudo journalctl -u nginx --no-pager -n 15 2>/dev/null || sudo tail -20 /var/log/nginx/error.log 2>/dev/null || echo "no log"
             echo "=== NGINX CONFIG TEST ==="
-            sudo nginx -t
-            echo "=== APP PORT 3000 ==="
-            curl -s -o /dev/null -w "port 3000: %{http_code}" http://localhost:3000/ || echo "port 3000 not responding"
+            sudo nginx -t 2>&1
+            echo "=== OUR CONFIG FILE ==="
+            cat /etc/nginx/sites-available/lolamarket 2>/dev/null | head -20
+            echo "=== PORT 3000 ==="
+            curl -s -o /dev/null -w "port 3000: %{http_code}" http://localhost:3000/
             echo ""
-            echo "=== PM2 STATUS ==="
-            pm2 list 2>/dev/null || echo "pm2 not running"
-            echo "=== NGINX ENABLED SITES ==="
-            ls /etc/nginx/sites-enabled/ 2>/dev/null
+            echo "=== PORT 80 ==="
+            curl -s -o /dev/null -w "port 80: %{http_code}" http://localhost:80/ || echo "port 80: no response"
