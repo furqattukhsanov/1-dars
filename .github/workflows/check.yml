@@ -7,40 +7,28 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - name: Check firewall and connectivity
+      - name: External connectivity test
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SERVER_IP }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            echo "=== UFW STATUS ==="
-            sudo ufw status verbose 2>/dev/null || echo "ufw yo'q"
+            echo "=== SERVER IPv4 (to'liq) ==="
+            ip -4 addr show | grep 'inet ' | awk '{print $2}'
 
-            echo "=== IPTABLES PORT 80 ==="
-            sudo iptables -L INPUT -n | grep -E "80|ACCEPT|DROP" | head -10
+            echo "=== CADDY CONFIG ==="
+            cat /etc/caddy/Caddyfile 2>/dev/null | head -20 || echo "Caddyfile topilmadi"
+            ls /etc/caddy/ 2>/dev/null || echo "caddy folder yo'q"
+
+            echo "=== NGINX ACCESS LOG (so'nggi) ==="
+            sudo tail -5 /var/log/nginx/access.log 2>/dev/null || echo "log yo'q"
+            sudo tail -5 /var/log/nginx/error.log 2>/dev/null || echo "error log yo'q"
 
             echo "=== NGINX STATUS ==="
-            sudo systemctl status nginx --no-pager | head -4
+            sudo systemctl status nginx --no-pager | grep Active
 
-            echo "=== CADDY STATUS ==="
-            sudo systemctl status caddy --no-pager 2>/dev/null | head -4 || echo "caddy service yo'q"
-
-            echo "=== PORT 80 LISTENING ==="
-            sudo ss -tlnp | grep ':80'
-
-            echo "=== CADDY DISABLE ==="
-            sudo systemctl stop caddy 2>/dev/null || true
-            sudo systemctl disable caddy 2>/dev/null || true
-
-            echo "=== UFW 80 RUXSAT ==="
-            sudo ufw allow 80/tcp 2>/dev/null || true
-            sudo ufw allow 443/tcp 2>/dev/null || true
-
-            echo "=== NGINX RESTART ==="
-            sudo systemctl restart nginx
-            sleep 1
-            sudo systemctl status nginx --no-pager | head -3
-
-            echo "=== EXTERNAL TEST ==="
-            curl -s -o /dev/null -w "localhost:80 = %{http_code}" http://localhost/
+      - name: Test server from GitHub runner
+        run: |
+          echo "=== GitHub runner dan serverga ulanish ==="
+          curl -sv --connect-timeout 5 http://${{ secrets.SERVER_IP }}/ 2>&1 | grep -E "Connected|HTTP|Failed|refused" | head -5 || echo "ulanib bo'lmadi"
