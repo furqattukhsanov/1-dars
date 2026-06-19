@@ -7,28 +7,40 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - name: Fix port 80 and start nginx
+      - name: Check firewall and connectivity
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SERVER_IP }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            echo "=== PORT 80 ISHLATAYOTGAN JARAYON ==="
-            sudo ss -tlnp | grep ':80' || echo "hech narsa topilmadi"
-            sudo fuser 80/tcp 2>/dev/null && echo "port 80 band" || echo "port 80 bo'sh"
+            echo "=== UFW STATUS ==="
+            sudo ufw status verbose 2>/dev/null || echo "ufw yo'q"
 
-            echo "=== APACHE HOLATI ==="
-            sudo systemctl status apache2 --no-pager 2>/dev/null | head -4 || echo "apache2 yo'q"
+            echo "=== IPTABLES PORT 80 ==="
+            sudo iptables -L INPUT -n | grep -E "80|ACCEPT|DROP" | head -10
 
-            echo "=== PORT 80 NI BO'SHATISH ==="
-            sudo systemctl stop apache2 2>/dev/null && echo "apache2 to'xtatildi" || true
-            sudo systemctl disable apache2 2>/dev/null || true
-            sudo fuser -k 80/tcp 2>/dev/null || true
-
-            echo "=== NGINX ISHGA TUSHIRISH ==="
-            sudo systemctl start nginx
+            echo "=== NGINX STATUS ==="
             sudo systemctl status nginx --no-pager | head -4
 
-            echo "=== TEST ==="
-            curl -s -o /dev/null -w "port 80: %{http_code}" http://localhost:80/
+            echo "=== CADDY STATUS ==="
+            sudo systemctl status caddy --no-pager 2>/dev/null | head -4 || echo "caddy service yo'q"
+
+            echo "=== PORT 80 LISTENING ==="
+            sudo ss -tlnp | grep ':80'
+
+            echo "=== CADDY DISABLE ==="
+            sudo systemctl stop caddy 2>/dev/null || true
+            sudo systemctl disable caddy 2>/dev/null || true
+
+            echo "=== UFW 80 RUXSAT ==="
+            sudo ufw allow 80/tcp 2>/dev/null || true
+            sudo ufw allow 443/tcp 2>/dev/null || true
+
+            echo "=== NGINX RESTART ==="
+            sudo systemctl restart nginx
+            sleep 1
+            sudo systemctl status nginx --no-pager | head -3
+
+            echo "=== EXTERNAL TEST ==="
+            curl -s -o /dev/null -w "localhost:80 = %{http_code}" http://localhost/
