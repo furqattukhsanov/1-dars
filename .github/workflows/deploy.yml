@@ -75,13 +75,27 @@ jobs:
             # Nginx config yangilash
             sudo cp /var/www/lolamarket/nginx.conf /etc/nginx/sites-available/lolamarket
             sudo ln -sf /etc/nginx/sites-available/lolamarket /etc/nginx/sites-enabled/lolamarket
-            sudo nginx -t && sudo systemctl reload nginx
+            sudo nginx -t
+
+            # Nginx ishga tushirish yoki qayta yuklash
+            if sudo systemctl is-active --quiet nginx; then
+              sudo systemctl reload nginx
+            else
+              sudo systemctl start nginx
+              sudo systemctl enable nginx
+            fi
 
             # PM2 bilan ishga tushirish
             cd /var/www/lolamarket
             pm2 delete lolamarket 2>/dev/null || true
             pm2 start ecosystem.config.js
             pm2 save
-            pm2 startup --no-daemon 2>/dev/null || true
 
-            echo "✅ Deploy muvaffaqiyatli!"
+            # Server IP ni chiqarish (DNS uchun)
+            echo "=== SERVER IPv4 ==="
+            curl -s -4 ifconfig.me || hostname -I | awk '{print $1}'
+            echo "=== SERVER IPv6 ==="
+            curl -s -6 ifconfig.me || true
+
+            echo ""
+            echo "✅ Deploy muvaffaqiyatli! App: http://$(curl -s -4 ifconfig.me):3000"
