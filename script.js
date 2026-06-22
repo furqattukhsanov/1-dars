@@ -1,3 +1,10 @@
+/* ── Telegram Mini App init ── */
+if (window.Telegram?.WebApp) {
+  const tg = window.Telegram.WebApp;
+  tg.ready();
+  tg.expand();
+}
+
 /* ── Hero parallax ── */
 const heroEl  = document.querySelector('.hero');
 const heroImg = document.querySelector('.hero-img');
