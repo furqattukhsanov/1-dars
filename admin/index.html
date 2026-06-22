@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin — LolaMarket</title>
+  <link rel="stylesheet" href="https://furqattukhsanov.github.io/1-dars/style.css?v=6" />
+  <link rel="stylesheet" href="admin.css" />
+</head>
+<body>
+
+  <!-- Login Screen -->
+  <div id="loginScreen" class="login-screen">
+    <div class="login-card">
+      <img src="../Photo/logo/IMG_0408.JPG" class="login-logo" alt="LolaMarket" />
+      <div class="login-title">Lola<em>market</em></div>
+      <div class="login-sub">Admin panel</div>
+      <div class="login-field">
+        <input type="password" id="passwordInput" placeholder="Parol" />
+        <button onclick="checkPassword()">Kirish</button>
+      </div>
+      <p class="login-error" id="loginError">Parol noto'g'ri</p>
+    </div>
+  </div>
+
+  <!-- Dashboard -->
+  <div id="dashboard" class="dashboard hidden">
+
+    <header class="admin-header">
+      <div class="admin-header-left">
+        <img src="../Photo/logo/IMG_0408.JPG" class="admin-logo" alt="LolaMarket" />
+        <div>
+          <div class="admin-title">LolaMarket</div>
+          <div class="admin-subtitle">Admin panel</div>
+        </div>
+      </div>
+      <button class="admin-logout" onclick="logout()">Chiqish</button>
+    </header>
+
+    <main class="admin-main">
+
+      <!-- Stats -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-number">12</div>
+          <div class="stat-label">Mahsulotlar</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number">4</div>
+          <div class="stat-label">Kategoriyalar</div>
+        </div>
+        <div class="stat-card accent">
+          <div class="stat-number">8</div>
+          <div class="stat-label">Buyurtmalar</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number">2</div>
+          <div class="stat-label">Bugun</div>
+        </div>
+      </div>
+
+      <!-- Orders -->
+      <div class="section-header">
+        <div class="section-title">Buyurtmalar <em>ro'yxati</em></div>
+        <div class="section-count" id="orderCount"></div>
+      </div>
+
+      <div class="orders-filters">
+        <button class="order-filter active" data-filter="all">Hammasi</button>
+        <button class="order-filter" data-filter="Yangi">Yangi</button>
+        <button class="order-filter" data-filter="Ko'rib chiqilmoqda">Ko'rib chiqilmoqda</button>
+        <button class="order-filter" data-filter="Tasdiqlangan">Tasdiqlangan</button>
+      </div>
+
+      <div class="orders-table-wrap">
+        <table class="orders-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Mijoz</th>
+              <th>Mahsulot</th>
+              <th>Tur</th>
+              <th>Sana</th>
+              <th>Holat</th>
+            </tr>
+          </thead>
+          <tbody id="ordersBody"></tbody>
+        </table>
+      </div>
+
+      <!-- Category chart -->
+      <div class="section-header" style="margin-top:2rem">
+        <div class="section-title">Kategoriyalar <em>bo'yicha</em></div>
+      </div>
+      <div class="chart-grid">
+        <div class="chart-item">
+          <div class="chart-bar-wrap">
+            <div class="chart-bar" style="height:100%"></div>
+          </div>
+          <div class="chart-num">7</div>
+          <div class="chart-label">Chit mato</div>
+        </div>
+        <div class="chart-item">
+          <div class="chart-bar-wrap">
+            <div class="chart-bar" style="height:43%"></div>
+          </div>
+          <div class="chart-num">3</div>
+          <div class="chart-label">Atlas</div>
+        </div>
+        <div class="chart-item">
+          <div class="chart-bar-wrap">
+            <div class="chart-bar" style="height:28%"></div>
+          </div>
+          <div class="chart-num">2</div>
+          <div class="chart-label">Gilam mato</div>
+        </div>
+        <div class="chart-item">
+          <div class="chart-bar-wrap">
+            <div class="chart-bar" style="height:14%"></div>
+          </div>
+          <div class="chart-num">1</div>
+          <div class="chart-label">Sitsa</div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <script src="admin.js"></script>
+</body>
+</html>
