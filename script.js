@@ -55,6 +55,27 @@ const rowObserver = new IntersectionObserver((entries) => {
 const showcaseGrid = document.querySelector('.showcase-grid');
 if (showcaseGrid) rowObserver.observe(showcaseGrid);
 
+/* ── Catalog modal ── */
+const demoBtn        = document.getElementById('demoBtn');
+const catalogModal   = document.getElementById('catalogModal');
+const catalogClose   = document.getElementById('catalogClose');
+const catalogBackdrop = document.getElementById('catalogBackdrop');
+
+function openCatalog() {
+  catalogModal.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeCatalog() {
+  catalogModal.classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+demoBtn.addEventListener('click', openCatalog);
+catalogClose.addEventListener('click', closeCatalog);
+catalogBackdrop.addEventListener('click', closeCatalog);
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeCatalog(); });
+
 /* ── Email form ── */
 function handleSubmit(e) {
   e.preventDefault();

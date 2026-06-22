@@ -113,6 +113,205 @@ a   { text-decoration: none; color: inherit; }
 .nav-links a:hover { color: var(--white); }
 .nav.scrolled .nav-links a:hover { color: var(--text); }
 
+/* ─── Demo button ─── */
+.demo-btn {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.65rem;
+  font-weight: 500;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 0.5rem 1.3rem;
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.55);
+  color: var(--white);
+  border-radius: 100px;
+  cursor: pointer;
+  transition: background 0.3s, border-color 0.3s, color 0.3s;
+  white-space: nowrap;
+}
+
+.demo-btn:hover { background: rgba(255,255,255,0.22); }
+
+.nav.scrolled .demo-btn {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: var(--white);
+}
+
+.nav.scrolled .demo-btn:hover { background: #8b1428; border-color: #8b1428; }
+
+/* ─── Catalog Modal ─── */
+.catalog-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: flex-end;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.catalog-modal.open {
+  pointer-events: all;
+  opacity: 1;
+}
+
+.catalog-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(10, 5, 5, 0.6);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.catalog-panel {
+  position: relative;
+  width: 100%;
+  max-height: 88vh;
+  background: var(--bg);
+  border-radius: 20px 20px 0 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transform: translateY(100%);
+  transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.catalog-modal.open .catalog-panel { transform: translateY(0); }
+
+.catalog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.5rem 2rem 1rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.catalog-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.8rem;
+  font-weight: 300;
+}
+
+.catalog-title em { font-style: italic; color: var(--muted); }
+
+.catalog-close {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  font-size: 1.1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s, border-color 0.2s;
+  font-family: 'Inter', sans-serif;
+}
+
+.catalog-close:hover { color: var(--text); border-color: var(--text); }
+
+.catalog-body {
+  overflow-y: auto;
+  padding: 1.5rem 2rem 2.5rem;
+  -webkit-overflow-scrolling: touch;
+}
+
+.catalog-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.2rem;
+}
+
+@media (max-width: 768px) {
+  .catalog-grid { grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+  .catalog-body { padding: 1.2rem 1.2rem 2rem; }
+  .catalog-header { padding: 1.2rem 1.2rem 0.8rem; }
+}
+
+.cat-card { cursor: pointer; }
+
+.cat-img-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 0.75rem;
+  background: var(--brand10);
+  border: 1.5px solid var(--border);
+  transition: border-color 0.3s;
+}
+
+.cat-card:hover .cat-img-wrap { border-color: var(--brand); }
+
+.cat-img-wrap img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  object-fit: cover;
+  transition: transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.cat-card:hover .cat-img-wrap img { transform: scale(1.05); }
+
+.cat-name {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1rem;
+  font-weight: 400;
+  color: var(--text);
+  margin-bottom: 0.15rem;
+}
+
+.cat-type {
+  font-size: 0.6rem;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 0.45rem;
+}
+
+.cat-price {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--brand);
+  margin-bottom: 0.6rem;
+}
+
+.cat-order-btn {
+  display: block;
+  width: 100%;
+  padding: 0.5rem;
+  text-align: center;
+  font-size: 0.6rem;
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+  text-decoration: none;
+}
+
+.cat-order-btn:hover {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: var(--white);
+}
+
 /* ─── Hero ─── */
 .hero {
   position: relative;
