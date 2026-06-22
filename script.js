@@ -1,3 +1,12 @@
+/* ── Page loader ── */
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    const loader = document.getElementById('page-loader');
+    loader.classList.add('loader-hidden');
+    loader.addEventListener('transitionend', () => loader.remove(), { once: true });
+  }, 600);
+});
+
 /* ── Telegram Mini App init ── */
 if (window.Telegram?.WebApp) {
   const tg = window.Telegram.WebApp;
