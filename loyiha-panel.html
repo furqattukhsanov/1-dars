@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LolaMarket — Loyiha Panel</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #F0F4F8;
+      color: #2D3748;
+      min-height: 100vh;
+      padding: 2rem 1rem;
+    }
+
+    .container { max-width: 860px; margin: 0 auto; }
+
+    /* Header */
+    .header {
+      background: linear-gradient(135deg, #6B1020 0%, #9B1530 100%);
+      color: white;
+      border-radius: 16px;
+      padding: 2rem 2.5rem;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 4px 20px rgba(107,16,32,0.25);
+    }
+    .header h1 { font-size: 1.8rem; font-weight: 700; margin-bottom: 0.3rem; }
+    .header p { opacity: 0.8; font-size: 0.9rem; }
+
+    /* Progress bar */
+    .progress-card {
+      background: white;
+      border-radius: 14px;
+      padding: 1.5rem 2rem;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+      display: flex;
+      align-items: center;
+      gap: 2rem;
+    }
+    .progress-label { font-size: 0.85rem; color: #718096; white-space: nowrap; }
+    .progress-percent { font-size: 2rem; font-weight: 700; color: #6B1020; white-space: nowrap; }
+    .progress-bar-wrap { flex: 1; background: #EDF2F7; border-radius: 99px; height: 12px; overflow: hidden; }
+    .progress-bar-fill {
+      height: 100%;
+      border-radius: 99px;
+      background: linear-gradient(90deg, #6B1020, #C8A24B);
+      transition: width 0.5s ease;
+      width: 0%;
+    }
+    .updated { font-size: 0.8rem; color: #A0AEC0; white-space: nowrap; }
+
+    /* Sprint grid */
+    .sprints { display: grid; gap: 0.9rem; }
+
+    .sprint-card {
+      background: white;
+      border-radius: 12px;
+      padding: 1.1rem 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 1.2rem;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+      border-left: 4px solid #E2E8F0;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .sprint-card:hover { transform: translateX(3px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+
+    .sprint-card.jarayonda { border-left-color: #C8A24B; background: #FFFBF0; }
+    .sprint-card.tugadi    { border-left-color: #38A169; background: #F0FFF4; }
+    .sprint-card.kutilmoqda { border-left-color: #CBD5E0; }
+
+    .sprint-num {
+      font-size: 1.3rem;
+      font-weight: 800;
+      color: #CBD5E0;
+      width: 32px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+    .sprint-card.jarayonda .sprint-num { color: #C8A24B; }
+    .sprint-card.tugadi    .sprint-num { color: #38A169; }
+
+    .sprint-info { flex: 1; }
+    .sprint-name { font-weight: 600; font-size: 0.95rem; margin-bottom: 0.2rem; }
+    .sprint-dars { font-size: 0.75rem; color: #A0AEC0; }
+
+    .sprint-badge {
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 0.25rem 0.75rem;
+      border-radius: 99px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .badge-kutilmoqda { background: #EDF2F7; color: #718096; }
+    .badge-jarayonda  { background: #FEFCE8; color: #92400E; border: 1px solid #C8A24B; }
+    .badge-tugadi     { background: #F0FFF4; color: #276749; border: 1px solid #68D391; }
+
+    .sprint-date { font-size: 0.72rem; color: #A0AEC0; flex-shrink: 0; }
+
+    footer {
+      text-align: center;
+      margin-top: 2rem;
+      font-size: 0.78rem;
+      color: #A0AEC0;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <h1>🧵 LolaMarket — Loyiha Panel</h1>
+    <p>B2B to'qima platformasi · Sprint progressi</p>
+  </div>
+
+  <div class="progress-card">
+    <div>
+      <div class="progress-label">Umumiy progress</div>
+      <div class="progress-percent" id="percent">0%</div>
+    </div>
+    <div class="progress-bar-wrap">
+      <div class="progress-bar-fill" id="bar"></div>
+    </div>
+    <div class="updated" id="updated">Yangilanmagan</div>
+  </div>
+
+  <div class="sprints" id="sprints"></div>
+
+  <footer>hisobotchi agenti tomonidan avtomatik yangilanadi</footer>
+
+</div>
+
+<script>
+  const sprintlar = [
+    { num: 0, nom: "Dizayn va ekranlar",    dars: "Dars 7",  holat: "kutilmoqda", sana: "" },
+    { num: 1, nom: "MVP skelet + deploy",   dars: "Dars 8",  holat: "kutilmoqda", sana: "" },
+    { num: 2, nom: "Ma'lumotlar bazasi",    dars: "Dars 9",  holat: "kutilmoqda", sana: "" },
+    { num: 3, nom: "Foydalanuvchilar + rollar", dars: "Dars 10", holat: "kutilmoqda", sana: "" },
+    { num: 4, nom: "Asosiy funksiya",       dars: "Dars 11", holat: "kutilmoqda", sana: "" },
+    { num: 5, nom: "Mobil / PWA",           dars: "Dars 12", holat: "kutilmoqda", sana: "" },
+    { num: 6, nom: "Integratsiyalar",       dars: "Dars 13", holat: "kutilmoqda", sana: "" },
+    { num: 7, nom: "Admin panel",           dars: "Dars 14", holat: "kutilmoqda", sana: "" },
+    { num: 8, nom: "Sifat tekshiruvi",      dars: "Dars 15", holat: "kutilmoqda", sana: "" },
+    { num: 9, nom: "Production + launch",   dars: "Dars 16", holat: "kutilmoqda", sana: "" },
+  ];
+
+  const badgeLabels = {
+    kutilmoqda: "⏳ kutilmoqda",
+    jarayonda:  "🔄 jarayonda",
+    tugadi:     "✅ tugadi",
+  };
+
+  const container = document.getElementById("sprints");
+  const barEl     = document.getElementById("bar");
+  const percentEl = document.getElementById("percent");
+  const updatedEl = document.getElementById("updated");
+
+  const tugaganlar = sprintlar.filter(s => s.holat === "tugadi").length;
+  const foiz = Math.round((tugaganlar / sprintlar.length) * 100);
+
+  barEl.style.width = foiz + "%";
+  percentEl.textContent = foiz + "%";
+  updatedEl.textContent = "Oxirgi yangilanish: 2026-06-28";
+
+  sprintlar.forEach(s => {
+    const card = document.createElement("div");
+    card.className = "sprint-card " + s.holat;
+    card.innerHTML = `
+      <div class="sprint-num">${s.num}</div>
+      <div class="sprint-info">
+        <div class="sprint-name">${s.nom}</div>
+        <div class="sprint-dars">${s.dars}</div>
+      </div>
+      <span class="sprint-badge badge-${s.holat}">${badgeLabels[s.holat]}</span>
+      ${s.sana ? `<div class="sprint-date">${s.sana}</div>` : ""}
+    `;
+    container.appendChild(card);
+  });
+</script>
+</body>
+</html>
