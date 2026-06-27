@@ -34,6 +34,8 @@ LolaMarket ning barcha asosiy ekranlarini vizual tarzda loyihalash. Kodga o'tish
 - [2026-06-28] hisobotchi agenti yaratildi (.claude/agents/hisobotchi.md)
 - [2026-06-28] CLAUDE.md loyiha qoidalari yozildi
 - [2026-06-28] loyiha-panel.html sprint progress paneli yaratildi
+- [2026-06-28] loyiha-panel.html dizayni glassmorphism + oq fon + rulon animatsiyasi bilan yangilandi
+- [2026-06-28] prd.md va prd-lolamarket.md birlashtirildi — yagona 11 bo'limli PRD yaratildi
 
 ---
 

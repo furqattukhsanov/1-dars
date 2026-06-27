@@ -9,143 +9,309 @@
 
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: #F0F4F8;
-      color: #2D3748;
       min-height: 100vh;
-      padding: 2rem 1rem;
+      padding: 2rem 1.2rem 1.5rem;
+      color: #2D1A0E;
+      background: #fff;
+      position: relative;
+      overflow-x: hidden;
+      zoom: 1.15;
     }
 
-    .container { max-width: 860px; margin: 0 auto; }
+    /* ── Background blobs ── */
+    .bg {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      background:
+        radial-gradient(ellipse 55% 45% at 10% 15%,  rgba(107,16,32,0.07)  0%, transparent 70%),
+        radial-gradient(ellipse 45% 45% at 90% 80%,  rgba(200,162,75,0.09) 0%, transparent 65%),
+        radial-gradient(ellipse 50% 50% at 75% 5%,   rgba(160,24,40,0.05)  0%, transparent 65%),
+        #fff;
+    }
 
-    /* Header */
+    .container {
+      max-width: 820px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 0.9rem;
+    }
+
+    /* ── Glassmorphism mixin ── */
+    .glass {
+      background: rgba(255,255,255,0.55);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255,255,255,0.7);
+      box-shadow: 0 8px 32px rgba(107,16,32,0.08), inset 0 1px 0 rgba(255,255,255,0.9);
+    }
+
+    /* ── Header ── */
     .header {
-      background: linear-gradient(135deg, #6B1020 0%, #9B1530 100%);
-      color: white;
-      border-radius: 16px;
-      padding: 2rem 2.5rem;
-      margin-bottom: 1.5rem;
-      box-shadow: 0 4px 20px rgba(107,16,32,0.25);
-    }
-    .header h1 { font-size: 1.8rem; font-weight: 700; margin-bottom: 0.3rem; }
-    .header p { opacity: 0.8; font-size: 0.9rem; }
-
-    /* Progress bar */
-    .progress-card {
-      background: white;
-      border-radius: 14px;
-      padding: 1.5rem 2rem;
-      margin-bottom: 1.5rem;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+      border-radius: 20px;
+      padding: 1.4rem 1.8rem;
       display: flex;
       align-items: center;
-      gap: 2rem;
+      justify-content: space-between;
+      position: relative;
+      overflow: hidden;
+      background: #6B1020;
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid rgba(200,162,75,0.3);
+      box-shadow: 0 8px 32px rgba(107,16,32,0.18), inset 0 1px 0 rgba(255,255,255,0.15);
+      color: #fff;
     }
-    .progress-label { font-size: 0.85rem; color: #718096; white-space: nowrap; }
-    .progress-percent { font-size: 2rem; font-weight: 700; color: #6B1020; white-space: nowrap; }
-    .progress-bar-wrap { flex: 1; background: #EDF2F7; border-radius: 99px; height: 12px; overflow: hidden; }
-    .progress-bar-fill {
+    .header::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(120deg, rgba(255,255,255,0.06) 0%, transparent 60%);
+      pointer-events: none;
+    }
+    .header-title { font-size: 1.4rem; font-weight: 700; letter-spacing: -0.3px; }
+    .header-sub   { font-size: 0.78rem; opacity: 0.65; margin-top: 0.3rem; }
+    .header-emoji { font-size: 2.8rem; opacity: 0.5; position: relative; z-index: 1; }
+
+    /* ── Progress card ── */
+    .progress-card {
+      border-radius: 16px;
+      padding: 1.1rem 1.6rem;
+      display: flex;
+      align-items: center;
+      gap: 1.4rem;
+    }
+    .prog-left { min-width: 64px; }
+    .prog-label   { font-size: 0.62rem; color: #9C7B5A; font-weight: 500; text-transform: uppercase; letter-spacing: 0.8px; }
+    .prog-percent { font-size: 2.4rem; font-weight: 800; line-height: 1; color: #6B1020; }
+    .prog-bar-wrap {
+      flex: 1;
+      background: rgba(107,16,32,0.08);
+      border-radius: 99px;
+      height: 8px;
+      overflow: hidden;
+    }
+    .prog-bar-fill {
       height: 100%;
       border-radius: 99px;
-      background: linear-gradient(90deg, #6B1020, #C8A24B);
-      transition: width 0.5s ease;
+      background: linear-gradient(90deg, #6B1020 0%, #C8A24B 100%);
+      transition: width 0.7s cubic-bezier(.4,0,.2,1);
       width: 0%;
+      box-shadow: 0 0 10px rgba(200,162,75,0.4);
     }
-    .updated { font-size: 0.8rem; color: #A0AEC0; white-space: nowrap; }
+    .prog-right { text-align: right; flex-shrink: 0; }
+    .prog-count   { font-size: 0.78rem; color: #6B4A30; font-weight: 600; }
+    .prog-updated { font-size: 0.63rem; color: #B8A090; margin-top: 0.15rem; }
 
-    /* Sprint grid */
-    .sprints { display: grid; gap: 0.9rem; }
+    /* ── Sprint grid ── */
+    .sprints {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.45rem;
+    }
 
     .sprint-card {
-      background: white;
       border-radius: 12px;
-      padding: 1.1rem 1.5rem;
+      padding: 0.65rem 1rem;
       display: flex;
       align-items: center;
-      gap: 1.2rem;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.06);
-      border-left: 4px solid #E2E8F0;
-      transition: transform 0.15s, box-shadow 0.15s;
+      gap: 0.75rem;
+      background: rgba(255,255,255,0.52);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(107,16,32,0.18);
+      box-shadow: 0 2px 10px rgba(107,16,32,0.06);
+      cursor: default;
+      transition: transform 0.22s cubic-bezier(.34,1.56,.64,1),
+                  box-shadow 0.22s ease,
+                  background 0.2s ease;
+      position: relative;
+      overflow: hidden;
     }
-    .sprint-card:hover { transform: translateX(3px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+    .sprint-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.18) 0%, transparent 60%);
+      opacity: 0;
+      transition: opacity 0.22s ease;
+      pointer-events: none;
+    }
+    .sprint-card:hover {
+      transform: translateY(-3px) scale(1.015);
+      box-shadow: 0 8px 24px rgba(107,16,32,0.13);
+      background: rgba(255,255,255,0.78);
+    }
+    .sprint-card:hover::before { opacity: 1; }
 
-    .sprint-card.jarayonda { border-left-color: #C8A24B; background: #FFFBF0; }
-    .sprint-card.tugadi    { border-left-color: #38A169; background: #F0FFF4; }
-    .sprint-card.kutilmoqda { border-left-color: #CBD5E0; }
+    .sprint-card.jarayonda { background: rgba(200,162,75,0.08); border-color: rgba(200,162,75,0.35); }
+    .sprint-card.tugadi    { background: rgba(56,161,105,0.07); border-color: rgba(56,161,105,0.3); }
 
     .sprint-num {
-      font-size: 1.3rem;
-      font-weight: 800;
-      color: #CBD5E0;
-      width: 32px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: #C8B4A0;
+      width: 16px;
       text-align: center;
       flex-shrink: 0;
     }
     .sprint-card.jarayonda .sprint-num { color: #C8A24B; }
     .sprint-card.tugadi    .sprint-num { color: #38A169; }
 
-    .sprint-info { flex: 1; }
-    .sprint-name { font-weight: 600; font-size: 0.95rem; margin-bottom: 0.2rem; }
-    .sprint-dars { font-size: 0.75rem; color: #A0AEC0; }
+    .sprint-info { flex: 1; min-width: 0; }
+    .sprint-name {
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: #4A2D1A;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .sprint-card.jarayonda .sprint-name { color: #2D1A0E; font-weight: 600; }
+    .sprint-card.tugadi    .sprint-name { color: #1A3D2B; font-weight: 600; }
+    .sprint-dars-label {
+      font-size: 0.62rem;
+      color: #C0A898;
+      margin-top: 0.1rem;
+    }
 
     .sprint-badge {
-      font-size: 0.72rem;
+      font-size: 0.58rem;
       font-weight: 600;
-      padding: 0.25rem 0.75rem;
+      padding: 0.15rem 0.5rem;
       border-radius: 99px;
       white-space: nowrap;
       flex-shrink: 0;
     }
-    .badge-kutilmoqda { background: #EDF2F7; color: #718096; }
-    .badge-jarayonda  { background: #FEFCE8; color: #92400E; border: 1px solid #C8A24B; }
-    .badge-tugadi     { background: #F0FFF4; color: #276749; border: 1px solid #68D391; }
-
-    .sprint-date { font-size: 0.72rem; color: #A0AEC0; flex-shrink: 0; }
+    .badge-kutilmoqda { background: rgba(0,0,0,0.05); color: #A08070; }
+    .badge-jarayonda  { background: rgba(200,162,75,0.15); color: #8B6914; border: 1px solid rgba(200,162,75,0.4); }
+    .badge-tugadi     { background: rgba(56,161,105,0.12); color: #276749; border: 1px solid rgba(56,161,105,0.35); }
 
     footer {
       text-align: center;
-      margin-top: 2rem;
-      font-size: 0.78rem;
-      color: #A0AEC0;
+      font-size: 0.68rem;
+      color: #B8A090;
+      letter-spacing: 0.3px;
+      font-style: italic;
+      padding-bottom: 2.5rem;
+    }
+
+    /* ── Rulon animatsiyasi ── */
+    .rulon-sahna {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 52px;
+      pointer-events: none;
+      z-index: 200;
+      overflow: hidden;
+    }
+
+    /* ip chiziq — rulonning o'rtasidan chiqayotgandek */
+    .rulon-wrap {
+      position: absolute;
+      bottom: 6px;
+      left: -60px;
+      display: flex;
+      align-items: center;
+      animation: rulon-yur 16s linear infinite;
+      will-change: transform;
+    }
+
+    .ip-chiziq {
+      height: 2px;
+      width: 0;
+      background: linear-gradient(270deg,
+        rgba(107,16,32,0.5) 0%,
+        rgba(200,162,75,0.55) 40%,
+        transparent 100%);
+      border-radius: 99px;
+      animation: ip-uzay 16s linear infinite;
+      transform-origin: right center;
+    }
+
+    .rulon {
+      font-size: 2rem;
+      line-height: 1;
+      flex-shrink: 0;
+      filter: drop-shadow(0 2px 8px rgba(107,16,32,0.22));
+      animation: rulon-tebran 1.4s ease-in-out infinite;
+    }
+
+    @keyframes rulon-yur {
+      0%   { transform: translateX(0);              opacity: 0; }
+      4%   { opacity: 1; }
+      96%  { opacity: 1; }
+      100% { transform: translateX(calc(100vw + 120px)); opacity: 0; }
+    }
+
+    @keyframes ip-uzay {
+      0%   { width: 0; }
+      100% { width: calc(100vw + 60px); }
+    }
+
+    @keyframes rulon-tebran {
+      0%, 100% { transform: translateY(0px); }
+      50%       { transform: translateY(-2px); }
     }
   </style>
 </head>
 <body>
+
+<div class="bg"></div>
+
+<div class="rulon-sahna">
+  <div class="rulon-wrap">
+    <div class="ip-chiziq"></div>
+    <div class="rulon">🧵</div>
+  </div>
+</div>
+
 <div class="container">
 
   <div class="header">
-    <h1>🧵 LolaMarket — Loyiha Panel</h1>
-    <p>B2B to'qima platformasi · Sprint progressi</p>
+    <div>
+      <div class="header-title">🧵 LolaMarket — Loyiha Panel</div>
+      <div class="header-sub">B2B to'qima platformasi · Sprint progressi</div>
+    </div>
   </div>
 
-  <div class="progress-card">
-    <div>
-      <div class="progress-label">Umumiy progress</div>
-      <div class="progress-percent" id="percent">0%</div>
+  <div class="progress-card glass">
+    <div class="prog-left">
+      <div class="prog-label">Progress</div>
+      <div class="prog-percent" id="percent">0%</div>
     </div>
-    <div class="progress-bar-wrap">
-      <div class="progress-bar-fill" id="bar"></div>
+    <div class="prog-bar-wrap">
+      <div class="prog-bar-fill" id="bar"></div>
     </div>
-    <div class="updated" id="updated">Yangilanmagan</div>
+    <div class="prog-right">
+      <div class="prog-count" id="count">0 / 10 sprint</div>
+      <div class="prog-updated" id="updated">—</div>
+    </div>
   </div>
 
   <div class="sprints" id="sprints"></div>
 
-  <footer>hisobotchi agenti tomonidan avtomatik yangilanadi</footer>
+  <footer>Hisobotchi agenti tomonidan avtomatik yangilanadi</footer>
 
 </div>
 
 <script>
   const sprintlar = [
-    { num: 0, nom: "Dizayn va ekranlar",    dars: "Dars 7",  holat: "jarayonda",  sana: "2026-06-28" },
-    { num: 1, nom: "MVP skelet + deploy",   dars: "Dars 8",  holat: "kutilmoqda", sana: "" },
-    { num: 2, nom: "Ma'lumotlar bazasi",    dars: "Dars 9",  holat: "kutilmoqda", sana: "" },
+    { num: 0, nom: "Dizayn va ekranlar",        dars: "Dars 7",  holat: "jarayonda",  sana: "2026-06-28" },
+    { num: 1, nom: "MVP skelet + deploy",       dars: "Dars 8",  holat: "kutilmoqda", sana: "" },
+    { num: 2, nom: "Ma'lumotlar bazasi",        dars: "Dars 9",  holat: "kutilmoqda", sana: "" },
     { num: 3, nom: "Foydalanuvchilar + rollar", dars: "Dars 10", holat: "kutilmoqda", sana: "" },
-    { num: 4, nom: "Asosiy funksiya",       dars: "Dars 11", holat: "kutilmoqda", sana: "" },
-    { num: 5, nom: "Mobil / PWA",           dars: "Dars 12", holat: "kutilmoqda", sana: "" },
-    { num: 6, nom: "Integratsiyalar",       dars: "Dars 13", holat: "kutilmoqda", sana: "" },
-    { num: 7, nom: "Admin panel",           dars: "Dars 14", holat: "kutilmoqda", sana: "" },
-    { num: 8, nom: "Sifat tekshiruvi",      dars: "Dars 15", holat: "kutilmoqda", sana: "" },
-    { num: 9, nom: "Production + launch",   dars: "Dars 16", holat: "kutilmoqda", sana: "" },
+    { num: 4, nom: "Asosiy funksiya",           dars: "Dars 11", holat: "kutilmoqda", sana: "" },
+    { num: 5, nom: "Mobil / PWA",               dars: "Dars 12", holat: "kutilmoqda", sana: "" },
+    { num: 6, nom: "Integratsiyalar",           dars: "Dars 13", holat: "kutilmoqda", sana: "" },
+    { num: 7, nom: "Admin panel",               dars: "Dars 14", holat: "kutilmoqda", sana: "" },
+    { num: 8, nom: "Sifat tekshiruvi",          dars: "Dars 15", holat: "kutilmoqda", sana: "" },
+    { num: 9, nom: "Production + launch",       dars: "Dars 16", holat: "kutilmoqda", sana: "" },
   ];
 
   const badgeLabels = {
@@ -157,6 +323,7 @@
   const container = document.getElementById("sprints");
   const barEl     = document.getElementById("bar");
   const percentEl = document.getElementById("percent");
+  const countEl   = document.getElementById("count");
   const updatedEl = document.getElementById("updated");
 
   const tugaganlar = sprintlar.filter(s => s.holat === "tugadi").length;
@@ -164,7 +331,8 @@
 
   barEl.style.width = foiz + "%";
   percentEl.textContent = foiz + "%";
-  updatedEl.textContent = "Oxirgi yangilanish: 2026-06-28";
+  countEl.textContent = tugaganlar + " / " + sprintlar.length + " sprint";
+  updatedEl.textContent = "Yangilanish: 2026-06-28";
 
   sprintlar.forEach(s => {
     const card = document.createElement("div");
@@ -173,10 +341,9 @@
       <div class="sprint-num">${s.num}</div>
       <div class="sprint-info">
         <div class="sprint-name">${s.nom}</div>
-        <div class="sprint-dars">${s.dars}</div>
+        <div class="sprint-dars-label">${s.dars}</div>
       </div>
       <span class="sprint-badge badge-${s.holat}">${badgeLabels[s.holat]}</span>
-      ${s.sana ? `<div class="sprint-date">${s.sana}</div>` : ""}
     `;
     container.appendChild(card);
   });

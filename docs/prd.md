@@ -1,21 +1,22 @@
-# LolaMarket — Founder PRD
+# LolaMarket — PRD
 
 **Versiya:** v1.0 · **Asos:** Grill-me suhbati (2026-06-28)
-**Maqsad:** Non-texnik, sodda, founder uchun yo'l xaritasi
 
 ---
 
 ## 1. Muammo va Yechim
 
 **Muammo:**
-O'zbekiston to'qima xaridorlari (tikuvchilar, do'konlar, savdogarlar) hozirda Telegram va OLX orqali ishlab chiqaruvchilarni topadi. Bu yerda sifat kafolati yo'q, aldanish xavfi bor, to'lov xavfsizligi ta'minlanmagan.
+O'zbekiston to'qima xaridorlari (tikuvchilar, do'konlar, savdogarlar) hozirda Telegram va OLX orqali ishlab chiqaruvchilarni topadi. Bu yerda sifat kafolati yo'q, aldanish xavfi bor, to'lov xavfsizligi ta'minlanmagan. Ishlab chiqaruvchilar esa yangi xaridorlar topish uchun shaxsiy aloqalarga tayanadi — kengayish qiyin.
 
 **Yechim:**
 LolaMarket — faqat tasdiqlangan ishlab chiqaruvchilar ishtirok etadigan B2B to'qima web platformasi. Zappos modelida — xaridor katalogdan rulon tanlaydi, escrow orqali xavfsiz to'laydi, BTS Pochta orqali oladi. Sifat yoqmasa pul qaytariladi.
 
+**Raqobatchilar:** Telegram guruhlar, OLX — ikkalasida ham sifat nazorati va xavfsizlik yo'q.
+
 ---
 
-## 2. Kim Uchun (Foydalanuvchilar)
+## 2. Foydalanuvchilar
 
 **Xaridor** — kiyim tikuvchilar, kichik do'konlar, bozor savdogarlari. Ulgurji to'qima qidiradi, lekin Telegramda aldanishdan qo'rqadi. Qulay to'lov va yetkazib olishni xohlaydi.
 
@@ -25,7 +26,7 @@ LolaMarket — faqat tasdiqlangan ishlab chiqaruvchilar ishtirok etadigan B2B to
 
 ---
 
-## 3. Asosiy Funksiyalar (MVP uchun 3 ta)
+## 3. Asosiy Funksiyalar (MVP)
 
 **1. Katalog va Buyurtma**
 Xaridor kategoriya (chit, atlas, gilam, sitsa) va narx bo'yicha filtrlaydi. Mahsulot kartochkasida rasm, narx/rulon, mavjud rulon soni, ishlab chiqaruvchi reytingi ko'rinadi. Minimum buyurtma — 1 rulon.
@@ -38,21 +39,57 @@ BTS Pochta (200+ nuqta) orqali butun O'zbekistonga yetkaziladi. Xaridor eng yaqi
 
 ---
 
-## 4. "Keyingi Versiya" Ro'yxati
+## 4. User Stories
 
-- Mobil ilova (iOS va Android)
-- Ishlab chiqaruvchi o'z-o'zini ro'yxatdan o'tkazishi (hozircha founder qo'lda qiladi)
-- Onboarding rag'bati — birinchi N ta buyurtmada komissiyasiz (hali qaror qilinmagan)
-- Qo'shimcha filtrlar: rang, mintaqa, mavjud rulon soni
-- Ko'p logistika partnyor: Uzum Logistics, Yandex Delivery
-- Ishlab chiqaruvchi analitika paneli
-- Avtomatik moderatsiya (AI yordamida)
+### Xaridor
+
+1. Kategoriya va narx bo'yicha mahsulot filtrlashni xohlayman, shunda kerakli rulonni tez topay.
+2. Har bir ishlab chiqaruvchining reytingi va sharhlarini ko'rishni xohlayman, shunda kim ishonchli ekanini bilaman.
+3. Mahsulot kartochkasida rulon narxi, mavjud rulon soni va ishlab chiqaruvchi haqida ma'lumot ko'rishni xohlayman.
+4. Minimum 1 rulon buyurtma bera olishni xohlayman.
+5. Payme yoki Click orqali to'lashni xohlayman.
+6. Pul escrow da saqlanishini bilishni xohlayman, shunda aldanib qolmasam.
+7. Eng yaqin BTS Pochta punktini platformada ko'rishni xohlayman.
+8. Sifatsiz mahsulot kelsa qaytarishni va to'liq pulni qaytarib olishni xohlayman.
+9. Bahsli holatlarda moderator 24 soat ichida qaror berishini xohlayman.
+10. Buyurtma tariximni ko'rishni xohlayman.
+
+### Ishlab Chiqaruvchi
+
+11. Mahsulotlarimni (kategoriya, narx, rulon soni, rasm) katalogga qo'shishni xohlayman.
+12. Platformadan kelgan buyurtmalarni boshqarishni xohlayman.
+13. Escrow dan 10–12% komissiya ayirib to'lovimni olishni xohlayman.
+14. Xaridor tomonidan sifatsiz qaytarish da'vosiga javob berishni xohlayman.
+15. O'z reytingim va sharhlarimni ko'rishni xohlayman.
+
+### Admin
+
+16. Yangi ishlab chiqaruvchi so'rovlarini ko'rib, tasdiqlash yoki rad etishni xohlayman.
+17. Bahsli buyurtmalarda ikki tomonning dalillarini ko'rib, 24 soat ichida qaror beraman.
+18. Escrow dagi pul harakatini nazorat qilishni xohlayman.
 
 ---
 
-## 5. Ma'lumot Modeli
+## 5. Implementatsiya Qarorlari
 
-**Asosiy ob'ektlar va ular orasidagi bog'lanish:**
+| Soha | Qaror |
+|---|---|
+| **Komissiya** | Ishlab chiqaruvchi har bir bitimdan 10–12% to'laydi |
+| **To'lov** | Payme + Click, escrow rejimida |
+| **Logistika** | BTS Pochta (200+ nuqta), xaridor to'laydi |
+| **O'lchov** | Rulon (metr emas — har rulonda turli metr) |
+| **Minimum buyurtma** | 1 rulon |
+| **Filtrlar** | Kategoriya + narx oralig'i |
+| **Onboarding** | Founder qo'lda tasdiqlaydi, birinchilar — shaxsiy tanishlar |
+| **Qaytarish** | To'liq pul qaytariladi, logistika — aybdor tomon zimmasida |
+| **Bahslar** | Rasm/video + moderator 24 soatda qaror |
+| **Reyting** | 5 yulduz + qisqa matn sharh |
+| **MVP platforma** | Faqat Web (mobil keyinroq) |
+| **Marketing** | Telegram kanallar + Instagram targeted ads |
+
+---
+
+## 6. Ma'lumot Modeli
 
 ```
 Foydalanuvchi (rol: xaridor / ishlab chiqaruvchi / admin)
@@ -83,7 +120,7 @@ Foydalanuvchi (rol: xaridor / ishlab chiqaruvchi / admin)
 
 ---
 
-## 6. Tashqi Servislar
+## 7. Tashqi Servislar
 
 | Servis | Nima uchun |
 |---|---|
@@ -93,12 +130,45 @@ Foydalanuvchi (rol: xaridor / ishlab chiqaruvchi / admin)
 
 ---
 
-## 7. Universal Pattern Jadvali
+## 8. Test Qarorlari
 
-| Pattern | LolaMarket da aniq javob |
-|---|---|
-| **Kim foydalanuvchi va qanday rollar** (→ Dars 10) | **Xaridor** — katalogdan tanlaydi, to'laydi, yetkazib oladi · **Ishlab chiqaruvchi** — mahsulot qo'shadi, buyurtma qabul qiladi, komissiya to'laydi · **Admin** — tasdiqlaydi, bahslarni 24 soatda hal qiladi |
-| **Asosiy amal — mahsulotning yuragi** (→ Dars 11) | Xaridor 1+ rulon tanlaydi → Payme/Click orqali escrow to'laydi → BTS Pochta yetkazadi → pul ishlab chiqaruvchiga o'tadi (−10–12%) |
-| **Ma'lumot modeli: ob'ektlar va bog'lanishlar** (→ Dars 9) | Mahsulot (ishlab chiqaruvchiga tegishli) → Buyurtma (xaridor yaratadi) → To'lov (escrow) → BTS Nuqtasi (yetkazish) → ixtiyoriy Bahsli Holat |
-| **Qaysi tashqi servislar kerak** (→ Dars 13) | Payme + Click (to'lov, escrow) · BTS Pochta API (logistika, nuqta ko'rsatish) |
-| **Admin nimani boshqaradi** (→ Dars 14) | Yangi ishlab chiqaruvchilarni tasdiqlash · bahsli holatlarda qaror (24 soat) · escrow dan ishlab chiqaruvchiga pul o'tkazish · refund qilish |
+- **Escrow oqimi:** To'lov → saqlash → yetkazish → chiqarish — har bosqich alohida testlanadi
+- **Qaytarish:** Sifatli (logistika xaridorda) va sifatsiz (logistika ishlab chiqaruvchida) scenariylar
+- **BTS integratsiyasi:** Eng yaqin nuqta aniqlash to'g'riligi
+- **Komissiya:** 10–12% to'g'ri ayirilishi
+
+---
+
+## 9. Scope Tashqarisida (MVP uchun)
+
+- Mobil ilova (iOS/Android)
+- Chat/xabar tizimi — katalog va buyurtma yetarli
+- Ishlab chiqaruvchi o'z-o'zini ro'yxatdan o'tkazish
+- Ko'p valyuta — faqat so'm
+- Uzum Logistics, Yandex Delivery — faqat BTS
+- Onboarding rag'batlantirish — keyinroq qaror qilinadi
+
+---
+
+## 10. Sprint Xaritasi
+
+| Sprint | Nima | Dars |
+|---|---|---|
+| 0 | Dizayn va ekranlar | 7 |
+| 1 | MVP skelet + deploy | 8 |
+| 2 | Ma'lumotlar bazasi | 9 |
+| 3 | Foydalanuvchilar + rollar | 10 |
+| 4 | Asosiy funksiya (katalog, buyurtma, escrow) | 11 |
+| 5 | Mobil / PWA | 12 |
+| 6 | Integratsiyalar (Payme, Click, BTS) | 13 |
+| 7 | Admin panel | 14 |
+| 8 | Sifat tekshiruvi | 15 |
+| 9 | Production + launch | 16 |
+
+---
+
+## 11. Muvaffaqiyat Metrikalari (birinchi 30 kun)
+
+- 20–30 tasdiqlangan ishlab chiqaruvchi
+- 50–100 birinchi buyurtma
+- 0 hal qilinmagan bahsli holat
