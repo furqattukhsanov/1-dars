@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>LolaMarket</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+  <div id="root">
+
+    <!-- ===== HEADER ===== -->
+    <header id="app-header">
+      <button id="btn-back" class="icon-btn hidden" onclick="goBack()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <div id="header-brand" class="header-brand">
+        <span class="header-logo-wrap">
+          <svg width="34" height="34" viewBox="0 0 34 34" fill="none">
+            <rect width="34" height="34" rx="9" fill="url(#hbg)"/>
+            <path d="M17 9c-1 0-5.5 3.5-5.5 8.5S16 25 17 25s5.5-3 5.5-7.5S18 9 17 9z" fill="rgba(255,255,255,0.92)"/>
+            <path d="M17 13c-.5 0-3 2-3 4.5S16.5 22 17 22s3-1.5 3-4.5-2.5-4.5-3-4.5z" fill="#7a140d"/>
+            <defs><linearGradient id="hbg" x1="0" y1="0" x2="34" y2="34" gradientUnits="userSpaceOnUse"><stop stop-color="#C9362D"/><stop offset="1" stop-color="#510100"/></linearGradient></defs>
+          </svg>
+        </span>
+      </div>
+      <div id="header-text" class="header-text">
+        <span id="header-title" class="header-title">LolaMarket</span>
+        <span id="header-sub" class="header-sub">Telegram Mini App</span>
+      </div>
+      <div class="header-spacer"></div>
+      <button id="btn-header-search" class="icon-btn" onclick="navigate('search')">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M20 20l-3.5-3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+      <button class="icon-btn notif-btn">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M18 8.5a6 6 0 0 0-12 0c0 6-2.5 7.5-2.5 7.5h17S18 14.5 18 8.5z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M10.2 19.5a2 2 0 0 0 3.6 0" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        <span class="notif-dot"></span>
+      </button>
+    </header>
+
+    <!-- ===== SCREEN CONTENT ===== -->
+    <div id="screen-wrap"></div>
+
+    <!-- ===== BOTTOM NAV ===== -->
+    <nav id="app-nav">
+      <button class="nav-item" data-tab="home" onclick="navigate('home')">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5z" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/><path d="M9 21V12h6v9" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/></svg>
+        <span>Bosh sahifa</span>
+      </button>
+      <button class="nav-item" data-tab="catalog" onclick="navigate('catalog')">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.9"/><rect x="14" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.9"/><rect x="3" y="14" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.9"/><rect x="14" y="14" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.9"/></svg>
+        <span>Katalog</span>
+      </button>
+      <button class="nav-item" data-tab="search" onclick="navigate('search')">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.9"/><path d="M20 20l-3.5-3.5" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>
+        <span>Qidiruv</span>
+      </button>
+      <button class="nav-item" data-tab="cart" onclick="navigate('cart')">
+        <span class="nav-icon-wrap">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M6 2L3 6v13a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4H6z" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/><path d="M3 6h18" stroke="currentColor" stroke-width="1.9"/><path d="M16 10a4 4 0 0 1-8 0" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>
+          <span class="cart-badge hidden" id="cart-badge">0</span>
+        </span>
+        <span>Savat</span>
+      </button>
+      <button class="nav-item" data-tab="orders" onclick="navigate('orders')">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/><rect x="9" y="3" width="6" height="4" rx="1" stroke="currentColor" stroke-width="1.9"/><path d="M9 12h6M9 16h4" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>
+        <span>Buyurtmalar</span>
+      </button>
+    </nav>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

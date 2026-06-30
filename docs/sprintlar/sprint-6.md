@@ -1,6 +1,6 @@
 # Sprint 6 — Integratsiyalar (Dars 13)
 
-**Holat:** kutilmoqda
+**Holat:** jarayonda
 
 ---
 
@@ -40,10 +40,12 @@ Tashqi servislarni (Payme, Click, BTS Pochta) to'liq ishga tushirish va Telegram
 
 ## Qilingan ishlar
 
-_(hozircha bo'sh)_
+- [2026-06-30] MVP Telegram Mini App ekranlar ro'yxati tuzildi — 8 ta ekran aniqlandi, minimal MVP uchun 5 ta ekran belgilandi
+- [2026-06-30] LolaMarket Telegram Mini App to'liq implement qilindi — telegram-app/index.html, styles.css, app.js yaratildi (8 ekran: Bosh sahifa, Katalog, Mahsulot detail, Qidiruv, Savat, Buyurtma berish, Muvaffaqiyat, Buyurtmalarim; Glassmorphism dizayn tizimi asosida)
 
 ---
 
 ## Qarorlar
 
-_(hozircha bo'sh)_
+- [2026-06-30] Qaror: Telegram Mini App uchun pure HTML/CSS/JS tanlandi (Next.js emas) — tezroq deploy, Telegram SDK bilan to'g'ridan-to'g'ri integratsiya, server kerak emas
+- [2026-06-30] Qaror: Glassmorphism dizayn tizimi — Telegram dark theme bilan uyg'un, zamonaviy ko'rinish uchun
