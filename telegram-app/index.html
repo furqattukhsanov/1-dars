@@ -33,7 +33,7 @@
         <span id="header-sub" class="header-sub">Telegram Mini App</span>
       </div>
       <div class="header-spacer"></div>
-      <button id="btn-header-search" class="icon-btn" onclick="navigate('search')">
+      <button id="btn-header-search" class="icon-btn hidden" onclick="navigate('search')">
         <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M20 20l-3.5-3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
       </button>
       <button class="icon-btn notif-btn">
@@ -45,32 +45,53 @@
     <!-- ===== SCREEN CONTENT ===== -->
     <div id="screen-wrap"></div>
 
-    <!-- ===== BOTTOM NAV ===== -->
-    <nav id="app-nav">
-      <button class="nav-item" data-tab="home" onclick="navigate('home')">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5z" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/><path d="M9 21V12h6v9" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/></svg>
-        <span>Bosh sahifa</span>
+    <!-- ===== MAIN ACTION BUTTON (detail / checkout) ===== -->
+    <div id="main-btn-bar" class="main-btn-bar hidden">
+      <button class="main-action-btn" onclick="mainBtnAction()">
+        <span id="main-btn-label">Savatga qo'shish</span>
+        <span id="main-btn-sub" class="main-btn-sub">$0.00</span>
       </button>
-      <button class="nav-item" data-tab="catalog" onclick="navigate('catalog')">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.9"/><rect x="14" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.9"/><rect x="3" y="14" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.9"/><rect x="14" y="14" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.9"/></svg>
-        <span>Katalog</span>
-      </button>
-      <button class="nav-item" data-tab="search" onclick="navigate('search')">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.9"/><path d="M20 20l-3.5-3.5" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>
-        <span>Qidiruv</span>
-      </button>
-      <button class="nav-item" data-tab="cart" onclick="navigate('cart')">
-        <span class="nav-icon-wrap">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M6 2L3 6v13a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4H6z" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/><path d="M3 6h18" stroke="currentColor" stroke-width="1.9"/><path d="M16 10a4 4 0 0 1-8 0" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>
-          <span class="cart-badge hidden" id="cart-badge">0</span>
-        </span>
-        <span>Savat</span>
-      </button>
-      <button class="nav-item" data-tab="orders" onclick="navigate('orders')">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/><rect x="9" y="3" width="6" height="4" rx="1" stroke="currentColor" stroke-width="1.9"/><path d="M9 12h6M9 16h4" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>
-        <span>Buyurtmalar</span>
+    </div>
+
+    <!-- ===== BOTTOM NAV: dark pill + profile ===== -->
+    <nav id="app-nav" class="app-nav-wrap">
+      <!-- 4-tab dark pomegranate pill -->
+      <div class="nav-pill" id="nav-pill">
+        <!-- sliding white glass lens -->
+        <div id="nav-lens" class="nav-lens">
+          <div class="nav-lens-sheen"></div>
+        </div>
+        <!-- Home -->
+        <button id="nav-home" class="nav-tab" onclick="tab('home')">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5z" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/><path d="M9 21V12h6v9" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/></svg>
+          <span class="nav-label">Bosh</span>
+        </button>
+        <!-- Catalog -->
+        <button id="nav-catalog" class="nav-tab" onclick="tab('catalog')">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.9"/><rect x="14" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.9"/><rect x="3" y="14" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.9"/><rect x="14" y="14" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.9"/></svg>
+          <span class="nav-label">Katalog</span>
+        </button>
+        <!-- Cart -->
+        <button id="nav-cart" class="nav-tab" onclick="tab('cart')">
+          <span class="nav-icon-wrap">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M6 2L3 6v13a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4H6z" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/><path d="M3 6h18" stroke="currentColor" stroke-width="1.9"/><path d="M16 10a4 4 0 0 1-8 0" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>
+            <span id="cart-badge" class="cart-badge hidden">0</span>
+          </span>
+          <span class="nav-label">Savat</span>
+        </button>
+        <!-- Orders -->
+        <button id="nav-orders" class="nav-tab" onclick="tab('orders')">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/><rect x="9" y="3" width="6" height="4" rx="1" stroke="currentColor" stroke-width="1.9"/><path d="M9 12h6M9 16h4" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>
+          <span class="nav-label">Buyurtma</span>
+        </button>
+      </div>
+
+      <!-- Separate profile pill button -->
+      <button id="nav-profile" class="nav-profile-btn" onclick="tab('profile')">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="1.9"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>
       </button>
     </nav>
+
   </div>
 
   <!-- Toast -->
