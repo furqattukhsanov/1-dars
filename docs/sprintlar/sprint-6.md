@@ -42,6 +42,12 @@ Tashqi servislarni (Payme, Click, BTS Pochta) to'liq ishga tushirish va Telegram
 
 - [2026-06-30] MVP Telegram Mini App ekranlar ro'yxati tuzildi — 8 ta ekran aniqlandi, minimal MVP uchun 5 ta ekran belgilandi
 - [2026-06-30] LolaMarket Telegram Mini App to'liq implement qilindi — telegram-app/index.html, styles.css, app.js yaratildi (8 ekran: Bosh sahifa, Katalog, Mahsulot detail, Qidiruv, Savat, Buyurtma berish, Muvaffaqiyat, Buyurtmalarim; Glassmorphism dizayn tizimi asosida)
+- [2026-06-30] app.js to'liq qayta yozildi — 8 ta haqiqiy mahsulot (ik-1402, ad-0890, sz-3310, ck-2201, hb-7740, lk-5512, ik-9001, pl-3320), CSS textile pattern (adras, ikat, suzani, herringbone, weave), USD narxlar, Dilnoza Tekstil MChJ kompaniya ma'lumotlari, to'g'ri kategoriyalar va buyurtmalar, to'lov usullari
+- [2026-06-30] index.html qayta yozildi — dark pomegranate pill nav (4 tab + alohida profil tugmasi), main action button footer (detail/checkout), to'g'ri HTML tuzilmasi
+- [2026-06-30] styles.css to'liq qayta yozildi — dizayn tokenlar, dark pomegranate pill, sliding lens effekti, glassmorphism
+- [2026-06-30] Server deploy: telegram-app/ rsync orqali 65.21.180.44:/var/www/lolamarket/mini-app/ ga yuklandi
+- [2026-06-30] Telegram bot menu button URL https://lolamarket.uz/mini-app/ ga sozlandi
+- [2026-06-30] Bilingual (uz/ru) interfeys qo'shildi
 
 ---
 
@@ -49,3 +55,6 @@ Tashqi servislarni (Payme, Click, BTS Pochta) to'liq ishga tushirish va Telegram
 
 - [2026-06-30] Qaror: Telegram Mini App uchun pure HTML/CSS/JS tanlandi (Next.js emas) — tezroq deploy, Telegram SDK bilan to'g'ridan-to'g'ri integratsiya, server kerak emas
 - [2026-06-30] Qaror: Glassmorphism dizayn tizimi — Telegram dark theme bilan uyg'un, zamonaviy ko'rinish uchun
+- [2026-06-30] Qaror: Dark pomegranate pill nav (sliding lens) — Telegram Mini App uchun native ko'rinishli navigatsiya, UX yaxshilash uchun
+- [2026-06-30] Qaror: USD narxlar — B2B bozor uchun dollar narx ko'rsatish qulay, eksport yo'nalishi hisobga olindi
+- [2026-06-30] Qaror: CSS textile pattern (SVG) — mahsulot kartalarida haqiqiy to'qima patternlar, vizual identifikatsiya uchun
