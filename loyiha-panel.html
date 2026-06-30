@@ -190,6 +190,37 @@
     .badge-jarayonda  { background: rgba(200,162,75,0.15); color: #8B6914; border: 1px solid rgba(200,162,75,0.4); }
     .badge-tugadi     { background: rgba(56,161,105,0.12); color: #276749; border: 1px solid rgba(56,161,105,0.35); }
 
+    .faoliyat-item {
+      display: flex;
+      align-items: baseline;
+      gap: 0.6rem;
+      padding: 0.45rem 0;
+      border-bottom: 1px solid rgba(107,16,32,0.07);
+      flex-wrap: wrap;
+    }
+    .faoliyat-item:last-child { border-bottom: none; }
+    .faoliyat-sana {
+      font-size: 0.62rem;
+      color: #B8A090;
+      flex-shrink: 0;
+      font-family: monospace;
+    }
+    .faoliyat-text {
+      font-size: 0.75rem;
+      color: #4A2D1A;
+      flex: 1;
+      min-width: 0;
+    }
+    .faoliyat-sprint {
+      font-size: 0.6rem;
+      font-weight: 600;
+      background: rgba(107,16,32,0.08);
+      color: #6B1020;
+      padding: 0.1rem 0.45rem;
+      border-radius: 99px;
+      flex-shrink: 0;
+    }
+
     footer {
       text-align: center;
       font-size: 0.68rem;
@@ -295,6 +326,23 @@
   </div>
 
   <div class="sprints" id="sprints"></div>
+
+  <!-- So'nggi faoliyat -->
+  <div class="glass" style="border-radius:14px; padding:1rem 1.4rem;">
+    <div style="font-size:0.68rem; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; color:#9C7B5A; margin-bottom:0.7rem;">So'nggi faoliyat</div>
+    <div id="faoliyat-list">
+      <div class="faoliyat-item">
+        <span class="faoliyat-sana">2026-06-30</span>
+        <span class="faoliyat-text">MVP Telegram Mini App implement qilindi — 8 ekran, Glassmorphism dizayn (telegram-app/)</span>
+        <span class="faoliyat-sprint">Sprint 6</span>
+      </div>
+      <div class="faoliyat-item">
+        <span class="faoliyat-sana">2026-06-28</span>
+        <span class="faoliyat-text">Dizayn ekranlari va PRD birlashtirildi, loyiha panel yangilandi</span>
+        <span class="faoliyat-sprint">Sprint 0</span>
+      </div>
+    </div>
+  </div>
 
   <footer>Hisobotchi agenti tomonidan avtomatik yangilanadi</footer>
 
