@@ -1,0 +1,39 @@
+/* ============================================================
+   Lolamarket — Spacing & sizing tokens
+   4px base unit, gentle progression. Generous by default —
+   glass surfaces breathe.
+   ============================================================ */
+
+:root {
+  --space-0:  0;
+  --space-1:  0.25rem;  /* 4 */
+  --space-2:  0.5rem;   /* 8 */
+  --space-3:  0.75rem;  /* 12 */
+  --space-4:  1rem;     /* 16 */
+  --space-5:  1.25rem;  /* 20 */
+  --space-6:  1.5rem;   /* 24 */
+  --space-7:  2rem;     /* 32 */
+  --space-8:  2.5rem;   /* 40 */
+  --space-9:  3rem;     /* 48 */
+  --space-10: 4rem;     /* 64 */
+  --space-11: 5rem;     /* 80 */
+  --space-12: 6rem;     /* 96 */
+
+  /* Radii — soft, generous */
+  --radius-xs:   6px;
+  --radius-sm:   10px;
+  --radius-md:   14px;
+  --radius-lg:   20px;
+  --radius-xl:   28px;
+  --radius-2xl:  36px;
+  --radius-pill: 999px;
+
+  /* Control heights */
+  --control-sm: 34px;
+  --control-md: 42px;
+  --control-lg: 52px;
+
+  /* Layout */
+  --container-max: 1240px;
+  --gutter:        var(--space-6);
+}

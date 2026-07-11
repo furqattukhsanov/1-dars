@@ -1,0 +1,100 @@
+/* ============================================================
+   Lolamarket — Color tokens
+   Palette rooted in Central Asian textile dyes:
+   pomegranate/tulip coral, Samarkand turquoise, saffron gold,
+   on a deep indigo "night bazaar" neutral ramp.
+   ============================================================ */
+
+:root {
+  /* ---- Brand: Lola (tulip / pomegranate) — primary ---- */
+  --lola-50:  #FFF1EF;
+  --lola-100: #FFDED9;
+  --lola-200: #FFBCB2;
+  --lola-300: #FB948A;
+  --lola-400: #F46A5F;
+  --lola-500: #E84B40;  /* core brand */
+  --lola-600: #C9362D;
+  --lola-700: #A32921;
+  --lola-800: #7C201A;
+  --lola-900: #571814;
+
+  /* ---- Samarkand turquoise — secondary ---- */
+  --teal-50:  #E8FBFC;
+  --teal-100: #C4F4F7;
+  --teal-200: #8FE9EF;
+  --teal-300: #54D7E1;
+  --teal-400: #25BECB;
+  --teal-500: #119DAB;  /* core secondary */
+  --teal-600: #0C7F8C;
+  --teal-700: #0C656F;
+  --teal-800: #0D4F57;
+  --teal-900: #0B3A40;
+
+  /* ---- Saffron gold — accent / highlight ---- */
+  --saffron-50:  #FFF8EA;
+  --saffron-100: #FDECC4;
+  --saffron-200: #FBD888;
+  --saffron-300: #F6C04A;
+  --saffron-400: #EFA91F;
+  --saffron-500: #D98E0C;  /* core accent */
+  --saffron-600: #B06F09;
+  --saffron-700: #89540C;
+  --saffron-800: #6B4210;
+  --saffron-900: #4E300E;
+
+  /* ---- Indigo "night" — neutral ramp (cool, slightly violet) ---- */
+  --ink-0:   #FFFFFF;
+  --ink-25:  #F8F9FC;
+  --ink-50:  #F1F3F9;
+  --ink-100: #E4E7F1;
+  --ink-200: #CDD2E3;
+  --ink-300: #AAB2CC;
+  --ink-400: #7E88A8;
+  --ink-500: #5C6488;
+  --ink-600: #444C6E;
+  --ink-700: #333A57;
+  --ink-800: #232842;
+  --ink-900: #171A30;
+  --ink-950: #0E1022;
+
+  /* ---- Semantic status ---- */
+  --success-500: #1FA971;
+  --success-100: #D5F2E4;
+  --warning-500: #E59413;
+  --warning-100: #FCEACB;
+  --danger-500:  #E5484D;
+  --danger-100:  #FBDDDE;
+  --info-500:    #2E76E8;
+  --info-100:    #D7E5FD;
+
+  /* ============================================================
+     Semantic aliases — use these in components
+     ============================================================ */
+
+  /* Brand roles */
+  --color-primary:        var(--lola-500);
+  --color-primary-hover:  var(--lola-600);
+  --color-primary-press:  var(--lola-700);
+  --color-primary-soft:   var(--lola-50);
+  --color-secondary:      var(--teal-500);
+  --color-secondary-hover:var(--teal-600);
+  --color-accent:         var(--saffron-500);
+
+  /* Text */
+  --text-strong:   var(--ink-900);
+  --text-body:     var(--ink-700);
+  --text-muted:    var(--ink-500);
+  --text-subtle:   var(--ink-400);
+  --text-on-color: #FFFFFF;
+  --text-link:     var(--teal-600);
+
+  /* Page + surfaces (glass handled in effects.css) */
+  --page-bg:        #EEF1FA;
+  --surface-solid:  #FFFFFF;
+  --surface-sunken: var(--ink-25);
+  --border-hair:    rgba(23, 26, 48, 0.10);
+  --border-strong:  rgba(23, 26, 48, 0.18);
+
+  /* Focus ring */
+  --focus-ring: rgba(17, 157, 171, 0.45);
+}

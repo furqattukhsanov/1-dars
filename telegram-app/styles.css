@@ -27,9 +27,10 @@
   --teal-50:  #EBF8F9;
 
   /* Saffron */
-  --saffron-700: #8A5B00;
-  --saffron-500: #EFA91F;
-  --saffron-50:  #FEF6E4;
+  --saffron-700: #89540C;
+  --saffron-500: #D98E0C;
+  --saffron-400: #EFA91F;
+  --saffron-50:  #FFF8EA;
 
   /* Ink */
   --ink-900: #171A30;
@@ -42,9 +43,10 @@
   --ink-100: #E8EAF0;
 
   /* Status */
-  --success-500: #2AB466;
-  --success-100: #D1F4E4;
-  --danger-500:  #E84B40;
+  --success-500: #1FA971;
+  --success-100: #D5F2E4;
+  --danger-500:  #E5484D;
+  --danger-100:  #FBDDDE;
 
   /* --- Metin --- */
   --text-strong:  var(--ink-900);
@@ -57,26 +59,26 @@
   --surface-solid: #FFFFFF;
 
   /* --- Shisha (glassmorphism) --- */
-  --glass-fill:         rgba(255, 255, 255, 0.52);
+  --glass-fill:         rgba(255, 255, 255, 0.55);
   --glass-fill-strong:  rgba(255, 255, 255, 0.72);
-  --glass-border:       rgba(255, 255, 255, 0.72);
-  --glass-border-soft:  rgba(255, 255, 255, 0.55);
-  --glass-highlight:    0 5px 16px -12px rgba(81,1,0,.14), inset 0 1px 0 rgba(255,255,255,.88);
-  --glass-shadow:       0 8px 22px -10px rgba(81,1,0,.18), 0 1px 2px rgba(23,26,48,.06), inset 0 1px 0 rgba(255,255,255,.9);
+  --glass-border:       rgba(255, 255, 255, 0.65);
+  --glass-border-soft:  rgba(255, 255, 255, 0.40);
+  --glass-highlight:    inset 0 1px 0 0 rgba(255, 255, 255, 0.7);
+  --glass-shadow:       0 14px 40px -14px rgba(23,26,48,.28), 0 2px 8px rgba(23,26,48,.06), var(--glass-highlight);
 
   /* --- Blur --- */
-  --blur-sm:  blur(8px) saturate(150%);
-  --blur-md:  blur(16px) saturate(160%);
-  --blur-lg:  blur(24px) saturate(170%);
+  --blur-sm:  blur(8px) saturate(140%);
+  --blur-md:  blur(16px) saturate(150%);
+  --blur-lg:  blur(28px) saturate(160%);
 
   /* --- Radius --- */
   --radius-sm: 10px;
   --radius-md: 14px;
-  --radius-lg: 18px;
-  --radius-xl: 24px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
 
   /* --- Soya --- */
-  --shadow-sm: 0 4px 12px -6px rgba(81,1,0,.36);
+  --shadow-sm: 0 2px 6px rgba(23,26,48,.07), 0 1px 2px rgba(23,26,48,.06);
 
   /* --- Shrift --- */
   --font-display: 'Bricolage Grotesque', system-ui, sans-serif;
@@ -140,7 +142,14 @@ body {
   box-shadow: 0 1px 0 rgba(23,26,48,.06), 0 4px 12px -8px rgba(81,1,0,.12);
 }
 .header-brand { display: flex; align-items: center; gap: 9px; }
-.header-logo-wrap { display: flex; align-items: center; }
+.header-logo-wrap {
+  display: flex;
+  padding: 2px;
+  border-radius: 50%;
+  background: linear-gradient(150deg, rgba(255,229,210,.9), rgba(122,20,13,.55));
+  box-shadow: 0 3px 10px -3px rgba(81,1,0,.5);
+}
+.header-logo-img { display: block; border-radius: 50%; object-fit: cover; }
 .header-text { display: flex; flex-direction: column; gap: 1px; flex: 1; min-width: 0; }
 .header-title { font-family: var(--font-display); font-size: 18px; font-weight: 800; color: var(--text-strong); letter-spacing: -0.02em; line-height: 1.1; }
 .header-sub { font-size: 11px; color: var(--text-muted); font-weight: 500; }
@@ -149,14 +158,14 @@ body {
 .icon-btn {
   flex: none;
   width: 38px; height: 38px;
-  border-radius: 12px;
-  border: 1px solid rgba(255,255,255,.72);
-  background: rgba(255,255,255,.52);
-  backdrop-filter: blur(12px) saturate(150%);
-  -webkit-backdrop-filter: blur(12px) saturate(150%);
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,.7);
+  background: rgba(255,255,255,.55);
+  backdrop-filter: blur(20px) saturate(170%);
+  -webkit-backdrop-filter: blur(20px) saturate(170%);
   display: flex; align-items: center; justify-content: center;
   color: var(--text-body);
-  box-shadow: 0 4px 10px -6px rgba(81,1,0,.14), inset 0 1px 0 rgba(255,255,255,.88);
+  box-shadow: 0 6px 18px -8px rgba(81,1,0,.28), 0 1px 2px rgba(23,26,48,.06), inset 0 1px 0 rgba(255,255,255,.9);
 }
 .icon-btn:active { background: rgba(255,255,255,.82); }
 .notif-btn { position: relative; }

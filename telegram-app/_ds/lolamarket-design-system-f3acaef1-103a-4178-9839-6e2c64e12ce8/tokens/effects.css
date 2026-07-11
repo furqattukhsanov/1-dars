@@ -1,0 +1,72 @@
+/* ============================================================
+   Lolamarket — Effects: glass, shadow, blur, gradients
+   The signature of the system. Frosted surfaces refract a
+   soft color-mesh page background.
+   ============================================================ */
+
+:root {
+  /* ---- Glass fills (light surfaces) ---- */
+  --glass-fill:        rgba(255, 255, 255, 0.55);
+  --glass-fill-strong: rgba(255, 255, 255, 0.72);
+  --glass-fill-soft:   rgba(255, 255, 255, 0.38);
+  --glass-fill-sunken: rgba(240, 243, 252, 0.45);
+
+  /* Glass fills on dark / over imagery */
+  --glass-dark:        rgba(23, 26, 48, 0.45);
+  --glass-dark-strong: rgba(23, 26, 48, 0.62);
+
+  /* ---- Glass borders & highlights ---- */
+  --glass-border:      rgba(255, 255, 255, 0.65);
+  --glass-border-soft: rgba(255, 255, 255, 0.40);
+  /* top inner highlight that makes glass read as a lens */
+  --glass-highlight:   inset 0 1px 0 0 rgba(255, 255, 255, 0.7);
+  --glass-edge-dark:   inset 0 0 0 1px rgba(23, 26, 48, 0.06);
+
+  /* ---- Backdrop blur strengths ---- */
+  --blur-sm:  blur(8px) saturate(140%);
+  --blur-md:  blur(16px) saturate(150%);
+  --blur-lg:  blur(28px) saturate(160%);
+  --blur-xl:  blur(40px) saturate(170%);
+
+  /* ---- Shadows — soft, layered, cool-tinted ---- */
+  --shadow-xs: 0 1px 2px rgba(23, 26, 48, 0.06);
+  --shadow-sm: 0 2px 6px rgba(23, 26, 48, 0.07), 0 1px 2px rgba(23, 26, 48, 0.06);
+  --shadow-md: 0 8px 20px -6px rgba(23, 26, 48, 0.14), 0 2px 6px rgba(23, 26, 48, 0.06);
+  --shadow-lg: 0 18px 40px -12px rgba(23, 26, 48, 0.22), 0 4px 10px rgba(23, 26, 48, 0.07);
+  --shadow-xl: 0 32px 70px -18px rgba(23, 26, 48, 0.30), 0 8px 18px rgba(23, 26, 48, 0.08);
+
+  /* Colored glows for primary/teal emphasis */
+  --glow-primary: 0 10px 30px -8px rgba(232, 75, 64, 0.45);
+  --glow-teal:    0 10px 30px -8px rgba(17, 157, 171, 0.42);
+
+  /* ---- Composed glass shadow (use on cards) ---- */
+  --glass-shadow:
+    0 14px 40px -14px rgba(23, 26, 48, 0.28),
+    0 2px 8px rgba(23, 26, 48, 0.06),
+    var(--glass-highlight);
+
+  /* ---- Signature page background: Central Asian "ikat" color mesh ---- */
+  --mesh-bg:
+    radial-gradient(42% 50% at 12% 18%, rgba(37, 190, 203, 0.42) 0%, rgba(37, 190, 203, 0) 60%),
+    radial-gradient(40% 46% at 88% 12%, rgba(246, 192, 74, 0.40) 0%, rgba(246, 192, 74, 0) 58%),
+    radial-gradient(46% 52% at 82% 88%, rgba(244, 106, 95, 0.40) 0%, rgba(244, 106, 95, 0) 60%),
+    radial-gradient(50% 56% at 24% 92%, rgba(124, 92, 220, 0.30) 0%, rgba(124, 92, 220, 0) 62%),
+    linear-gradient(160deg, #EEF1FA 0%, #E7ECF8 100%);
+
+  /* Hero gradient (brand-forward) */
+  --gradient-brand: linear-gradient(135deg, var(--lola-500) 0%, var(--saffron-400) 100%);
+  --gradient-teal:  linear-gradient(135deg, var(--teal-400) 0%, var(--teal-600) 100%);
+
+  /* ---- Motion ---- */
+  --ease-out:    cubic-bezier(0.22, 0.61, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --dur-fast:    120ms;
+  --dur-base:    200ms;
+  --dur-slow:    340ms;
+}
+
+/* Helper class consumers/cards can apply to a page */
+.lola-mesh {
+  background: var(--mesh-bg);
+  background-attachment: fixed;
+}

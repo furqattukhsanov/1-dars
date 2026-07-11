@@ -332,6 +332,31 @@
     <div style="font-size:0.68rem; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; color:#9C7B5A; margin-bottom:0.7rem;">So'nggi faoliyat</div>
     <div id="faoliyat-list">
       <div class="faoliyat-item">
+        <span class="faoliyat-sana">2026-07-11</span>
+        <span class="faoliyat-text">Backend skaffold boshlandi (lolamarket-next/): @supabase/supabase-js o'rnatildi, lib/supabase.ts, .env.example, to'liq SQL migratsiya (10 jadval + RLS policy'lar) yaratildi</span>
+        <span class="faoliyat-sprint">Sprint 2</span>
+      </div>
+      <div class="faoliyat-item">
+        <span class="faoliyat-sana">2026-07-11</span>
+        <span class="faoliyat-text">Backend/API rejasi tayyorlandi (Supabase: jadvallar, RLS, order state machine, Edge Functions, auth oqimi) va Sprint 2 fayliga yozildi</span>
+        <span class="faoliyat-sprint">Sprint 2</span>
+      </div>
+      <div class="faoliyat-item">
+        <span class="faoliyat-sana">2026-07-11</span>
+        <span class="faoliyat-text">app.js ga to'liq ikki tillilik (RU) qo'shildi — STR obyekti (80+ kalit), bilingual mahsulot/kategoriya/buyurtma ma'lumotlari, til almashtirish tugmasi to'liq ishga tushirildi va serverga deploy qilindi</span>
+        <span class="faoliyat-sprint">Sprint 1</span>
+      </div>
+      <div class="faoliyat-item">
+        <span class="faoliyat-sana">2026-07-11</span>
+        <span class="faoliyat-text">Dizayn manbasi (LolaMarket Mini App.dc.html, 897 qator) to'liq o'qildi, joriy implementatsiya bilan solishtirildi va Sprint 1 fayli Mini App MVP rejasiga qayta yozildi</span>
+        <span class="faoliyat-sprint">Sprint 1</span>
+      </div>
+      <div class="faoliyat-item">
+        <span class="faoliyat-sana">2026-07-11</span>
+        <span class="faoliyat-text">Header ikon tugmalar doiraga o'zgartirildi, haqiqiy LolaMarket tulip logotipi (Photo/logo/) qo'yildi, design tokenlar (_ds/) saqlandi, styles.css glassmorphism qiymatlari dizaynga moslashtirildi, Profil ekrani qayta qurildi va serverga deploy qilindi</span>
+        <span class="faoliyat-sprint">Sprint 1</span>
+      </div>
+      <div class="faoliyat-item">
         <span class="faoliyat-sana">2026-06-30</span>
         <span class="faoliyat-text">app.js, index.html, styles.css qayta yozildi — 8 real mahsulot, dark pomegranate pill nav, sliding lens, bilingual uz/ru, server deploy va bot menu URL sozlandi</span>
         <span class="faoliyat-sprint">Sprint 6</span>
@@ -356,8 +381,8 @@
 <script>
   const sprintlar = [
     { num: 0, nom: "Dizayn va ekranlar",        dars: "Dars 7",  holat: "jarayonda",  sana: "2026-06-28" },
-    { num: 1, nom: "MVP skelet + deploy",       dars: "Dars 8",  holat: "kutilmoqda", sana: "" },
-    { num: 2, nom: "Ma'lumotlar bazasi",        dars: "Dars 9",  holat: "kutilmoqda", sana: "" },
+    { num: 1, nom: "Telegram Mini App MVP",     dars: "Dars 8",  holat: "jarayonda",  sana: "2026-07-11" },
+    { num: 2, nom: "Ma'lumotlar bazasi / Backend", dars: "Dars 9",  holat: "jarayonda", sana: "2026-07-11" },
     { num: 3, nom: "Foydalanuvchilar + rollar", dars: "Dars 10", holat: "kutilmoqda", sana: "" },
     { num: 4, nom: "Asosiy funksiya",           dars: "Dars 11", holat: "kutilmoqda", sana: "" },
     { num: 5, nom: "Mobil / PWA",               dars: "Dars 12", holat: "kutilmoqda", sana: "" },
@@ -385,7 +410,7 @@
   barEl.style.width = foiz + "%";
   percentEl.textContent = foiz + "%";
   countEl.textContent = tugaganlar + " / " + sprintlar.length + " sprint";
-  updatedEl.textContent = "Yangilanish: 2026-06-30";
+  updatedEl.textContent = "Yangilanish: 2026-07-11";
 
   sprintlar.forEach(s => {
     const card = document.createElement("div");
