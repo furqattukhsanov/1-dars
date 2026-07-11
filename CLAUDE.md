@@ -36,6 +36,7 @@ LolaMarket — O'zbekistonda to'qima materiallar uchun B2B web platforma.
 - **Sayt:** lolamarket.uz (Cloudflare CDN)
 - **GitHub:** `furqattukhsanov/1-dars` (statik sayt)
 - **Next.js GitHub:** `furqattukhsanov/lolamarket-next`
+- **Telegram bot bildirishnoma relay:** serverda `/opt/lolamarket-notify/server.js` (systemd servis `lolamarket-notify`), nginx'da `/api/telegram-notify` proxy — bot token faqat server `.env`da, git repo'ga kirmaydi
 
 ## Til
 

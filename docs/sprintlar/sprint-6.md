@@ -48,6 +48,7 @@ Tashqi servislarni (Payme, Click, BTS Pochta) to'liq ishga tushirish va Telegram
 - [2026-06-30] Server deploy: telegram-app/ rsync orqali 65.21.180.44:/var/www/lolamarket/mini-app/ ga yuklandi
 - [2026-06-30] Telegram bot menu button URL https://lolamarket.uz/mini-app/ ga sozlandi
 - [2026-06-30] Bilingual (uz/ru) interfeys qo'shildi
+- [2026-07-12] Buyurtma tasdiqlanganda Telegram bot bildirishnomasi yuborish ishga tushirildi — `telegram-app/app.js`ga `sendOrderNotify()` qo'shildi (checkout yakunlanganda `/api/telegram-notify`ga POST yuboradi). Serverda (`65.21.180.44`) Node.js relay xizmati (`/opt/lolamarket-notify/server.js`, systemd servis `lolamarket-notify`) va nginx'da `/api/telegram-notify` proxy location o'rnatildi
 
 ---
 
@@ -58,3 +59,4 @@ Tashqi servislarni (Payme, Click, BTS Pochta) to'liq ishga tushirish va Telegram
 - [2026-06-30] Qaror: Dark pomegranate pill nav (sliding lens) — Telegram Mini App uchun native ko'rinishli navigatsiya, UX yaxshilash uchun
 - [2026-06-30] Qaror: USD narxlar — B2B bozor uchun dollar narx ko'rsatish qulay, eksport yo'nalishi hisobga olindi
 - [2026-06-30] Qaror: CSS textile pattern (SVG) — mahsulot kartalarida haqiqiy to'qima patternlar, vizual identifikatsiya uchun
+- [2026-07-12] Qaror: Telegram bot bildirishnomasi uchun alohida Node.js relay xizmati serverda ishlatiladi (bot token faqat server `.env`da, git repo'ga kirmaydi) — bot tokenini frontend/git orqali oshkor qilmaslik uchun

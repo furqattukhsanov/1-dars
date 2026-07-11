@@ -55,7 +55,11 @@
   --text-subtle:  var(--ink-300);
 
   /* --- Yuzalar --- */
-  --surface-app:   linear-gradient(160deg, #FBF6EC 0%, #F4EDE0 35%, #EBF4F5 70%, #F0F4FF 100%);
+  --surface-app:
+    radial-gradient(120% 70% at 12% 0%, rgba(255,241,232,.3) 0%, transparent 46%),
+    radial-gradient(120% 60% at 100% 8%, rgba(248,225,214,.2) 0%, transparent 44%),
+    radial-gradient(130% 80% at 90% 100%, rgba(122,20,13,.03) 0%, transparent 52%),
+    linear-gradient(160deg, #FFFDFB, #FDF7F4);
   --surface-solid: #FFFFFF;
 
   /* --- Shisha (glassmorphism) --- */
@@ -124,6 +128,33 @@ body {
   height: 100%;
   height: 100dvh;
   overflow: hidden;
+}
+
+/* ===== KATTA OYNADA (brauzer, Telegram tashqarisida) — telefon ramkasi =====
+   Telegram ichida (in-telegram klassi) hech narsa o'zgarmaydi. */
+@media (min-width: 560px) {
+  html:not(.in-telegram) body {
+    height: 100vh;
+    overflow: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(120% 90% at 50% -10%, #363c68 0%, #171a30 55%, #0e1022 100%);
+    padding: 32px;
+  }
+  html:not(.in-telegram) #root {
+    flex: none;
+    width: 420px;
+    max-width: 100%;
+    height: 860px;
+    max-height: 100%;
+    border-radius: 44px;
+    background: var(--surface-app);
+    box-shadow:
+      0 50px 120px -30px rgba(0, 0, 0, .55),
+      0 0 0 10px #1e2140,
+      0 0 0 12px rgba(255, 255, 255, .08);
+  }
 }
 
 /* ===== HEADER ===== */
@@ -228,7 +259,7 @@ body {
   background: transparent;
 }
 
-/* Dark pomegranate pill */
+/* Light glass pill */
 .nav-pill {
   position: relative;
   flex: 1;
@@ -237,29 +268,31 @@ body {
   height: 60px;
   padding: 0 7px;
   border-radius: 30px;
-  background: linear-gradient(150deg, #7a140d, #510100);
-  border: 1px solid rgba(255,229,210,.22);
+  background: linear-gradient(160deg, rgba(255,255,255,.92), rgba(255,255,255,.78));
+  backdrop-filter: blur(26px) saturate(180%);
+  -webkit-backdrop-filter: blur(26px) saturate(180%);
+  border: 1px solid rgba(255,255,255,.9);
   box-shadow:
-    0 12px 34px -10px rgba(81,1,0,.5),
-    0 2px 8px -2px rgba(81,1,0,.4),
-    inset 0 1px 0 rgba(255,229,210,.28),
-    inset 0 -1px 2px rgba(0,0,0,.2);
+    0 12px 34px -10px rgba(81,1,0,.28),
+    0 2px 8px -2px rgba(81,1,0,.14),
+    inset 0 1px 0 rgba(255,255,255,.95),
+    inset 0 -1px 2px rgba(81,1,0,.05);
 }
 
-/* Sliding white lens */
+/* Sliding dark pomegranate lens */
 .nav-lens {
   position: absolute;
   top: 7px; bottom: 7px;
   left: 7px;
   width: calc((100% - 14px) / 4);
   border-radius: 22px;
-  background: linear-gradient(160deg, rgba(255,255,255,.98), rgba(255,255,255,.86));
-  border: 1px solid rgba(255,255,255,1);
+  background: linear-gradient(155deg, #a51f13 0%, #7a140d 48%, #480100 100%);
+  border: 1px solid rgba(255,229,210,.3);
   box-shadow:
-    0 6px 14px -4px rgba(81,1,0,.3),
+    0 6px 14px -4px rgba(81,1,0,.5),
     0 1px 3px rgba(23,26,48,.16),
-    inset 0 1px 1px rgba(255,255,255,1),
-    inset 0 -2px 4px rgba(0,0,0,.04);
+    inset 0 1px 1px rgba(255,229,210,.28),
+    inset 0 -2px 4px rgba(0,0,0,.2);
   transition: left 480ms cubic-bezier(.34,1.56,.64,1);
   pointer-events: none;
   z-index: 1;
@@ -268,7 +301,7 @@ body {
   position: absolute;
   top: 3px; left: 14%; right: 14%;
   height: 38%; border-radius: 999px;
-  background: linear-gradient(rgba(255,255,255,.85), rgba(255,255,255,0));
+  background: linear-gradient(rgba(255,229,210,.4), rgba(255,229,210,0));
 }
 
 /* Nav tab buttons */
@@ -282,7 +315,7 @@ body {
   gap: 3px;
   border: none;
   background: transparent;
-  color: rgba(255,250,247,.96);
+  color: rgba(122,20,13,.5);
   z-index: 2;
   padding: 0;
   transition: color var(--dur-fast);
@@ -301,31 +334,35 @@ body {
 .cart-badge {
   position: absolute;
   top: -5px; right: -8px;
-  min-width: 18px; height: 18px;
+  min-width: 17px; height: 17px;
   padding: 0 4px; border-radius: 999px;
-  background: var(--color-primary);
-  color: #fff;
+  background: #7a140d;
+  color: #ffe9db;
   font-family: var(--font-mono);
-  font-size: 10px; font-weight: 600;
+  font-size: 10px; font-weight: 700;
   display: flex; align-items: center; justify-content: center;
-  border: 1.5px solid #7a140d;
+  border: 1.5px solid #fff;
 }
 
-/* Profile pill button */
+/* Profile pill button — default light glass, active (on profile screen) dark pomegranate */
 .nav-profile-btn {
   flex: none;
   width: 60px; height: 60px;
   border-radius: 26px;
-  border: 1px solid rgba(255,229,210,.22);
-  background: linear-gradient(150deg, #7a140d, #510100);
-  color: rgba(255,250,247,.96);
+  border: 1px solid rgba(255,255,255,.9);
+  background: linear-gradient(160deg, rgba(255,255,255,.92), rgba(255,255,255,.78));
+  backdrop-filter: blur(26px) saturate(180%);
+  -webkit-backdrop-filter: blur(26px) saturate(180%);
+  color: rgba(122,20,13,.5);
   display: flex; align-items: center; justify-content: center;
-  box-shadow:
-    0 12px 34px -10px rgba(81,1,0,.5),
-    0 2px 8px -2px rgba(81,1,0,.4),
-    inset 0 1px 0 rgba(255,229,210,.28),
-    inset 0 -1px 2px rgba(0,0,0,.2);
-  transition: color var(--dur-fast);
+  box-shadow: 0 12px 34px -10px rgba(81,1,0,.28), inset 0 1px 0 rgba(255,255,255,.95);
+  transition: all 480ms cubic-bezier(.34,1.56,.64,1);
+}
+.nav-profile-btn.active {
+  border-color: rgba(255,229,210,.3);
+  background: linear-gradient(155deg, #a51f13 0%, #7a140d 48%, #480100 100%);
+  color: #ffe9db;
+  box-shadow: 0 6px 14px -4px rgba(81,1,0,.5), inset 0 1px 1px rgba(255,229,210,.28);
 }
 
 /* ===== ANIMATSIYALAR ===== */

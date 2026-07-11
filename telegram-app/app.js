@@ -118,12 +118,12 @@ const RECENT_SEARCHES = {
 };
 
 const COMPANY = {
-  name:{ uz:"Dilnoza Tekstil MChJ", ru:"ООО «Dilnoza Tekstil»" },
+  name:{ uz:"Muazzamxon Tekstil MChJ", ru:"ООО «Muazzamxon Tekstil»" },
   role:{ uz:"Xaridor · B2B", ru:"Покупатель · B2B" },
   addr:{ uz:"Toshkent, Yunusobod t., Amir Temur ko'ch. 12", ru:"Ташкент, Юнусабадский р-н, ул. Амира Темура 12" },
   since:{ uz:"2024 yildan beri", ru:"с 2024 года" },
   phone:"+998 90 123 45 67",
-  email:"savdo@dilnoza.uz", initials:"DT",
+  email:"savdo@muazzamxon.uz", initials:"MT",
 };
 
 // ============ HOLAT ============
@@ -140,6 +140,7 @@ const S = {
   liked: { 'ik-9001': true },
   lang: 'uz',
   notif: true,
+  comment: '',
 };
 
 // ============ YORDAMCHILAR ============
@@ -334,13 +335,13 @@ function updateNav() {
       lensEl.style.left = `calc(7px + ${lensIdx} * ((100% - 14px) / 4))`;
     }
 
-    const activeColor = '#651007';
-    const inactiveColor = 'rgba(255,250,247,.96)';
-    document.getElementById('nav-home').style.color    = (sc==='home')   ? activeColor : inactiveColor;
-    document.getElementById('nav-catalog').style.color = (sc==='catalog') ? activeColor : inactiveColor;
-    document.getElementById('nav-cart').style.color    = (sc==='cart')    ? activeColor : inactiveColor;
+    const activeColor = '#ffe9db';
+    const inactiveColor = 'rgba(122,20,13,.5)';
+    document.getElementById('nav-home').style.color    = (sc==='home')    ? activeColor : inactiveColor;
+    document.getElementById('nav-catalog').style.color = (sc==='catalog' || sc==='detail') ? activeColor : inactiveColor;
+    document.getElementById('nav-cart').style.color    = (sc==='cart' || sc==='checkout')  ? activeColor : inactiveColor;
     document.getElementById('nav-orders').style.color  = (sc==='orders')  ? activeColor : inactiveColor;
-    document.getElementById('nav-profile').style.color = (sc==='profile') ? '#ffffff'   : inactiveColor;
+    document.getElementById('nav-profile').classList.toggle('active', sc === 'profile');
 
     const badge = document.getElementById('cart-badge');
     const cnt = cartCount();
@@ -367,32 +368,27 @@ function renderHome() {
   return `
   <div style="padding:10px 16px 28px;display:flex;flex-direction:column;gap:14px">
     <div>
-      <div style="font-family:var(--font-display);font-size:20px;font-weight:800;color:var(--text-strong);letter-spacing:-.02em;line-height:1.15">${T.greet} 🌷</div>
-      <div style="font-size:12.5px;color:var(--text-muted);margin-top:2px">${T.greetSub}</div>
+      <div style="font-family:var(--font-display);font-size:19px;font-weight:800;color:var(--text-strong);letter-spacing:-.02em;line-height:1.15">${T.greet} 🌷</div>
+      <div style="font-size:12.5px;color:var(--text-muted);margin-top:1px">${T.greetSub}</div>
     </div>
 
-    <div style="display:flex;align-items:center;gap:9px">
-      <button onclick="tab('search')" style="flex:1;display:flex;align-items:center;gap:10px;height:48px;padding:0 16px;border:1px solid rgba(255,255,255,.7);border-radius:var(--radius-md);background:rgba(255,255,255,.55);backdrop-filter:blur(20px) saturate(170%);-webkit-backdrop-filter:blur(20px) saturate(170%);box-shadow:0 8px 22px -10px rgba(81,1,0,.18),0 1px 2px rgba(23,26,48,.06),inset 0 1px 0 rgba(255,255,255,.9);cursor:pointer;color:var(--text-subtle);font-size:14.5px;font-family:var(--font-sans)">
+    <div style="display:flex;align-items:center;gap:9px;margin-top:2px">
+      <button onclick="tab('search')" style="flex:1;min-width:0;display:flex;align-items:center;gap:10px;height:48px;padding:0 16px;border:1px solid rgba(255,255,255,.7);border-radius:var(--radius-md);background:rgba(255,255,255,.55);backdrop-filter:blur(20px) saturate(170%);-webkit-backdrop-filter:blur(20px) saturate(170%);box-shadow:0 8px 22px -10px rgba(81,1,0,.22),0 1px 2px rgba(23,26,48,.06),inset 0 1px 0 rgba(255,255,255,.9);cursor:pointer;color:var(--text-subtle);font-size:14.5px;font-family:var(--font-sans)">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M20 20l-3.5-3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-        ${T.searchPh}
+        <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${T.searchPh}</span>
       </button>
       <button onclick="tab('catalog')" style="flex:none;width:48px;height:48px;border-radius:var(--radius-md);background:linear-gradient(150deg,#7a140d,#510100);border:1px solid rgba(255,229,210,.25);box-shadow:0 6px 16px -6px rgba(81,1,0,.6),inset 0 1px 0 rgba(255,229,210,.22);display:flex;align-items:center;justify-content:center;color:#ffe5d2">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M4 6h16M7 12h10M10 18h4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
       </button>
     </div>
 
-    <div style="display:flex;align-items:center;padding:12px 14px;border-radius:var(--radius-md);background:rgba(255,255,255,.6);backdrop-filter:blur(16px) saturate(160%);-webkit-backdrop-filter:blur(16px) saturate(160%);border:1px solid rgba(255,255,255,.55);gap:10px;box-shadow:0 5px 16px -12px rgba(81,1,0,.14)">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style="flex:none;color:var(--color-secondary)"><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
-      <span style="font-size:12.5px;color:var(--text-muted)">${T.verifiedMills}</span>
-    </div>
-
-    <div style="display:flex;align-items:center;justify-content:space-between">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:2px">
       <span style="font-family:var(--font-display);font-size:17px;font-weight:700;color:var(--text-strong)">${T.featured}</span>
       <button onclick="tab('catalog')" style="font-size:13px;font-weight:600;color:var(--teal-600);background:none;border:none;cursor:pointer">${T.all} ›</button>
     </div>
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-      ${featured.map(p => productCard(p, true)).join('')}
+      ${featured.map(p => homeCard(p)).join('')}
     </div>
   </div>`;
 }
@@ -421,7 +417,7 @@ function renderCatalog() {
 
     ${prods.length === 0
       ? `<div style="text-align:center;padding:40px;color:var(--text-muted)">${T.noProducts}</div>`
-      : `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">${prods.map(p => productCard(p, false)).join('')}</div>`}
+      : `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">${prods.map(p => productCard(p)).join('')}</div>`}
   </div>`;
 }
 
@@ -460,7 +456,7 @@ function renderDetail() {
         <div style="flex:1;min-width:0">
           <div style="display:flex;align-items:center;gap:5px;font-size:14px;font-weight:700;color:var(--text-strong)">
             <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.supplier}</span>
-            ${p.verified ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="var(--teal-500)"><path d="M12 2l2.4 1.8 3-.2 1 2.8 2.6 1.5-.9 2.9.9 2.9-2.6 1.5-1 2.8-3-.2L12 22l-2.4-1.8-3 .2-1-2.8L3 16.3l.9-2.9L3 10.5l2.6-1.5 1-2.8 3 .2z"/><path d="M9 12l2 2 4-4" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>` : ''}
+            ${p.verified ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="#7a140d"><path d="M12 2l2.4 1.8 3-.2 1 2.8 2.6 1.5-.9 2.9.9 2.9-2.6 1.5-1 2.8-3-.2L12 22l-2.4-1.8-3 .2-1-2.8L3 16.3l.9-2.9L3 10.5l2.6-1.5 1-2.8 3 .2z"/><path d="M9 12l2 2 4-4" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>` : ''}
           </div>
           <div style="font-size:12px;color:var(--text-muted)">${p.city} · ${T.verified}</div>
         </div>
@@ -470,7 +466,7 @@ function renderDetail() {
       </div>
 
       <div>
-        <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--teal-500);margin-bottom:10px">${T.specs}</div>
+        <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#7a140d;margin-bottom:10px">${T.specs}</div>
         <div style="border:1px solid var(--border-hair);border-radius:var(--radius-md);overflow:hidden">
           ${[[T.width, p.width],[T.weight, p.weight],[T.comp, p.comp],[T.leadTime, p.leadLabel],[T.minOrder, p.moqLabel]].map(([k,v],i) => `
           <div style="display:flex;justify-content:space-between;padding:11px 14px;background:${i%2===0?'var(--glass-fill)':'rgba(240,243,252,.45)'};${i>0?'border-top:1px solid var(--border-hair)':''}" >
@@ -494,7 +490,7 @@ function renderDetail() {
       </div>
 
       <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-muted)">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" style="flex:none;color:var(--teal-500)"><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" style="flex:none;color:#7a140d"><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
         ${T.escrowNote}
       </div>
     </div>
@@ -538,7 +534,7 @@ function renderSearch() {
             </button>
           `).join('')}
         </div>
-        <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--teal-500);margin-bottom:11px">${T.featured}</div>
+        <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#7a140d;margin-bottom:11px">${T.featured}</div>
         ${PRODUCTS.slice(0,3).map(p => searchRow(vm(p))).join('')}
       </div>
     `}
@@ -621,7 +617,7 @@ function renderCheckout() {
   <div style="padding:16px 16px 28px;display:flex;flex-direction:column;gap:16px">
     <div>
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:9px">
-        <span style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--teal-500)">${T.address}</span>
+        <span style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#7a140d">${T.address}</span>
         <button style="font-size:12.5px;font-weight:600;color:var(--teal-600);background:none;border:none;cursor:pointer">${T.changeAddr}</button>
       </div>
       <div style="display:flex;gap:12px;padding:14px;border-radius:var(--radius-md);background:rgba(255,255,255,.62);backdrop-filter:blur(16px) saturate(160%);-webkit-backdrop-filter:blur(16px) saturate(160%);border:1px solid rgba(255,255,255,.55);box-shadow:0 5px 16px -12px rgba(81,1,0,.12)">
@@ -634,13 +630,13 @@ function renderCheckout() {
     </div>
 
     <div>
-      <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--teal-500);margin-bottom:9px">${T.payment}</div>
+      <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#7a140d;margin-bottom:9px">${T.payment}</div>
       <div style="display:flex;flex-direction:column;gap:9px">
         ${PAY.map(o => {
           const sel = S.pay === o.key;
-          return `<button onclick="setPay('${o.key}')" style="display:flex;align-items:center;gap:12px;width:100%;text-align:left;cursor:pointer;padding:13px 14px;border-radius:var(--radius-md);background:rgba(255,255,255,.55);backdrop-filter:blur(16px) saturate(160%);-webkit-backdrop-filter:blur(16px) saturate(160%);border:1.5px solid ${sel ? 'var(--color-secondary)' : 'var(--border-hair)'};transition:border-color 200ms">
-            <div style="flex:none;width:20px;height:20px;border-radius:50%;border:2px solid ${sel ? 'var(--color-secondary)' : 'var(--ink-300)'};display:flex;align-items:center;justify-content:center">
-              <div style="width:9px;height:9px;border-radius:50%;background:${sel ? 'var(--color-secondary)' : 'transparent'}"></div>
+          return `<button onclick="setPay('${o.key}')" style="display:flex;align-items:center;gap:12px;width:100%;text-align:left;cursor:pointer;padding:13px 14px;border-radius:var(--radius-md);background:rgba(255,255,255,.55);backdrop-filter:blur(16px) saturate(160%);-webkit-backdrop-filter:blur(16px) saturate(160%);border:1.5px solid ${sel ? '#7a140d' : 'var(--border-hair)'};transition:border-color 200ms">
+            <div style="flex:none;width:20px;height:20px;border-radius:50%;border:2px solid ${sel ? '#7a140d' : 'var(--ink-300)'};display:flex;align-items:center;justify-content:center">
+              <div style="width:9px;height:9px;border-radius:50%;background:${sel ? '#7a140d' : 'transparent'}"></div>
             </div>
             <div style="flex:1">
               <div style="font-size:14px;font-weight:700;color:var(--text-strong)">${o.label[S.lang]}</div>
@@ -652,12 +648,12 @@ function renderCheckout() {
     </div>
 
     <div>
-      <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--teal-500);margin-bottom:9px">${T.commentL}</div>
-      <textarea placeholder="${T.commentPh}" rows="3" style="width:100%;resize:none;padding:12px 14px;border:1px solid var(--border-hair);border-radius:var(--radius-md);background:var(--glass-fill-strong);font-family:var(--font-sans);font-size:14px;color:var(--text-strong);outline:none;box-shadow:var(--glass-highlight)"></textarea>
+      <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#7a140d;margin-bottom:9px">${T.commentL}</div>
+      <textarea id="checkout-comment" oninput="S.comment=this.value" placeholder="${T.commentPh}" rows="3" style="width:100%;resize:none;padding:12px 14px;border:1px solid var(--border-hair);border-radius:var(--radius-md);background:var(--glass-fill-strong);font-family:var(--font-sans);font-size:14px;color:var(--text-strong);outline:none;box-shadow:var(--glass-highlight)">${S.comment || ''}</textarea>
     </div>
 
     <div>
-      <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--teal-500);margin-bottom:9px">${T.summary}</div>
+      <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#7a140d;margin-bottom:9px">${T.summary}</div>
       <div style="padding:14px 16px;border-radius:var(--radius-md);background:rgba(255,255,255,.62);backdrop-filter:blur(16px) saturate(160%);-webkit-backdrop-filter:blur(16px) saturate(160%);border:1px solid rgba(255,255,255,.55);box-shadow:0 5px 16px -12px rgba(81,1,0,.12)">
         ${S.cart.map(c => {
           const p = byId(c.id);
@@ -677,7 +673,7 @@ function renderSuccess() {
   const T = STR[S.lang];
   return `
   <div style="padding:50px 28px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:14px">
-    <span style="width:88px;height:88px;border-radius:50%;background:linear-gradient(135deg,var(--teal-400),var(--teal-600));display:flex;align-items:center;justify-content:center;color:#fff;box-shadow:0 10px 30px -8px rgba(17,157,171,.42);animation:pop var(--dur-slow) var(--ease-spring)">
+    <span style="width:88px;height:88px;border-radius:50%;background:linear-gradient(155deg,#a51f13 0%,#7a140d 48%,#480100 100%);display:flex;align-items:center;justify-content:center;color:#ffe9db;box-shadow:0 14px 34px -10px rgba(81,1,0,.5);animation:pop var(--dur-slow) var(--ease-spring)">
       <svg width="46" height="46" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4 10-11" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </span>
     <div style="font-family:var(--font-display);font-size:23px;font-weight:800;color:var(--text-strong);letter-spacing:-.02em">${T.orderPlaced}</div>
@@ -726,11 +722,10 @@ function renderOrders() {
           </div>
           <span style="font-family:var(--font-mono);font-size:15px;font-weight:600;color:var(--text-strong)">${money(total)}</span>
         </div>
-        ${o.statusKey!=='delivered' ? `
         <div style="display:flex;gap:9px;margin-top:13px">
           <button style="flex:1;height:38px;border-radius:var(--radius-sm);border:1px solid var(--glass-border);background:var(--glass-fill-strong);font-size:13px;font-weight:600;color:var(--text-strong);cursor:pointer">${T.track}</button>
-          <button style="flex:1;height:38px;border-radius:var(--radius-sm);border:none;background:linear-gradient(135deg,#8f1a10,#510100);font-size:13px;font-weight:600;color:#ffe9db;cursor:pointer">${T.reorder}</button>
-        </div>` : ''}
+          <button style="flex:1;height:38px;border-radius:var(--radius-sm);border:1px solid var(--border-hair);background:transparent;font-size:13px;font-weight:600;color:var(--teal-600);cursor:pointer">${T.reorder}</button>
+        </div>
       </div>`;
     }).join('')}
   </div>`;
@@ -776,7 +771,7 @@ function renderProfile() {
       <div style="display:flex;align-items:center;gap:12px;padding:13px 14px;border-bottom:1px solid var(--border-hair)">
         <svg width="19" height="19" viewBox="0 0 24 24" fill="none" style="flex:none;color:var(--text-muted)"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M10 21a2 2 0 0 0 4 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
         <span style="flex:1;font-size:14px;font-weight:600;color:var(--text-strong)">${T.notifications}</span>
-        <span onclick="toggleNotif()" style="cursor:pointer;width:44px;height:26px;border-radius:999px;background:${S.notif?'var(--color-secondary)':'var(--ink-200)'};position:relative;flex:none;transition:background var(--dur-base) var(--ease-out)"><span style="position:absolute;top:3px;${S.notif?'right':'left'}:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:var(--shadow-sm);transition:left var(--dur-base) var(--ease-out),right var(--dur-base) var(--ease-out)"></span></span>
+        <span onclick="toggleNotif()" style="cursor:pointer;width:44px;height:26px;border-radius:999px;background:${S.notif?'#7a140d':'var(--ink-200)'};position:relative;flex:none;transition:background var(--dur-base) var(--ease-out)"><span style="position:absolute;top:3px;${S.notif?'right':'left'}:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:var(--shadow-sm);transition:left var(--dur-base) var(--ease-out),right var(--dur-base) var(--ease-out)"></span></span>
       </div>
       <div style="display:flex;align-items:center;gap:12px;padding:13px 14px">
         <svg width="19" height="19" viewBox="0 0 24 24" fill="none" style="flex:none;color:var(--text-muted)"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M9.5 9a2.5 2.5 0 0 1 4.5 1.5c0 1.7-2.5 2-2.5 2M12 17h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
@@ -788,28 +783,47 @@ function renderProfile() {
   </div>`;
 }
 
-// ============ MAHSULOT KARTA ============
-function productCard(p, showLike) {
+// ============ MAHSULOT KARTA — KATALOG (badge + supplier/verified + meta) ============
+function productCard(p) {
   return `
-  <div onclick="openProduct('${p.id}')" style="cursor:pointer;background:var(--glass-fill);backdrop-filter:var(--blur-lg);-webkit-backdrop-filter:var(--blur-lg);border:1px solid var(--glass-border-soft);border-radius:var(--radius-lg);box-shadow:0 6px 16px -12px rgba(81,1,0,.14),0 1px 2px rgba(23,26,48,.04);overflow:hidden;display:flex;flex-direction:column">
+  <div onclick="openProduct('${p.id}')" style="cursor:pointer;background:var(--glass-fill);backdrop-filter:var(--blur-lg);-webkit-backdrop-filter:var(--blur-lg);border:1px solid var(--glass-border-soft);border-radius:var(--radius-lg);box-shadow:0 6px 16px -12px rgba(81,1,0,.16),0 1px 2px rgba(23,26,48,.04);overflow:hidden;display:flex;flex-direction:column">
     <div style="position:relative;height:104px;background:${p.bg};background-size:${p.bgSize}">
-      ${p.badgeShow ? `<span style="position:absolute;top:8px;left:8px;display:inline-flex;align-items:center;height:22px;padding:0 9px;border-radius:999px;font-size:11px;font-weight:600;background:${p.badgeBg};color:${p.badgeFg}">${p.badge}</span>` : ''}
-      ${showLike ? `
-        <button onclick="event.stopPropagation();toggleLike('${p.id}')" style="position:absolute;top:8px;right:8px;width:32px;height:32px;border-radius:50%;border:1px solid rgba(255,255,255,.6);background:rgba(255,255,255,.42);backdrop-filter:blur(10px) saturate(160%);-webkit-backdrop-filter:blur(10px) saturate(160%);display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px -2px rgba(23,26,48,.22),inset 0 1px 0 rgba(255,255,255,.8)">
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="${p.heartFill}" style="color:${p.heartStroke}"><path d="M12 21s-7-4.5-9.2-8.4C1.2 9.6 2.6 6 6 6c2 0 3.2 1.2 4 2.3C10.8 7.2 12 6 14 6c3.4 0 4.8 3.6 3.2 6.6C19 16.5 12 21 12 21z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
-        </button>` : ''}
+      ${p.badgeShow ? `<span style="position:absolute;top:8px;left:8px;display:inline-flex;align-items:center;height:21px;padding:0 8px;border-radius:999px;font-size:10.5px;font-weight:600;background:${p.badgeBg};color:${p.badgeFg}">${p.badge}</span>` : ''}
     </div>
-    <div style="padding:11px 12px 13px;display:flex;flex-direction:column;gap:4px;flex:1">
+    <div style="padding:10px 11px 12px;display:flex;flex-direction:column;gap:4px;flex:1">
       <div style="font-family:var(--font-display);font-size:13.5px;font-weight:700;color:var(--text-strong);line-height:1.2;letter-spacing:-.01em">${p.name}</div>
       <div style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text-muted)">
         <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.supplier}</span>
-        ${p.verified ? `<svg width="11" height="11" viewBox="0 0 24 24" fill="var(--teal-500)" style="flex:none"><path d="M12 2l2.4 1.8 3-.2 1 2.8 2.6 1.5-.9 2.9.9 2.9-2.6 1.5-1 2.8-3-.2L12 22l-2.4-1.8-3 .2-1-2.8L3 16.3l.9-2.9L3 10.5l2.6-1.5 1-2.8 3 .2z"/><path d="M9 12l2 2 4-4" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>` : ''}
+        ${p.verified ? `<svg width="12" height="12" viewBox="0 0 24 24" fill="#7a140d" style="flex:none"><path d="M12 2l2.4 1.8 3-.2 1 2.8 2.6 1.5-.9 2.9.9 2.9-2.6 1.5-1 2.8-3-.2L12 22l-2.4-1.8-3 .2-1-2.8L3 16.3l.9-2.9L3 10.5l2.6-1.5 1-2.8 3 .2z"/><path d="M9 12l2 2 4-4" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>` : ''}
       </div>
       <div style="font-family:var(--font-mono);font-size:10px;color:var(--text-subtle)">${p.meta}</div>
-      <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-top:auto;padding-top:5px">
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-top:auto;padding-top:6px">
         <span><span style="font-family:var(--font-mono);font-size:15.5px;font-weight:600;color:var(--text-strong)">${p.priceLabel}</span><span style="font-size:10.5px;color:var(--text-muted)">/${uShort(p.unit)}</span></span>
         <button onclick="event.stopPropagation();addToCart('${p.id}',${p.moq})" style="flex:none;width:28px;height:28px;border-radius:50%;border:1px solid var(--glass-border);background:var(--glass-fill-strong);color:var(--text-strong);display:flex;align-items:center;justify-content:center;box-shadow:var(--glass-highlight);cursor:pointer">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ============ MAHSULOT KARTA — BOSH SAHIFA (badge + like, supplier/meta yo'q) ============
+function homeCard(p) {
+  return `
+  <div onclick="openProduct('${p.id}')" style="cursor:pointer;background:var(--glass-fill);backdrop-filter:var(--blur-lg);-webkit-backdrop-filter:var(--blur-lg);border:1px solid var(--glass-border-soft);border-radius:var(--radius-lg);box-shadow:0 6px 16px -12px rgba(81,1,0,.16),0 1px 2px rgba(23,26,48,.04);overflow:hidden;display:flex;flex-direction:column">
+    <div style="position:relative;height:104px;background:${p.bg};background-size:${p.bgSize}">
+      ${p.badgeShow ? `<span style="position:absolute;top:9px;left:9px;display:inline-flex;align-items:center;height:22px;padding:0 9px;border-radius:999px;font-size:11px;font-weight:600;background:${p.badgeBg};color:${p.badgeFg}">${p.badge}</span>` : ''}
+      <button onclick="event.stopPropagation();toggleLike('${p.id}')" style="position:absolute;top:9px;right:9px;width:32px;height:32px;border-radius:50%;border:1px solid rgba(255,255,255,.6);background:rgba(255,255,255,.42);backdrop-filter:blur(10px) saturate(160%);-webkit-backdrop-filter:blur(10px) saturate(160%);display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px -2px rgba(23,26,48,.28),inset 0 1px 0 rgba(255,255,255,.8)">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="${p.heartFill}" style="color:${p.heartStroke}"><path d="M12 20.8s-6.9-4.3-9-8a5.2 5.2 0 0 1-.5-3.7A4.8 4.8 0 0 1 6.3 5.5c1.9 0 3.4 1 4.3 2.3.4.6 1 .6 1.4 0 .9-1.3 2.4-2.3 4.3-2.3a4.8 4.8 0 0 1 3.8 3.6 5.2 5.2 0 0 1-.5 3.7c-2.1 3.7-9 8-9 8z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+    <div style="padding:11px 12px 13px;display:flex;flex-direction:column;gap:5px">
+      <div style="font-family:var(--font-display);font-size:14.5px;font-weight:700;color:var(--text-strong);line-height:1.2;letter-spacing:-.01em">${p.name}</div>
+      <div style="font-size:11.5px;color:var(--text-muted)">${p.city}</div>
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-top:3px">
+        <span><span style="font-family:var(--font-mono);font-size:16px;font-weight:600;color:var(--text-strong)">${p.priceLabel}</span><span style="font-size:11px;color:var(--text-muted)">${p.unitLabel}</span></span>
+        <button onclick="event.stopPropagation();addToCart('${p.id}',${p.moq})" style="flex:none;width:30px;height:30px;border-radius:50%;border:1px solid var(--glass-border);background:var(--glass-fill-strong);color:var(--text-strong);display:flex;align-items:center;justify-content:center;box-shadow:var(--glass-highlight);cursor:pointer">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
         </button>
       </div>
     </div>
@@ -842,14 +856,40 @@ function onSearch(v) {
 function clearSearch() { S.search=''; document.getElementById('screen-wrap').innerHTML=renderSearch(); document.getElementById('search-inp')?.focus(); }
 function pickSearch(v) { S.search=v; document.getElementById('screen-wrap').innerHTML=renderSearch(); }
 
+function sendOrderNotify() {
+  try {
+    const items = S.cart.map(c => {
+      const p = byId(c.id);
+      return { name: p.name[S.lang], qty: `${num(c.qty)} ${uShort(p.unit)}`, price: money(p.price * c.qty) };
+    });
+    const payOpt = PAY.find(o => o.key === S.pay);
+    const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user?.username;
+    fetch('/api/telegram-notify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        buyerName: COMPANY.name[S.lang],
+        tgUser: tgUser || undefined,
+        address: COMPANY.addr[S.lang],
+        payment: payOpt ? payOpt.label[S.lang] : S.pay,
+        comment: S.comment || '',
+        items,
+        total: money(cartTotal()),
+      }),
+    }).catch(() => {});
+  } catch (e) {}
+}
+
 function mainBtnAction() {
   if (S.screen === 'detail') {
     addToCart(S.selectedId, S.qty);
     tab('cart');
   } else if (S.screen === 'checkout') {
+    sendOrderNotify();
     S.cart = [];
     S.screen = 'success';
     S.history = [];
+    S.comment = '';
     render();
   }
 }
@@ -869,8 +909,10 @@ function render() {
 }
 
 // ============ ISHGA TUSHIRISH ============
+const inTelegram = !!(window.Telegram?.WebApp?.initData);
 if (window.Telegram?.WebApp) {
   Telegram.WebApp.ready();
   Telegram.WebApp.expand();
 }
+document.documentElement.classList.toggle('in-telegram', inTelegram);
 render();

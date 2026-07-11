@@ -70,6 +70,8 @@ Dizayn manbasi: pure HTML/CSS/JS, glassmorphism dizayn tizimi, ikki tillilik (uz
 - [2026-07-11] Design tokenlar (`tokens/colors.css`, `typography.css`, `spacing.css`, `effects.css`, `fonts.css`) dizayn manbasidan olinib `telegram-app/_ds/` ga saqlandi
 - [2026-07-11] `styles.css` dagi glassmorphism va rang tokenlari dizayn qiymatlariga moslashtirildi, Profil ekrani qayta qurildi
 - [2026-07-11] Tuzatilgan versiya serverga qayta deploy qilindi
+- [2026-07-12] Dizayn manbasi bilan yana bir bor to'liq solishtirilib tuzatildi: pastki navigatsiya pill rangi to'g'rilandi (aktiv/nofaol holat teskari edi), teal→pomegranate rang xatosi (~14 joyda) tuzatildi, kompaniya nomi "Dilnoza Tekstil MChJ" → "Muazzamxon Tekstil MChJ" ga o'zgartirildi, Bosh sahifadagi o'ylab topilgan banner olib tashlandi, Bosh/Katalog uchun alohida kartochka shablonlari (`homeCard`/`productCard`) ajratildi, "Qayta buyurtma" tugmasi va fon gradienti dizaynga moslashtirildi
+- [2026-07-12] Katta oynada (desktop brauzer) ko'rinish qo'shildi — Telegram tashqarisida 560px+ enda telefon-ramka ko'rinishi (`@media (min-width:560px)`), Telegram ichida hech narsa o'zgarmaydi. Cache-busting uchun fayl versiyalari (`?v=2`, `?v=3`) oshirildi. Serverga qayta deploy qilindi
 
 ---
 
