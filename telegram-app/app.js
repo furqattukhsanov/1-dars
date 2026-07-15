@@ -327,7 +327,7 @@ function updateHeader() {
     const p = byId(S.selectedId);
     titleEl.textContent = p ? p.name[S.lang] : T.product;
     subEl.style.display = 'block';
-    subEl.textContent   = p ? p.city[S.lang] + ' · ' + T.perUnit : '';
+    subEl.textContent   = p ? p.city[S.lang] : '';
   } else {
     titleEl.textContent = titles[sc] || T.brand;
     subEl.style.display = 'none';
@@ -848,8 +848,11 @@ function productCard(p) {
     </div>
     <div style="padding:10px 11px 11px;display:flex;flex-direction:column;gap:6px">
       <div style="font-family:var(--font-display);font-size:13.5px;font-weight:700;color:var(--text-strong);line-height:1.2;letter-spacing:-.01em">${p.name}</div>
+      <div style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text-muted);line-height:1.3">
+        <span>${p.supplier} · ${p.perUnitLabel}</span>
+        ${p.verified ? `<svg width="12" height="12" viewBox="0 0 24 24" fill="#7a140d" style="flex:none"><path d="M12 2l2.4 1.8 3-.2 1 2.8 2.6 1.5-.9 2.9.9 2.9-2.6 1.5-1 2.8-3-.2L12 22l-2.4-1.8-3 .2-1-2.8L3 16.3l.9-2.9L3 10.5l2.6-1.5 1-2.8 3 .2z"/><path d="M9 12l2 2 4-4" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>` : ''}
+      </div>
       <div style="text-align:center">
-        <div style="font-size:9.5px;color:var(--text-subtle);text-transform:uppercase;letter-spacing:.03em">${p.perUnitLabel}</div>
         <span style="font-family:var(--font-mono);font-size:15.5px;font-weight:600;color:var(--text-strong)">${p.priceLabel}</span>
       </div>
       ${catalogQtyControl(p)}
@@ -908,8 +911,8 @@ function homeCard(p) {
     </div>
     <div style="padding:11px 12px 12px;display:flex;flex-direction:column;gap:6px">
       <div style="font-family:var(--font-display);font-size:14.5px;font-weight:700;color:var(--text-strong);line-height:1.2;letter-spacing:-.01em">${p.name}</div>
+      <div style="font-size:11.5px;color:var(--text-muted);line-height:1.3">${p.city} · ${p.perUnitLabel}</div>
       <div style="text-align:center">
-        <div style="font-size:9.5px;color:var(--text-subtle);text-transform:uppercase;letter-spacing:.03em">${p.perUnitLabel}</div>
         <span style="font-family:var(--font-mono);font-size:16px;font-weight:600;color:var(--text-strong)">${p.priceLabel}</span>
       </div>
       ${catalogQtyControl(p)}
