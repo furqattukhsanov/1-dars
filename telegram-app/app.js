@@ -41,7 +41,8 @@ const STR = {
     orderPlaced: "Buyurtma qabul qilindi", orderPlacedSub: "Marg'ilon Ipak Co. 24 soat ichida javob beradi",
     viewOrders: "Buyurtmalarni ko'rish", continue: "Xaridni davom ettirish", escrowNote: "To'lov yetkazilgunga qadar escrow hisobida saqlanadi",
     items: "tur", panelU: "dona", mU: "m", product: "Mahsulot", noProducts: "Mahsulot topilmadi", madeBy: "Ishlab chiqildi",
-    tgVerified: "Telegram orqali tasdiqlangan", tgNotConnected: "Telegram orqali ochilganda profil avtomatik aniqlanadi", tgUserFallback: "Telegram foydalanuvchisi" },
+    tgVerified: "Telegram orqali tasdiqlangan", tgNotConnected: "Telegram orqali ochilganda profil avtomatik aniqlanadi", tgUserFallback: "Telegram foydalanuvchisi",
+    shareContact: "Telefon raqamni ulashish", contactPending: "Raqam so'ralmoqda, biroz kuting…", contactDone: "Telefon raqami yangilandi" },
   ru: { brand: "LolaMarket", miniApp: "мини-приложение", greet: "Salom, Maryam", greetSub: "Какие ткани нужны сегодня?",
     searchPh: "Поиск ткани или категории", cats: "Категории", all: "Все", featured: "Рекомендуем",
     verifiedMills: "28 проверенных фабрик · эскроу на каждый заказ", catalog: "Каталог", filter: "Фильтр", sort: "Сортировка",
@@ -60,7 +61,8 @@ const STR = {
     orderPlaced: "Заказ принят", orderPlacedSub: "Маргилан Силк ответит в течение 24 часов",
     viewOrders: "Посмотреть заказы", continue: "Продолжить покупки", escrowNote: "Платёж хранится на эскроу до доставки",
     items: "поз.", panelU: "шт", mU: "м", product: "Товар", noProducts: "Товары не найдены", madeBy: "Разработано",
-    tgVerified: "Подтверждено через Telegram", tgNotConnected: "При открытии через Telegram профиль определится автоматически", tgUserFallback: "Пользователь Telegram" },
+    tgVerified: "Подтверждено через Telegram", tgNotConnected: "При открытии через Telegram профиль определится автоматически", tgUserFallback: "Пользователь Telegram",
+    shareContact: "Поделиться номером телефона", contactPending: "Запрашивается номер, подождите…", contactDone: "Номер телефона обновлён" },
 };
 
 // ============ MAHSULOTLAR ============
@@ -156,6 +158,7 @@ const S = {
   notif: true,
   comment: '',
   tgUser: null,
+  tgPhone: null,
 };
 
 // ============ YORDAMCHILAR ============
@@ -802,7 +805,8 @@ function renderProfile() {
     <div style="display:flex;flex-direction:column;border:1px solid rgba(255,255,255,.55);border-radius:var(--radius-md);overflow:hidden;background:rgba(255,255,255,.6);backdrop-filter:blur(16px) saturate(160%);-webkit-backdrop-filter:blur(16px) saturate(160%);box-shadow:0 5px 16px -12px rgba(81,1,0,.12)">
       <div style="display:flex;align-items:center;gap:12px;padding:14px;border-bottom:1px solid var(--border-hair)">
         <svg width="19" height="19" viewBox="0 0 24 24" fill="none" style="flex:none;color:var(--text-muted)"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3-8.6A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8.1 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
-        <span style="font-size:14px;color:var(--text-body)">${COMPANY.phone}</span>
+        <span style="flex:1;font-size:14px;color:var(--text-body)">${S.tgPhone || COMPANY.phone}</span>
+        ${(!S.tgPhone && inTelegram) ? `<button onclick="shareContact()" style="flex:none;font-size:12px;font-weight:600;color:var(--teal-600);background:none;border:none;cursor:pointer">${T.shareContact}</button>` : ''}
       </div>
       <div style="display:flex;align-items:center;gap:12px;padding:14px">
         <svg width="19" height="19" viewBox="0 0 24 24" fill="none" style="flex:none;color:var(--text-muted)"><rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" stroke-width="2"/><path d="M4 7l8 6 8-6" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
@@ -974,6 +978,33 @@ function loadTgUser() {
   } catch (e) { return null; }
 }
 
+function shareContact() {
+  if (!window.Telegram?.WebApp?.requestContact) return;
+  Telegram.WebApp.requestContact((shared) => {
+    if (!shared) return;
+    showToast(STR[S.lang].contactPending);
+    pollForPhone();
+  });
+}
+function pollForPhone(attempt) {
+  attempt = attempt || 0;
+  const uid = S.tgUser?.id;
+  if (!uid || attempt > 6) return;
+  fetch(`/api/telegram-contact?uid=${uid}`)
+    .then((r) => r.json())
+    .then((d) => {
+      if (d && d.phone) {
+        S.tgPhone = d.phone;
+        localStorage.setItem('lolamarket_tg_phone', d.phone);
+        showToast(STR[S.lang].contactDone);
+        render();
+      } else {
+        setTimeout(() => pollForPhone(attempt + 1), 1200);
+      }
+    })
+    .catch(() => {});
+}
+
 // ============ ISHGA TUSHIRISH ============
 const inTelegram = !!(window.Telegram?.WebApp?.initData);
 if (window.Telegram?.WebApp) {
@@ -982,4 +1013,5 @@ if (window.Telegram?.WebApp) {
 }
 document.documentElement.classList.toggle('in-telegram', inTelegram);
 S.tgUser = loadTgUser();
+S.tgPhone = localStorage.getItem('lolamarket_tg_phone') || null;
 render();
