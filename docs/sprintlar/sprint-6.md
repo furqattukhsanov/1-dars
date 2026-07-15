@@ -40,6 +40,7 @@ Tashqi servislarni (Payme, Click, BTS Pochta) to'liq ishga tushirish va Telegram
 
 ## Qilingan ishlar
 
+- [2026-07-16] Telegram Mini App'da ikki marta bosishda (double-tap) sahifa zoom bo'lib ketishi oldini olindi — `index.html`dagi viewport meta tegiga `maximum-scale=1.0, user-scalable=no` qo'shildi, `styles.css`dagi `html, body` qoidasiga `touch-action: manipulation` qo'shildi; Mahsulot detail ekrani header'ining ikkinchi qatoriga endi shahar nomidan tashqari "1 dona rulon narxi" (`T.perUnit`) matni ham qo'shildi (`updateHeader()`, `app.js`); kesh chetlab o'tish uchun `index.html`da skript versiyasi `v=12`dan `v=13`ga, `styles.css` versiyasi `v=3`dan `v=4`ga oshirildi
 - [2026-06-30] MVP Telegram Mini App ekranlar ro'yxati tuzildi — 8 ta ekran aniqlandi, minimal MVP uchun 5 ta ekran belgilandi
 - [2026-06-30] LolaMarket Telegram Mini App to'liq implement qilindi — telegram-app/index.html, styles.css, app.js yaratildi (8 ekran: Bosh sahifa, Katalog, Mahsulot detail, Qidiruv, Savat, Buyurtma berish, Muvaffaqiyat, Buyurtmalarim; Glassmorphism dizayn tizimi asosida)
 - [2026-06-30] app.js to'liq qayta yozildi — 8 ta haqiqiy mahsulot (ik-1402, ad-0890, sz-3310, ck-2201, hb-7740, lk-5512, ik-9001, pl-3320), CSS textile pattern (adras, ikat, suzani, herringbone, weave), USD narxlar, Dilnoza Tekstil MChJ kompaniya ma'lumotlari, to'g'ri kategoriyalar va buyurtmalar, to'lov usullari

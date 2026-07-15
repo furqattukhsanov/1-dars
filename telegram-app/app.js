@@ -327,7 +327,7 @@ function updateHeader() {
     const p = byId(S.selectedId);
     titleEl.textContent = p ? p.name[S.lang] : T.product;
     subEl.style.display = 'block';
-    subEl.textContent   = p ? p.city[S.lang] : '';
+    subEl.textContent   = p ? p.city[S.lang] + ' · ' + T.perUnit : '';
   } else {
     titleEl.textContent = titles[sc] || T.brand;
     subEl.style.display = 'none';
