@@ -962,6 +962,7 @@ function sendOrderNotify() {
       body: JSON.stringify({
         buyerName: COMPANY.name[S.lang],
         tgUser: tgUser || undefined,
+        tgUserId: S.tgUser?.id || undefined,
         address: COMPANY.addr[S.lang],
         payment: payOpt ? payOpt.label[S.lang] : S.pay,
         comment: S.comment || '',
