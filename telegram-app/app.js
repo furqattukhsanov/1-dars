@@ -63,30 +63,42 @@ const STR = {
 
 // ============ MAHSULOTLAR ============
 const PRODUCTS = [
-  { id:'ik-1402', pattern:'adras',      price:6.4,  unit:'m',    moq:300, lead:28, rating:4.9, reviews:42,  verified:true,  stockKey:'in',   catKey:'silk',   badgeTone:'primary',
+  { id:'ik-1402', pattern:'adras',      img:'assets/products/textile-01.jpg', price:6.4,  unit:'m',    moq:300, lead:28, rating:4.9, reviews:42,  verified:true,  stockKey:'in',   catKey:'silk',   badgeTone:'primary',
     name:{ uz:"Marg'ilon ipak ikat", ru:"Шёлковый икат" }, supplier:{ uz:"Marg'ilon Ipak Co.", ru:"Маргилан Силк" }, city:{ uz:"Marg'ilon", ru:"Маргилан" },
     width:"0.9 m", weight:"90 g/m²", comp:{ uz:"100% tut ipagi", ru:"100% тутовый шёлк" }, badge:{ uz:"Tavsiya", ru:"Хит" } },
-  { id:'ad-0890', pattern:'adrasWarm',  price:3.8,  unit:'m',    moq:500, lead:32, rating:4.7, reviews:28,  verified:true,  stockKey:'low',  catKey:'ikat',   badgeTone:'saffron',
+  { id:'ad-0890', pattern:'adrasWarm',  img:'assets/products/textile-02.jpg', price:3.8,  unit:'m',    moq:500, lead:32, rating:4.7, reviews:28,  verified:true,  stockKey:'low',  catKey:'ikat',   badgeTone:'saffron',
     name:{ uz:"Qo'lbola adras", ru:"Ручной адрас" }, supplier:{ uz:"Buxoro Looms", ru:"Бухара Лумс" }, city:{ uz:"Buxoro", ru:"Бухара" },
     width:"1.0 m", weight:"150 g/m²", comp:{ uz:"50% ipak / 50% paxta", ru:"50% шёлк / 50% хлопок" }, badge:{ uz:"Kam qoldi", ru:"Мало" } },
-  { id:'sz-3310', pattern:'suzani',     price:42,   unit:'panel', moq:20,  lead:45, rating:5.0, reviews:17,  verified:true,  stockKey:'made', catKey:'suzani', badgeTone:'teal',
+  { id:'sz-3310', pattern:'suzani',     img:'assets/products/textile-03.jpg', price:42,   unit:'panel', moq:20,  lead:45, rating:5.0, reviews:17,  verified:true,  stockKey:'made', catKey:'suzani', badgeTone:'teal',
     name:{ uz:"So'zana panel — anor", ru:"Сюзане — гранат" }, supplier:{ uz:"Nurota Atelier", ru:"Нурата Ателье" }, city:{ uz:"Nurota", ru:"Нурата" },
     width:"1.4 × 1.8 m", weight:"—", comp:{ uz:"Paxta asos, ipak ip", ru:"Хлопок, шёлковая нить" }, badge:{ uz:"Hunarmand", ru:"Ручная" } },
-  { id:'ck-2201', pattern:'adrasCool',  price:2.9,  unit:'m',    moq:800, lead:21, rating:4.6, reviews:51,  verified:false, stockKey:'in',   catKey:'cotton', badgeTone:'neutral',
+  { id:'ck-2201', pattern:'adrasCool',  img:'assets/products/textile-04.jpg', price:2.9,  unit:'m',    moq:800, lead:21, rating:4.6, reviews:51,  verified:false, stockKey:'in',   catKey:'cotton', badgeTone:'neutral',
     name:{ uz:"Paxta adras — indigo", ru:"Хлопковый адрас — индиго" }, supplier:{ uz:"O'sh Textile", ru:"Ош Текстиль" }, city:{ uz:"O'sh", ru:"Ош" },
     width:"1.5 m", weight:"180 g/m²", comp:{ uz:"100% paxta", ru:"100% хлопок" }, badge:null },
-  { id:'hb-7740', pattern:'herringbone',price:8.2,  unit:'m',    moq:250, lead:35, rating:4.8, reviews:33,  verified:true,  stockKey:'in',   catKey:'wool',   badgeTone:'teal',
+  { id:'hb-7740', pattern:'herringbone',img:'assets/products/textile-05.jpg', price:8.2,  unit:'m',    moq:250, lead:35, rating:4.8, reviews:33,  verified:true,  stockKey:'in',   catKey:'wool',   badgeTone:'teal',
     name:{ uz:"Junli mato — yelkacha", ru:"Шерсть — ёлочка" }, supplier:{ uz:"Almati Weaving", ru:"Алматы Вивинг" }, city:{ uz:"Almati", ru:"Алматы" },
     width:"1.5 m", weight:"320 g/m²", comp:{ uz:"70% jun / 30% PES", ru:"70% шерсть / 30% ПЭ" }, badge:{ uz:"Yangi", ru:"Новинка" } },
-  { id:'lk-5512', pattern:'weave',      price:4.1,  unit:'m',    moq:600, lead:24, rating:4.5, reviews:22,  verified:true,  stockKey:'in',   catKey:'linen',  badgeTone:'neutral',
+  { id:'lk-5512', pattern:'weave',      img:'assets/products/textile-06.jpg', price:4.1,  unit:'m',    moq:600, lead:24, rating:4.5, reviews:22,  verified:true,  stockKey:'in',   catKey:'linen',  badgeTone:'neutral',
     name:{ uz:"Zig'ir mato — natural", ru:"Лён — натуральный" }, supplier:{ uz:"Shymkent Mills", ru:"Шымкент Миллс" }, city:{ uz:"Shymkent", ru:"Шымкент" },
     width:"1.4 m", weight:"200 g/m²", comp:{ uz:"100% zig'ir", ru:"100% лён" }, badge:null },
-  { id:'ik-9001', pattern:'ikat',       price:11.5, unit:'m',    moq:150, lead:30, rating:4.9, reviews:19,  verified:true,  stockKey:'in',   catKey:'ikat',   badgeTone:'primary',
+  { id:'ik-9001', pattern:'ikat',       img:'assets/products/textile-07.jpg', price:11.5, unit:'m',    moq:150, lead:30, rating:4.9, reviews:19,  verified:true,  stockKey:'in',   catKey:'ikat',   badgeTone:'primary',
     name:{ uz:"Kelinlik ikat — za'faron", ru:"Свадебный икат — шафран" }, supplier:{ uz:"Marg'ilon Ipak Co.", ru:"Маргилан Силк" }, city:{ uz:"Marg'ilon", ru:"Маргилан" },
     width:"0.9 m", weight:"110 g/m²", comp:{ uz:"100% tut ipagi", ru:"100% тутовый шёлк" }, badge:{ uz:"Tavsiya", ru:"Хит" } },
-  { id:'pl-3320', pattern:'plain',      price:2.4,  unit:'m',    moq:1000,lead:18, rating:4.4, reviews:64,  verified:false, stockKey:'in',   catKey:'cotton', badgeTone:'neutral',
+  { id:'pl-3320', pattern:'plain',      img:'assets/products/textile-08.jpg', price:2.4,  unit:'m',    moq:1000,lead:18, rating:4.4, reviews:64,  verified:false, stockKey:'in',   catKey:'cotton', badgeTone:'neutral',
     name:{ uz:"Sodda to'qima — marjon", ru:"Простое плетение — коралл" }, supplier:{ uz:"Farg'ona Fabric", ru:"Фергана Фабрик" }, city:{ uz:"Farg'ona", ru:"Фергана" },
     width:"1.6 m", weight:"160 g/m²", comp:{ uz:"65% paxta / 35% PES", ru:"65% хлопок / 35% ПЭ" }, badge:null },
+  { id:'tx-4401', pattern:'suzani',     img:'assets/products/textile-09.jpg', price:38,   unit:'panel', moq:25,  lead:40, rating:4.8, reviews:14,  verified:true,  stockKey:'made', catKey:'suzani', badgeTone:'saffron',
+    name:{ uz:"Zar naqsh so'zana panel", ru:"Сюзане с золотым узором" }, supplier:{ uz:"Qarshi Hunarmand", ru:"Карши Хунармад" }, city:{ uz:"Qarshi", ru:"Карши" },
+    width:"1.3 × 1.7 m", weight:"—", comp:{ uz:"Paxta asos, ipak ip", ru:"Хлопок, шёлковая нить" }, badge:{ uz:"Yangi", ru:"Новинка" } },
+  { id:'tx-4402', pattern:'ikat',       img:'assets/products/textile-10.jpg', price:9.6,  unit:'m',    moq:200, lead:26, rating:4.7, reviews:23,  verified:true,  stockKey:'in',   catKey:'silk',   badgeTone:'primary',
+    name:{ uz:"Gulli ipak — lola", ru:"Шёлк с цветами — тюльпан" }, supplier:{ uz:"Andijon Ipak Uyi", ru:"Андижан Силк Хаус" }, city:{ uz:"Andijon", ru:"Андижан" },
+    width:"1.1 m", weight:"95 g/m²", comp:{ uz:"100% tut ipagi", ru:"100% тутовый шёлк" }, badge:null },
+  { id:'tx-4403', pattern:'plain',      img:'assets/products/textile-11.jpg', price:2.7,  unit:'m',    moq:900, lead:19, rating:4.5, reviews:37,  verified:false, stockKey:'in',   catKey:'cotton', badgeTone:'neutral',
+    name:{ uz:"Chit mato — sariq gul", ru:"Ситец — жёлтый цветок" }, supplier:{ uz:"Namangan Chit", ru:"Наманган Читтекс" }, city:{ uz:"Namangan", ru:"Наманган" },
+    width:"1.5 m", weight:"140 g/m²", comp:{ uz:"100% paxta", ru:"100% хлопок" }, badge:null },
+  { id:'tx-4404', pattern:'weave',      img:'assets/products/textile-12.png', price:5.3,  unit:'m',    moq:400, lead:27, rating:4.6, reviews:20,  verified:true,  stockKey:'low',  catKey:'linen',  badgeTone:'teal',
+    name:{ uz:"Vintage chit — krem atirgul", ru:"Винтажный ситец — кремовая роза" }, supplier:{ uz:"Xiva Tekstil", ru:"Хива Текстиль" }, city:{ uz:"Xiva", ru:"Хива" },
+    width:"1.4 m", weight:"175 g/m²", comp:{ uz:"70% zig'ir / 30% paxta", ru:"70% лён / 30% хлопок" }, badge:{ uz:"Kam qoldi", ru:"Мало" } },
 ];
 
 const CATS = [
@@ -179,6 +191,9 @@ function vm(p) {
     badge: p.badge ? p.badge[L] : null,
     bg: PATTERNS[p.pattern] || PATTERNS.plain,
     bgSize: pSize(p.pattern),
+    bgStyle: p.img
+      ? `background-image:url('${p.img}');background-size:cover;background-position:center`
+      : `background:${PATTERNS[p.pattern] || PATTERNS.plain};background-size:${pSize(p.pattern)}`,
     priceLabel: money(p.price),
     unitLabel: '/' + uShort(p.unit),
     moqLabel: num(p.moq) + ' ' + uShort(p.unit),
@@ -428,7 +443,7 @@ function renderDetail() {
   if (!p) return '';
   return `
   <div style="display:flex;flex-direction:column">
-    <div style="position:relative;height:248px;background:${p.bg};background-size:${p.bgSize}">
+    <div style="position:relative;height:248px;${p.bgStyle}">
       ${p.badgeShow ? `<span style="position:absolute;top:14px;left:16px;display:inline-flex;align-items:center;height:26px;padding:0 12px;border-radius:999px;font-size:12px;font-weight:600;background:${p.badgeBg};color:${p.badgeFg}">${p.badge}</span>` : ''}
       <button onclick="toggleLike('${p.id}')" style="position:absolute;top:12px;right:14px;width:38px;height:38px;border-radius:50%;border:1px solid var(--glass-border);background:var(--glass-fill-strong);backdrop-filter:var(--blur-md);-webkit-backdrop-filter:var(--blur-md);display:flex;align-items:center;justify-content:center;color:${p.heartStroke};box-shadow:var(--glass-highlight)">
         <svg width="19" height="19" viewBox="0 0 24 24" fill="${p.heartFill}"><path d="M12 21s-7-4.5-9.2-8.4C1.2 9.6 2.6 6 6 6c2 0 3.2 1.2 4 2.3C10.8 7.2 12 6 14 6c3.4 0 4.8 3.6 3.2 6.6C19 16.5 12 21 12 21z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
@@ -544,7 +559,7 @@ function renderSearch() {
 function searchRow(p) {
   return `
   <div onclick="openProduct('${p.id}')" style="display:flex;gap:12px;align-items:center;cursor:pointer;padding:10px;border-radius:var(--radius-md);background:rgba(255,255,255,.62);backdrop-filter:blur(16px) saturate(160%);-webkit-backdrop-filter:blur(16px) saturate(160%);border:1px solid rgba(255,255,255,.55);box-shadow:0 5px 16px -12px rgba(81,1,0,.12)">
-    <span style="flex:none;width:60px;height:60px;border-radius:var(--radius-sm);background:${p.bg};background-size:${p.bgSize}"></span>
+    <span style="flex:none;width:60px;height:60px;border-radius:var(--radius-sm);${p.bgStyle}"></span>
     <div style="flex:1;min-width:0">
       <div style="font-family:var(--font-display);font-size:14.5px;font-weight:700;color:var(--text-strong);line-height:1.2">${p.name}</div>
       <div style="font-size:12px;color:var(--text-muted);margin-top:2px">${p.supplier} · ${p.city}</div>
@@ -573,7 +588,7 @@ function renderCart() {
       const p = vm(byId(c.id));
       return `
       <div style="display:flex;gap:12px;padding:12px;border-radius:var(--radius-md);background:rgba(255,255,255,.62);backdrop-filter:blur(16px) saturate(160%);-webkit-backdrop-filter:blur(16px) saturate(160%);border:1px solid rgba(255,255,255,.55);box-shadow:0 5px 16px -12px rgba(81,1,0,.12)">
-        <span style="flex:none;width:64px;height:64px;border-radius:var(--radius-sm);background:${p.bg};background-size:${p.bgSize}"></span>
+        <span style="flex:none;width:64px;height:64px;border-radius:var(--radius-sm);${p.bgStyle}"></span>
         <div style="flex:1;min-width:0;display:flex;flex-direction:column">
           <div style="display:flex;justify-content:space-between;gap:8px">
             <div style="font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--text-strong);line-height:1.2">${p.name}</div>
@@ -787,7 +802,7 @@ function renderProfile() {
 function productCard(p) {
   return `
   <div onclick="openProduct('${p.id}')" style="cursor:pointer;background:var(--glass-fill);backdrop-filter:var(--blur-lg);-webkit-backdrop-filter:var(--blur-lg);border:1px solid var(--glass-border-soft);border-radius:var(--radius-lg);box-shadow:0 6px 16px -12px rgba(81,1,0,.16),0 1px 2px rgba(23,26,48,.04);overflow:hidden;display:flex;flex-direction:column">
-    <div style="position:relative;height:104px;background:${p.bg};background-size:${p.bgSize}">
+    <div style="position:relative;height:104px;${p.bgStyle}">
       ${p.badgeShow ? `<span style="position:absolute;top:8px;left:8px;display:inline-flex;align-items:center;height:21px;padding:0 8px;border-radius:999px;font-size:10.5px;font-weight:600;background:${p.badgeBg};color:${p.badgeFg}">${p.badge}</span>` : ''}
     </div>
     <div style="padding:10px 11px 12px;display:flex;flex-direction:column;gap:4px;flex:1">
@@ -811,7 +826,7 @@ function productCard(p) {
 function homeCard(p) {
   return `
   <div onclick="openProduct('${p.id}')" style="cursor:pointer;background:var(--glass-fill);backdrop-filter:var(--blur-lg);-webkit-backdrop-filter:var(--blur-lg);border:1px solid var(--glass-border-soft);border-radius:var(--radius-lg);box-shadow:0 6px 16px -12px rgba(81,1,0,.16),0 1px 2px rgba(23,26,48,.04);overflow:hidden;display:flex;flex-direction:column">
-    <div style="position:relative;height:104px;background:${p.bg};background-size:${p.bgSize}">
+    <div style="position:relative;height:104px;${p.bgStyle}">
       ${p.badgeShow ? `<span style="position:absolute;top:9px;left:9px;display:inline-flex;align-items:center;height:22px;padding:0 9px;border-radius:999px;font-size:11px;font-weight:600;background:${p.badgeBg};color:${p.badgeFg}">${p.badge}</span>` : ''}
       <button onclick="event.stopPropagation();toggleLike('${p.id}')" style="position:absolute;top:9px;right:9px;width:32px;height:32px;border-radius:50%;border:1px solid rgba(255,255,255,.6);background:rgba(255,255,255,.42);backdrop-filter:blur(10px) saturate(160%);-webkit-backdrop-filter:blur(10px) saturate(160%);display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px -2px rgba(23,26,48,.28),inset 0 1px 0 rgba(255,255,255,.8)">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="${p.heartFill}" style="color:${p.heartStroke}"><path d="M12 20.8s-6.9-4.3-9-8a5.2 5.2 0 0 1-.5-3.7A4.8 4.8 0 0 1 6.3 5.5c1.9 0 3.4 1 4.3 2.3.4.6 1 .6 1.4 0 .9-1.3 2.4-2.3 4.3-2.3a4.8 4.8 0 0 1 3.8 3.6 5.2 5.2 0 0 1-.5 3.7c-2.1 3.7-9 8-9 8z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>

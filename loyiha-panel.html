@@ -332,6 +332,11 @@
     <div style="font-size:0.68rem; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; color:#9C7B5A; margin-bottom:0.7rem;">So'nggi faoliyat</div>
     <div id="faoliyat-list">
       <div class="faoliyat-item">
+        <span class="faoliyat-sana">2026-07-15</span>
+        <span class="faoliyat-text">Mahsulotlarga haqiqiy mato rasmlari qo'shildi — 12 ta rasm assets/products/ ga ko'chirildi, app.js'da 8 mahsulotga img maydoni va 4 ta yangi mahsulot qo'shildi, bgStyle fallback logikasi yozildi</span>
+        <span class="faoliyat-sprint">Sprint 6</span>
+      </div>
+      <div class="faoliyat-item">
         <span class="faoliyat-sana">2026-07-12</span>
         <span class="faoliyat-text">Buyurtma tasdiqlanganda Telegram bot bildirishnomasi ishga tushirildi — app.js'ga sendOrderNotify() qo'shildi, serverda Node.js relay xizmati (systemd) va nginx proxy o'rnatildi</span>
         <span class="faoliyat-sprint">Sprint 6</span>
@@ -396,7 +401,7 @@
     { num: 3, nom: "Foydalanuvchilar + rollar", dars: "Dars 10", holat: "kutilmoqda", sana: "" },
     { num: 4, nom: "Asosiy funksiya",           dars: "Dars 11", holat: "kutilmoqda", sana: "" },
     { num: 5, nom: "Mobil / PWA",               dars: "Dars 12", holat: "kutilmoqda", sana: "" },
-    { num: 6, nom: "Integratsiyalar",           dars: "Dars 13", holat: "jarayonda",  sana: "2026-07-12" },
+    { num: 6, nom: "Integratsiyalar",           dars: "Dars 13", holat: "jarayonda",  sana: "2026-07-15" },
     { num: 7, nom: "Admin panel",               dars: "Dars 14", holat: "kutilmoqda", sana: "" },
     { num: 8, nom: "Sifat tekshiruvi",          dars: "Dars 15", holat: "kutilmoqda", sana: "" },
     { num: 9, nom: "Production + launch",       dars: "Dars 16", holat: "kutilmoqda", sana: "" },
@@ -420,7 +425,7 @@
   barEl.style.width = foiz + "%";
   percentEl.textContent = foiz + "%";
   countEl.textContent = tugaganlar + " / " + sprintlar.length + " sprint";
-  updatedEl.textContent = "Yangilanish: 2026-07-12";
+  updatedEl.textContent = "Yangilanish: 2026-07-15";
 
   sprintlar.forEach(s => {
     const card = document.createElement("div");

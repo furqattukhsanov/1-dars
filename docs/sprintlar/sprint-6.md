@@ -49,6 +49,7 @@ Tashqi servislarni (Payme, Click, BTS Pochta) to'liq ishga tushirish va Telegram
 - [2026-06-30] Telegram bot menu button URL https://lolamarket.uz/mini-app/ ga sozlandi
 - [2026-06-30] Bilingual (uz/ru) interfeys qo'shildi
 - [2026-07-12] Buyurtma tasdiqlanganda Telegram bot bildirishnomasi yuborish ishga tushirildi — `telegram-app/app.js`ga `sendOrderNotify()` qo'shildi (checkout yakunlanganda `/api/telegram-notify`ga POST yuboradi). Serverda (`65.21.180.44`) Node.js relay xizmati (`/opt/lolamarket-notify/server.js`, systemd servis `lolamarket-notify`) va nginx'da `/api/telegram-notify` proxy location o'rnatildi
+- [2026-07-15] Mahsulotlarga haqiqiy mato rasmlari qo'shildi — `Photo/textile/`dagi 12 ta rasm `telegram-app/assets/products/textile-01..12` nomlari bilan ko'chirildi, `app.js`dagi 8 ta mavjud mahsulotga `img` maydoni qo'shildi va 4 ta yangi mahsulot (tx-4401..tx-4404) yaratildi, `vm()` funksiyasiga rasm bo'lsa haqiqiy fon, bo'lmasa CSS pattern fallback beruvchi `bgStyle` qo'shildi
 
 ---
 
@@ -60,3 +61,4 @@ Tashqi servislarni (Payme, Click, BTS Pochta) to'liq ishga tushirish va Telegram
 - [2026-06-30] Qaror: USD narxlar — B2B bozor uchun dollar narx ko'rsatish qulay, eksport yo'nalishi hisobga olindi
 - [2026-06-30] Qaror: CSS textile pattern (SVG) — mahsulot kartalarida haqiqiy to'qima patternlar, vizual identifikatsiya uchun
 - [2026-07-12] Qaror: Telegram bot bildirishnomasi uchun alohida Node.js relay xizmati serverda ishlatiladi (bot token faqat server `.env`da, git repo'ga kirmaydi) — bot tokenini frontend/git orqali oshkor qilmaslik uchun
+- [2026-07-15] Qaror: Mahsulot rasmlari uchun haqiqiy fayl (`img`) bo'lsa ustunlik beriladi, bo'lmasa eski CSS textile pattern fallback sifatida qoladi — barcha mahsulotlarga birdaniga rasm topish shart emas, bosqichma-bosqich almashtirish imkonini beradi
