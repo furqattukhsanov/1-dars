@@ -159,6 +159,11 @@ const S = {
 function money(n) {
   return '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
+const USD_TO_UZS = 12700;
+function som(n) {
+  const v = Math.round(Number(n) * USD_TO_UZS);
+  return v.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + " so'm";
+}
 function num(n) { return Number(n).toLocaleString('en-US'); }
 function uShort(u) { return u === 'panel' ? STR[S.lang].panelU : STR[S.lang].mU; }
 function step(p) { return p && p.unit === 'panel' ? 5 : 50; }
@@ -735,7 +740,7 @@ function renderOrders() {
             <div style="font-size:14px;font-weight:700;color:var(--text-strong);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${lines[0].name}</div>
             <div style="font-size:12px;color:var(--text-muted);margin-top:2px">${lines.length} ${T.items} · ${o.date[S.lang]}</div>
           </div>
-          <span style="font-family:var(--font-mono);font-size:15px;font-weight:600;color:var(--text-strong)">${money(total)}</span>
+          <span style="font-family:var(--font-mono);font-size:14px;font-weight:600;color:var(--text-strong)">${som(total)}</span>
         </div>
         <div style="display:flex;gap:9px;margin-top:13px">
           <button style="flex:1;height:38px;border-radius:var(--radius-sm);border:1px solid var(--glass-border);background:var(--glass-fill-strong);font-size:13px;font-weight:600;color:var(--text-strong);cursor:pointer">${T.track}</button>
@@ -802,7 +807,7 @@ function renderProfile() {
 function productCard(p) {
   return `
   <div onclick="openProduct('${p.id}')" style="cursor:pointer;background:var(--glass-fill);backdrop-filter:var(--blur-lg);-webkit-backdrop-filter:var(--blur-lg);border:1px solid var(--glass-border-soft);border-radius:var(--radius-lg);box-shadow:0 6px 16px -12px rgba(81,1,0,.16),0 1px 2px rgba(23,26,48,.04);overflow:hidden;display:flex;flex-direction:column">
-    <div style="position:relative;height:104px;${p.bgStyle}">
+    <div style="position:relative;height:150px;${p.bgStyle}">
       ${p.badgeShow ? `<span style="position:absolute;top:8px;left:8px;display:inline-flex;align-items:center;height:21px;padding:0 8px;border-radius:999px;font-size:10.5px;font-weight:600;background:${p.badgeBg};color:${p.badgeFg}">${p.badge}</span>` : ''}
     </div>
     <div style="padding:10px 11px 12px;display:flex;flex-direction:column;gap:4px;flex:1">
@@ -826,7 +831,7 @@ function productCard(p) {
 function homeCard(p) {
   return `
   <div onclick="openProduct('${p.id}')" style="cursor:pointer;background:var(--glass-fill);backdrop-filter:var(--blur-lg);-webkit-backdrop-filter:var(--blur-lg);border:1px solid var(--glass-border-soft);border-radius:var(--radius-lg);box-shadow:0 6px 16px -12px rgba(81,1,0,.16),0 1px 2px rgba(23,26,48,.04);overflow:hidden;display:flex;flex-direction:column">
-    <div style="position:relative;height:104px;${p.bgStyle}">
+    <div style="position:relative;height:150px;${p.bgStyle}">
       ${p.badgeShow ? `<span style="position:absolute;top:9px;left:9px;display:inline-flex;align-items:center;height:22px;padding:0 9px;border-radius:999px;font-size:11px;font-weight:600;background:${p.badgeBg};color:${p.badgeFg}">${p.badge}</span>` : ''}
       <button onclick="event.stopPropagation();toggleLike('${p.id}')" style="position:absolute;top:9px;right:9px;width:32px;height:32px;border-radius:50%;border:1px solid rgba(255,255,255,.6);background:rgba(255,255,255,.42);backdrop-filter:blur(10px) saturate(160%);-webkit-backdrop-filter:blur(10px) saturate(160%);display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px -2px rgba(23,26,48,.28),inset 0 1px 0 rgba(255,255,255,.8)">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="${p.heartFill}" style="color:${p.heartStroke}"><path d="M12 20.8s-6.9-4.3-9-8a5.2 5.2 0 0 1-.5-3.7A4.8 4.8 0 0 1 6.3 5.5c1.9 0 3.4 1 4.3 2.3.4.6 1 .6 1.4 0 .9-1.3 2.4-2.3 4.3-2.3a4.8 4.8 0 0 1 3.8 3.6 5.2 5.2 0 0 1-.5 3.7c-2.1 3.7-9 8-9 8z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
