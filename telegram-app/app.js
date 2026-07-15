@@ -856,12 +856,47 @@ function productCard(p) {
       <div style="font-family:var(--font-mono);font-size:10px;color:var(--text-subtle)">${p.meta}</div>
       <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-top:auto;padding-top:6px">
         <span><span style="font-family:var(--font-mono);font-size:15.5px;font-weight:600;color:var(--text-strong)">${p.priceLabel}</span><span style="font-size:10.5px;color:var(--text-muted)">/${uShort(p.unit)}</span></span>
-        <button onclick="event.stopPropagation();addToCart('${p.id}',${p.moq})" style="flex:none;width:28px;height:28px;border-radius:50%;border:1px solid var(--glass-border);background:var(--glass-fill-strong);color:var(--text-strong);display:flex;align-items:center;justify-content:center;box-shadow:var(--glass-highlight);cursor:pointer">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
-        </button>
+        ${catalogQtyControl(p)}
       </div>
     </div>
   </div>`;
+}
+
+// ============ KATALOG KARTOCHKASI — SAVAT MIQDOR BOSHQARUVI ============
+function catalogQtyControl(p) {
+  const line = S.cart.find(x => x.id === p.id);
+  const btnBg = 'background:linear-gradient(150deg,#7a140d,#510100)';
+  if (!line) {
+    return `
+    <button onclick="event.stopPropagation();catalogInc('${p.id}')" style="flex:none;width:28px;height:28px;border-radius:9px;border:none;${btnBg};color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 10px -4px rgba(81,1,0,.55);cursor:pointer">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+    </button>`;
+  }
+  return `
+  <div onclick="event.stopPropagation()" style="flex:none;display:flex;align-items:center;gap:6px">
+    <button onclick="catalogDec('${p.id}')" style="width:26px;height:26px;border-radius:8px;border:none;${btnBg};color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 10px -4px rgba(81,1,0,.55);cursor:pointer">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+    </button>
+    <span style="font-family:var(--font-mono);font-size:11.5px;font-weight:700;color:var(--text-strong);min-width:26px;text-align:center">${num(line.qty)}</span>
+    <button onclick="catalogInc('${p.id}')" style="width:26px;height:26px;border-radius:8px;border:none;${btnBg};color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 10px -4px rgba(81,1,0,.55);cursor:pointer">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+    </button>
+  </div>`;
+}
+function catalogInc(id) {
+  const p = byId(id);
+  const line = S.cart.find(x => x.id === id);
+  if (line) { line.qty += step(p); }
+  else { S.cart.push({ id, qty: p.moq }); showToast(STR[S.lang].added); }
+  render();
+}
+function catalogDec(id) {
+  const p = byId(id);
+  const line = S.cart.find(x => x.id === id);
+  if (!line) return;
+  if (line.qty <= p.moq) { S.cart = S.cart.filter(x => x.id !== id); }
+  else { line.qty = Math.max(p.moq, line.qty - step(p)); }
+  render();
 }
 
 // ============ MAHSULOT KARTA — BOSH SAHIFA (badge + like, supplier/meta yo'q) ============
