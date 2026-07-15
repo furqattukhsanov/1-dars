@@ -23,7 +23,7 @@ function pSize(k) { return PSIZES[k] || 'auto'; }
 
 // ============ MATNLAR (ikki tillilik) ============
 const STR = {
-  uz: { brand: "LolaMarket", miniApp: "mini ilova", greet: "Salom, Maryam", greetSub: "Bugun qanday matolar kerak?",
+  uz: { brand: "LolaMarket", miniApp: "mini ilova", greetSub: "Bugun qanday matolar kerak?",
     searchPh: "Mato yoki kategoriya qidiring", cats: "Kategoriyalar", all: "Barchasi", featured: "Tavsiya etiladi",
     verifiedMills: "28 tasdiqlangan fabrika · har bir buyurtmada escrow", catalog: "Katalog", filter: "Filtr", sort: "Saralash",
     day: "kun", addCart: "Savatga qo'shish", order: "Buyurtma berish", specs: "Tafsilotlar", width: "Eni", weight: "Zichlik",
@@ -37,13 +37,13 @@ const STR = {
     profile: "Profil", editP: "Tahrirlash", ordersCount: "buyurtma", settings: "Sozlamalar", language: "Til", notifications: "Bildirishnomalar",
     help: "Yordam markazi", logout: "Chiqish", search: "Qidiruv", recent: "So'nggi qidiruvlar", noResults: "Hech narsa topilmadi",
     noResultsSub: "Boshqa so'z bilan urinib ko'ring", resultsN: "natija topildi", tabHome: "Bosh", tabCatalog: "Katalog",
-    tabCart: "Savat", tabOrders: "Buyurtma", tabProfile: "Profil", added: "Savatga qo'shildi", liked: "Sevimlilarga qo'shildi",
+    tabCart: "Savat", tabOrders: "Buyurtma", tabProfile: "Profil", added: "Savatga qo'shildi 🌷", liked: "Sevimlilarga qo'shildi",
     orderPlaced: "Buyurtma qabul qilindi", orderPlacedSub: "Marg'ilon Ipak Co. 24 soat ichida javob beradi",
     viewOrders: "Buyurtmalarni ko'rish", continue: "Xaridni davom ettirish", escrowNote: "To'lov yetkazilgunga qadar escrow hisobida saqlanadi",
     items: "tur", panelU: "dona", mU: "m", product: "Mahsulot", noProducts: "Mahsulot topilmadi", madeBy: "Ishlab chiqildi",
     tgVerified: "Telegram orqali tasdiqlangan", tgNotConnected: "Telegram orqali ochilganda profil avtomatik aniqlanadi", tgUserFallback: "Telegram foydalanuvchisi",
     shareContact: "Telefon raqamni ulashish", contactPending: "Raqam so'ralmoqda, biroz kuting…", contactDone: "Telefon raqami yangilandi" },
-  ru: { brand: "LolaMarket", miniApp: "мини-приложение", greet: "Salom, Maryam", greetSub: "Какие ткани нужны сегодня?",
+  ru: { brand: "LolaMarket", miniApp: "мини-приложение", greetSub: "Какие ткани нужны сегодня?",
     searchPh: "Поиск ткани или категории", cats: "Категории", all: "Все", featured: "Рекомендуем",
     verifiedMills: "28 проверенных фабрик · эскроу на каждый заказ", catalog: "Каталог", filter: "Фильтр", sort: "Сортировка",
     day: "дн.", addCart: "В корзину", order: "Оформить заказ", specs: "Характеристики", width: "Ширина", weight: "Плотность",
@@ -57,7 +57,7 @@ const STR = {
     profile: "Профиль", editP: "Изменить", ordersCount: "заказов", settings: "Настройки", language: "Язык", notifications: "Уведомления",
     help: "Центр помощи", logout: "Выйти", search: "Поиск", recent: "Недавние поиски", noResults: "Ничего не найдено",
     noResultsSub: "Попробуйте другой запрос", resultsN: "результатов", tabHome: "Главная", tabCatalog: "Каталог",
-    tabCart: "Корзина", tabOrders: "Заказы", tabProfile: "Профиль", added: "Добавлено в корзину", liked: "Добавлено в избранное",
+    tabCart: "Корзина", tabOrders: "Заказы", tabProfile: "Профиль", added: "Добавлено в корзину 🌷", liked: "Добавлено в избранное",
     orderPlaced: "Заказ принят", orderPlacedSub: "Маргилан Силк ответит в течение 24 часов",
     viewOrders: "Посмотреть заказы", continue: "Продолжить покупки", escrowNote: "Платёж хранится на эскроу до доставки",
     items: "поз.", panelU: "шт", mU: "м", product: "Товар", noProducts: "Товары не найдены", madeBy: "Разработано",
@@ -162,11 +162,8 @@ const S = {
 };
 
 // ============ YORDAMCHILAR ============
-function money(n) {
-  return '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
 const USD_TO_UZS = 12700;
-function som(n) {
+function money(n) {
   const v = Math.round(Number(n) * USD_TO_UZS);
   return v.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + " so'm";
 }
@@ -394,7 +391,7 @@ function renderHome() {
   return `
   <div style="padding:10px 16px 28px;display:flex;flex-direction:column;gap:14px">
     <div>
-      <div style="font-family:var(--font-display);font-size:19px;font-weight:800;color:var(--text-strong);letter-spacing:-.02em;line-height:1.15">${T.greet} 🌷</div>
+      <div style="font-family:var(--font-display);font-size:19px;font-weight:800;color:var(--text-strong);letter-spacing:-.02em;line-height:1.15">Salom, ${S.tgUser?.first_name || 'Maryam'} 🌷</div>
       <div style="font-size:12.5px;color:var(--text-muted);margin-top:1px">${T.greetSub}</div>
     </div>
 
@@ -746,7 +743,7 @@ function renderOrders() {
             <div style="font-size:14px;font-weight:700;color:var(--text-strong);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${lines[0].name}</div>
             <div style="font-size:12px;color:var(--text-muted);margin-top:2px">${lines.length} ${T.items} · ${o.date[S.lang]}</div>
           </div>
-          <span style="font-family:var(--font-mono);font-size:14px;font-weight:600;color:var(--text-strong)">${som(total)}</span>
+          <span style="font-family:var(--font-mono);font-size:14px;font-weight:600;color:var(--text-strong)">${money(total)}</span>
         </div>
         <div style="display:flex;gap:9px;margin-top:13px">
           <button style="flex:1;height:38px;border-radius:var(--radius-sm);border:1px solid var(--glass-border);background:var(--glass-fill-strong);font-size:13px;font-weight:600;color:var(--text-strong);cursor:pointer">${T.track}</button>
@@ -873,12 +870,12 @@ function catalogQtyControl(p) {
     </button>`;
   }
   return `
-  <div onclick="event.stopPropagation()" style="flex:none;display:flex;align-items:center;gap:6px">
-    <button onclick="catalogDec('${p.id}')" style="width:26px;height:26px;border-radius:8px;border:none;${btnBg};color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 10px -4px rgba(81,1,0,.55);cursor:pointer">
+  <div onclick="event.stopPropagation()" style="flex:none;display:flex;align-items:center;gap:2px;height:28px;padding:0 3px;border-radius:9px;${btnBg};box-shadow:0 4px 10px -4px rgba(81,1,0,.55)">
+    <button onclick="catalogDec('${p.id}')" style="width:22px;height:22px;border:none;background:transparent;color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
     </button>
-    <span style="font-family:var(--font-mono);font-size:11.5px;font-weight:700;color:var(--text-strong);min-width:26px;text-align:center">${num(line.qty)}</span>
-    <button onclick="catalogInc('${p.id}')" style="width:26px;height:26px;border-radius:8px;border:none;${btnBg};color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 10px -4px rgba(81,1,0,.55);cursor:pointer">
+    <span style="font-family:var(--font-mono);font-size:11.5px;font-weight:700;color:#fff;min-width:26px;text-align:center">${num(line.qty)}</span>
+    <button onclick="catalogInc('${p.id}')" style="width:22px;height:22px;border:none;background:transparent;color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
     </button>
   </div>`;
@@ -914,9 +911,7 @@ function homeCard(p) {
       <div style="font-size:11.5px;color:var(--text-muted)">${p.city}</div>
       <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-top:3px">
         <span><span style="font-family:var(--font-mono);font-size:16px;font-weight:600;color:var(--text-strong)">${p.priceLabel}</span><span style="font-size:11px;color:var(--text-muted)">${p.unitLabel}</span></span>
-        <button onclick="event.stopPropagation();addToCart('${p.id}',${p.moq})" style="flex:none;width:30px;height:30px;border-radius:50%;border:1px solid var(--glass-border);background:var(--glass-fill-strong);color:var(--text-strong);display:flex;align-items:center;justify-content:center;box-shadow:var(--glass-highlight);cursor:pointer">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
-        </button>
+        ${catalogQtyControl(p)}
       </div>
     </div>
   </div>`;
