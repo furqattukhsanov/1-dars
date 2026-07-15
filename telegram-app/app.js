@@ -40,7 +40,8 @@ const STR = {
     tabCart: "Savat", tabOrders: "Buyurtma", tabProfile: "Profil", added: "Savatga qo'shildi", liked: "Sevimlilarga qo'shildi",
     orderPlaced: "Buyurtma qabul qilindi", orderPlacedSub: "Marg'ilon Ipak Co. 24 soat ichida javob beradi",
     viewOrders: "Buyurtmalarni ko'rish", continue: "Xaridni davom ettirish", escrowNote: "To'lov yetkazilgunga qadar escrow hisobida saqlanadi",
-    items: "tur", panelU: "dona", mU: "m", product: "Mahsulot", noProducts: "Mahsulot topilmadi", madeBy: "Ishlab chiqildi" },
+    items: "tur", panelU: "dona", mU: "m", product: "Mahsulot", noProducts: "Mahsulot topilmadi", madeBy: "Ishlab chiqildi",
+    tgVerified: "Telegram orqali tasdiqlangan", tgNotConnected: "Telegram orqali ochilganda profil avtomatik aniqlanadi", tgUserFallback: "Telegram foydalanuvchisi" },
   ru: { brand: "LolaMarket", miniApp: "мини-приложение", greet: "Salom, Maryam", greetSub: "Какие ткани нужны сегодня?",
     searchPh: "Поиск ткани или категории", cats: "Категории", all: "Все", featured: "Рекомендуем",
     verifiedMills: "28 проверенных фабрик · эскроу на каждый заказ", catalog: "Каталог", filter: "Фильтр", sort: "Сортировка",
@@ -58,7 +59,8 @@ const STR = {
     tabCart: "Корзина", tabOrders: "Заказы", tabProfile: "Профиль", added: "Добавлено в корзину", liked: "Добавлено в избранное",
     orderPlaced: "Заказ принят", orderPlacedSub: "Маргилан Силк ответит в течение 24 часов",
     viewOrders: "Посмотреть заказы", continue: "Продолжить покупки", escrowNote: "Платёж хранится на эскроу до доставки",
-    items: "поз.", panelU: "шт", mU: "м", product: "Товар", noProducts: "Товары не найдены", madeBy: "Разработано" },
+    items: "поз.", panelU: "шт", mU: "м", product: "Товар", noProducts: "Товары не найдены", madeBy: "Разработано",
+    tgVerified: "Подтверждено через Telegram", tgNotConnected: "При открытии через Telegram профиль определится автоматически", tgUserFallback: "Пользователь Telegram" },
 };
 
 // ============ MAHSULOTLAR ============
@@ -153,6 +155,7 @@ const S = {
   lang: 'uz',
   notif: true,
   comment: '',
+  tgUser: null,
 };
 
 // ============ YORDAMCHILAR ============
@@ -751,11 +754,40 @@ function renderOrders() {
   </div>`;
 }
 
+// ============ TELEGRAM PROFIL KARTASI ============
+function renderTgCard() {
+  const T = STR[S.lang];
+  const u = S.tgUser;
+  if (!u) {
+    return `
+    <div style="display:flex;align-items:center;gap:10px;padding:13px 14px;border-radius:var(--radius-lg);background:rgba(255,255,255,.45);border:1px dashed var(--glass-border);color:var(--text-muted);font-size:12px">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style="flex:none;color:var(--text-subtle)"><path d="M21 4L2.5 11.5l6 2 2 6.5L15 15l5-11z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+      ${T.tgNotConnected}
+    </div>`;
+  }
+  const fullName = [u.first_name, u.last_name].filter(Boolean).join(' ') || T.tgUserFallback;
+  const avatar = u.photo_url
+    ? `<img src="${u.photo_url}" style="width:48px;height:48px;border-radius:14px;object-fit:cover;flex:none" alt="">`
+    : `<span style="flex:none;width:48px;height:48px;border-radius:14px;background:linear-gradient(150deg,#37AEE2,#1E96C8);color:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:800;font-size:18px">${fullName[0].toUpperCase()}</span>`;
+  return `
+  <div style="display:flex;align-items:center;gap:12px;padding:14px;border-radius:var(--radius-lg);background:var(--glass-fill-strong);backdrop-filter:var(--blur-md);-webkit-backdrop-filter:var(--blur-md);border:1px solid var(--glass-border);box-shadow:var(--glass-shadow)">
+    ${avatar}
+    <div style="flex:1;min-width:0">
+      <div style="font-family:var(--font-display);font-size:15px;font-weight:700;color:var(--text-strong);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${fullName}</div>
+      <div style="font-size:12px;color:var(--text-muted);margin-top:1px">${u.username ? '@' + u.username : ''}</div>
+    </div>
+    <span style="flex:none;display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 10px;border-radius:999px;background:rgba(55,174,226,.13);color:#1E96C8;font-size:11px;font-weight:600;white-space:nowrap">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M21 4L2.5 11.5l6 2 2 6.5L15 15l5-11z"/></svg>${T.tgVerified}
+    </span>
+  </div>`;
+}
+
 // ============ EKRAN: PROFIL ============
 function renderProfile() {
   const T = STR[S.lang];
   return `
   <div style="padding:16px 16px 28px;display:flex;flex-direction:column;gap:14px">
+    ${renderTgCard()}
     <div style="display:flex;align-items:center;gap:14px;padding:18px;border-radius:var(--radius-lg);background:var(--glass-fill-strong);backdrop-filter:var(--blur-md);-webkit-backdrop-filter:var(--blur-md);border:1px solid var(--glass-border);box-shadow:var(--glass-shadow)">
       <span style="flex:none;width:58px;height:58px;border-radius:18px;background:linear-gradient(150deg,#7a140d,#510100);color:#ffe9db;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:800;font-size:22px">${COMPANY.initials}</span>
       <div style="flex:1;min-width:0">
@@ -884,7 +916,7 @@ function sendOrderNotify() {
       return { name: p.name[S.lang], qty: `${num(c.qty)} ${uShort(p.unit)}`, price: money(p.price * c.qty) };
     });
     const payOpt = PAY.find(o => o.key === S.pay);
-    const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user?.username;
+    const tgUser = S.tgUser?.username;
     fetch('/api/telegram-notify', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -929,6 +961,19 @@ function render() {
   if (fn) document.getElementById('screen-wrap').innerHTML = fn();
 }
 
+// ============ TELEGRAM ORQALI RO'YXATDAN O'TISH ============
+function loadTgUser() {
+  try {
+    const live = window.Telegram?.WebApp?.initDataUnsafe?.user;
+    if (live) {
+      localStorage.setItem('lolamarket_tg_user', JSON.stringify(live));
+      return live;
+    }
+    const cached = localStorage.getItem('lolamarket_tg_user');
+    return cached ? JSON.parse(cached) : null;
+  } catch (e) { return null; }
+}
+
 // ============ ISHGA TUSHIRISH ============
 const inTelegram = !!(window.Telegram?.WebApp?.initData);
 if (window.Telegram?.WebApp) {
@@ -936,4 +981,5 @@ if (window.Telegram?.WebApp) {
   Telegram.WebApp.expand();
 }
 document.documentElement.classList.toggle('in-telegram', inTelegram);
+S.tgUser = loadTgUser();
 render();
