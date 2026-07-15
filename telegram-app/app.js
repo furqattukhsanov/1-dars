@@ -117,12 +117,29 @@ const CATS = [
   { key:'linen',  label:{ uz:"Zig'ir", ru:"Лён" } },
 ];
 
-const ORDERS = [
-  { id:'#LM-2041', date:{ uz:"18-iyun", ru:"18 июня" },   items:[{id:'ik-1402',qty:300}],               statusKey:'production' },
-  { id:'#LM-2038', date:{ uz:"10-iyun", ru:"10 июня" },   items:[{id:'hb-7740',qty:250},{id:'pl-3320',qty:1000}], statusKey:'shipped' },
-  { id:'#LM-1990', date:{ uz:"22-may", ru:"22 мая" },     items:[{id:'ck-2201',qty:800}],               statusKey:'delivered' },
-  { id:'#LM-1804', date:{ uz:"30-aprel", ru:"30 апреля" },items:[{id:'lk-5512',qty:600}],               statusKey:'delivered' },
-];
+// ============ BUYURTMALAR — QURILMADA HAQIQIY SAQLASH (localStorage) ============
+const MONTHS = {
+  uz: ['yanvar','fevral','mart','aprel','may','iyun','iyul','avgust','sentabr','oktabr','noyabr','dekabr'],
+  ru: ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'],
+};
+function orderDateLabel() {
+  const d = new Date();
+  return { uz: `${d.getDate()}-${MONTHS.uz[d.getMonth()]}`, ru: `${d.getDate()} ${MONTHS.ru[d.getMonth()]}` };
+}
+function nextOrderId() {
+  const seq = parseInt(localStorage.getItem('lolamarket_order_seq') || '3000', 10) + 1;
+  localStorage.setItem('lolamarket_order_seq', String(seq));
+  return '#LM-' + seq;
+}
+function loadOrders() {
+  try { return JSON.parse(localStorage.getItem('lolamarket_orders')) || []; }
+  catch (e) { return []; }
+}
+function saveOrders() {
+  try { localStorage.setItem('lolamarket_orders', JSON.stringify(ORDERS)); }
+  catch (e) {}
+}
+let ORDERS = loadOrders();
 
 const PAY = [
   { key:'escrow', label:{ uz:"Escrow — xavfsiz to'lov", ru:"Эскроу — защищённый платёж" },  sub:{ uz:"Tavsiya etiladi · yetkazilgach ozod etiladi", ru:"Рекомендуется · после доставки" } },
@@ -978,6 +995,13 @@ function mainBtnAction() {
     addToCart(S.selectedId, S.qty);
     tab('cart');
   } else if (S.screen === 'checkout') {
+    ORDERS.unshift({
+      id: nextOrderId(),
+      date: orderDateLabel(),
+      items: S.cart.map(c => ({ id: c.id, qty: c.qty })),
+      statusKey: 'pending',
+    });
+    saveOrders();
     sendOrderNotify();
     S.cart = [];
     S.screen = 'success';
