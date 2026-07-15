@@ -848,11 +848,7 @@ function productCard(p) {
     </div>
     <div style="padding:10px 11px 11px;display:flex;flex-direction:column;gap:6px">
       <div style="font-family:var(--font-display);font-size:13.5px;font-weight:700;color:var(--text-strong);line-height:1.2;letter-spacing:-.01em">${p.name}</div>
-      <div style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text-muted)">
-        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.supplier}</span>
-        ${p.verified ? `<svg width="12" height="12" viewBox="0 0 24 24" fill="#7a140d" style="flex:none"><path d="M12 2l2.4 1.8 3-.2 1 2.8 2.6 1.5-.9 2.9.9 2.9-2.6 1.5-1 2.8-3-.2L12 22l-2.4-1.8-3 .2-1-2.8L3 16.3l.9-2.9L3 10.5l2.6-1.5 1-2.8 3 .2z"/><path d="M9 12l2 2 4-4" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>` : ''}
-      </div>
-      <div>
+      <div style="text-align:center">
         <div style="font-size:9.5px;color:var(--text-subtle);text-transform:uppercase;letter-spacing:.03em">${p.perUnitLabel}</div>
         <span style="font-family:var(--font-mono);font-size:15.5px;font-weight:600;color:var(--text-strong)">${p.priceLabel}</span>
       </div>
@@ -867,18 +863,18 @@ function catalogQtyControl(p) {
   const btnBg = 'background:linear-gradient(150deg,#7a140d,#510100)';
   if (!line) {
     return `
-    <div style="width:100%;display:flex;justify-content:flex-end">
+    <div style="width:100%;height:36px;display:flex;align-items:center;justify-content:flex-end">
       <button onclick="event.stopPropagation();catalogInc('${p.id}')" style="flex:none;width:32px;height:32px;border-radius:10px;border:none;${btnBg};color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 10px -4px rgba(81,1,0,.55);cursor:pointer">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
       </button>
     </div>`;
   }
   return `
-  <div onclick="event.stopPropagation()" style="width:100%;display:flex;align-items:center;justify-content:space-between;height:36px;padding:3px;border-radius:11px;background:var(--glass-fill-strong);border:1px solid var(--glass-border);box-shadow:0 4px 10px -8px rgba(81,1,0,.3)">
+  <div onclick="event.stopPropagation()" style="width:100%;height:36px;box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;padding:3px;border-radius:11px;background:var(--pom-100);border:1px solid rgba(122,20,13,.12)">
     <button onclick="catalogDec('${p.id}')" style="flex:none;width:30px;height:30px;border-radius:8px;border:none;${btnBg};color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
     </button>
-    <span style="font-family:var(--font-mono);font-size:13px;font-weight:700;color:var(--text-strong)">${num(line.qty)} ${uShort(p.unit)}</span>
+    <span style="font-family:var(--font-mono);font-size:13px;font-weight:700;color:var(--pom-800)">${num(line.qty)} ${uShort(p.unit)}</span>
     <button onclick="catalogInc('${p.id}')" style="flex:none;width:30px;height:30px;border-radius:8px;border:none;${btnBg};color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
     </button>
@@ -912,8 +908,7 @@ function homeCard(p) {
     </div>
     <div style="padding:11px 12px 12px;display:flex;flex-direction:column;gap:6px">
       <div style="font-family:var(--font-display);font-size:14.5px;font-weight:700;color:var(--text-strong);line-height:1.2;letter-spacing:-.01em">${p.name}</div>
-      <div style="font-size:11.5px;color:var(--text-muted)">${p.city}</div>
-      <div>
+      <div style="text-align:center">
         <div style="font-size:9.5px;color:var(--text-subtle);text-transform:uppercase;letter-spacing:.03em">${p.perUnitLabel}</div>
         <span style="font-family:var(--font-mono);font-size:16px;font-weight:600;color:var(--text-strong)">${p.priceLabel}</span>
       </div>

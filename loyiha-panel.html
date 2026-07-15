@@ -332,6 +332,11 @@
     <div style="font-size:0.68rem; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; color:#9C7B5A; margin-bottom:0.7rem;">So'nggi faoliyat</div>
     <div id="faoliyat-list">
       <div class="faoliyat-item">
+        <span class="faoliyat-sana">2026-07-16</span>
+        <span class="faoliyat-text">Mahsulot kartochkasiga 3 ta kichik UI tuzatish: savatdagi miqdor paneli foni ochroq pomegranate rangga (`var(--pom-100)`) o'zgartirildi, "+" bosilganda kartochka balandligi sakramasligi uchun ikkala holat bir xil `height:36px`ga keltirildi, yetkazib beruvchi/shahar qatori olib tashlanib narx bloki markazga olindi (app.js, index.html v=12)</span>
+        <span class="faoliyat-sprint">Sprint 6</span>
+      </div>
+      <div class="faoliyat-item">
         <span class="faoliyat-sana">2026-07-15</span>
         <span class="faoliyat-text">Narxlash modeli metrdan rulon/donaga o'zgartirildi (12 mahsulot: unit:'rulon', moq:1, narx to'g'ridan-to'g'ri 700 000–900 000 so'mda) va mahsulot kartochkasi dizayni qayta qurildi — rasm balandligi 230px, "1 DONA RULON NARXI" yorlig'i, savatdagi mahsulot uchun butun kenglikdagi ikki rangli "− N dona +" paneli (Bosh sahifa va Katalogda bir xil); Buyurtmalarim ekranidagi Faol/Tarix tab'iga soya qo'shildi (app.js, index.html v=11)</span>
         <span class="faoliyat-sprint">Sprint 6</span>
@@ -436,7 +441,7 @@
     { num: 3, nom: "Foydalanuvchilar + rollar", dars: "Dars 10", holat: "kutilmoqda", sana: "" },
     { num: 4, nom: "Asosiy funksiya",           dars: "Dars 11", holat: "kutilmoqda", sana: "" },
     { num: 5, nom: "Mobil / PWA",               dars: "Dars 12", holat: "kutilmoqda", sana: "" },
-    { num: 6, nom: "Integratsiyalar",           dars: "Dars 13", holat: "jarayonda",  sana: "2026-07-15" },
+    { num: 6, nom: "Integratsiyalar",           dars: "Dars 13", holat: "jarayonda",  sana: "2026-07-16" },
     { num: 7, nom: "Admin panel",               dars: "Dars 14", holat: "kutilmoqda", sana: "" },
     { num: 8, nom: "Sifat tekshiruvi",          dars: "Dars 15", holat: "kutilmoqda", sana: "" },
     { num: 9, nom: "Production + launch",       dars: "Dars 16", holat: "kutilmoqda", sana: "" },
@@ -460,7 +465,7 @@
   barEl.style.width = foiz + "%";
   percentEl.textContent = foiz + "%";
   countEl.textContent = tugaganlar + " / " + sprintlar.length + " sprint";
-  updatedEl.textContent = "Yangilanish: 2026-07-15";
+  updatedEl.textContent = "Yangilanish: 2026-07-16";
 
   sprintlar.forEach(s => {
     const card = document.createElement("div");
