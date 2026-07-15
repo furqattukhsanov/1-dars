@@ -199,14 +199,14 @@ const BADGE_COLORS = {
 };
 const STOCK_COLOR = { in:'var(--success-500)', low:'var(--saffron-500)', made:'var(--teal-500)' };
 const STOCK_TXT   = { in:{ uz:'Sotuvda', ru:'В наличии' }, low:{ uz:'Kam qoldi', ru:'Мало осталось' }, made:{ uz:'Buyurtmaga', ru:'Под заказ' } };
-const STATUS_TXT  = { production:{ uz:'Ishlab chiqarilmoqda', ru:'В производстве' }, shipped:{ uz:"Yo'lda", ru:'В пути' }, delivered:{ uz:'Yetkazildi', ru:'Доставлено' }, pending:{ uz:'Tasdiq kutilmoqda', ru:'Ожидает' } };
+const STATUS_TXT  = { production:{ uz:'Ishlab chiqarilmoqda', ru:'В производстве' }, shipped:{ uz:"Yo'lda", ru:'В пути' }, delivered:{ uz:'Yetkazildi', ru:'Доставлено' }, pending:{ uz:'Tasdiq kutilmoqda', ru:'Ожидает' }, confirmed:{ uz:'Tasdiqlandi', ru:'Подтверждено' } };
 const STATUS_COL  = {
   saffron: ['var(--saffron-50)','var(--saffron-700)'],
   teal:    ['var(--teal-50)','var(--teal-700)'],
   success: ['var(--success-100)','#0E6B47'],
   neutral: ['var(--ink-100)','var(--ink-700)'],
 };
-const STATUS_TONE = { production:'saffron', shipped:'teal', delivered:'success', pending:'neutral' };
+const STATUS_TONE = { production:'saffron', shipped:'teal', delivered:'success', pending:'neutral', confirmed:'saffron' };
 
 function vm(p) {
   const [bbg,bfg] = BADGE_COLORS[p.badgeTone] || BADGE_COLORS.neutral;
@@ -256,6 +256,7 @@ function tab(k) {
   S.screen = k;
   S.history = [];
   render();
+  if (k === 'orders') syncOrderStatuses();
 }
 
 // ============ SAVAT ============
@@ -965,7 +966,7 @@ function onSearch(v) {
 function clearSearch() { S.search=''; document.getElementById('screen-wrap').innerHTML=renderSearch(); document.getElementById('search-inp')?.focus(); }
 function pickSearch(v) { S.search=v; document.getElementById('screen-wrap').innerHTML=renderSearch(); }
 
-function sendOrderNotify() {
+function sendOrderNotify(orderId) {
   try {
     const items = S.cart.map(c => {
       const p = byId(c.id);
@@ -977,6 +978,7 @@ function sendOrderNotify() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        orderId,
         buyerName: COMPANY.name[S.lang],
         tgUser: tgUser || undefined,
         tgUserId: S.tgUser?.id || undefined,
@@ -990,19 +992,38 @@ function sendOrderNotify() {
   } catch (e) {}
 }
 
+// ============ BUYURTMA HOLATINI SERVERDAN SINXRONLASH ============
+function syncOrderStatuses() {
+  const pending = ORDERS.filter(o => o.statusKey === 'pending');
+  if (!pending.length) return;
+  pending.forEach((o) => {
+    fetch('/api/order-status?id=' + encodeURIComponent(o.id))
+      .then((r) => r.json())
+      .then((d) => {
+        if (d && d.status && d.status !== 'pending' && d.status !== o.statusKey) {
+          o.statusKey = d.status;
+          saveOrders();
+          if (S.screen === 'orders') document.getElementById('screen-wrap').innerHTML = renderOrders();
+        }
+      })
+      .catch(() => {});
+  });
+}
+
 function mainBtnAction() {
   if (S.screen === 'detail') {
     addToCart(S.selectedId, S.qty);
     tab('cart');
   } else if (S.screen === 'checkout') {
+    const orderId = nextOrderId();
     ORDERS.unshift({
-      id: nextOrderId(),
+      id: orderId,
       date: orderDateLabel(),
       items: S.cart.map(c => ({ id: c.id, qty: c.qty })),
       statusKey: 'pending',
     });
     saveOrders();
-    sendOrderNotify();
+    sendOrderNotify(orderId);
     S.cart = [];
     S.screen = 'success';
     S.history = [];
