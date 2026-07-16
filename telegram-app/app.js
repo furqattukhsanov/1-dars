@@ -994,13 +994,13 @@ function sendOrderNotify(orderId) {
 
 // ============ BUYURTMA HOLATINI SERVERDAN SINXRONLASH ============
 function syncOrderStatuses() {
-  const pending = ORDERS.filter(o => o.statusKey === 'pending');
-  if (!pending.length) return;
-  pending.forEach((o) => {
+  const open = ORDERS.filter(o => o.statusKey !== 'delivered');
+  if (!open.length) return;
+  open.forEach((o) => {
     fetch('/api/order-status?id=' + encodeURIComponent(o.id))
       .then((r) => r.json())
       .then((d) => {
-        if (d && d.status && d.status !== 'pending' && d.status !== o.statusKey) {
+        if (d && d.status && d.status !== o.statusKey) {
           o.statusKey = d.status;
           saveOrders();
           if (S.screen === 'orders') document.getElementById('screen-wrap').innerHTML = renderOrders();
