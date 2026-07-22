@@ -5,7 +5,7 @@ window.addEventListener('load', () => {
     if (!loader) return;
     loader.classList.add('hide');
     loader.addEventListener('transitionend', () => loader.remove(), { once: true });
-  }, 600);
+  }, 120);
 });
 
 /* ── Telegram Mini App init ── */
@@ -510,8 +510,13 @@ function checkoutHtml() {
         <input class="co-input" id="co-company" type="text" autocomplete="organization" placeholder="Ixtiyoriy" />
       </div>
       <div class="co-field">
+        <label class="co-label" for="co-address">Yetkazish manzili *</label>
+        <input class="co-input" id="co-address" type="text" autocomplete="street-address" placeholder="Viloyat, tuman, BTS Pochta nuqtasi" required />
+        <div class="co-hint">BTS Pochta orqali yetkaziladi — eng yaqin nuqtani yozing.</div>
+      </div>
+      <div class="co-field">
         <label class="co-label" for="co-comment">Izoh</label>
-        <textarea class="co-area" id="co-comment" placeholder="Yetkazish manzili, muddat yoki boshqa talablar (ixtiyoriy)"></textarea>
+        <textarea class="co-area" id="co-comment" placeholder="Muddat yoki boshqa talablar (ixtiyoriy)"></textarea>
       </div>
 
       <div class="co-err" id="co-err" hidden></div>
@@ -540,6 +545,7 @@ function submitOrder(e) {
   const name = val('co-name');
   const phone = val('co-phone');
   const company = val('co-company');
+  const address = val('co-address');
   const comment = val('co-comment');
   const err = document.getElementById('co-err');
   const btn = document.getElementById('co-submit');
@@ -547,6 +553,7 @@ function submitOrder(e) {
   const digits = phone.replace(/\D/g, '');
   if (!name) return showErr(err, 'Ismingizni kiriting.');
   if (digits.length < 9) return showErr(err, "Telefon raqamini to'liq kiriting.");
+  if (!address) return showErr(err, 'Yetkazish manzilini kiriting.');
   if (!cartCount()) return showErr(err, "Savat bo'sh.");
   if (err) err.hidden = true;
 
@@ -567,7 +574,7 @@ function submitOrder(e) {
     body: JSON.stringify({
       orderId,
       buyerName: company ? `${name} (${company})` : name,
-      address: 'Veb-sayt orqali — manzil aniqlanmagan',
+      address: address,
       payment: 'Kelishilgan holda',
       comment: [comment, 'Telefon: ' + phone].filter(Boolean).join(' · '),
       items,

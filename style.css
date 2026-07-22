@@ -374,6 +374,17 @@ body {
 }
 .chips::-webkit-scrollbar { display: none; }
 
+/* Tasdiqlangan belgisining izohi */
+.verified-legend {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.verified-legend svg { flex: none; }
+
 /* ===== MAHSULOT GRIDI ===== */
 .product-grid {
   margin-top: 18px;
@@ -438,16 +449,24 @@ body {
   white-space: nowrap;
 }
 .product-supplier svg { flex: none; }
+/* Tasdiqlangan belgisi — yuqoridagi span qoidasidan ozod, cho'zilmasin */
+.product-supplier .verified {
+  flex: none;
+  display: flex;
+  overflow: visible;
+  cursor: help;
+}
 .product-price {
   margin-top: auto;
   padding-top: 4px;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  /* Kartochka ichida bitta tekislash o'qi — nom va ta'minotchi bilan bir xil */
+  align-items: flex-start;
   gap: 1px;
 }
 .price-label {
-  font-size: 8px;
+  font-size: 10.5px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: .03em;
@@ -486,9 +505,11 @@ body {
   line-height: 1.55;
   color: rgba(255, 233, 219, .72);
 }
+/* Alohida qatorda — tugma bilan yonma-yon tushib qolmasin */
 .cta-note {
   margin-top: 18px;
-  display: inline-flex;
+  display: flex;
+  justify-content: center;
   align-items: center;
   gap: 7px;
   font-size: 12.5px;
@@ -559,7 +580,7 @@ body {
   .product-name { font-size: 15px; }
   .product-supplier { font-size: 12px; }
   .price-value { font-size: 17px; }
-  .price-label { font-size: 9px; }
+  .price-label { font-size: 11px; }
 }
 
 /* ===== RESPONSIV — 960px+ ===== */
@@ -655,6 +676,8 @@ body {
 .login-btn:active { transform: scale(.97); }
 
 /* ===== NATIJA TOPILMADI ===== */
+/* [hidden] atributi display:flex dan kuchliroq bo'lishi shart */
+.no-result[hidden] { display: none; }
 .no-result {
   margin-top: 40px;
   display: flex; flex-direction: column;
