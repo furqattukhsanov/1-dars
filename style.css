@@ -245,17 +245,6 @@ body {
 .tone-saffron { background: var(--saffron-50); color: var(--saffron-700); }
 
 /* Gradient ikonka plitka (app.js:503 retsepti) */
-.icon-tile {
-  flex: none;
-  width: 42px; height: 42px;
-  border-radius: 12px;
-  background: linear-gradient(150deg, #7a140d, #510100);
-  color: #ffe9db;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
 /* Gradient halqa — logo/avatar (styles.css:177-183) */
 .ring {
   display: inline-flex;
@@ -329,9 +318,9 @@ body {
 }
 
 /* ===== HEADER ===== */
+/* Header qadalmaydi — sahifa bilan birga yuqoriga chiqib ketadi */
 #nav {
-  position: sticky;
-  top: 0;
+  position: relative;
   z-index: 100;
   height: var(--header-h);
   display: flex;
@@ -342,11 +331,6 @@ body {
   border-bottom: 1px solid transparent;
   transition: background var(--dur-base), border-color var(--dur-base), box-shadow var(--dur-base);
 }
-#nav.scrolled {
-  background: rgba(255, 255, 255, 0.78);
-  border-bottom-color: rgba(255, 255, 255, 0.6);
-  box-shadow: 0 1px 0 rgba(23,26,48,.06), 0 4px 12px -8px rgba(81,1,0,.12);
-}
 .nav-inner {
   display: flex;
   align-items: center;
@@ -354,6 +338,13 @@ body {
   width: 100%;
 }
 .nav-brand { display: flex; align-items: center; gap: 9px; }
+/* Kirish + saralanganlar + savat — o'ng burchakdagi guruh */
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+}
 /* Brend nishoni — shaffof PNG, gradient halqasiz (brend lockup'iga mos) */
 .brand-mark { display: block; flex: none; }
 .nav-brand-text { display: flex; flex-direction: column; gap: 1px; }
@@ -366,15 +357,10 @@ body {
   color: var(--text-strong);
 }
 .nav-spacer { flex: 1; }
-.nav-links { display: none; align-items: center; gap: 26px; }
-.nav-links a {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-body);
-  transition: color var(--dur-fast);
-}
 /* ===== BO'LIMLAR ===== */
 .section { padding-top: var(--section-gap); }
+/* Header'dan keyingi birinchi bo'lim — katalog darrov ko'rinsin */
+.section-first { padding-top: 14px; }
 .section-head { margin-bottom: 22px; }
 
 /* ===== KATEGORIYA CHIPLARI ===== */
@@ -475,47 +461,6 @@ body {
 }
 
 /* Katalog "hammasini ko'rish" qatori */
-/* ===== IMKONIYATLAR ===== */
-.feature-grid {
-  margin-top: 20px;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 12px;
-}
-.feature-card {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 20px;
-  border-radius: var(--radius-lg);
-  background: var(--glass-fill-strong);
-  backdrop-filter: var(--blur-sm);
-  -webkit-backdrop-filter: var(--blur-sm);
-  border: 1px solid var(--glass-border);
-  box-shadow: var(--glass-shadow);
-  transition: transform var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out);
-}
-.feature-top { display: flex; align-items: center; gap: 12px; }
-.feature-num {
-  margin-left: auto;
-  font-family: var(--font-mono);
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-subtle);
-}
-.feature-title {
-  font-family: var(--font-display);
-  font-size: 17px;
-  font-weight: 700;
-  letter-spacing: -.015em;
-  color: var(--text-strong);
-}
-.feature-text {
-  font-size: 14px;
-  line-height: 1.55;
-  color: var(--text-muted);
-}
-
 /* ===== CTA + EMAIL ===== */
 .cta-panel {
   margin-top: 20px;
@@ -551,35 +496,6 @@ body {
 }
 
 /* ===== ASOSCHI ===== */
-.founder-card {
-  margin-top: 20px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  gap: 14px;
-  padding: clamp(24px, 4vw, 40px);
-  border-radius: var(--radius-xl);
-  background: var(--glass-fill-strong);
-  backdrop-filter: var(--blur-md);
-  -webkit-backdrop-filter: var(--blur-md);
-  border: 1px solid var(--glass-border);
-  box-shadow: var(--glass-shadow);
-}
-.founder-name {
-  font-family: var(--font-display);
-  font-size: 21px;
-  font-weight: 800;
-  letter-spacing: -.02em;
-  color: var(--text-strong);
-}
-.founder-role { font-size: 13.5px; color: var(--text-muted); margin-top: 3px; }
-.founder-quote {
-  max-width: 52ch;
-  font-size: 15px;
-  line-height: 1.6;
-  color: var(--text-body);
-}
 
 /* ===== FOOTER ===== */
 .footer {
@@ -630,23 +546,169 @@ body {
 .fade-up.visible { opacity: 1; transform: translateY(0); }
 
 /* ===== RESPONSIV — 640px+ ===== */
+.chips {
+  transition: height var(--dur-base) var(--ease-out),
+              opacity var(--dur-fast),
+              padding var(--dur-base) var(--ease-out);
+}
+
+
 @media (min-width: 640px) {
-  .nav-links { display: flex; }
   .product-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
   .product-media { height: auto; aspect-ratio: 4 / 5; }
   .product-name { font-size: 15px; }
   .product-supplier { font-size: 12px; }
   .price-value { font-size: 17px; }
   .price-label { font-size: 9px; }
-  .feature-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
-  .founder-card { flex-direction: row; text-align: left; gap: 24px; }
 }
 
 /* ===== RESPONSIV — 960px+ ===== */
 @media (min-width: 960px) {
   .product-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px; }
-  .feature-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .chips { margin: 0; padding: 2px 0 6px; flex-wrap: wrap; overflow-x: visible; }
+}
+
+/* ===== HEADER: QIDIRUV + FILTR (Mini App retsepti, app.js:423) ===== */
+.search-wrap {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.search-box {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  height: 42px;
+  padding: 0 14px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  background: var(--glass-fill-strong);
+  backdrop-filter: var(--blur-md);
+  -webkit-backdrop-filter: var(--blur-md);
+  color: var(--text-subtle);
+  box-shadow: 0 8px 22px -12px rgba(81,1,0,.22), var(--glass-highlight);
+  transition: border-color var(--dur-fast), box-shadow var(--dur-fast);
+}
+.search-box:focus-within {
+  border-color: var(--pom-500);
+  box-shadow: 0 0 0 3px rgba(122,20,13,.12), var(--glass-highlight);
+}
+.search-box svg { flex: none; }
+.search-box input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  /* 16px — iOS'da fokusda avtomatik zoom bo'lmasligi uchun */
+  font-size: 16px;
+  color: var(--text-strong);
+}
+.search-box input::placeholder { color: var(--text-subtle); }
+.search-box input::-webkit-search-cancel-button { display: none; }
+.search-x {
+  flex: none;
+  display: flex;
+  border: none;
+  background: none;
+  color: var(--text-subtle);
+  padding: 2px;
+  transition: color var(--dur-fast);
+}
+
+.filter-btn {
+  flex: none;
+  width: 42px; height: 42px;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(255,229,210,.25);
+  background: var(--grad-pom-soft);
+  color: #ffe5d2;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 6px 16px -8px rgba(81,1,0,.6), inset 0 1px 0 rgba(255,229,210,.22);
+  /* Faqat bezak — bosilmaydi, bosilganda ham ko'rinishi o'zgarmaydi */
+  pointer-events: none;
+}
+
+/* ===== HEADER: KIRISH ===== */
+.login-btn {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 42px;
+  padding: 0 15px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--glass-border);
+  background: var(--glass-fill-strong);
+  backdrop-filter: var(--blur-md);
+  -webkit-backdrop-filter: var(--blur-md);
+  color: var(--text-strong);
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: 0 8px 22px -12px rgba(81,1,0,.22), var(--glass-highlight);
+  transition: transform var(--dur-fast), background var(--dur-fast);
+}
+.login-btn:active { transform: scale(.97); }
+
+/* ===== NATIJA TOPILMADI ===== */
+.no-result {
+  margin-top: 40px;
+  display: flex; flex-direction: column;
+  align-items: center; gap: 7px;
+  text-align: center;
+  color: var(--text-subtle);
+}
+.no-result-title {
+  font-family: var(--font-display);
+  font-size: 17px; font-weight: 700;
+  color: var(--text-strong);
+}
+.no-result-sub { font-size: 13.5px; color: var(--text-muted); }
+
+/* ===== TOAST ===== */
+.toast {
+  position: fixed;
+  bottom: 28px; left: 50%;
+  transform: translateX(-50%);
+  z-index: 200;
+  height: 42px;
+  padding: 0 22px;
+  border-radius: 999px;
+  background: var(--ink-900);
+  color: #fff;
+  font-size: 13.5px; font-weight: 600;
+  display: flex; align-items: center;
+  box-shadow: 0 10px 30px -10px rgba(23,26,48,.5);
+  animation: toastIn var(--dur-base) var(--ease-spring);
+}
+@keyframes toastIn {
+  from { transform: translateX(-50%) translateY(14px); opacity: 0; }
+  to   { transform: translateX(-50%) translateY(0);    opacity: 1; }
+}
+
+/* ===== HEADER MOBILDA =====
+   Qidiruv + filtr ikkinchi qatorga tushadi, header balandligi oshadi.
+   Desktopda (>=880px) hammasi bitta qatorda. */
+#nav { height: auto; min-height: var(--header-h); padding: 9px 0; }
+.nav-inner { flex-wrap: wrap; row-gap: 9px; }
+.search-wrap { order: 10; flex-basis: 100%; }
+.login-txt { display: none; }
+.login-btn { padding: 0 12px; }
+
+@media (min-width: 880px) {
+  #nav { height: var(--header-h); padding: 0; }
+  .nav-inner { flex-wrap: nowrap; }
+  /* Chap (logo) va o'ng (tugmalar) guruh teng kenglikda —
+     shunda qidiruv header'ning aniq o'rtasida turadi */
+  .nav-brand, .nav-actions { flex: 1 1 0; min-width: 0; }
+  .nav-actions { margin-left: 0; justify-content: flex-end; }
+  .search-wrap { order: 0; flex: none; width: 560px; max-width: 100%; }
+  .login-txt { display: inline; }
+  .login-btn { padding: 0 15px; }
 }
 
 /* ===== SAVAT TUGMASI (header) ===== */
@@ -686,6 +748,41 @@ body {
   70%  { transform: scale(1.15); }
   100% { transform: scale(1); opacity: 1; }
 }
+
+/* ===== YURAKCHA — SARALANGANLAR =====
+   Mini App retsepti: shisha doira, bosilganda yurakcha to'ladi
+   (telegram-app/app.js:967) */
+.fav-btn {
+  position: absolute;
+  top: 10px; right: 10px;
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,.6);
+  background: rgba(255,255,255,.42);
+  backdrop-filter: blur(10px) saturate(160%);
+  -webkit-backdrop-filter: blur(10px) saturate(160%);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-body);
+  box-shadow: 0 2px 8px -2px rgba(23,26,48,.28), inset 0 1px 0 rgba(255,255,255,.8);
+  transition: transform var(--dur-fast), color var(--dur-fast), background var(--dur-fast);
+}
+.fav-btn:active { transform: scale(.88); }
+.fav-btn.on {
+  color: var(--color-primary);
+  background: rgba(255,255,255,.72);
+}
+.fav-btn.on svg { fill: var(--color-primary); }
+/* Bosilganda yurakcha "urib" qo'yadi */
+.fav-btn.pulse svg { animation: heartPop var(--dur-base) var(--ease-spring); }
+@keyframes heartPop {
+  0%   { transform: scale(1); }
+  45%  { transform: scale(1.32); }
+  100% { transform: scale(1); }
+}
+
+/* Header'dagi saralanganlar tugmasi (savatning chap yonida) */
+.fav-head-btn.on { color: var(--color-primary); }
+.fav-head-btn.on svg { fill: var(--color-primary); }
 
 /* ===== "SAVATGA" TUGMASI (mahsulot kartasi) ===== */
 .add-btn {
@@ -923,6 +1020,50 @@ body {
   white-space: nowrap;
 }
 
+/* ===== SARALANGANLAR QATORI (drawer) ===== */
+.fav-line {
+  display: flex; gap: 12px;
+  padding: 11px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-hair);
+  background: var(--glass-fill-strong);
+  box-shadow: var(--glass-highlight);
+}
+.fav-line-img {
+  flex: none;
+  width: 68px; height: 68px;
+  border-radius: var(--radius-sm);
+  object-fit: cover;
+  background: var(--ink-100);
+}
+.fav-line-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.fav-line-price {
+  font-family: var(--font-mono);
+  font-size: 13.5px; font-weight: 600;
+  color: var(--text-strong);
+  margin-top: 1px;
+}
+.fav-line-act { margin-top: 7px; display: flex; gap: 7px; align-items: center; }
+.fav-add {
+  flex: 1;
+  height: 32px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--grad-pom);
+  color: var(--pom-100);
+  font-size: 12.5px; font-weight: 600;
+  display: flex; align-items: center; justify-content: center; gap: 5px;
+  box-shadow: 0 6px 16px -8px rgba(81,1,0,.55);
+  transition: transform var(--dur-fast), filter var(--dur-fast);
+}
+.fav-add:active { transform: scale(.97); }
+.fav-add.in-cart {
+  background: var(--tint-pom);
+  color: var(--pom-800);
+  box-shadow: none;
+  border: 1px solid rgba(122,20,13,.12);
+}
+
 /* ===== BO'SH SAVAT / MUVAFFAQIYAT ===== */
 .drawer-empty, .drawer-done {
   flex: 1;
@@ -1016,14 +1157,9 @@ body {
     box-shadow: 0 18px 40px -18px rgba(81,1,0,.36), 0 2px 6px rgba(23,26,48,.06);
   }
   .product-card:hover .product-media img { transform: scale(1.05); }
-  .feature-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 20px 46px -18px rgba(23,26,48,.34), var(--glass-highlight);
-  }
   .btn-dark:hover { filter: brightness(1.12); box-shadow: 0 14px 32px -10px rgba(81,1,0,.7), inset 0 1px 0 rgba(255,229,210,.28); }
   .btn-glass:hover { background: rgba(255,255,255,.9); box-shadow: 0 12px 28px -12px rgba(81,1,0,.3), var(--glass-highlight); }
   .chip:hover:not(.active) { background: var(--glass-fill-strong); border-color: var(--glass-border); }
-  .nav-links a:hover { color: var(--pom-700); }
   .social-btn:hover { transform: translateY(-2px); color: var(--pom-700); background: #fff; }
   .cart-btn:hover { background: rgba(255,255,255,.9); }
   .add-btn:hover { filter: brightness(1.1); }
@@ -1037,7 +1173,7 @@ body {
 /* ===== BACKDROP-FILTER FALLBACK ===== */
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   #nav, .glass, .glass-strong, .btn-glass, .chip,
-  .product-card, .feature-card, .founder-card, .social-btn {
+  .product-card, .social-btn {
     background: rgba(255, 255, 255, .94);
   }
 }

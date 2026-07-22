@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=12" />
+  <link rel="stylesheet" href="style.css?v=18" />
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
@@ -29,20 +29,36 @@
     <div class="container nav-inner">
       <a class="nav-brand" href="#top">
         <img class="brand-mark" src="Photo/logo/lola-mark.png" width="38" height="38" alt="LolaMarket" />
-        <span class="nav-brand-text">
-          <span class="nav-title">LolaMarket</span>
-        </span>
+        <span class="nav-title">LolaMarket</span>
       </a>
-      <div class="nav-spacer"></div>
-      <nav class="nav-links">
-        <a href="#katalog">Katalog</a>
-        <a href="#imkoniyatlar">Imkoniyatlar</a>
-        <a href="#haqida">Haqida</a>
-      </nav>
-      <button class="cart-btn" id="cart-btn" onclick="openCart()" aria-label="Savat">
-        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12l-1 11.5H7z"/><path d="M9 8V6.2a3 3 0 0 1 6 0V8"/></svg>
-        <span class="cart-count" id="cart-count" hidden>0</span>
-      </button>
+
+      <div class="search-wrap">
+        <div class="search-box">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M20 20l-3.5-3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          <input id="search-inp" type="text" autocomplete="off" placeholder="Mato yoki ishlab chiqaruvchi" oninput="onSearch(this.value)" />
+          <button class="search-x" id="search-x" onclick="clearSearch()" aria-label="Tozalash" hidden>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+          </button>
+        </div>
+        <button class="filter-btn" id="filter-btn" type="button" tabindex="-1" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M4 6h16M7 12h10M10 18h4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+
+      <div class="nav-actions">
+        <button class="login-btn" onclick="onLogin()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M4.8 19.6a7.4 7.4 0 0 1 14.4 0"/></svg>
+          <span class="login-txt">Kirish</span>
+        </button>
+
+        <button class="cart-btn fav-head-btn" id="fav-btn" onclick="openFav()" aria-label="Saralanganlar">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 20.8s-6.9-4.3-9-8a5.2 5.2 0 0 1-.5-3.7A4.8 4.8 0 0 1 6.3 5.5c1.9 0 3.4 1 4.3 2.3.4.6 1 .6 1.4 0 .9-1.3 2.4-2.3 4.3-2.3a4.8 4.8 0 0 1 3.8 3.6 5.2 5.2 0 0 1-.5 3.7c-2.1 3.7-9 8-9 8z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+        </button>
+        <button class="cart-btn" id="cart-btn" onclick="openCart()" aria-label="Savat">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12l-1 11.5H7z"/><path d="M9 8V6.2a3 3 0 0 1 6 0V8"/></svg>
+          <span class="cart-count" id="cart-count" hidden>0</span>
+        </button>
+      </div>
     </div>
   </header>
 
@@ -64,6 +80,9 @@
         <div class="product-media">
           <img src="Photo/textile/186e363817f29c3d01029ef64db8aae6.jpg" alt="Marg'ilon ipak ikat" loading="lazy" />
           <span class="badge-pill tone-primary">Tavsiya</span>
+          <button class="fav-btn" id="fav-p1" onclick="toggleFav('p1')" aria-label="Saralanganlarga qo'shish" aria-pressed="false">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 20.8s-6.9-4.3-9-8a5.2 5.2 0 0 1-.5-3.7A4.8 4.8 0 0 1 6.3 5.5c1.9 0 3.4 1 4.3 2.3.4.6 1 .6 1.4 0 .9-1.3 2.4-2.3 4.3-2.3a4.8 4.8 0 0 1 3.8 3.6 5.2 5.2 0 0 1-.5 3.7c-2.1 3.7-9 8-9 8z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+          </button>
         </div>
         <div class="product-body">
           <div class="product-name">Marg'ilon ipak ikat</div>
@@ -88,6 +107,9 @@
         <div class="product-media">
           <img src="Photo/textile/2563ba9a9ee78e0305adc5ab277db180.jpg" alt="Qo'lbola adras" loading="lazy" />
           <span class="badge-pill tone-saffron">Kam qoldi</span>
+          <button class="fav-btn" id="fav-p2" onclick="toggleFav('p2')" aria-label="Saralanganlarga qo'shish" aria-pressed="false">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 20.8s-6.9-4.3-9-8a5.2 5.2 0 0 1-.5-3.7A4.8 4.8 0 0 1 6.3 5.5c1.9 0 3.4 1 4.3 2.3.4.6 1 .6 1.4 0 .9-1.3 2.4-2.3 4.3-2.3a4.8 4.8 0 0 1 3.8 3.6 5.2 5.2 0 0 1-.5 3.7c-2.1 3.7-9 8-9 8z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+          </button>
         </div>
         <div class="product-body">
           <div class="product-name">Qo'lbola adras</div>
@@ -112,6 +134,9 @@
         <div class="product-media">
           <img src="Photo/textile/3b60658c5d1d11daaa938e227d976395.jpg" alt="So'zana panel — anor" loading="lazy" />
           <span class="badge-pill tone-teal">Hunarmand</span>
+          <button class="fav-btn" id="fav-p3" onclick="toggleFav('p3')" aria-label="Saralanganlarga qo'shish" aria-pressed="false">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 20.8s-6.9-4.3-9-8a5.2 5.2 0 0 1-.5-3.7A4.8 4.8 0 0 1 6.3 5.5c1.9 0 3.4 1 4.3 2.3.4.6 1 .6 1.4 0 .9-1.3 2.4-2.3 4.3-2.3a4.8 4.8 0 0 1 3.8 3.6 5.2 5.2 0 0 1-.5 3.7c-2.1 3.7-9 8-9 8z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+          </button>
         </div>
         <div class="product-body">
           <div class="product-name">So'zana panel — anor</div>
@@ -135,6 +160,9 @@
       <article class="product-card fade-up" data-id="p4" data-name="Paxta adras — indigo" data-price="700000" data-supplier="O'sh Textile" data-cat="cotton">
         <div class="product-media">
           <img src="Photo/textile/668f7de0e14d13ef96a6a44b2b4c51ba.jpg" alt="Paxta adras — indigo" loading="lazy" />
+          <button class="fav-btn" id="fav-p4" onclick="toggleFav('p4')" aria-label="Saralanganlarga qo'shish" aria-pressed="false">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 20.8s-6.9-4.3-9-8a5.2 5.2 0 0 1-.5-3.7A4.8 4.8 0 0 1 6.3 5.5c1.9 0 3.4 1 4.3 2.3.4.6 1 .6 1.4 0 .9-1.3 2.4-2.3 4.3-2.3a4.8 4.8 0 0 1 3.8 3.6 5.2 5.2 0 0 1-.5 3.7c-2.1 3.7-9 8-9 8z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+          </button>
         </div>
         <div class="product-body">
           <div class="product-name">Paxta adras — indigo</div>
@@ -156,6 +184,9 @@
         <div class="product-media">
           <img src="Photo/textile/7a30c608f6f3c6c8d04c74769563733e.jpg" alt="Junli mato — yelkacha" loading="lazy" />
           <span class="badge-pill tone-teal">Yangi</span>
+          <button class="fav-btn" id="fav-p5" onclick="toggleFav('p5')" aria-label="Saralanganlarga qo'shish" aria-pressed="false">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 20.8s-6.9-4.3-9-8a5.2 5.2 0 0 1-.5-3.7A4.8 4.8 0 0 1 6.3 5.5c1.9 0 3.4 1 4.3 2.3.4.6 1 .6 1.4 0 .9-1.3 2.4-2.3 4.3-2.3a4.8 4.8 0 0 1 3.8 3.6 5.2 5.2 0 0 1-.5 3.7c-2.1 3.7-9 8-9 8z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+          </button>
         </div>
         <div class="product-body">
           <div class="product-name">Junli mato — yelkacha</div>
@@ -179,6 +210,9 @@
       <article class="product-card fade-up" data-id="p6" data-name="Zig'ir mato — natural" data-price="750000" data-supplier="Shymkent Mills" data-cat="linen">
         <div class="product-media">
           <img src="Photo/textile/7ccb84b1de861ff78297268a4f524212.jpg" alt="Zig'ir mato — natural" loading="lazy" />
+          <button class="fav-btn" id="fav-p6" onclick="toggleFav('p6')" aria-label="Saralanganlarga qo'shish" aria-pressed="false">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 20.8s-6.9-4.3-9-8a5.2 5.2 0 0 1-.5-3.7A4.8 4.8 0 0 1 6.3 5.5c1.9 0 3.4 1 4.3 2.3.4.6 1 .6 1.4 0 .9-1.3 2.4-2.3 4.3-2.3a4.8 4.8 0 0 1 3.8 3.6 5.2 5.2 0 0 1-.5 3.7c-2.1 3.7-9 8-9 8z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+          </button>
         </div>
         <div class="product-body">
           <div class="product-name">Zig'ir mato — natural</div>
@@ -203,6 +237,9 @@
         <div class="product-media">
           <img src="Photo/textile/961c4a2920e63b71e8f864dafac1ce63.jpg" alt="Kelinlik ikat — za'faron" loading="lazy" />
           <span class="badge-pill tone-primary">Tavsiya</span>
+          <button class="fav-btn" id="fav-p7" onclick="toggleFav('p7')" aria-label="Saralanganlarga qo'shish" aria-pressed="false">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 20.8s-6.9-4.3-9-8a5.2 5.2 0 0 1-.5-3.7A4.8 4.8 0 0 1 6.3 5.5c1.9 0 3.4 1 4.3 2.3.4.6 1 .6 1.4 0 .9-1.3 2.4-2.3 4.3-2.3a4.8 4.8 0 0 1 3.8 3.6 5.2 5.2 0 0 1-.5 3.7c-2.1 3.7-9 8-9 8z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+          </button>
         </div>
         <div class="product-body">
           <div class="product-name">Kelinlik ikat — za'faron</div>
@@ -226,6 +263,9 @@
       <article class="product-card fade-up" data-id="p8" data-name="Sodda to'qima — marjon" data-price="700000" data-supplier="Farg'ona Fabric" data-cat="cotton">
         <div class="product-media">
           <img src="Photo/textile/9933cd587d27967384d036d3e711bf32.jpg" alt="Sodda to'qima — marjon" loading="lazy" />
+          <button class="fav-btn" id="fav-p8" onclick="toggleFav('p8')" aria-label="Saralanganlarga qo'shish" aria-pressed="false">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 20.8s-6.9-4.3-9-8a5.2 5.2 0 0 1-.5-3.7A4.8 4.8 0 0 1 6.3 5.5c1.9 0 3.4 1 4.3 2.3.4.6 1 .6 1.4 0 .9-1.3 2.4-2.3 4.3-2.3a4.8 4.8 0 0 1 3.8 3.6 5.2 5.2 0 0 1-.5 3.7c-2.1 3.7-9 8-9 8z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+          </button>
         </div>
         <div class="product-body">
           <div class="product-name">Sodda to'qima — marjon</div>
@@ -247,6 +287,9 @@
         <div class="product-media">
           <img src="Photo/textile/c20cdf0e31d225c802bb8876d207ac3b.jpg" alt="Zar naqsh so'zana panel" loading="lazy" />
           <span class="badge-pill tone-saffron">Yangi</span>
+          <button class="fav-btn" id="fav-p9" onclick="toggleFav('p9')" aria-label="Saralanganlarga qo'shish" aria-pressed="false">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 20.8s-6.9-4.3-9-8a5.2 5.2 0 0 1-.5-3.7A4.8 4.8 0 0 1 6.3 5.5c1.9 0 3.4 1 4.3 2.3.4.6 1 .6 1.4 0 .9-1.3 2.4-2.3 4.3-2.3a4.8 4.8 0 0 1 3.8 3.6 5.2 5.2 0 0 1-.5 3.7c-2.1 3.7-9 8-9 8z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+          </button>
         </div>
         <div class="product-body">
           <div class="product-name">Zar naqsh so'zana panel</div>
@@ -270,6 +313,9 @@
       <article class="product-card fade-up" data-id="p10" data-name="Gulli ipak — lola" data-price="860000" data-supplier="Andijon Ipak Uyi" data-cat="silk">
         <div class="product-media">
           <img src="Photo/textile/d7928cec4d1373dfd77b18311ebdca10.jpg" alt="Gulli ipak — lola" loading="lazy" />
+          <button class="fav-btn" id="fav-p10" onclick="toggleFav('p10')" aria-label="Saralanganlarga qo'shish" aria-pressed="false">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 20.8s-6.9-4.3-9-8a5.2 5.2 0 0 1-.5-3.7A4.8 4.8 0 0 1 6.3 5.5c1.9 0 3.4 1 4.3 2.3.4.6 1 .6 1.4 0 .9-1.3 2.4-2.3 4.3-2.3a4.8 4.8 0 0 1 3.8 3.6 5.2 5.2 0 0 1-.5 3.7c-2.1 3.7-9 8-9 8z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+          </button>
         </div>
         <div class="product-body">
           <div class="product-name">Gulli ipak — lola</div>
@@ -293,6 +339,9 @@
       <article class="product-card fade-up" data-id="p11" data-name="Chit mato — sariq gul" data-price="710000" data-supplier="Namangan Chit" data-cat="cotton">
         <div class="product-media">
           <img src="Photo/textile/fca2f726729aef582747b447f6955e08.jpg" alt="Chit mato — sariq gul" loading="lazy" />
+          <button class="fav-btn" id="fav-p11" onclick="toggleFav('p11')" aria-label="Saralanganlarga qo'shish" aria-pressed="false">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 20.8s-6.9-4.3-9-8a5.2 5.2 0 0 1-.5-3.7A4.8 4.8 0 0 1 6.3 5.5c1.9 0 3.4 1 4.3 2.3.4.6 1 .6 1.4 0 .9-1.3 2.4-2.3 4.3-2.3a4.8 4.8 0 0 1 3.8 3.6 5.2 5.2 0 0 1-.5 3.7c-2.1 3.7-9 8-9 8z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+          </button>
         </div>
         <div class="product-body">
           <div class="product-name">Chit mato — sariq gul</div>
@@ -314,6 +363,9 @@
         <div class="product-media">
           <img src="Photo/textile/%D0%91%D0%B5%D0%B7%20%D0%BD%D0%B0%D0%B7%D0%B2%D0%B0%D0%BD%D0%B8%D1%8F%20%281%29.png" alt="Vintage chit — krem atirgul" loading="lazy" />
           <span class="badge-pill tone-teal">Kam qoldi</span>
+          <button class="fav-btn" id="fav-p12" onclick="toggleFav('p12')" aria-label="Saralanganlarga qo'shish" aria-pressed="false">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 20.8s-6.9-4.3-9-8a5.2 5.2 0 0 1-.5-3.7A4.8 4.8 0 0 1 6.3 5.5c1.9 0 3.4 1 4.3 2.3.4.6 1 .6 1.4 0 .9-1.3 2.4-2.3 4.3-2.3a4.8 4.8 0 0 1 3.8 3.6 5.2 5.2 0 0 1-.5 3.7c-2.1 3.7-9 8-9 8z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+          </button>
         </div>
         <div class="product-body">
           <div class="product-name">Vintage chit — krem atirgul</div>
@@ -335,59 +387,11 @@
       </article>
 
     </div>
-  </section>
 
-  <!-- ===== IMKONIYATLAR ===== -->
-  <section class="section container" id="imkoniyatlar">
-    <div class="section-head fade-up">
-      <div class="section-label">Nima taklif qilamiz</div>
-      <h2 class="section-title">Nega LolaMarket</h2>
-    </div>
-
-    <div class="feature-grid">
-      <div class="feature-card fade-up">
-        <div class="feature-top">
-          <span class="icon-tile">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><rect x="3.5" y="3.5" width="7.5" height="7.5" rx="2"/><rect x="13" y="3.5" width="7.5" height="7.5" rx="2"/><rect x="3.5" y="13" width="7.5" height="7.5" rx="2"/><rect x="13" y="13" width="7.5" height="7.5" rx="2"/></svg>
-          </span>
-          <span class="feature-num">01</span>
-        </div>
-        <div class="feature-title">Faqat materiallar</div>
-        <p class="feature-text">Bitta kategoriya — to'qima gazlamalar. Ixtisoslashgan platforma, aralash bozor emas.</p>
-      </div>
-
-      <div class="feature-card fade-up">
-        <div class="feature-top">
-          <span class="icon-tile">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7.5h16v10H4z"/><path d="M8 7.5v10M16 7.5v10"/></svg>
-          </span>
-          <span class="feature-num">02</span>
-        </div>
-        <div class="feature-title">Rulon formatida</div>
-        <p class="feature-text">Materiallarni rulon holida, ulgurji miqdorda xarid qilish imkoniyati.</p>
-      </div>
-
-      <div class="feature-card fade-up">
-        <div class="feature-top">
-          <span class="icon-tile">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 20.5v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><circle cx="9" cy="7.5" r="3.5"/><path d="M17 20.5v-2a4 4 0 0 0-2.5-3.7"/><path d="M15 4.2a3.5 3.5 0 0 1 0 6.6"/></svg>
-          </span>
-          <span class="feature-num">03</span>
-        </div>
-        <div class="feature-title">B2B format</div>
-        <p class="feature-text">Ishlab chiqaruvchilar, distribyutorlar va tikuvchilik korxonalari uchun.</p>
-      </div>
-
-      <div class="feature-card fade-up">
-        <div class="feature-top">
-          <span class="icon-tile">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7.5 3.2v5c0 4.4-3 8.3-7.5 9.6-4.5-1.3-7.5-5.2-7.5-9.6v-5z"/><path d="M9 12l2 2 4-4"/></svg>
-          </span>
-          <span class="feature-num">04</span>
-        </div>
-        <div class="feature-title">Escrow himoyasi</div>
-        <p class="feature-text">To'lov yetkazilgach ozod etiladi — xaridor ham, ishlab chiqaruvchi ham himoyalangan.</p>
-      </div>
+    <div class="no-result" id="no-result" hidden>
+      <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5" stroke-linecap="round"/></svg>
+      <div class="no-result-title">Hech narsa topilmadi</div>
+      <div class="no-result-sub">Boshqa so'z bilan qidiring yoki filtrni o'zgartiring.</div>
     </div>
   </section>
 
@@ -406,32 +410,6 @@
       <div class="cta-note">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7.5 3.2v5c0 4.4-3 8.3-7.5 9.6-4.5-1.3-7.5-5.2-7.5-9.6v-5z"/></svg>
         Har bir buyurtma escrow bilan himoyalanadi
-      </div>
-    </div>
-  </section>
-
-  <!-- ===== LOLAMARKET HAQIDA ===== -->
-  <section class="section container" id="haqida">
-    <div class="section-head fade-up">
-      <div class="section-label">Biz haqimizda</div>
-      <h2 class="section-title">LolaMarket haqida</h2>
-    </div>
-
-    <div class="founder-card fade-up">
-      <span class="ring">
-        <img class="founder-photo" src="Photo/founder-square.jpg" width="110" height="110" alt="Furqat Tukhsanov" />
-      </span>
-      <div>
-        <div class="founder-name">Furqat Tukhsanov</div>
-        <div class="founder-role">Founder &amp; CEO — LolaMarket</div>
-        <p class="founder-quote" style="margin-top:12px">
-          To'qima bozorida ishlab chiqaruvchi bilan xaridor orasidagi masofani
-          qisqartirish — LolaMarket shu maqsad uchun qurilmoqda.
-        </p>
-        <a class="btn-glass" style="height:40px;padding:0 16px;font-size:13.5px;margin-top:14px" href="https://t.me/furqattukhsanov" target="_blank" rel="noopener">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm4.93 6.686-1.686 7.939c-.124.553-.453.687-.918.427l-2.538-1.87-1.225 1.178c-.135.135-.249.249-.51.249l.181-2.584 4.693-4.238c.204-.181-.044-.281-.315-.1L8.34 14.356l-2.5-.781c-.543-.17-.553-.543.113-.804l9.726-3.75c.453-.164.849.1.251.665z"/></svg>
-          @furqattukhsanov
-        </a>
       </div>
     </div>
   </section>
@@ -477,6 +455,6 @@
     </div>
   </footer>
 
-  <script src="script.js?v=11"></script>
+  <script src="script.js?v=15"></script>
 </body>
 </html>

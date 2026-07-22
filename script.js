@@ -15,14 +15,6 @@ if (window.Telegram?.WebApp) {
   tg.expand();
 }
 
-/* ── Nav scroll ── */
-const nav = document.getElementById('nav');
-if (nav) {
-  window.addEventListener('scroll', () => {
-    nav.classList.toggle('scrolled', window.scrollY > 40);
-  });
-}
-
 /* ── Scroll fade-up ── */
 const observer = new IntersectionObserver((entries) => {
   entries.forEach((entry, i) => {
@@ -36,25 +28,76 @@ const observer = new IntersectionObserver((entries) => {
 
 document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
 
-/* ── Kategoriya chiplari — filtrlash ── */
+/* ====================================================
+   QIDIRUV VA FILTRLASH
+   Kategoriya va qidiruv birgalikda qo'llanadi.
+   ==================================================== */
+
 const chipsWrap = document.getElementById('chips');
 const grid = document.getElementById('product-grid');
 
-if (chipsWrap && grid) {
-  const chips = chipsWrap.querySelectorAll('.chip');
-  const cards = grid.querySelectorAll('.product-card');
+let activeCat = 'all';
+let searchQ = '';
 
+function applyFilter() {
+  if (!grid) return;
+  const q = searchQ.trim().toLowerCase();
+  let shown = 0;
+
+  grid.querySelectorAll('.product-card').forEach((card) => {
+    const okCat = activeCat === 'all' || card.dataset.cat === activeCat;
+    const okQ = !q
+      || (card.dataset.name || '').toLowerCase().indexOf(q) !== -1
+      || (card.dataset.supplier || '').toLowerCase().indexOf(q) !== -1;
+    const ok = okCat && okQ;
+    card.classList.toggle('is-hidden', !ok);
+    if (ok) shown++;
+  });
+
+  const empty = document.getElementById('no-result');
+  if (empty) empty.hidden = shown > 0;
+}
+
+if (chipsWrap) {
   chipsWrap.addEventListener('click', (e) => {
     const chip = e.target.closest('.chip');
     if (!chip) return;
-
-    chips.forEach(c => c.classList.toggle('active', c === chip));
-
-    const cat = chip.dataset.cat;
-    cards.forEach(card => {
-      card.classList.toggle('is-hidden', cat !== 'all' && card.dataset.cat !== cat);
-    });
+    chipsWrap.querySelectorAll('.chip').forEach((c) => c.classList.toggle('active', c === chip));
+    activeCat = chip.dataset.cat;
+    applyFilter();
   });
+}
+
+function onSearch(v) {
+  searchQ = v;
+  const x = document.getElementById('search-x');
+  if (x) x.hidden = !v;
+  applyFilter();
+}
+
+function clearSearch() {
+  const inp = document.getElementById('search-inp');
+  if (inp) inp.value = '';
+  onSearch('');
+  inp?.focus();
+}
+
+/** Filtr tugmasi — kategoriya chiplarini yig'adi/ochadi */
+/* ── Kirish — hozircha faqat dizayn ── */
+function onLogin() {
+  showToast('Telegram orqali kirish tez orada qo\'shiladi');
+}
+
+/* ── Toast ── */
+let toastTimer = null;
+function showToast(msg) {
+  document.querySelector('.toast')?.remove();
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.textContent = msg;
+  document.body.appendChild(el);
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.remove(), 2600);
 }
 
 /* ====================================================
@@ -64,11 +107,14 @@ if (chipsWrap && grid) {
    ==================================================== */
 
 const CART_KEY = 'lolamarket_web_cart';
+const FAV_KEY = 'lolamarket_web_favs';
 const SEQ_KEY = 'lolamarket_web_order_seq';
 
 /** cart: { [id]: qty } */
 let cart = loadCart();
-/** drawer holati: 'cart' | 'checkout' | 'done' */
+/** favs: saralangan mahsulot id'lari */
+let favs = loadFavs();
+/** drawer holati: 'cart' | 'checkout' | 'done' | 'fav' */
 let drawerView = 'cart';
 let lastOrderId = '';
 
@@ -91,6 +137,22 @@ function saveCart() {
   try {
     localStorage.setItem(CART_KEY, JSON.stringify(cart));
   } catch (e) { /* private mode — jim o'tamiz */ }
+}
+
+function loadFavs() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(FAV_KEY) || '[]');
+    // sahifada endi mavjud bo'lmagan mahsulotlarni tashlab yuboramiz
+    return Array.isArray(raw) ? raw.filter((id) => productEl(id)) : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveFavs() {
+  try {
+    localStorage.setItem(FAV_KEY, JSON.stringify(favs));
+  } catch (e) { /* private mode */ }
 }
 
 function productEl(id) {
@@ -131,7 +193,7 @@ function addToCart(id) {
   saveCart();
   updateBadge();
   renderCardAction(id);
-  if (drawerView === 'cart' && isOpen()) renderDrawer();
+  if (isOpen() && (drawerView === 'cart' || drawerView === 'fav')) renderDrawer();
 }
 
 /** Kartadagi tanlagich: qty 0 bo'lsa "Savatga", aks holda − N dona + */
@@ -166,6 +228,61 @@ function renderAllCardActions() {
   document.querySelectorAll('.product-card').forEach((el) => renderCardAction(el.dataset.id));
 }
 
+/* ====================================================
+   SARALANGANLAR
+   ==================================================== */
+
+function isFav(id) {
+  return favs.indexOf(id) !== -1;
+}
+
+function toggleFav(id) {
+  if (!product(id)) return;
+  const i = favs.indexOf(id);
+  if (i === -1) favs.push(id); else favs.splice(i, 1);
+  saveFavs();
+  renderFavBtn(id, i === -1);
+  updateFavBadge();
+  if (drawerView === 'fav' && isOpen()) renderDrawer();
+}
+
+/** Kartadagi yurakcha holati; `pulse` — endigina qo'shilganda urib qo'yadi */
+function renderFavBtn(id, pulse) {
+  const btn = document.getElementById('fav-' + id);
+  if (!btn) return;
+  const on = isFav(id);
+  btn.classList.toggle('on', on);
+  btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+  btn.setAttribute('aria-label', on ? "Saralanganlardan olib tashlash" : "Saralanganlarga qo'shish");
+  if (pulse) {
+    btn.classList.remove('pulse');
+    void btn.offsetWidth; // animatsiyani qayta ishga tushirish
+    btn.classList.add('pulse');
+  }
+}
+
+function renderAllFavBtns() {
+  document.querySelectorAll('.product-card').forEach((el) => renderFavBtn(el.dataset.id, false));
+}
+
+/* Son ko'rsatilmaydi — faqat yurakcha to'ladi */
+function updateFavBadge() {
+  const btn = document.getElementById('fav-btn');
+  if (btn) btn.classList.toggle('on', favs.length > 0);
+}
+
+function openFav() {
+  drawerView = 'fav';
+  renderDrawer();
+  openDrawerEl();
+}
+
+/** Saralanganlardan savatga — yurakchada qoladi, faqat savatga qo'shiladi */
+function favToCart(id) {
+  addToCart(id);
+  if (drawerView === 'fav') renderDrawer();
+}
+
 function setQty(id, delta) {
   if (!cart[id]) return;
   cart[id] += delta;
@@ -198,8 +315,13 @@ function isOpen() {
 }
 
 function openCart() {
-  drawerView = cartCount() ? 'cart' : 'cart';
+  drawerView = 'cart';
   renderDrawer();
+  openDrawerEl();
+}
+
+/** Panelni ochish — savat va saralanganlar uchun umumiy */
+function openDrawerEl() {
   const d = document.getElementById('drawer');
   const s = document.getElementById('scrim');
   if (!d || !s) return;
@@ -248,6 +370,19 @@ function renderDrawer() {
     return;
   }
 
+  if (drawerView === 'fav') {
+    title.textContent = 'Saralanganlar';
+    foot.hidden = true;
+    body.innerHTML = favs.length
+      ? favs.map(favLineHtml).join('')
+      : `<div class="drawer-empty">
+           <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M12 20.8s-6.9-4.3-9-8a5.2 5.2 0 0 1-.5-3.7A4.8 4.8 0 0 1 6.3 5.5c1.9 0 3.4 1 4.3 2.3.4.6 1 .6 1.4 0 .9-1.3 2.4-2.3 4.3-2.3a4.8 4.8 0 0 1 3.8 3.6 5.2 5.2 0 0 1-.5 3.7c-2.1 3.7-9 8-9 8z"/></svg>
+           <div class="drawer-empty-title">Saralanganlar bo'sh</div>
+           <div class="drawer-empty-sub">Yoqqan matolarni yurakcha tugmasi bilan belgilang — keyin shu yerdan topasiz.</div>
+         </div>`;
+    return;
+  }
+
   title.textContent = 'Savat';
   const ids = Object.keys(cart);
 
@@ -293,6 +428,34 @@ function lineHtml(id) {
             </button>
           </div>
           <span class="cart-line-price">${money(p.price * qty)}</span>
+        </div>
+      </div>
+    </div>`;
+}
+
+function favLineHtml(id) {
+  const p = product(id);
+  if (!p) return '';
+  const inCart = cart[id] || 0;
+  return `
+    <div class="fav-line">
+      <img class="fav-line-img" src="${p.img}" alt="" loading="lazy" />
+      <div class="fav-line-main">
+        <div class="cart-line-top">
+          <div class="cart-line-name">${esc(p.name)}</div>
+          <button class="line-x" onclick="toggleFav('${id}')" aria-label="Saralanganlardan olib tashlash">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+          </button>
+        </div>
+        <div class="cart-line-sup">${esc(p.supplier)}</div>
+        <div class="fav-line-price">${money(p.price)}</div>
+        <div class="fav-line-act">
+          ${inCart
+            ? `<button class="fav-add in-cart" onclick="openCart()">Savatda — ${inCart} dona</button>`
+            : `<button class="fav-add" onclick="favToCart('${id}')">
+                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+                 Savatga
+               </button>`}
         </div>
       </div>
     </div>`;
@@ -465,6 +628,8 @@ function esc(s) {
 }
 
 /* ── Boshlang'ich holat ──
-   Saqlangan savat bilan qaytgan mehmon kartalarda darhol tanlagichni ko'radi */
+   Saqlangan savat/saralanganlar bilan qaytgan mehmon darhol o'z holatini ko'radi */
 updateBadge();
 renderAllCardActions();
+updateFavBadge();
+renderAllFavBtns();
