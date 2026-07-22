@@ -18,39 +18,26 @@ jobs:
           host: ${{ secrets.SERVER_IP }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "index.html,style.css,script.js,Photo/"
+          # sayt-eski/ — demo/ va admin/ shu papkadagi eski style.css'ga bog'liq, tushirib qoldirilmasin
+          source: "index.html,style.css,script.js,Photo/,sayt-eski/,demo/,admin/"
           target: /var/www/lolamarket
 
-      - name: Switch nginx to static mode & stop PM2
+      # DIQQAT: bu yerda ilgari nginx konfiguratsiyasini qayta yozadigan qadam bor edi.
+      # U /api/ proxy bloklarini (telegram-notify, telegram-webhook, telegram-contact,
+      # order-status) o'chirib yuborardi va har push'da Telegram bildirishnomalarini
+      # ishdan chiqarardi. Nginx konfiguratsiyasi endi faqat qo'lda boshqariladi —
+      # kanonik nusxa: /etc/nginx/sites-available/lolamarket (serverda).
+      - name: Verify nginx /api proxies survived
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SERVER_IP }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            # PM2 ni to'xtatish
-            pm2 stop lolamarket 2>/dev/null || true
-            pm2 delete lolamarket 2>/dev/null || true
-
-            # Nginx config — static HTML
-            sudo tee /etc/nginx/sites-available/lolamarket > /dev/null <<'EOF'
-            server {
-                listen 80;
-                listen 443 ssl;
-                server_name lolamarket.uz www.lolamarket.uz;
-
-                ssl_certificate /etc/nginx/ssl/lolamarket.crt;
-                ssl_certificate_key /etc/nginx/ssl/lolamarket.key;
-                ssl_protocols TLSv1.2 TLSv1.3;
-
-                root /var/www/lolamarket;
-                index index.html;
-
-                location / {
-                    try_files $uri $uri/ /index.html;
-                }
-            }
-            EOF
-
-            sudo nginx -t && sudo systemctl reload nginx
-            echo "✅ Coming soon sahifasi faollashtirildi"
+            COUNT=$(grep -c 'location /api' /etc/nginx/sites-available/lolamarket || echo 0)
+            echo "nginx /api bloklari: $COUNT (kutilgan: 4)"
+            if [ "$COUNT" -lt 4 ]; then
+              echo "::error::nginx /api proxy bloklari yo'qolgan — Telegram bildirishnomalari ishlamaydi!"
+              exit 1
+            fi
+            echo "✅ Deploy tugadi, nginx /api proxylari joyida"

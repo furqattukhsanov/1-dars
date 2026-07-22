@@ -2,7 +2,8 @@
 window.addEventListener('load', () => {
   setTimeout(() => {
     const loader = document.getElementById('page-loader');
-    loader.classList.add('loader-hidden');
+    if (!loader) return;
+    loader.classList.add('hide');
     loader.addEventListener('transitionend', () => loader.remove(), { once: true });
   }, 600);
 });
@@ -14,32 +15,19 @@ if (window.Telegram?.WebApp) {
   tg.expand();
 }
 
-/* ── Hero parallax ── */
-const heroEl  = document.querySelector('.hero');
-const heroImg = document.querySelector('.hero-img');
-
-heroEl.addEventListener('mousemove', (e) => {
-  const { left, top, width, height } = heroEl.getBoundingClientRect();
-  const x = ((e.clientX - left) / width  - 0.5) * 18;
-  const y = ((e.clientY - top)  / height - 0.5) * 10;
-  heroImg.style.transform = `translate(${x}px, ${y}px)`;
-});
-
-heroEl.addEventListener('mouseleave', () => {
-  heroImg.style.transform = 'translate(0, 0)';
-});
-
 /* ── Nav scroll ── */
 const nav = document.getElementById('nav');
-window.addEventListener('scroll', () => {
-  nav.classList.toggle('scrolled', window.scrollY > 60);
-});
+if (nav) {
+  window.addEventListener('scroll', () => {
+    nav.classList.toggle('scrolled', window.scrollY > 40);
+  });
+}
 
 /* ── Scroll fade-up ── */
 const observer = new IntersectionObserver((entries) => {
   entries.forEach((entry, i) => {
     if (entry.isIntersecting) {
-      entry.target.style.transitionDelay = (i * 0.08) + 's';
+      entry.target.style.transitionDelay = (i * 0.06) + 's';
       entry.target.classList.add('visible');
       observer.unobserve(entry.target);
     }
@@ -48,26 +36,31 @@ const observer = new IntersectionObserver((entries) => {
 
 document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
 
-/* ── Slide-right (showcase cards) ── */
-const rowObserver = new IntersectionObserver((entries) => {
-  entries.forEach((entry) => {
-    if (entry.isIntersecting) {
-      const cards = entry.target.querySelectorAll('.slide-right');
-      cards.forEach((card, i) => {
-        setTimeout(() => card.classList.add('visible'), i * 80);
-      });
-      rowObserver.unobserve(entry.target);
-    }
+/* ── Kategoriya chiplari — filtrlash ── */
+const chipsWrap = document.getElementById('chips');
+const grid = document.getElementById('product-grid');
+
+if (chipsWrap && grid) {
+  const chips = chipsWrap.querySelectorAll('.chip');
+  const cards = grid.querySelectorAll('.product-card');
+
+  chipsWrap.addEventListener('click', (e) => {
+    const chip = e.target.closest('.chip');
+    if (!chip) return;
+
+    chips.forEach(c => c.classList.toggle('active', c === chip));
+
+    const cat = chip.dataset.cat;
+    cards.forEach(card => {
+      card.classList.toggle('is-hidden', cat !== 'all' && card.dataset.cat !== cat);
+    });
   });
-}, { threshold: 0.05 });
-
-const showcaseGrid = document.querySelector('.showcase-grid');
-if (showcaseGrid) rowObserver.observe(showcaseGrid);
-
+}
 
 /* ── Email form ── */
 function handleSubmit(e) {
   e.preventDefault();
   e.target.style.display = 'none';
-  document.getElementById('success').style.display = 'block';
+  const success = document.getElementById('success');
+  if (success) success.hidden = false;
 }

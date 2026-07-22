@@ -38,12 +38,13 @@ const STR = {
     help: "Yordam markazi", logout: "Chiqish", search: "Qidiruv", recent: "So'nggi qidiruvlar", noResults: "Hech narsa topilmadi",
     noResultsSub: "Boshqa so'z bilan urinib ko'ring", resultsN: "natija topildi", tabHome: "Bosh", tabCatalog: "Katalog",
     tabCart: "Savat", tabOrders: "Buyurtma", tabProfile: "Profil", added: "Savatga qo'shildi 🌷", liked: "Sevimlilarga qo'shildi",
-    orderPlaced: "Buyurtma qabul qilindi", orderPlacedSub: "Marg'ilon Ipak Co. 24 soat ichida javob beradi",
+    orderPlaced: "Buyurtma qabul qilindi", orderPlacedSub: "Ishlab chiqaruvchi tasdiqlaydi — tez orada xabar beramiz",
     viewOrders: "Buyurtmalarni ko'rish", continue: "Xaridni davom ettirish", escrowNote: "To'lov yetkazilgunga qadar escrow hisobida saqlanadi",
     items: "tur", panelU: "dona", mU: "m", product: "Mahsulot", noProducts: "Mahsulot topilmadi", madeBy: "Ishlab chiqildi",
     tgVerified: "Telegram orqali tasdiqlangan", tgNotConnected: "Telegram orqali ochilganda profil avtomatik aniqlanadi", tgUserFallback: "Telegram foydalanuvchisi",
     shareContact: "Telefon raqamni ulashish", contactPending: "Raqam so'ralmoqda, biroz kuting…", contactDone: "Telefon raqami yangilandi",
-    perUnit: "1 dona rulon narxi" },
+    perUnit: "1 dona rulon narxi", notifTitle: "Bildirishnomalar", notifEmpty: "Hozircha xabarlar yo'q",
+    notifEmptySub: "Yangi bildirishnomalar shu yerda ko'rinadi", social: "Ijtimoiy tarmoqlar" },
   ru: { brand: "LolaMarket", miniApp: "мини-приложение", greetSub: "Какие ткани нужны сегодня?",
     searchPh: "Поиск ткани или категории", cats: "Категории", all: "Все", featured: "Рекомендуем",
     verifiedMills: "28 проверенных фабрик · эскроу на каждый заказ", catalog: "Каталог", filter: "Фильтр", sort: "Сортировка",
@@ -59,12 +60,13 @@ const STR = {
     help: "Центр помощи", logout: "Выйти", search: "Поиск", recent: "Недавние поиски", noResults: "Ничего не найдено",
     noResultsSub: "Попробуйте другой запрос", resultsN: "результатов", tabHome: "Главная", tabCatalog: "Каталог",
     tabCart: "Корзина", tabOrders: "Заказы", tabProfile: "Профиль", added: "Добавлено в корзину 🌷", liked: "Добавлено в избранное",
-    orderPlaced: "Заказ принят", orderPlacedSub: "Маргилан Силк ответит в течение 24 часов",
+    orderPlaced: "Заказ принят", orderPlacedSub: "Производитель подтвердит — мы сообщим вам",
     viewOrders: "Посмотреть заказы", continue: "Продолжить покупки", escrowNote: "Платёж хранится на эскроу до доставки",
     items: "поз.", panelU: "шт", mU: "м", product: "Товар", noProducts: "Товары не найдены", madeBy: "Разработано",
     tgVerified: "Подтверждено через Telegram", tgNotConnected: "При открытии через Telegram профиль определится автоматически", tgUserFallback: "Пользователь Telegram",
     shareContact: "Поделиться номером телефона", contactPending: "Запрашивается номер, подождите…", contactDone: "Номер телефона обновлён",
-    perUnit: "Цена за 1 рулон" },
+    perUnit: "Цена за 1 рулон", notifTitle: "Уведомления", notifEmpty: "Пока нет уведомлений",
+    notifEmptySub: "Новые уведомления появятся здесь", social: "Соцсети" },
 };
 
 // ============ MAHSULOTLAR ============
@@ -178,6 +180,7 @@ const S = {
   comment: '',
   tgUser: null,
   tgPhone: null,
+  trackOpen: {},
 };
 
 // ============ YORDAMCHILAR ============
@@ -207,6 +210,7 @@ const STATUS_COL  = {
   neutral: ['var(--ink-100)','var(--ink-700)'],
 };
 const STATUS_TONE = { production:'saffron', shipped:'teal', delivered:'success', pending:'neutral', confirmed:'saffron' };
+const STATUS_STAGES = ['pending','confirmed','shipped','delivered'];
 
 function vm(p) {
   const [bbg,bfg] = BADGE_COLORS[p.badgeTone] || BADGE_COLORS.neutral;
@@ -329,6 +333,7 @@ function updateHeader() {
     home:T.brand, catalog:T.catalog, detail:T.product,
     search:T.search, cart:T.cart, checkout:T.checkoutT,
     orders:T.orders, profile:T.profile, success:T.checkoutT,
+    notifications:T.notifTitle,
   };
 
   document.getElementById('btn-back').classList.toggle('hidden', !['detail','checkout'].includes(sc));
@@ -356,7 +361,7 @@ function updateHeader() {
 function updateNav() {
   const sc = S.screen;
   const T = STR[S.lang];
-  const TAB_SCREENS = ['home','catalog','search','cart','orders','profile'];
+  const TAB_SCREENS = ['home','catalog','search','cart','orders','profile','notifications'];
   const showTabBar = TAB_SCREENS.includes(sc);
   const showMainBtn = sc === 'detail' || sc === 'checkout';
 
@@ -474,7 +479,7 @@ function renderDetail() {
     <div style="position:relative;height:248px;${p.bgStyle}">
       ${p.badgeShow ? `<span style="position:absolute;top:14px;left:16px;display:inline-flex;align-items:center;height:26px;padding:0 12px;border-radius:999px;font-size:12px;font-weight:600;background:${p.badgeBg};color:${p.badgeFg}">${p.badge}</span>` : ''}
       <button onclick="toggleLike('${p.id}')" style="position:absolute;top:12px;right:14px;width:38px;height:38px;border-radius:50%;border:1px solid var(--glass-border);background:var(--glass-fill-strong);backdrop-filter:var(--blur-md);-webkit-backdrop-filter:var(--blur-md);display:flex;align-items:center;justify-content:center;color:${p.heartStroke};box-shadow:var(--glass-highlight)">
-        <svg width="19" height="19" viewBox="0 0 24 24" fill="${p.heartFill}"><path d="M12 21s-7-4.5-9.2-8.4C1.2 9.6 2.6 6 6 6c2 0 3.2 1.2 4 2.3C10.8 7.2 12 6 14 6c3.4 0 4.8 3.6 3.2 6.6C19 16.5 12 21 12 21z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="${p.heartFill}"><path d="M12 20.8s-6.9-4.3-9-8a5.2 5.2 0 0 1-.5-3.7A4.8 4.8 0 0 1 6.3 5.5c1.9 0 3.4 1 4.3 2.3.4.6 1 .6 1.4 0 .9-1.3 2.4-2.3 4.3-2.3a4.8 4.8 0 0 1 3.8 3.6 5.2 5.2 0 0 1-.5 3.7c-2.1 3.7-9 8-9 8z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
       </button>
     </div>
 
@@ -498,8 +503,8 @@ function renderDetail() {
         <span style="flex:none;width:42px;height:42px;border-radius:12px;background:linear-gradient(150deg,#7a140d,#510100);color:#ffe9db;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:16px">${p.supplier[0]}</span>
         <div style="flex:1;min-width:0">
           <div style="display:flex;align-items:center;gap:5px;font-size:14px;font-weight:700;color:var(--text-strong)">
-            <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.supplier}</span>
-            ${p.verified ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="#7a140d"><path d="M12 2l2.4 1.8 3-.2 1 2.8 2.6 1.5-.9 2.9.9 2.9-2.6 1.5-1 2.8-3-.2L12 22l-2.4-1.8-3 .2-1-2.8L3 16.3l.9-2.9L3 10.5l2.6-1.5 1-2.8 3 .2z"/><path d="M9 12l2 2 4-4" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>` : ''}
+            <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.supplier}</span>
+            ${p.verified ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="#7a140d" style="flex:none"><path d="M12 2l2.4 1.8 3-.2 1 2.8 2.6 1.5-.9 2.9.9 2.9-2.6 1.5-1 2.8-3-.2L12 22l-2.4-1.8-3 .2-1-2.8L3 16.3l.9-2.9L3 10.5l2.6-1.5 1-2.8 3 .2z"/><path d="M9 12l2 2 4-4" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>` : ''}
           </div>
           <div style="font-size:12px;color:var(--text-muted)">${p.city} · ${T.verified}</div>
         </div>
@@ -550,7 +555,7 @@ function renderSearch() {
   <div style="padding:16px 16px 28px;display:flex;flex-direction:column;gap:16px">
     <div style="display:flex;align-items:center;gap:10px;height:48px;padding:0 16px;border:1px solid #7a140d;border-radius:var(--radius-md);background:var(--glass-fill-strong);backdrop-filter:var(--blur-md);-webkit-backdrop-filter:var(--blur-md);box-shadow:0 0 0 4px rgba(122,20,13,.2),var(--glass-highlight)">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style="color:var(--text-subtle)"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M20 20l-3.5-3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-      <input id="search-inp" type="text" value="${S.search}" placeholder="${T.searchPh}" oninput="onSearch(this.value)" autocomplete="off" style="flex:1;border:none;outline:none;background:transparent;font-family:var(--font-sans);font-size:15px;color:var(--text-strong)">
+      <input id="search-inp" type="text" value="${S.search}" placeholder="${T.searchPh}" oninput="onSearch(this.value)" autocomplete="off" style="flex:1;border:none;outline:none;background:transparent;font-family:var(--font-sans);font-size:16px;color:var(--text-strong)">
       ${S.search ? `<button onclick="clearSearch()" style="color:var(--text-subtle);background:none;border:none;display:flex;align-items:center;cursor:pointer"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>` : ''}
     </div>
 
@@ -692,7 +697,7 @@ function renderCheckout() {
 
     <div>
       <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#7a140d;margin-bottom:9px">${T.commentL}</div>
-      <textarea id="checkout-comment" oninput="S.comment=this.value" placeholder="${T.commentPh}" rows="3" style="width:100%;resize:none;padding:12px 14px;border:1px solid var(--border-hair);border-radius:var(--radius-md);background:var(--glass-fill-strong);font-family:var(--font-sans);font-size:14px;color:var(--text-strong);outline:none;box-shadow:var(--glass-highlight)">${S.comment || ''}</textarea>
+      <textarea id="checkout-comment" oninput="S.comment=this.value" placeholder="${T.commentPh}" rows="3" style="width:100%;resize:none;padding:12px 14px;border:1px solid var(--border-hair);border-radius:var(--radius-md);background:var(--glass-fill-strong);font-family:var(--font-sans);font-size:16px;color:var(--text-strong);outline:none;box-shadow:var(--glass-highlight)">${S.comment || ''}</textarea>
     </div>
 
     <div>
@@ -747,7 +752,7 @@ function renderOrders() {
     list.map(o => {
       const tone = STATUS_TONE[o.statusKey];
       const [sbg,sfg] = STATUS_COL[tone];
-      const lines = o.items.map(it => { const p = byId(it.id); return { name:p.name[S.lang], bg:PATTERNS[p.pattern], bgSize:pSize(p.pattern), qty:it.qty, unit:uShort(p.unit), total:p.price*it.qty }; });
+      const lines = o.items.map(it => { const p = byId(it.id); return { name:p.name[S.lang], bgStyle:vm(p).bgStyle, qty:it.qty, unit:uShort(p.unit), total:p.price*it.qty }; });
       const total = o.items.reduce((s,it) => s + byId(it.id).price * it.qty, 0);
       return `
       <div style="padding:14px;border-radius:var(--radius-lg);background:rgba(255,255,255,.62);backdrop-filter:blur(16px) saturate(160%);-webkit-backdrop-filter:blur(16px) saturate(160%);border:1px solid rgba(255,255,255,.55);box-shadow:0 5px 16px -12px rgba(81,1,0,.12)">
@@ -756,7 +761,7 @@ function renderOrders() {
           <span style="display:inline-flex;align-items:center;height:24px;padding:0 11px;border-radius:999px;font-size:11.5px;font-weight:600;background:${sbg};color:${sfg}">${STATUS_TXT[o.statusKey][S.lang]}</span>
         </div>
         <div style="display:flex;align-items:center;gap:12px">
-          <span style="position:relative;flex:none;width:52px;height:52px;border-radius:var(--radius-sm);background:${lines[0].bg};background-size:${lines[0].bgSize}">
+          <span style="position:relative;flex:none;width:52px;height:52px;border-radius:var(--radius-sm);${lines[0].bgStyle}">
             ${lines.length>1 ? `<span style="position:absolute;right:-6px;bottom:-6px;min-width:24px;height:24px;padding:0 6px;border-radius:999px;background:var(--ink-900);color:#fff;font-family:var(--font-mono);font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;border:2px solid #fff">+${lines.length-1}</span>` : ''}
           </span>
           <div style="flex:1;min-width:0">
@@ -766,11 +771,36 @@ function renderOrders() {
           <span style="font-family:var(--font-mono);font-size:14px;font-weight:600;color:var(--text-strong)">${money(total)}</span>
         </div>
         <div style="display:flex;gap:9px;margin-top:13px">
-          <button style="flex:1;height:38px;border-radius:var(--radius-sm);border:1px solid var(--glass-border);background:var(--glass-fill-strong);font-size:13px;font-weight:600;color:var(--text-strong);cursor:pointer">${T.track}</button>
-          <button style="flex:1;height:38px;border-radius:var(--radius-sm);border:1px solid var(--border-hair);background:transparent;font-size:13px;font-weight:600;color:var(--teal-600);cursor:pointer">${T.reorder}</button>
+          <button onclick="toggleTrack('${o.id}')" style="flex:1;height:38px;border-radius:var(--radius-sm);border:1px solid var(--glass-border);background:var(--glass-fill-strong);font-size:13px;font-weight:600;color:var(--text-strong);cursor:pointer">${T.track}</button>
+          <button onclick="reorderOrder('${o.id}')" style="flex:1;height:38px;border-radius:var(--radius-sm);border:1px solid var(--border-hair);background:transparent;font-size:13px;font-weight:600;color:var(--teal-600);cursor:pointer">${T.reorder}</button>
         </div>
+        ${S.trackOpen[o.id] ? (() => {
+          const stageIdx = STATUS_STAGES.indexOf(o.statusKey);
+          return `
+        <div style="display:flex;margin-top:13px;padding-top:13px;border-top:1px solid var(--border-hair)">
+          ${STATUS_STAGES.map((st,i) => `
+          <div style="flex:1;text-align:center;position:relative">
+            ${i>0 ? `<span style="position:absolute;z-index:0;top:9px;right:50%;width:100%;height:2px;background:${i<=stageIdx?'#7a140d':'var(--ink-100)'}"></span>` : ''}
+            <span style="position:relative;z-index:1;display:flex;width:20px;height:20px;margin:0 auto 5px;border-radius:50%;align-items:center;justify-content:center;font-size:10px;font-weight:700;background:${i<=stageIdx?'#7a140d':'var(--ink-100)'};color:${i<=stageIdx?'#fff':'var(--text-subtle)'}">${i<stageIdx?'✓':i+1}</span>
+            <div style="font-size:9.5px;line-height:1.3;color:${i<=stageIdx?'var(--text-strong)':'var(--text-subtle)'};font-weight:${i===stageIdx?700:500}">${STATUS_TXT[st][S.lang]}</div>
+          </div>`).join('')}
+        </div>`;
+        })() : ''}
       </div>`;
     }).join('')}
+  </div>`;
+}
+
+// ============ EKRAN: BILDIRISHNOMALAR ============
+function renderNotifications() {
+  const T = STR[S.lang];
+  return `
+  <div style="padding:60px 28px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px">
+    <span style="width:64px;height:64px;border-radius:50%;background:var(--glass-fill-strong);border:1px solid var(--glass-border);display:flex;align-items:center;justify-content:center;color:var(--text-muted)">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M18 8.5a6 6 0 0 0-12 0c0 6-2.5 7.5-2.5 7.5h17S18 14.5 18 8.5z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M10.2 19.5a2 2 0 0 0 3.6 0" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+    </span>
+    <div style="font-size:15px;font-weight:700;color:var(--text-strong)">${T.notifEmpty}</div>
+    <div style="font-size:13px;color:var(--text-muted);max-width:240px;line-height:1.5">${T.notifEmptySub}</div>
   </div>`;
 }
 
@@ -846,10 +876,20 @@ function renderProfile() {
         <span style="flex:1;font-size:14px;font-weight:600;color:var(--text-strong)">${T.notifications}</span>
         <span onclick="toggleNotif()" style="cursor:pointer;width:44px;height:26px;border-radius:999px;background:${S.notif?'#7a140d':'var(--ink-200)'};position:relative;flex:none;transition:background var(--dur-base) var(--ease-out)"><span style="position:absolute;top:3px;${S.notif?'right':'left'}:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:var(--shadow-sm);transition:left var(--dur-base) var(--ease-out),right var(--dur-base) var(--ease-out)"></span></span>
       </div>
-      <div style="display:flex;align-items:center;gap:12px;padding:13px 14px">
+      <div style="display:flex;align-items:center;gap:12px;padding:13px 14px;border-bottom:1px solid var(--border-hair)">
         <svg width="19" height="19" viewBox="0 0 24 24" fill="none" style="flex:none;color:var(--text-muted)"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M9.5 9a2.5 2.5 0 0 1 4.5 1.5c0 1.7-2.5 2-2.5 2M12 17h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
         <span style="flex:1;font-size:14px;font-weight:600;color:var(--text-strong)">${T.help}</span>
         <svg width="19" height="19" viewBox="0 0 24 24" fill="none" style="flex:none;color:var(--text-subtle)"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;padding:13px 14px">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" style="flex:none;color:var(--text-muted)"><circle cx="18" cy="5" r="2.4" stroke="currentColor" stroke-width="2"/><circle cx="6" cy="12" r="2.4" stroke="currentColor" stroke-width="2"/><circle cx="18" cy="19" r="2.4" stroke="currentColor" stroke-width="2"/><path d="M8.1 10.7l7.6-4.4M8.1 13.3l7.6 4.4" stroke="currentColor" stroke-width="2"/></svg>
+        <span style="flex:1;font-size:14px;font-weight:600;color:var(--text-strong)">${T.social}</span>
+        <a href="https://t.me/lolamarket_uz" target="_blank" rel="noopener" style="flex:none;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--text-strong);background:var(--glass-fill-strong);border:1px solid var(--glass-border);text-decoration:none">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M22 2L11 13M22 2L15 22l-4-9-9-4 20-7z" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></svg>
+        </a>
+        <a href="https://instagram.com/lolamarket.uz" target="_blank" rel="noopener" style="flex:none;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--text-strong);background:var(--glass-fill-strong);border:1px solid var(--glass-border);text-decoration:none">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="5" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="2"/><circle cx="17.3" cy="6.7" r="1.1" fill="currentColor"/></svg>
+        </a>
       </div>
     </div>
     <button style="height:46px;border-radius:var(--radius-md);border:1px solid var(--danger-100);background:transparent;color:var(--danger-500);cursor:pointer;font-size:14px;font-weight:600;margin-top:2px">${T.logout}</button>
@@ -867,7 +907,7 @@ function productCard(p) {
     <div style="padding:10px 11px 11px;display:flex;flex-direction:column;gap:6px">
       <div style="font-family:var(--font-display);font-size:13.5px;font-weight:700;color:var(--text-strong);line-height:1.2;letter-spacing:-.01em">${p.name}</div>
       <div style="display:flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color:var(--text-strong);line-height:1.3">
-        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.supplier}</span>
+        <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.supplier}</span>
         ${p.verified ? `<svg width="12" height="12" viewBox="0 0 24 24" fill="#7a140d" style="flex:none"><path d="M12 2l2.4 1.8 3-.2 1 2.8 2.6 1.5-.9 2.9.9 2.9-2.6 1.5-1 2.8-3-.2L12 22l-2.4-1.8-3 .2-1-2.8L3 16.3l.9-2.9L3 10.5l2.6-1.5 1-2.8 3 .2z"/><path d="M9 12l2 2 4-4" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>` : ''}
       </div>
       <div style="display:flex;flex-direction:column;align-items:center;gap:1px">
@@ -957,6 +997,23 @@ function toggleLike(id) {
 function selectCat(c) { S.cat = c; document.getElementById('screen-wrap').innerHTML = renderCatalog(); }
 function setPay(p) { S.pay = p; document.getElementById('screen-wrap').innerHTML = renderCheckout(); }
 function setOrdersTab(t) { S.ordersTab = t; document.getElementById('screen-wrap').innerHTML = renderOrders(); }
+
+function toggleTrack(id) {
+  S.trackOpen[id] = !S.trackOpen[id];
+  document.getElementById('screen-wrap').innerHTML = renderOrders();
+}
+
+function reorderOrder(id) {
+  const o = ORDERS.find(x => x.id === id);
+  if (!o) return;
+  o.items.forEach((it) => {
+    const line = S.cart.find(x => x.id === it.id);
+    if (line) line.qty += it.qty;
+    else S.cart.push({ id: it.id, qty: it.qty });
+  });
+  showToast(STR[S.lang].added);
+  tab('cart');
+}
 function onSearch(v) {
   S.search = v;
   document.getElementById('screen-wrap').innerHTML = renderSearch();
@@ -1041,6 +1098,7 @@ function render() {
     home: renderHome, catalog: renderCatalog, detail: renderDetail,
     search: renderSearch, cart: renderCart, checkout: renderCheckout,
     success: renderSuccess, orders: renderOrders, profile: renderProfile,
+    notifications: renderNotifications,
   };
   const fn = map[S.screen];
   if (fn) document.getElementById('screen-wrap').innerHTML = fn();
@@ -1091,6 +1149,14 @@ const inTelegram = !!(window.Telegram?.WebApp?.initData);
 if (window.Telegram?.WebApp) {
   Telegram.WebApp.ready();
   Telegram.WebApp.expand();
+  // iOS'da ekran yuqori chetidan pastga svayp qilinsa Mini App tasodifan yopilib
+  // ketmasligi uchun — ro'yxatlar tepasida scroll bilan to'qnashadi
+  try { Telegram.WebApp.disableVerticalSwipes(); } catch (e) {}
+  // Telegramning o'z sarlavha panelini/fonini ilova dizayniga moslash (iOS/Android)
+  try {
+    Telegram.WebApp.setHeaderColor('#FFFDFB');
+    Telegram.WebApp.setBackgroundColor('#FFFDFB');
+  } catch (e) {}
 }
 document.documentElement.classList.toggle('in-telegram', inTelegram);
 S.tgUser = loadTgUser();

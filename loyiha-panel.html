@@ -332,6 +332,21 @@
     <div style="font-size:0.68rem; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; color:#9C7B5A; margin-bottom:0.7rem;">So'nggi faoliyat</div>
     <div id="faoliyat-list">
       <div class="faoliyat-item">
+        <span class="faoliyat-sana">2026-07-22</span>
+        <span class="faoliyat-text">lolamarket.uz landing sahifasi to'liq Mini App dizayn tizimiga o'tkazildi — style.css noldan qayta yozildi (anor/teal/za'faron tokenlar, glassmorphism, Bricolage + Hanken shriftlari), index.html yangi tuzilma bilan qurildi (shisha header, hero, 7 kategoriya chipi, 12 mahsulot kartochkasi, imkoniyatlar, CTA paneli, asoschi), script.js soddalashtirilib chip filtri qo'shildi. Eski sayt sayt-eski/ ga zaxiralandi, demo/ va admin/ o'sha stilga ulandi. Rasm yo'llari bug'i tuzatildi (telegram-app/assets → Photo/textile). Mobil 375px va desktop 1280px'da tekshirildi, 0 konsol xatosi (style.css v=7, script.js v=8)</span>
+        <span class="faoliyat-sprint">Sprint 0</span>
+      </div>
+      <div class="faoliyat-item">
+        <span class="faoliyat-sana">2026-07-22</span>
+        <span class="faoliyat-text">Takrorlanib kelgan "sirli" nginx bug'ining sababi topildi — .github/workflows/deploy.yml har push'da serverdagi nginx konfiguratsiyasini /api/ proxy bloklarisiz qayta yozar ekan, shu sabab Telegram bildirishnomalari 4+ marta o'lib qolgan edi. Workflow'dan nginx qayta yozish qadami olib tashlandi, o'rniga /api bloklarini tekshiruvchi qadam qo'shildi. Mini App iOS uchun moslashtirildi: input shriftlari 16px (avtomatik zoom oldini olish), disableVerticalSwipes(), Telegram header/fon rangi ilovaga moslandi (app.js v=30). Deploy qilindi — barcha yo'llar va 12/12 rasm 200</span>
+        <span class="faoliyat-sprint">Sprint 6</span>
+      </div>
+      <div class="faoliyat-item">
+        <span class="faoliyat-sana">2026-07-16</span>
+        <span class="faoliyat-text">Jamoa (PM, marketolog, investor, dizayner) brend ton-of-voice bo'yicha muhokama qildi (ishonchli-jiddiy, D2C hayajon tili yo'q); "Buyurtma qabul qilindi" ekrani matni shu tonda qayta yozildi ("Ishlab chiqaruvchi tasdiqlaydi — tez orada xabar beramiz"); header'dagi bildirishnoma nuqtasi statik dekoratsiyadan real buyurtma holatiga bog'landi (updateNotifBadge(), app.js/styles.css v=23/v=5). Dizayner checkout'dagi bog'lanmagan "O'zgartirish" tugmasi bug'ini topdi (hali tuzatilmagan)</span>
+        <span class="faoliyat-sprint">Sprint 6</span>
+      </div>
+      <div class="faoliyat-item">
         <span class="faoliyat-sana">2026-07-16</span>
         <span class="faoliyat-text">Buyurtma holati oqimi "yo'lga chiqdi" va "yetib keldi" bosqichlarigacha kengaytirildi — syncOrderStatuses() endi faqat "tasdiqlandi" emas, "yetib keldi"dan boshqa barcha ochiq buyurtmalarni serverdan tekshiradi; serverda /tasdiqla, /yolga, /yetdi uchta admin buyrug'i ishga tushirildi va end-to-end sinovdan o'tkazildi (app.js v=22). Sprint 6dagi "Xaridorga: tasdiqlandi/yo'lga chiqdi/yetib keldi" vazifasi to'liq bajarildi</span>
         <span class="faoliyat-sprint">Sprint 6</span>
@@ -455,13 +470,13 @@
 
 <script>
   const sprintlar = [
-    { num: 0, nom: "Dizayn va ekranlar",        dars: "Dars 7",  holat: "jarayonda",  sana: "2026-06-28" },
+    { num: 0, nom: "Dizayn va ekranlar",        dars: "Dars 7",  holat: "jarayonda",  sana: "2026-07-22" },
     { num: 1, nom: "Telegram Mini App MVP",     dars: "Dars 8",  holat: "jarayonda",  sana: "2026-07-12" },
     { num: 2, nom: "Ma'lumotlar bazasi / Backend", dars: "Dars 9",  holat: "jarayonda", sana: "2026-07-11" },
     { num: 3, nom: "Foydalanuvchilar + rollar", dars: "Dars 10", holat: "kutilmoqda", sana: "" },
     { num: 4, nom: "Asosiy funksiya",           dars: "Dars 11", holat: "kutilmoqda", sana: "" },
     { num: 5, nom: "Mobil / PWA",               dars: "Dars 12", holat: "kutilmoqda", sana: "" },
-    { num: 6, nom: "Integratsiyalar",           dars: "Dars 13", holat: "jarayonda",  sana: "2026-07-16" },
+    { num: 6, nom: "Integratsiyalar",           dars: "Dars 13", holat: "jarayonda",  sana: "2026-07-22" },
     { num: 7, nom: "Admin panel",               dars: "Dars 14", holat: "kutilmoqda", sana: "" },
     { num: 8, nom: "Sifat tekshiruvi",          dars: "Dars 15", holat: "kutilmoqda", sana: "" },
     { num: 9, nom: "Production + launch",       dars: "Dars 16", holat: "kutilmoqda", sana: "" },
@@ -485,7 +500,7 @@
   barEl.style.width = foiz + "%";
   percentEl.textContent = foiz + "%";
   countEl.textContent = tugaganlar + " / " + sprintlar.length + " sprint";
-  updatedEl.textContent = "Yangilanish: 2026-07-16";
+  updatedEl.textContent = "Yangilanish: 2026-07-22";
 
   sprintlar.forEach(s => {
     const card = document.createElement("div");

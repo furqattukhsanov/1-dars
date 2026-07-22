@@ -201,11 +201,6 @@ body {
 }
 .icon-btn:active { background: rgba(255,255,255,.82); }
 .notif-btn { position: relative; }
-.notif-dot {
-  position: absolute; top: 6px; right: 6px;
-  width: 7px; height: 7px; border-radius: 50%;
-  background: var(--color-primary); border: 1.5px solid white;
-}
 
 /* ===== SCREEN WRAP ===== */
 #screen-wrap {
