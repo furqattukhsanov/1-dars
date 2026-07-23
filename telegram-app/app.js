@@ -1096,7 +1096,7 @@ async function submitOrder() {
   try {
     const r = await fetch('/api/orders', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Telegram-Init-Data': tgInitData() },
       body: JSON.stringify(payload),
     });
     const d = await r.json().catch(() => null);
@@ -1188,12 +1188,31 @@ async function loadProductsFromServer() {
     if (Array.isArray(data) && data.length) PRODUCTS = data;
   } catch (e) {}
 }
-// Foydalanuvchi buyurtmalari tarixini bazadan yuklaydi (Telegram ID bo'yicha).
-async function loadOrdersFromServer() {
-  const uid = S.tgUser?.id;
-  if (!uid) return;
+// Telegram imzolangan initData (auth uchun). Telegram tashqarisida bo'sh.
+function tgInitData() { return window.Telegram?.WebApp?.initData || ''; }
+
+// Telegram orqali server tomonda kirish — foydalanuvchini bazaga yozadi/topadi.
+async function loginTelegram() {
+  const initData = tgInitData();
+  if (!initData) return;
   try {
-    const r = await fetch('/api/orders?uid=' + encodeURIComponent(uid));
+    const r = await fetch('/api/auth/telegram', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ initData }),
+    });
+    const d = await r.json().catch(() => null);
+    if (d && d.ok) S.authUser = d.user;
+  } catch (e) {}
+}
+
+// Foydalanuvchi buyurtmalari tarixini bazadan yuklaydi.
+// Kimlik header'dagi initData'dan — server o'zi aniqlaydi (uid yuborilmaydi).
+async function loadOrdersFromServer() {
+  const initData = tgInitData();
+  if (!initData) return;
+  try {
+    const r = await fetch('/api/orders', { headers: { 'X-Telegram-Init-Data': initData } });
     if (!r.ok) return;
     const data = await r.json();
     if (Array.isArray(data)) { ORDERS = data; saveOrders(); }
@@ -1222,6 +1241,7 @@ render();
 // Bazadan yangi ma'lumot yuklab, kelgach qayta render qilamiz
 (async () => {
   await loadProductsFromServer();
+  await loginTelegram();          // Telegram orqali kirish (imzo serverda tekshiriladi)
   await loadOrdersFromServer();
   render();
 })();

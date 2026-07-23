@@ -15,6 +15,13 @@ CREATE TABLE IF NOT EXISTS users (
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- Telegram ID bo'yicha upsert uchun UNIQUE (har Telegram foydalanuvchi = bitta hisob)
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname='users_tg_user_id_key') THEN
+    ALTER TABLE users ADD CONSTRAINT users_tg_user_id_key UNIQUE (tg_user_id);
+  END IF;
+END $$;
+
 -- ============ Ishlab chiqaruvchi (sotuvchi) ============
 -- PRD: kompaniya, manzil, tasdiq holati, reyting
 CREATE TABLE IF NOT EXISTS sellers (

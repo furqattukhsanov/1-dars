@@ -333,6 +333,11 @@
     <div id="faoliyat-list">
       <div class="faoliyat-item">
         <span class="faoliyat-sana">2026-07-23</span>
+        <span class="faoliyat-text">Auth ishga tushdi — Telegram orqali xavfsiz kirish va ruxsatlar. Dars asli Supabase email magic link + RLS uchun edi, biz Telegram Mini App + o'z serverdagi PostgreSQL stackka moslashtirdik: email/parol va SMS OTP YO'Q. Serverda verifyInitData() qo'shildi — Telegram yuborgan initData bot token bilan HMAC-SHA256 orqali (timingSafeEqual bilan) tekshiriladi, soxta/buzilgan imzo yoki 24 soatdan eski auth_date rad etiladi. POST /api/auth/telegram foydalanuvchini users jadvaliga upsert qiladi (tg_user_id'ga UNIQUE constraint — bir Telegram = bitta hisob, db/001_schema.sql). Xavfsizlik teshigi yopildi: GET/POST /api/orders endi kimlikni mijoz yuborgan uid'dan EMAS, header'dagi imzolangan X-Telegram-Init-Data'dan oladi — header'siz yoki soxta imzo 401, eski ?uid= hujum yo'li ishlamaydi. Frontend (telegram-app/app.js) ochilganda loginTelegram() chaqiradi, buyurtma so'rovlariga imzolangan header qo'shadi, app.js keshi v=30→v=31. Izolyatsiya isbotlandi: ikki foydalanuvchi (Aziz, Bekzod) har biri faqat o'z buyurtmasini ko'rdi. DIQQAT: server.js git'da yo'q (bot token sirligi). Postgres RLS bu arxitekturada (bitta DB user) ixtiyoriy — himoya API qatlamida.</span>
+        <span class="faoliyat-sprint">Sprint 3</span>
+      </div>
+      <div class="faoliyat-item">
+        <span class="faoliyat-sana">2026-07-23</span>
         <span class="faoliyat-text">Ma'lumotlar bazasi ishga tushdi — Hetzner serverga PostgreSQL 18 o'rnatildi (baza lolamarket, faqat localhost'ga ochiq, DATABASE_URL server .env'da). PRD §6 asosida 8 jadval yaratildi: users, sellers, products, orders, order_items, payments, disputes, bts_points + foreign key'lar va indekslar; sxema repo'da versiyalandi (db/001_schema.sql, db/002_seed.sql — 11 sotuvchi + 12 mahsulot app.js'dan generatsiya). Backend (server.js + pg) bazaga ulandi: /api/products, /api/orders (GET/POST), order-status va bot status buyruqlari endi bazadan ishlaydi, eski orders.json tashlab yuborildi. Mini App ulandi: mahsulotlar /api/products'dan yuklanadi (qattiq kod zaxira), buyurtmalar bazaga yoziladi va bazadan qayta yuklanadi, success ekranidagi qattiq #LM-2042 haqiqiy raqamga almashtirildi. Saqlash sinovi o'tdi (localStorage tozalab yangilangach buyurtma faqat bazadan qaytdi). Kunlik pg_dump backup (cron 03:30, 7 kun) va read-only DB MCP ulanishi sozlandi. DIQQAT: Supabase EMAS — o'z serverda oddiy PostgreSQL; auth/RLS/OTP Sprint 3'ga o'tkazildi</span>
         <span class="faoliyat-sprint">Sprint 2</span>
       </div>
@@ -498,7 +503,7 @@
     { num: 0, nom: "Dizayn va ekranlar",        dars: "Dars 7",  holat: "jarayonda",  sana: "2026-07-22" },
     { num: 1, nom: "Telegram Mini App MVP",     dars: "Dars 8",  holat: "jarayonda",  sana: "2026-07-12" },
     { num: 2, nom: "Ma'lumotlar bazasi / Backend", dars: "Dars 9",  holat: "tugadi", sana: "2026-07-23" },
-    { num: 3, nom: "Foydalanuvchilar + rollar", dars: "Dars 10", holat: "kutilmoqda", sana: "" },
+    { num: 3, nom: "Foydalanuvchilar + rollar", dars: "Dars 10", holat: "tugadi", sana: "2026-07-23" },
     { num: 4, nom: "Asosiy funksiya",           dars: "Dars 11", holat: "jarayonda",  sana: "2026-07-22" },
     { num: 5, nom: "Mobil / PWA",               dars: "Dars 12", holat: "kutilmoqda", sana: "" },
     { num: 6, nom: "Integratsiyalar",           dars: "Dars 13", holat: "jarayonda",  sana: "2026-07-22" },
