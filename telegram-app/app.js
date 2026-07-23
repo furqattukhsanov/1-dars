@@ -70,7 +70,8 @@ const STR = {
 };
 
 // ============ MAHSULOTLAR ============
-const PRODUCTS = [
+// Zaxira ma'lumot — asosiy manba /api/products (bazadan). Tarmoq uzilsa do'kon buzilmaydi.
+let PRODUCTS = [
   { id:'ik-1402', pattern:'adras',      img:'assets/products/textile-01.jpg', price:850000, unit:'rulon', moq:1, lead:28, rating:4.9, reviews:42,  verified:true,  stockKey:'in',   catKey:'silk',   badgeTone:'primary',
     name:{ uz:"Marg'ilon ipak ikat", ru:"Шёлковый икат" }, supplier:{ uz:"Marg'ilon Ipak Co.", ru:"Маргилан Силк" }, city:{ uz:"Marg'ilon", ru:"Маргилан" },
     width:"0.9 m", weight:"90 g/m²", comp:{ uz:"100% tut ipagi", ru:"100% тутовый шёлк" }, badge:{ uz:"Tavsiya", ru:"Хит" } },
@@ -726,7 +727,7 @@ function renderSuccess() {
     </span>
     <div style="font-family:var(--font-display);font-size:23px;font-weight:800;color:var(--text-strong);letter-spacing:-.02em">${T.orderPlaced}</div>
     <div style="font-size:14px;color:var(--text-muted);line-height:1.55;max-width:280px">${T.orderPlacedSub}</div>
-    <div style="font-family:var(--font-mono);font-size:14px;font-weight:600;color:var(--text-strong);padding:8px 16px;border-radius:999px;background:rgba(255,255,255,.62);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.55)">#LM-2042</div>
+    <div style="font-family:var(--font-mono);font-size:14px;font-weight:600;color:var(--text-strong);padding:8px 16px;border-radius:999px;background:rgba(255,255,255,.62);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.55)">${ORDERS[0]?.id || '#LM-—'}</div>
     <div style="display:flex;flex-direction:column;gap:10px;width:100%;max-width:300px;margin-top:14px">
       <button onclick="tab('orders')" style="height:50px;border-radius:var(--radius-md);border:none;background:linear-gradient(135deg,#8f1a10,#510100);color:#ffe9db;font-size:15px;font-weight:600;cursor:pointer;box-shadow:var(--shadow-sm)">${T.viewOrders}</button>
       <button onclick="tab('home')" style="height:50px;border-radius:var(--radius-md);border:1px solid var(--glass-border);background:var(--glass-fill-strong);color:var(--text-strong);font-size:15px;font-weight:600;cursor:pointer">${T.continue}</button>
@@ -1072,21 +1073,54 @@ function mainBtnAction() {
     addToCart(S.selectedId, S.qty);
     tab('cart');
   } else if (S.screen === 'checkout') {
-    const orderId = nextOrderId();
-    ORDERS.unshift({
-      id: orderId,
-      date: orderDateLabel(),
-      items: S.cart.map(c => ({ id: c.id, qty: c.qty })),
-      statusKey: 'pending',
-    });
-    saveOrders();
-    sendOrderNotify(orderId);
-    S.cart = [];
-    S.screen = 'success';
-    S.history = [];
-    S.comment = '';
-    render();
+    submitOrder();
   }
+}
+
+// Buyurtmani serverga (bazaga) yuboradi. Optimistik: darhol success ekraniga o'tadi.
+async function submitOrder() {
+  const cartSnapshot = S.cart.map(c => ({ id: c.id, qty: c.qty }));
+  const payOpt = PAY.find(o => o.key === S.pay);
+  const payload = {
+    items: cartSnapshot,
+    buyerName: COMPANY.name[S.lang],
+    tgUser: S.tgUser?.username || undefined,
+    tgUserId: S.tgUser?.id || undefined,
+    address: COMPANY.addr[S.lang],
+    payment: payOpt ? payOpt.label[S.lang] : S.pay,
+    comment: S.comment || '',
+    lang: S.lang,
+  };
+
+  let orderId = null;
+  try {
+    const r = await fetch('/api/orders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const d = await r.json().catch(() => null);
+    if (d && d.ok && d.orderId) orderId = d.orderId;
+  } catch (e) {}
+
+  // Server ishlamasa — mahalliy id + eski bildirishnoma yo'li (zaxira)
+  if (!orderId) {
+    orderId = nextOrderId();
+    sendOrderNotify(orderId);
+  }
+
+  ORDERS.unshift({
+    id: orderId,
+    date: orderDateLabel(),
+    items: cartSnapshot,
+    statusKey: 'pending',
+  });
+  saveOrders();
+  S.cart = [];
+  S.screen = 'success';
+  S.history = [];
+  S.comment = '';
+  render();
 }
 
 // ============ ASOSIY RENDER ============
@@ -1144,6 +1178,28 @@ function pollForPhone(attempt) {
     .catch(() => {});
 }
 
+// ============ SERVERDAN (BAZADAN) YUKLASH ============
+// Katalogni bazadan yuklaydi; muvaffaqiyatsiz bo'lsa zaxira massiv qoladi.
+async function loadProductsFromServer() {
+  try {
+    const r = await fetch('/api/products');
+    if (!r.ok) return;
+    const data = await r.json();
+    if (Array.isArray(data) && data.length) PRODUCTS = data;
+  } catch (e) {}
+}
+// Foydalanuvchi buyurtmalari tarixini bazadan yuklaydi (Telegram ID bo'yicha).
+async function loadOrdersFromServer() {
+  const uid = S.tgUser?.id;
+  if (!uid) return;
+  try {
+    const r = await fetch('/api/orders?uid=' + encodeURIComponent(uid));
+    if (!r.ok) return;
+    const data = await r.json();
+    if (Array.isArray(data)) { ORDERS = data; saveOrders(); }
+  } catch (e) {}
+}
+
 // ============ ISHGA TUSHIRISH ============
 const inTelegram = !!(window.Telegram?.WebApp?.initData);
 if (window.Telegram?.WebApp) {
@@ -1162,3 +1218,10 @@ document.documentElement.classList.toggle('in-telegram', inTelegram);
 S.tgUser = loadTgUser();
 S.tgPhone = localStorage.getItem('lolamarket_tg_phone') || null;
 render();
+
+// Bazadan yangi ma'lumot yuklab, kelgach qayta render qilamiz
+(async () => {
+  await loadProductsFromServer();
+  await loadOrdersFromServer();
+  render();
+})();
