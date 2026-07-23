@@ -347,8 +347,7 @@ function updateHeader() {
   const subEl   = document.getElementById('header-sub');
   if (sc === 'home') {
     titleEl.textContent = T.brand;
-    subEl.style.display = 'block';
-    subEl.textContent   = T.miniApp;
+    subEl.style.display = 'none';
   } else if (sc === 'detail' && S.selectedId) {
     const p = byId(S.selectedId);
     titleEl.textContent = p ? p.name[S.lang] : T.product;

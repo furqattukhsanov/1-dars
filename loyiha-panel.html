@@ -332,6 +332,11 @@
     <div style="font-size:0.68rem; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; color:#9C7B5A; margin-bottom:0.7rem;">So'nggi faoliyat</div>
     <div id="faoliyat-list">
       <div class="faoliyat-item">
+        <span class="faoliyat-sana">2026-07-24</span>
+        <span class="faoliyat-text">Telegram Mini App header'i landing (lolamarket.uz) bilan bir xil ko'rinishga keltirildi. .header-logo-wrap dan gradient halqa (background/padding/border-radius:50%/box-shadow) olib tashlandi — endi shunchaki display:flex; .header-logo-img object-fit:cover → contain, border-radius olib tashlandi (saytdagi .brand-mark kabi shaffof, halqasiz nishon), logo o'lchami 34→40px. Home ekrani header subtitri ("Telegram Mini App") yashirildi (app.js'da subEl.style.display='none') — detail ekranidagi shahar subtitri o'zgarishsiz. Endi sayt va Mini App logo orqasidagi yumaloq halqasiz, faqat logo yonida "LolaMarket". Kesh: styles.css?v=7, app.js?v=33. Jonli serverga (mini-app/) deploy qilinib tasdiqlandi</span>
+        <span class="faoliyat-sprint">Sprint 0</span>
+      </div>
+      <div class="faoliyat-item">
         <span class="faoliyat-sana">2026-07-23</span>
         <span class="faoliyat-text">Telegram Mini App header logosi almashtirildi — eski lola-logo-tulip.jpg (396×396 JPEG, foydalanuvchi "hira" deb topdi) o'rniga landing'da ishlatilayotgan shaffof fonli PNG nishon (Photo/logo/lola-mark.png, 256×256) telegram-app/assets/lola-mark.png ga ko'chirildi va telegram-app/index.html header'idagi img src shu yangi faylga o'zgartirildi. Endi sayt (lolamarket.uz) va Mini App bitta logoni ko'rsatadi</span>
         <span class="faoliyat-sprint">Sprint 0</span>
@@ -510,7 +515,7 @@
 
 <script>
   const sprintlar = [
-    { num: 0, nom: "Dizayn va ekranlar",        dars: "Dars 7",  holat: "jarayonda",  sana: "2026-07-23" },
+    { num: 0, nom: "Dizayn va ekranlar",        dars: "Dars 7",  holat: "jarayonda",  sana: "2026-07-24" },
     { num: 1, nom: "Telegram Mini App MVP",     dars: "Dars 8",  holat: "jarayonda",  sana: "2026-07-12" },
     { num: 2, nom: "Ma'lumotlar bazasi / Backend", dars: "Dars 9",  holat: "tugadi", sana: "2026-07-23" },
     { num: 3, nom: "Foydalanuvchilar + rollar", dars: "Dars 10", holat: "tugadi", sana: "2026-07-23" },
@@ -540,7 +545,7 @@
   barEl.style.width = foiz + "%";
   percentEl.textContent = foiz + "%";
   countEl.textContent = tugaganlar + " / " + sprintlar.length + " sprint";
-  updatedEl.textContent = "Yangilanish: 2026-07-23";
+  updatedEl.textContent = "Yangilanish: 2026-07-24";
 
   sprintlar.forEach(s => {
     const card = document.createElement("div");

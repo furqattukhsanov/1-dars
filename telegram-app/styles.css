@@ -174,14 +174,9 @@ body {
   box-shadow: 0 1px 0 rgba(23,26,48,.06), 0 4px 12px -8px rgba(81,1,0,.12);
 }
 .header-brand { display: flex; align-items: center; gap: 9px; }
-.header-logo-wrap {
-  display: flex;
-  padding: 2px;
-  border-radius: 50%;
-  background: linear-gradient(150deg, rgba(255,229,210,.9), rgba(122,20,13,.55));
-  box-shadow: 0 3px 10px -3px rgba(81,1,0,.5);
-}
-.header-logo-img { display: block; border-radius: 50%; object-fit: cover; }
+/* Logo o'rami — gradient halqasiz, saytdagi .brand-mark kabi shaffof nishon */
+.header-logo-wrap { display: flex; }
+.header-logo-img { display: block; object-fit: contain; }
 .header-text { display: flex; flex-direction: column; gap: 1px; flex: 1; min-width: 0; }
 .header-title { font-family: var(--font-display); font-size: 18px; font-weight: 800; color: var(--text-strong); letter-spacing: -0.02em; line-height: 1.1; }
 .header-sub { font-size: 11px; color: var(--text-muted); font-weight: 500; }
