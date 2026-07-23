@@ -333,6 +333,11 @@
     <div id="faoliyat-list">
       <div class="faoliyat-item">
         <span class="faoliyat-sana">2026-07-23</span>
+        <span class="faoliyat-text">Telegram Mini App header logosi almashtirildi — eski lola-logo-tulip.jpg (396×396 JPEG, foydalanuvchi "hira" deb topdi) o'rniga landing'da ishlatilayotgan shaffof fonli PNG nishon (Photo/logo/lola-mark.png, 256×256) telegram-app/assets/lola-mark.png ga ko'chirildi va telegram-app/index.html header'idagi img src shu yangi faylga o'zgartirildi. Endi sayt (lolamarket.uz) va Mini App bitta logoni ko'rsatadi</span>
+        <span class="faoliyat-sprint">Sprint 0</span>
+      </div>
+      <div class="faoliyat-item">
+        <span class="faoliyat-sana">2026-07-23</span>
         <span class="faoliyat-text">Backend biznes logikasi qo'shildi va jonli serverga (lolamarket.uz) deploy qilinib tasdiqlandi. Server tomon validatsiya: validate()/checkField() (Zod'siz minimal validator), POST /api/orders'da MOQ biznes qoidasi va maydon uzunlik cheklovlari — klient validatsiyasi faqat UX, server har doim qaytadan tekshiradi. Moderatsiya (approval) workflow: db/003_moderation.sql products.status ustunini qo'shdi (draft/pending/published/rejected; mavjud 12 mahsulot bir martalik published), GET /api/products faqat published qaytaradi, POST /api/products yangi e'lonni pending qiladi. Server tomon isAdmin() ruxsati (ADMIN_TG_IDS env): GET/POST /api/admin/moderation (401=kirmagan, 403=admin emas), Telegram bot buyruqlari /moderatsiya, /nashr <id>, /rad <id>. ClientError klassi: faqat validatsiya/biznes xatolari klientga ko'rinadi, DB/ichki xatolar umumiy "server error" bilan yashiriladi (stack/DB detallari sizmaydi). Standart API dizayni: ok()/fail() helper, barcha XATO javoblari {ok:false,error} envelope'da to'g'ri HTTP status kodlar bilan (200/201/400/401/403/404/429/500). Backend kodi endi git repoda (server/server.js — ichida sir yo'q, server/package.json, server/README.md deploy qadamlari); sirlar faqat serverdagi .env'da. Frontend (telegram-app/app.js): apiData() helper yangi {ok,data} envelopini ham eski yalang'och massivni ham o'qiydi, submitOrder server rad etsa do'stona toast ko'rsatadi (avval jimgina soxta "muvaffaqiyat" ko'rsatardi), app.js keshi v=31→v=32. Jonli sinov o'tdi: auth'siz/soxta so'rov 401; moderatsiya end-to-end (pending yashirin katalog 12 → nashr → 13 → tozalash → 12); products yalang'och massiv (eski keshlangan mijozlar uchun ataylab envelope'siz); konsol xatosiz. Stack: Telegram Mini App + o'z serverda PostgreSQL (Supabase/Next.js EMAS)</span>
         <span class="faoliyat-sprint">Sprint 3</span>
       </div>
@@ -505,7 +510,7 @@
 
 <script>
   const sprintlar = [
-    { num: 0, nom: "Dizayn va ekranlar",        dars: "Dars 7",  holat: "jarayonda",  sana: "2026-07-22" },
+    { num: 0, nom: "Dizayn va ekranlar",        dars: "Dars 7",  holat: "jarayonda",  sana: "2026-07-23" },
     { num: 1, nom: "Telegram Mini App MVP",     dars: "Dars 8",  holat: "jarayonda",  sana: "2026-07-12" },
     { num: 2, nom: "Ma'lumotlar bazasi / Backend", dars: "Dars 9",  holat: "tugadi", sana: "2026-07-23" },
     { num: 3, nom: "Foydalanuvchilar + rollar", dars: "Dars 10", holat: "tugadi", sana: "2026-07-23" },
