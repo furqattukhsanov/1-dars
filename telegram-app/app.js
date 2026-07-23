@@ -43,6 +43,7 @@ const STR = {
     items: "tur", panelU: "dona", mU: "m", product: "Mahsulot", noProducts: "Mahsulot topilmadi", madeBy: "Ishlab chiqildi",
     tgVerified: "Telegram orqali tasdiqlangan", tgNotConnected: "Telegram orqali ochilganda profil avtomatik aniqlanadi", tgUserFallback: "Telegram foydalanuvchisi",
     shareContact: "Telefon raqamni ulashish", contactPending: "Raqam so'ralmoqda, biroz kuting…", contactDone: "Telefon raqami yangilandi",
+    orderErr: "Buyurtma yuborilmadi", netErr: "Internet aloqasi yo'q — qayta urinib ko'ring",
     perUnit: "1 dona rulon narxi", notifTitle: "Bildirishnomalar", notifEmpty: "Hozircha xabarlar yo'q",
     notifEmptySub: "Yangi bildirishnomalar shu yerda ko'rinadi", social: "Ijtimoiy tarmoqlar" },
   ru: { brand: "LolaMarket", miniApp: "мини-приложение", greetSub: "Какие ткани нужны сегодня?",
@@ -65,6 +66,7 @@ const STR = {
     items: "поз.", panelU: "шт", mU: "м", product: "Товар", noProducts: "Товары не найдены", madeBy: "Разработано",
     tgVerified: "Подтверждено через Telegram", tgNotConnected: "При открытии через Telegram профиль определится автоматически", tgUserFallback: "Пользователь Telegram",
     shareContact: "Поделиться номером телефона", contactPending: "Запрашивается номер, подождите…", contactDone: "Номер телефона обновлён",
+    orderErr: "Заказ не отправлен", netErr: "Нет соединения — попробуйте ещё раз",
     perUnit: "Цена за 1 рулон", notifTitle: "Уведомления", notifEmpty: "Пока нет уведомлений",
     notifEmptySub: "Новые уведомления появятся здесь", social: "Соцсети" },
 };
@@ -1093,17 +1095,29 @@ async function submitOrder() {
   };
 
   let orderId = null;
+  let serverError = null;    // server biznes xatosi (validatsiya/MOQ) — foydalanuvchiga ko'rsatamiz
+  let reachedServer = false; // serverga yetdikmi (tarmoq bormi)?
   try {
     const r = await fetch('/api/orders', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-Telegram-Init-Data': tgInitData() },
       body: JSON.stringify(payload),
     });
+    reachedServer = true;
     const d = await r.json().catch(() => null);
     if (d && d.ok && d.orderId) orderId = d.orderId;
-  } catch (e) {}
+    else serverError = (d && d.error) || STR[S.lang].orderErr;
+  } catch (e) {
+    // tarmoq uzildi — serverga umuman yetmadik
+  }
 
-  // Server ishlamasa — mahalliy id + eski bildirishnoma yo'li (zaxira)
+  // Server biznes xatosi bilan RAD ETDI — success ko'rsatMAYMIZ, do'stona toast chiqaramiz
+  if (!orderId && reachedServer) {
+    showToast(`${STR[S.lang].orderErr}: ${serverError}`);
+    return;
+  }
+
+  // Serverga umuman yetmadik (offline) — zaxira: mahalliy id + eski bildirishnoma yo'li
   if (!orderId) {
     orderId = nextOrderId();
     sendOrderNotify(orderId);
@@ -1180,11 +1194,19 @@ function pollForPhone(attempt) {
 
 // ============ SERVERDAN (BAZADAN) YUKLASH ============
 // Katalogni bazadan yuklaydi; muvaffaqiyatsiz bo'lsa zaxira massiv qoladi.
+// API javobini ochib beradi: yangi standart { ok, data } envelopini ham,
+// eski yalang'och shaklni (massiv/obyekt) ham qo'llaydi — deploy tartibidan
+// va eski keshlangan mijozlardan qat'i nazar buzilmaydi (Dars 11).
+function apiData(d) {
+  if (d && typeof d === 'object' && 'ok' in d) return d.ok ? d.data : null;
+  return d;
+}
+
 async function loadProductsFromServer() {
   try {
     const r = await fetch('/api/products');
     if (!r.ok) return;
-    const data = await r.json();
+    const data = apiData(await r.json());
     if (Array.isArray(data) && data.length) PRODUCTS = data;
   } catch (e) {}
 }
@@ -1214,7 +1236,7 @@ async function loadOrdersFromServer() {
   try {
     const r = await fetch('/api/orders', { headers: { 'X-Telegram-Init-Data': initData } });
     if (!r.ok) return;
-    const data = await r.json();
+    const data = apiData(await r.json());
     if (Array.isArray(data)) { ORDERS = data; saveOrders(); }
   } catch (e) {}
 }
