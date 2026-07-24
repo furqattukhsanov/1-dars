@@ -302,11 +302,33 @@ function removeLine(id) {
 }
 
 function updateBadge() {
-  const el = document.getElementById('cart-count');
-  if (!el) return;
   const n = cartCount();
-  el.textContent = n;
-  el.hidden = n === 0;
+  // Header'dagi va mobil nav'dagi sanoq — ikkalasi ham birga yangilanadi
+  ['cart-count', 'm-cart-count'].forEach((id) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = n;
+    el.hidden = n === 0;
+  });
+}
+
+/* ── Mobil pastki nav (faqat telefonda ko'rinadi) ──
+   Yangi ekran yaratmaydi — mavjud drawer'larni ochadi, shuning uchun
+   sahifa tuzilmasi va SEO o'zgarmaydi. */
+function mNav(what) {
+  if (what === 'catalog') {
+    closeCart();
+    document.getElementById('katalog')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } else if (what === 'fav')   openFav();
+  else if (what === 'cart')    openCart();
+  else if (what === 'login')   onLogin();
+  mNavActive(what);
+}
+
+function mNavActive(what) {
+  const map = { catalog: 'm-tab-catalog', fav: 'm-tab-fav', cart: 'm-tab-cart' };
+  Object.values(map).forEach((id) => document.getElementById(id)?.classList.remove('is-active'));
+  document.getElementById(map[what])?.classList.add('is-active');
 }
 
 /* ── Drawer ochish/yopish ── */
@@ -343,6 +365,8 @@ function closeCart() {
   document.body.style.overflow = '';
   // muvaffaqiyat ekranidan keyin savat ko'rinishiga qaytamiz
   if (drawerView === 'done') drawerView = 'cart';
+  // Panel yopilgach mobil nav'da "Katalog" yana faol bo'ladi
+  mNavActive('catalog');
 }
 
 document.addEventListener('keydown', (e) => {

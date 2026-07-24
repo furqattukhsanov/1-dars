@@ -75,6 +75,23 @@
   --blur-md:  blur(16px) saturate(150%);
   --blur-lg:  blur(28px) saturate(160%);
 
+  /* --- Apple uslubidagi shisha (glassmorphism) ---
+     Sir: fon SHAFFOF bo'lishi kerak (past alpha) — shundagina orqadagi kontent
+     ko'rinib, blur "muzlagan shisha" effektini beradi. saturate rangni jonlantiradi. */
+  /* brightness — Apple shishasi orqa fonni biroz "ko'taradi", shuning uchun
+     qorong'i mato ustida ham material yorqin qoladi va yozuv o'qiladi */
+  --glass-blur:   blur(32px) saturate(200%) brightness(1.09);
+  /* Zichlik muvozanati: yetarlicha shaffof (shisha ko'rinsin), lekin qorong'i
+     mato ustida ham yozuv o'qilsin — Apple ham chrome materialini shunday zich qiladi */
+  --glass-tint:   linear-gradient(to bottom, rgba(255,253,251,.74), rgba(255,248,245,.6));
+  --glass-edge:   rgba(255,255,255,.58);
+  /* Yuqori qirradagi yorug' "spekulyar" chiziq — shisha qalinligi hissi */
+  --glass-spec:   inset 0 1px 0 rgba(255,255,255,.92), inset 0 -1px 1px rgba(255,255,255,.3);
+  --glass-cast:   0 10px 34px -8px rgba(81,1,0,.20), 0 2px 8px -2px rgba(23,26,48,.08);
+
+  /* Suzuvchi pastki dock balandligi — kontent uning ostidan o'tadi */
+  --dock-h: 92px;
+
   /* --- Radius --- */
   --radius-sm: 10px;
   --radius-md: 14px;
@@ -124,6 +141,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 #root {
+  position: relative;   /* suzuvchi nav/main-btn shunga nisbatan joylashadi */
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -160,18 +178,22 @@ body {
 
 /* ===== HEADER ===== */
 #app-header {
-  flex: none;
+  position: absolute;          /* suzuvchi — kontent ostidan o'tadi (shisha uchun shart) */
+  top: 0; left: 0; right: 0;
   z-index: 20;
-  height: var(--header-h);
+  min-height: var(--header-h); /* sarlavha 2 qatorga tushsa cho'zilsin */
   display: flex;
   align-items: center;
   gap: 10px;
   padding: 0 14px;
-  background: rgba(255, 255, 255, 0.68);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.6);
-  box-shadow: 0 1px 0 rgba(23,26,48,.06), 0 4px 12px -8px rgba(81,1,0,.12);
+  /* Yumshoq variant: nav'ga qaraganda yengilroq — shaffofroq fon, yumshoqroq
+     blur va qattiq oq chiziq O'RNIGA deyarli sezilmas soya. Shu sabab header
+     kontentni "kesib" turmaydi, yumshoq erib turadi. */
+  background: linear-gradient(to bottom, rgba(255,253,251,.68), rgba(255,250,247,.52));
+  backdrop-filter: blur(24px) saturate(175%) brightness(1.05);
+  -webkit-backdrop-filter: blur(24px) saturate(175%) brightness(1.05);
+  border-bottom: none;
+  box-shadow: 0 10px 24px -18px rgba(81,1,0,.18);
 }
 .header-brand { display: flex; align-items: center; gap: 9px; }
 /* Logo o'rami — gradient halqasiz, saytdagi .brand-mark kabi shaffof nishon */
@@ -186,13 +208,13 @@ body {
   flex: none;
   width: 38px; height: 38px;
   border-radius: 50%;
-  border: 1px solid rgba(255,255,255,.7);
-  background: rgba(255,255,255,.55);
-  backdrop-filter: blur(20px) saturate(170%);
-  -webkit-backdrop-filter: blur(20px) saturate(170%);
+  border: 1px solid rgba(255,255,255,.85);
+  /* Shisha ustidagi boshqaruv: qo'shimcha blur QO'YMAYMIZ (shisha ustida shisha
+     loyqa chiqadi) — o'rniga yengil oq to'ldirish + nozik qirra */
+  background: rgba(255,255,255,.62);
   display: flex; align-items: center; justify-content: center;
   color: var(--text-body);
-  box-shadow: 0 6px 18px -8px rgba(81,1,0,.28), 0 1px 2px rgba(23,26,48,.06), inset 0 1px 0 rgba(255,255,255,.9);
+  box-shadow: 0 4px 12px -6px rgba(81,1,0,.22), inset 0 1px 0 rgba(255,255,255,.95);
 }
 .icon-btn:active { background: rgba(255,255,255,.82); }
 .notif-btn { position: relative; }
@@ -205,19 +227,25 @@ body {
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
   scrollbar-width: none;
+  /* Kontent suzuvchi header VA dock ostidan o'tadi —
+     chetdagi elementlar berkilib qolmasligi uchun joy qoldiramiz */
+  padding-top: var(--header-h);
+  padding-bottom: calc(var(--dock-h) + env(safe-area-inset-bottom, 0px));
 }
 #screen-wrap::-webkit-scrollbar { display: none; }
 
 /* ===== MAIN ACTION BUTTON ===== */
 .main-btn-bar {
-  flex: none;
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  z-index: 30;
   padding: 12px 16px;
   padding-bottom: max(26px, env(safe-area-inset-bottom, 16px));
-  background: rgba(255,255,255,.72);
-  backdrop-filter: blur(24px) saturate(170%);
-  -webkit-backdrop-filter: blur(24px) saturate(170%);
-  border-top: 1px solid rgba(255,255,255,.6);
-  box-shadow: 0 -4px 20px -8px rgba(23,26,48,.12);
+  background: var(--glass-tint);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border-top: 1px solid var(--glass-edge);
+  box-shadow: 0 -8px 28px -12px rgba(81,1,0,.18), inset 0 1px 0 rgba(255,255,255,.85);
 }
 .main-action-btn {
   width: 100%; height: 54px;
@@ -241,14 +269,20 @@ body {
 
 /* ===== BOTTOM NAV ===== */
 .app-nav-wrap {
-  flex: none;
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  z-index: 30;
   display: flex;
   align-items: stretch;
   gap: 9px;
   padding: 10px 14px;
   padding-bottom: max(22px, env(safe-area-inset-bottom, 14px));
   background: transparent;
+  /* O'ram o'zi bosishni ushlab qolmasin — faqat tugmalar bosiladi,
+     oradagi bo'sh joydan kontentni skroll qilish mumkin bo'lsin */
+  pointer-events: none;
 }
+.app-nav-wrap > * { pointer-events: auto; }
 
 /* Light glass pill */
 .nav-pill {
@@ -259,15 +293,11 @@ body {
   height: 60px;
   padding: 0 7px;
   border-radius: 30px;
-  background: linear-gradient(160deg, rgba(255,255,255,.92), rgba(255,255,255,.78));
-  backdrop-filter: blur(26px) saturate(180%);
-  -webkit-backdrop-filter: blur(26px) saturate(180%);
-  border: 1px solid rgba(255,255,255,.9);
-  box-shadow:
-    0 12px 34px -10px rgba(81,1,0,.28),
-    0 2px 8px -2px rgba(81,1,0,.14),
-    inset 0 1px 0 rgba(255,255,255,.95),
-    inset 0 -1px 2px rgba(81,1,0,.05);
+  background: var(--glass-tint);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-edge);
+  box-shadow: var(--glass-cast), var(--glass-spec);
 }
 
 /* Sliding dark pomegranate lens */
@@ -332,13 +362,13 @@ body {
   flex: none;
   width: 60px; height: 60px;
   border-radius: 26px;
-  border: 1px solid rgba(255,255,255,.9);
-  background: linear-gradient(160deg, rgba(255,255,255,.92), rgba(255,255,255,.78));
-  backdrop-filter: blur(26px) saturate(180%);
-  -webkit-backdrop-filter: blur(26px) saturate(180%);
+  border: 1px solid var(--glass-edge);
+  background: var(--glass-tint);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
   color: rgba(122,20,13,.5);
   display: flex; align-items: center; justify-content: center;
-  box-shadow: 0 12px 34px -10px rgba(81,1,0,.28), inset 0 1px 0 rgba(255,255,255,.95);
+  box-shadow: var(--glass-cast), var(--glass-spec);
   transition: all 480ms cubic-bezier(.34,1.56,.64,1);
 }
 .nav-profile-btn.active {

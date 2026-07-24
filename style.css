@@ -76,6 +76,19 @@
   --blur-md:  blur(16px) saturate(150%);
   --blur-lg:  blur(28px) saturate(160%);
 
+  /* --- Apple uslubidagi shisha (Mini App bilan AYNAN bir xil retsept) ---
+     Sir: fon shaffof bo'lsin (past alpha) — shundagina orqadagi kontent
+     ko'rinib, blur "muzlagan shisha" effektini beradi. brightness qorong'i
+     fon ustida materialni yorqin ushlab turadi. */
+  --glass-blur:   blur(32px) saturate(200%) brightness(1.09);
+  --glass-tint:   linear-gradient(to bottom, rgba(255,253,251,.74), rgba(255,248,245,.6));
+  --glass-edge:   rgba(255,255,255,.58);
+  --glass-spec:   inset 0 1px 0 rgba(255,255,255,.92), inset 0 -1px 1px rgba(255,255,255,.3);
+  --glass-cast:   0 10px 34px -8px rgba(81,1,0,.20), 0 2px 8px -2px rgba(23,26,48,.08);
+
+  /* Mobil pastki dock balandligi */
+  --dock-h: 88px;
+
   /* --- Radius --- */
   --radius-sm: 10px;
   --radius-md: 14px;
@@ -320,16 +333,19 @@ body {
 /* ===== HEADER ===== */
 /* Header qadalmaydi — sahifa bilan birga yuqoriga chiqib ketadi */
 #nav {
-  position: relative;
+  position: sticky;   /* kontent ostidan o'tadi — shisha shundagina ko'rinadi */
+  top: 0;
   z-index: 100;
   height: var(--header-h);
   display: flex;
   align-items: center;
-  background: rgba(255, 255, 255, 0.55);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border-bottom: 1px solid transparent;
-  transition: background var(--dur-base), border-color var(--dur-base), box-shadow var(--dur-base);
+  /* Mini App header'i bilan bir xil "yumshoq" variant: qattiq chiziq YO'Q,
+     shuning uchun header kontentni kesib turmaydi, yumshoq erib turadi */
+  background: linear-gradient(to bottom, rgba(255,253,251,.68), rgba(255,250,247,.52));
+  backdrop-filter: blur(24px) saturate(175%) brightness(1.05);
+  -webkit-backdrop-filter: blur(24px) saturate(175%) brightness(1.05);
+  border-bottom: none;
+  box-shadow: 0 10px 24px -18px rgba(81,1,0,.18);
 }
 .nav-inner {
   display: flex;
@@ -1210,4 +1226,99 @@ body {
     transition-duration: .01ms !important;
   }
   .fade-up { opacity: 1; transform: none; }
+}
+
+/* ===== MOBIL PASTKI SHISHA NAV =====
+   Mini App'dagi nav bilan AYNAN bir xil material (--glass-* tokenlari).
+   Faqat telefonda ko'rinadi — desktopda sayt oddiy veb-sayt bo'lib qoladi,
+   chunki landing SEO va desktop foydalanuvchilar uchun ham xizmat qiladi. */
+.m-nav {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  z-index: 90;
+  display: flex;
+  align-items: stretch;
+  gap: 9px;
+  padding: 10px 14px;
+  padding-bottom: max(18px, env(safe-area-inset-bottom, 12px));
+  /* O'ram bosishni ushlab qolmasin — tugmalar orasidan skroll qilinsin */
+  pointer-events: none;
+}
+.m-nav > * { pointer-events: auto; }
+
+.m-nav-pill {
+  flex: 1;
+  display: flex;
+  align-items: stretch;
+  height: 58px;
+  padding: 0 6px;
+  border-radius: 29px;
+  background: var(--glass-tint);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-edge);
+  box-shadow: var(--glass-cast), var(--glass-spec);
+}
+
+.m-tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  margin: 6px 0;
+  padding: 0;
+  border: none;
+  border-radius: 22px;
+  background: transparent;
+  color: rgba(104,17,11,.68);
+  cursor: pointer;
+  transition: color var(--dur-fast), background var(--dur-base);
+}
+.m-tab.is-active {
+  background: linear-gradient(155deg, #a51f13 0%, #7a140d 48%, #480100 100%);
+  color: #ffe9db;
+  box-shadow: 0 6px 14px -4px rgba(81,1,0,.5), inset 0 1px 1px rgba(255,229,210,.28);
+}
+.m-tab-label { font-size: 10.5px; font-weight: 600; letter-spacing: .01em; }
+
+.m-icon-wrap { position: relative; display: inline-flex; align-items: center; justify-content: center; }
+.m-badge {
+  position: absolute;
+  top: -5px; right: -8px;
+  min-width: 17px; height: 17px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: #7a140d;
+  color: #ffe9db;
+  font-family: var(--font-mono);
+  font-size: 10px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  border: 1.5px solid #fff;
+}
+/* [hidden] atributi display:flex dan kuchliroq bo'lishi shart */
+.m-badge[hidden] { display: none; }
+
+.m-profile-btn {
+  flex: none;
+  width: 58px; height: 58px;
+  border-radius: 25px;
+  border: 1px solid var(--glass-edge);
+  background: var(--glass-tint);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  color: rgba(104,17,11,.68);
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: var(--glass-cast), var(--glass-spec);
+  cursor: pointer;
+}
+
+/* Sahifa oxiri nav ostida berkilib qolmasin */
+body { padding-bottom: calc(var(--dock-h) + env(safe-area-inset-bottom, 0px)); }
+
+/* Desktop: nav butunlay yashirin, sayt o'zgarmaydi */
+@media (min-width: 880px) {
+  .m-nav { display: none; }
+  body { padding-bottom: 0; }
 }

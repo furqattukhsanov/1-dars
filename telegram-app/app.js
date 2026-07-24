@@ -23,7 +23,7 @@ function pSize(k) { return PSIZES[k] || 'auto'; }
 
 // ============ MATNLAR (ikki tillilik) ============
 const STR = {
-  uz: { brand: "LolaMarket", miniApp: "mini ilova", greetSub: "Bugun qanday matolar kerak?",
+  uz: { brand: "LolaMarket", brandSub: "Ulgurji matolar bozori", miniApp: "mini ilova", greetSub: "Bugun qanday matolar kerak?",
     searchPh: "Mato yoki kategoriya qidiring", cats: "Kategoriyalar", all: "Barchasi", featured: "Tavsiya etiladi",
     verifiedMills: "28 tasdiqlangan fabrika · har bir buyurtmada escrow", catalog: "Katalog", filter: "Filtr", sort: "Saralash",
     day: "kun", addCart: "Savatga qo'shish", order: "Buyurtma berish", specs: "Tafsilotlar", width: "Eni", weight: "Zichlik",
@@ -40,13 +40,13 @@ const STR = {
     tabCart: "Savat", tabOrders: "Buyurtma", tabProfile: "Profil", added: "Savatga qo'shildi 🌷", liked: "Sevimlilarga qo'shildi",
     orderPlaced: "Buyurtma qabul qilindi", orderPlacedSub: "Ishlab chiqaruvchi tasdiqlaydi — tez orada xabar beramiz",
     viewOrders: "Buyurtmalarni ko'rish", continue: "Xaridni davom ettirish", escrowNote: "To'lov yetkazilgunga qadar escrow hisobida saqlanadi",
-    items: "tur", panelU: "dona", mU: "m", product: "Mahsulot", noProducts: "Mahsulot topilmadi", madeBy: "Ishlab chiqildi",
+    items: "tur", panelU: "dona", mU: "m", product: "Mahsulot", noProducts: "Mahsulot topilmadi",
     tgVerified: "Telegram orqali tasdiqlangan", tgNotConnected: "Telegram orqali ochilganda profil avtomatik aniqlanadi", tgUserFallback: "Telegram foydalanuvchisi",
     shareContact: "Telefon raqamni ulashish", contactPending: "Raqam so'ralmoqda, biroz kuting…", contactDone: "Telefon raqami yangilandi",
     orderErr: "Buyurtma yuborilmadi", netErr: "Internet aloqasi yo'q — qayta urinib ko'ring",
     perUnit: "1 dona rulon narxi", notifTitle: "Bildirishnomalar", notifEmpty: "Hozircha xabarlar yo'q",
     notifEmptySub: "Yangi bildirishnomalar shu yerda ko'rinadi", social: "Ijtimoiy tarmoqlar" },
-  ru: { brand: "LolaMarket", miniApp: "мини-приложение", greetSub: "Какие ткани нужны сегодня?",
+  ru: { brand: "LolaMarket", brandSub: "Оптовый рынок тканей", miniApp: "мини-приложение", greetSub: "Какие ткани нужны сегодня?",
     searchPh: "Поиск ткани или категории", cats: "Категории", all: "Все", featured: "Рекомендуем",
     verifiedMills: "28 проверенных фабрик · эскроу на каждый заказ", catalog: "Каталог", filter: "Фильтр", sort: "Сортировка",
     day: "дн.", addCart: "В корзину", order: "Оформить заказ", specs: "Характеристики", width: "Ширина", weight: "Плотность",
@@ -63,7 +63,7 @@ const STR = {
     tabCart: "Корзина", tabOrders: "Заказы", tabProfile: "Профиль", added: "Добавлено в корзину 🌷", liked: "Добавлено в избранное",
     orderPlaced: "Заказ принят", orderPlacedSub: "Производитель подтвердит — мы сообщим вам",
     viewOrders: "Посмотреть заказы", continue: "Продолжить покупки", escrowNote: "Платёж хранится на эскроу до доставки",
-    items: "поз.", panelU: "шт", mU: "м", product: "Товар", noProducts: "Товары не найдены", madeBy: "Разработано",
+    items: "поз.", panelU: "шт", mU: "м", product: "Товар", noProducts: "Товары не найдены",
     tgVerified: "Подтверждено через Telegram", tgNotConnected: "При открытии через Telegram профиль определится автоматически", tgUserFallback: "Пользователь Telegram",
     shareContact: "Поделиться номером телефона", contactPending: "Запрашивается номер, подождите…", contactDone: "Номер телефона обновлён",
     orderErr: "Заказ не отправлен", netErr: "Нет соединения — попробуйте ещё раз",
@@ -347,7 +347,8 @@ function updateHeader() {
   const subEl   = document.getElementById('header-sub');
   if (sc === 'home') {
     titleEl.textContent = T.brand;
-    subEl.style.display = 'none';
+    subEl.style.display = 'block';
+    subEl.textContent   = T.brandSub;
   } else if (sc === 'detail' && S.selectedId) {
     const p = byId(S.selectedId);
     titleEl.textContent = p ? p.name[S.lang] : T.product;
@@ -386,7 +387,7 @@ function updateNav() {
     }
 
     const activeColor = '#ffe9db';
-    const inactiveColor = 'rgba(122,20,13,.5)';
+    const inactiveColor = 'rgba(104,17,11,.68)'; // shisha ustida o'qilishi uchun quyuqroq
     document.getElementById('nav-home').style.color    = (sc==='home')    ? activeColor : inactiveColor;
     document.getElementById('nav-catalog').style.color = (sc==='catalog' || sc==='detail') ? activeColor : inactiveColor;
     document.getElementById('nav-cart').style.color    = (sc==='cart' || sc==='checkout')  ? activeColor : inactiveColor;
@@ -895,7 +896,7 @@ function renderProfile() {
       </div>
     </div>
     <button style="height:46px;border-radius:var(--radius-md);border:1px solid var(--danger-100);background:transparent;color:var(--danger-500);cursor:pointer;font-size:14px;font-weight:600;margin-top:2px">${T.logout}</button>
-    <div style="text-align:center;font-size:11px;color:var(--text-subtle);margin-top:6px">${T.madeBy} Furqat Tukhsanov</div>
+    <div style="text-align:center;font-size:11px;color:var(--text-subtle);margin-top:6px">© 2026 LolaMarket</div>
   </div>`;
 }
 
