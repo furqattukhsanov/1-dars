@@ -333,6 +333,11 @@
     <div id="faoliyat-list">
       <div class="faoliyat-item">
         <span class="faoliyat-sana">2026-07-25</span>
+        <span class="faoliyat-text">Operatsion insident tuzatildi: admin panel (lolamarket.uz/admin) production'da kira olmasdi. Uch qavatli sabab: (1) ADMIN_PANEL_TOKEN production .env'ga hali qo'shilmagan edi (endpoint doim 401 qaytargan), (2) nginx'da /api/admin/ uchun proxy bloki umuman yo'q edi (so'rov backend'ga yetmay statik HTML qaytarardi, "kalit noto'g'ri" deb ko'rinardi), (3) db/004_seller_applications.sql migratsiyasi production bazada ishga tushirilmagan edi, ishga tushgach jadval egaligi (OWNER) xato bo'lib permission denied chiqdi. Barchasi Hetzner serverda SSH orqali to'g'ridan-to'g'ri tuzatildi: .env token qo'yildi, nginx proxy bloki qo'shildi, migratsiya qo'lda qo'llandi, OWNER/GRANT tuzatildi. Brauzerda tasdiqlandi — dashboard to'liq ishlayapti. Repo'da diff yo'q (nginx/.env/DB git'ga kirmaydi CLAUDE.md qoidasiga ko'ra) — faqat hujjatlashtirish commit qilindi</span>
+        <span class="faoliyat-sprint">Sprint 7</span>
+      </div>
+      <div class="faoliyat-item">
+        <span class="faoliyat-sana">2026-07-25</span>
         <span class="faoliyat-text">Sprint 1 (Mini App MVP) "Ochiq qolgan ishlar" bo'limidan 3 band yopildi: to'liq ikki tillilik (uz/ru) kodda allaqachon to'liq ulanganligi tasdiqlandi (STR[S.lang], setLangUi(), 20+ joyda T=STR[S.lang] patterni), "liquid glass lens" tab-bar animatsiyasi spring-easing (cubic-bezier(.34,1.56,.64,1), --ease-spring) bilan to'g'ri qurilganligi tasdiqlandi, va 375px kenglikda barcha 8 ekran (Bosh, Katalog, Detail, Savat, Checkout, Buyurtmalarim, Qidiruv, Profil) qo'lda vizual tekshirildi. Testda topilgan yagona kosmetik nuqson — mahsulot detail sahifasida yetkazib beruvchi nomining kesilishi — shu zahoti tuzatildi (app.js?v=46). Ochiq qoldi: mahsulot ma'lumotlar modelini dizayn manba fayli bilan solishtirish (fayl diskda topilmadi)</span>
         <span class="faoliyat-sprint">Sprint 1</span>
       </div>
@@ -580,7 +585,7 @@
   barEl.style.width = foiz + "%";
   percentEl.textContent = foiz + "%";
   countEl.textContent = tugaganlar + " / " + sprintlar.length + " sprint";
-  updatedEl.textContent = "Yangilanish: 2026-07-25 (Sprint 1 — Telegram Mini App MVP to'liq yopildi)";
+  updatedEl.textContent = "Yangilanish: 2026-07-25 (Sprint 7 — admin panel production insidenti tuzatildi)";
 
   sprintlar.forEach(s => {
     const card = document.createElement("div");
