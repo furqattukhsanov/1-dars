@@ -2,3 +2,13 @@
 node_modules/
 .next/
 lolamarket-next/
+
+# Xom ish materiallari — saytga tushmaydi, faqat kompyuterda turadi
+Mahsulotlar/
+docs/prd.md.zip
+
+# Asboblar sozlamalari (agentlar .claude/agents/ da — ular repoda qoladi)
+.agents/
+.claude/launch.json
+.claude/skills/
+skills-lock.json

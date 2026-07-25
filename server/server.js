@@ -11,6 +11,9 @@ const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || 'https://lolamarket.uz';
 const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET;
 const MINI_APP_URL = process.env.MINI_APP_URL || 'https://lolamarket.uz/mini-app/';
 const CONTACTS_FILE = __dirname + '/contacts.json';
+// Oldindan to'lov ulushi. Mini App'dagi PREPAY_RATE bilan bir xil bo'lishi shart —
+// lekin haqiqiy manba shu yer: summa har doim server tomonda qayta hisoblanadi.
+const PREPAY_RATE = Number(process.env.PREPAY_RATE) || 0.5;
 
 // Moderatsiya ruxsati bor Telegram ID'lari (vergul bilan ajratilgan).
 // Berilmasa — ADMIN_CHAT_ID (admin shaxsiy chati = uning Telegram user id'si).
@@ -164,7 +167,7 @@ function sendOrderNotifyMessage(text) {
   return callTelegram('sendMessage', { chat_id: ADMIN_CHAT_ID, text, parse_mode: 'HTML' });
 }
 
-function sendBuyerConfirmMessage(chatId, itemsText, total) {
+function sendBuyerConfirmMessage(chatId, itemsText, total, prepay, rest) {
   const text = [
     '✅ <b>Buyurtmangiz qabul qilindi</b>',
     '',
@@ -172,9 +175,12 @@ function sendBuyerConfirmMessage(chatId, itemsText, total) {
     itemsText,
     '',
     `<b>Jami:</b> ${escapeHtml(total || '-')}`,
+    prepay ? `<b>To'landi:</b> ${escapeHtml(prepay)}` : '',
+    // Xaridor qolgan to'lov shartini oldindan bilishi kerak — BTS to'lovsiz bermaydi
+    rest ? `<b>Qolgani:</b> ${escapeHtml(rest)} — mato BTS'ga yetib kelgach to'lanadi` : '',
     '',
     "Ishlab chiqaruvchi tasdiqlaydi — tez orada xabar beramiz.",
-  ].join('\n');
+  ].filter(Boolean).join('\n');
   return callTelegram('sendMessage', { chat_id: chatId, text, parse_mode: 'HTML' });
 }
 
@@ -394,10 +400,14 @@ async function handleSubmitProduct(req, res, ip) {
     if (!v.ok) return fail(res, v.error, 400);
     const d = v.data;
     const id = 'p-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 6);
+    // Yuboruvchi tasdiqlangan sotuvchi bo'lsa, e'lon o'sha sotuvchiga biriktiriladi —
+    // shusiz mahsulot kabinetda ko'rinmaydi va buyurtma unga yetib bormaydi.
+    const me = await currentSeller(u);
+    const sellerId = me && me.role === 'seller' ? me.seller_id : null;
     await pool.query(
-      `INSERT INTO products (id, cat_key, price, unit, moq, name_uz, name_ru, comp_uz, status, submitted_by_tg)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'pending',$9)`,
-      [id, d.cat_key, d.price, d.unit || 'rulon', d.moq || 1, d.name_uz, d.name_ru, d.comp_uz, String(u.id)]
+      `INSERT INTO products (id, seller_id, cat_key, price, unit, moq, name_uz, name_ru, comp_uz, status, submitted_by_tg)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'pending',$10)`,
+      [id, sellerId, d.cat_key, d.price, d.unit || 'rulon', d.moq || 1, d.name_uz, d.name_ru, d.comp_uz, String(u.id)]
     );
     sendOrderNotifyMessage(
       `🆕 <b>Yangi e'lon moderatsiyaga</b>\n\n<b>${escapeHtml(d.name_uz)}</b>\nNarx: ${escapeHtml(money(d.price))}\nID: <code>${escapeHtml(id)}</code>\n\nRo'yxat: <code>/moderatsiya</code>`
@@ -517,14 +527,19 @@ async function handleCreateOrder(req, res, ip) {
       };
     });
     const total = items.reduce((s, it) => s + it.unitPrice * it.qty, 0);
+    // Oldindan to'lov SERVER tomonda hisoblanadi — klient yuborgan `prepay`/`rest`
+    // qiymatlariga ishonmaymiz (narx/MOQ kabi). Qolgan qism mato BTS'ga yetib
+    // kelgach to'lanadi; to'lanmaguncha BTS mahsulotni bermaydi.
+    const prepay = Math.round(total * PREPAY_RATE);
+    const rest = total - prepay;
 
     await client.query('BEGIN');
     const { rows: idRows } = await client.query(`SELECT '#LM-' || nextval('order_seq') AS id`);
     const orderId = idRows[0].id;
 
     await client.query(
-      `INSERT INTO orders (id, buyer_name, tg_user_id, tg_username, address, payment, comment, total_amount, status)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'pending')`,
+      `INSERT INTO orders (id, buyer_name, tg_user_id, tg_username, address, payment, comment, total_amount, prepay_amount, rest_amount, status)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'pending')`,
       [
         orderId,
         data.buyerName || null,
@@ -534,6 +549,8 @@ async function handleCreateOrder(req, res, ip) {
         data.payment || null,
         data.comment || null,
         total,
+        prepay,
+        rest,
       ]
     );
     for (const it of items) {
@@ -564,15 +581,18 @@ async function handleCreateOrder(req, res, ip) {
       itemsText,
       '',
       `<b>Jami:</b> ${escapeHtml(money(total))}`,
+      // Sotuvchi jo'natishdan oldin puli kelganini ko'rishi shart — modelning asosi shu
+      `💰 <b>Oldindan to'landi:</b> ${escapeHtml(money(prepay))}`,
+      `<b>Qolgani (BTS'da olishda):</b> ${escapeHtml(money(rest))}`,
       `\nTasdiqlash uchun: <code>/tasdiqla ${escapeHtml(orderId)}</code>`,
     ]
       .filter(Boolean)
       .join('\n');
 
     sendOrderNotifyMessage(adminText).catch((e) => console.error('admin notify:', e.message));
-    sendBuyerConfirmMessage(u.id, itemsText, money(total)).catch(() => {});
+    sendBuyerConfirmMessage(u.id, itemsText, money(total), money(prepay), money(rest)).catch(() => {});
 
-    sendJson(res, 200, { ok: true, orderId, status: 'pending', total });
+    sendJson(res, 200, { ok: true, orderId, status: 'pending', total, prepay, rest });
   } catch (e) {
     try { await client.query('ROLLBACK'); } catch (_) {}
     console.error('createOrder xatosi:', e.message);
@@ -585,6 +605,256 @@ async function handleCreateOrder(req, res, ip) {
   }
 }
 
+// ============ SOTUVCHI KABINETI ============
+// Rol SERVER tomonda aniqlanadi: imzolangan initData → users.role → sellers.
+// Frontend faqat ko'rinishni boshqaradi; har bir sotuvchi endpointi rolni
+// mustaqil qayta tekshiradi (tugmani yashirish himoya emas).
+async function currentSeller(tgUser) {
+  if (!tgUser || !tgUser.id) return null;
+  const { rows } = await pool.query(
+    `SELECT u.id AS user_id, u.role, s.id AS seller_id, s.business_name_uz, s.business_name_ru, s.is_verified
+       FROM users u
+       LEFT JOIN sellers s ON s.user_id = u.id
+      WHERE u.tg_user_id = $1`,
+    [String(tgUser.id)]
+  );
+  return rows[0] || null;
+}
+
+// Sotuvchi endpointlari uchun yagona qorovul: rol 'seller' VA sellers yozuvi bo'lishi shart
+async function requireSeller(req, res) {
+  const u = authUser(req);
+  if (!u || !u.id) { fail(res, 'unauthorized', 401); return null; }
+  const me = await currentSeller(u);
+  if (!me || me.role !== 'seller' || !me.seller_id) { fail(res, 'sotuvchi emas', 403); return null; }
+  return { tg: u, ...me };
+}
+
+// ============ /api/me — men kimman (rol + sotuvchi profili) ============
+async function handleMe(req, res, ip) {
+  if (rateLimited(`me:${ip}`, 60)) return fail(res, 'too many requests', 429);
+  const u = authUser(req);
+  if (!u || !u.id) return fail(res, 'unauthorized', 401);
+  try {
+    const me = await currentSeller(u);
+    ok(res, {
+      role: me ? me.role : 'buyer',
+      isAdmin: isAdmin(u),
+      seller: me && me.seller_id
+        ? { id: me.seller_id, name: { uz: me.business_name_uz, ru: me.business_name_ru || me.business_name_uz }, verified: me.is_verified }
+        : null,
+    });
+  } catch (e) {
+    console.error('me xatosi:', e.message);
+    fail(res, 'server error', 500);
+  }
+}
+
+// ============ /api/seller/products GET — sotuvchining o'z mahsulotlari ============
+// Ommaviy katalogdan farqi: bu yerda BARCHA holatlar ko'rinadi
+// (pending — moderatsiyada, rejected — rad etilgan, draft — yashirilgan).
+async function handleSellerProducts(req, res, ip) {
+  if (rateLimited(`sellerprod:${ip}`, 60)) return fail(res, 'too many requests', 429);
+  const me = await requireSeller(req, res);
+  if (!me) return;
+  try {
+    const { rows } = await pool.query(
+      `SELECT id, name_uz, name_ru, price, unit, moq, cat_key, img, status, reject_reason, created_at
+         FROM products WHERE seller_id = $1 ORDER BY created_at DESC LIMIT 200`,
+      [me.seller_id]
+    );
+    ok(res, rows.map((r) => ({
+      id: r.id,
+      name: { uz: r.name_uz, ru: r.name_ru || r.name_uz },
+      price: Number(r.price),
+      unit: r.unit,
+      moq: Number(r.moq),
+      catKey: r.cat_key,
+      img: r.img,
+      status: r.status,
+      rejectReason: r.reject_reason,
+    })));
+  } catch (e) {
+    console.error('sellerProducts xatosi:', e.message);
+    fail(res, 'server error', 500);
+  }
+}
+
+// ============ /api/seller/product PATCH — tahrirlash / yashirish ============
+// Yashirish = status 'draft' (katalogdan chiqadi). Qayta ko'rsatish moderatsiyaga
+// qaytadi ('pending') — narx yoki nom o'zgargan bo'lishi mumkin, qayta ko'riladi.
+async function handleSellerProductUpdate(req, res, ip) {
+  if (rateLimited(`sellerpatch:${ip}`, 30)) return fail(res, 'too many requests', 429);
+  const me = await requireSeller(req, res);
+  if (!me) return;
+  try {
+    const data = JSON.parse(await readBody(req, 20_000));
+    const id = String(data.id || '').trim();
+    if (!id) return fail(res, 'id kerak', 400);
+
+    // Mahsulot shu sotuvchiniki ekanini tasdiqlaymiz (boshqaniki tahrirlanmasin)
+    const { rows: own } = await pool.query(
+      `SELECT id, status FROM products WHERE id = $1 AND seller_id = $2`,
+      [id, me.seller_id]
+    );
+    if (!own.length) return fail(res, 'mahsulot topilmadi', 404);
+
+    if (data.action === 'hide') {
+      const { rows } = await pool.query(
+        `UPDATE products SET status = 'draft' WHERE id = $1 RETURNING id, status`, [id]);
+      return ok(res, rows[0]);
+    }
+    if (data.action === 'show') {
+      const { rows } = await pool.query(
+        `UPDATE products SET status = 'pending' WHERE id = $1 RETURNING id, status`, [id]);
+      return ok(res, rows[0]);
+    }
+
+    // Tahrirlash — o'zgargan e'lon qayta moderatsiyaga tushadi
+    const v = validate(data, {
+      name_uz: { type: 'string', required: true, min: 2, max: 200 },
+      name_ru: { type: 'string', required: false, max: 200 },
+      price:   { type: 'int', required: true, min: 1, max: 100000000000 },
+      moq:     { type: 'int', required: false, min: 1, max: 100000, default: 1 },
+      comp_uz: { type: 'string', required: false, max: 500 },
+    });
+    if (!v.ok) return fail(res, v.error, 400);
+    const d = v.data;
+    const { rows } = await pool.query(
+      `UPDATE products SET name_uz=$1, name_ru=$2, price=$3, moq=$4, comp_uz=$5,
+              status='pending', reject_reason=NULL
+         WHERE id=$6 RETURNING id, status`,
+      [d.name_uz, d.name_ru || null, d.price, d.moq, d.comp_uz || null, id]
+    );
+    ok(res, rows[0]);
+  } catch (e) {
+    console.error('sellerProductUpdate xatosi:', e.message);
+    fail(res, 'server error', 500);
+  }
+}
+
+// ============ /api/seller/orders GET — sotuvchiga kelgan buyurtmalar ============
+// Buyurtma bir nechta sotuvchining mahsulotini o'z ichiga olishi mumkin —
+// shuning uchun faqat SHU sotuvchining qatorlari va ular bo'yicha summa qaytadi.
+async function handleSellerOrders(req, res, ip) {
+  if (rateLimited(`sellerorders:${ip}`, 60)) return fail(res, 'too many requests', 429);
+  const me = await requireSeller(req, res);
+  if (!me) return;
+  try {
+    const { rows } = await pool.query(
+      `SELECT o.id, o.status, o.created_at, o.buyer_name, o.address, o.comment,
+              o.total_amount, o.prepay_amount, o.rest_amount, o.tracking_code,
+              oi.product_id, oi.name AS item_name, oi.qty, oi.unit_price
+         FROM orders o
+         JOIN order_items oi ON oi.order_id = o.id
+         JOIN products p ON p.id = oi.product_id
+        WHERE p.seller_id = $1
+        ORDER BY o.created_at DESC
+        LIMIT 300`,
+      [me.seller_id]
+    );
+    const byOrder = new Map();
+    for (const r of rows) {
+      if (!byOrder.has(r.id)) {
+        byOrder.set(r.id, {
+          id: r.id,
+          statusKey: r.status,
+          date: dateLabel(new Date(r.created_at)),
+          createdAt: r.created_at,
+          buyerName: r.buyer_name,
+          address: r.address,
+          comment: r.comment,
+          tracking: r.tracking_code,
+          // Butun buyurtma summasi (barcha sotuvchilar bo'yicha) — ma'lumot uchun
+          orderTotal: r.total_amount === null ? null : Number(r.total_amount),
+          prepay: r.prepay_amount === null ? null : Number(r.prepay_amount),
+          rest: r.rest_amount === null ? null : Number(r.rest_amount),
+          items: [],
+          sellerTotal: 0,   // faqat shu sotuvchining qatorlari yig'indisi
+        });
+      }
+      const o = byOrder.get(r.id);
+      const line = Number(r.unit_price) * Number(r.qty);
+      o.items.push({ id: r.product_id, name: r.item_name, qty: Number(r.qty), unitPrice: Number(r.unit_price) });
+      o.sellerTotal += line;
+    }
+    ok(res, [...byOrder.values()]);
+  } catch (e) {
+    console.error('sellerOrders xatosi:', e.message);
+    fail(res, 'server error', 500);
+  }
+}
+
+// ============ /api/seller/order POST — qabul / rad etish / jo'natish ============
+const SELLER_ORDER_ACTIONS = {
+  accept: {
+    from: ['pending'], to: 'confirmed',
+    buyerText: (id) => `✅ <b>Buyurtmangiz tasdiqlandi!</b>\n\nBuyurtma: <code>${escapeHtml(id)}</code>\nIshlab chiqaruvchi qabul qildi — tez orada jo'natiladi.`,
+  },
+  reject: {
+    from: ['pending'], to: 'cancelled',
+    buyerText: (id) => `❌ <b>Buyurtma bekor qilindi</b>\n\nBuyurtma: <code>${escapeHtml(id)}</code>\nIshlab chiqaruvchi qabul qila olmadi. Oldindan to'lov qaytariladi — savdo bo'limi bog'lanadi.`,
+  },
+  ship: {
+    from: ['confirmed'], to: 'shipped',
+    buyerText: (id, tracking) =>
+      `🚚 <b>Buyurtmangiz yo'lga chiqdi</b>\n\nBuyurtma: <code>${escapeHtml(id)}</code>` +
+      (tracking ? `\nBTS trek: <code>${escapeHtml(tracking)}</code>` : '') +
+      `\n\nBTS'ga yetib kelgach qolgan to'lovni amalga oshirasiz.`,
+  },
+};
+
+async function handleSellerOrderAction(req, res, ip) {
+  if (rateLimited(`sellerorderact:${ip}`, 30)) return fail(res, 'too many requests', 429);
+  const me = await requireSeller(req, res);
+  if (!me) return;
+  try {
+    const data = JSON.parse(await readBody(req, 20_000));
+    const orderId = String(data.orderId || '').trim();
+    const cmd = SELLER_ORDER_ACTIONS[data.action];
+    if (!orderId || !cmd) return fail(res, "noto'g'ri so'rov", 400);
+
+    const tracking = cmd.to === 'shipped' ? String(data.tracking || '').trim().slice(0, 60) : null;
+    if (cmd.to === 'shipped' && !tracking) return fail(res, 'BTS trek raqamini kiriting', 400);
+
+    // Buyurtma shu sotuvchining mahsulotini o'z ichiga oladimi? (begona buyurtma boshqarilmasin)
+    const { rows: mine } = await pool.query(
+      `SELECT 1 FROM order_items oi JOIN products p ON p.id = oi.product_id
+        WHERE oi.order_id = $1 AND p.seller_id = $2 LIMIT 1`,
+      [orderId, me.seller_id]
+    );
+    if (!mine.length) return fail(res, 'buyurtma topilmadi', 404);
+
+    const { rows } = await pool.query(
+      `UPDATE orders SET status = $1, tracking_code = COALESCE($2, tracking_code)
+        WHERE id = $3 AND status = ANY($4)
+        RETURNING id, status, tg_user_id`,
+      [cmd.to, tracking, orderId, cmd.from]
+    );
+    if (!rows.length) return fail(res, "buyurtma holati mos emas (allaqachon o'zgargan)", 409);
+
+    const row = rows[0];
+    if (row.tg_user_id) {
+      callTelegram('sendMessage', {
+        chat_id: row.tg_user_id,
+        text: cmd.buyerText(orderId, tracking),
+        parse_mode: 'HTML',
+      }).catch(() => {});
+    }
+    if (ADMIN_CHAT_ID) {
+      callTelegram('sendMessage', {
+        chat_id: ADMIN_CHAT_ID,
+        text: `ℹ️ ${escapeHtml(orderId)} — sotuvchi (${escapeHtml(me.business_name_uz || '?')}) holatni "${escapeHtml(row.status)}" ga o'zgartirdi.`,
+        parse_mode: 'HTML',
+      }).catch(() => {});
+    }
+    ok(res, { id: row.id, status: row.status });
+  } catch (e) {
+    console.error('sellerOrderAction xatosi:', e.message);
+    fail(res, 'server error', 500);
+  }
+}
+
 // ============ /api/orders GET — foydalanuvchi buyurtmalari (tarix) ============
 async function handleGetOrders(req, res, ip) {
   if (rateLimited(`getorders:${ip}`, 60)) return fail(res, 'too many requests', 429);
@@ -594,7 +864,8 @@ async function handleGetOrders(req, res, ip) {
   const uid = String(u.id);
   try {
     const { rows: orders } = await pool.query(
-      `SELECT id, status, created_at FROM orders WHERE tg_user_id = $1 ORDER BY created_at DESC LIMIT 50`,
+      `SELECT id, status, created_at, total_amount, prepay_amount, rest_amount
+         FROM orders WHERE tg_user_id = $1 ORDER BY created_at DESC LIMIT 50`,
       [uid]
     );
     if (!orders.length) return sendJson(res, 200, []);
@@ -612,6 +883,10 @@ async function handleGetOrders(req, res, ip) {
       id: o.id,
       date: dateLabel(new Date(o.created_at)),
       statusKey: o.status,
+      total: o.total_amount === null ? null : Number(o.total_amount),
+      // Eski buyurtmalarda (migratsiyagacha) bu ustunlar bo'sh — null qaytadi
+      prepay: o.prepay_amount === null ? null : Number(o.prepay_amount),
+      rest: o.rest_amount === null ? null : Number(o.rest_amount),
       items: itemsByOrder.get(o.id) || [],
     }));
     sendJson(res, 200, out); // orqaga moslik: yalang'och massiv
@@ -846,6 +1121,30 @@ const server = http.createServer((req, res) => {
     if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
     if (req.method === 'POST') return handleCreateOrder(req, res, ip);
     if (req.method === 'GET') return handleGetOrders(req, res, ip);
+    return fail(res, 'method not allowed', 405);
+  }
+
+  // ===== Sotuvchi kabineti =====
+  if (path === '/api/me') {
+    cors(res, 'GET, OPTIONS');
+    if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
+    if (req.method !== 'GET') return fail(res, 'method not allowed', 405);
+    return handleMe(req, res, ip);
+  }
+
+  if (path === '/api/seller/products') {
+    cors(res, 'GET, PATCH, OPTIONS');
+    if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
+    if (req.method === 'GET') return handleSellerProducts(req, res, ip);
+    if (req.method === 'PATCH') return handleSellerProductUpdate(req, res, ip);
+    return fail(res, 'method not allowed', 405);
+  }
+
+  if (path === '/api/seller/orders') {
+    cors(res, 'GET, POST, OPTIONS');
+    if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
+    if (req.method === 'GET') return handleSellerOrders(req, res, ip);
+    if (req.method === 'POST') return handleSellerOrderAction(req, res, ip);
     return fail(res, 'method not allowed', 405);
   }
 

@@ -52,6 +52,24 @@ const STR = {
     shareContact: "Telefon raqamni ulashish", contactPending: "Raqam so'ralmoqda, biroz kuting…", contactDone: "Telefon raqami yangilandi",
     orderErr: "Buyurtma yuborilmadi", netErr: "Internet aloqasi yo'q — qayta urinib ko'ring",
     authErr: "Buyurtma berish uchun ilovani Telegram orqali oching",
+    // — Sotuvchi kabineti —
+    sellerMode: "Sotuvchi rejimi", buyerMode: "Xaridor rejimiga qaytish", toSeller: "Sotuvchi rejimi",
+    sProducts: "Mahsulotlarim", sOrders: "Buyurtmalar", sActive: "Faol", sHidden: "Yashirin",
+    sNew: "Yangi", sProgress: "Jarayonda", sDone: "Yakunlangan",
+    stPublished: "Sotuvda", stPending: "Moderatsiyada", stRejected: "Rad etildi", stDraft: "Yashirilgan",
+    sNoProducts: "Hali mahsulot yo'q", sNoProductsSub: "Birinchi matongizni qo'shing",
+    sNoOrders: "Bu bo'limda buyurtma yo'q",
+    sAdd: "Mahsulot qo'shish", sEdit: "Tahrirlash", sHide: "Yashirish", sShow: "Qayta ko'rsatish",
+    sSave: "Saqlash", sName: "Nomi", sPrice: "Narxi (so'm)", sMoq: "Minimal buyurtma", sCat: "Kategoriya",
+    sComp: "Tarkibi", sSaved: "Saqlandi — moderatsiyaga yuborildi", sHidden2: "Mahsulot yashirildi",
+    sShown: "Qayta ko'rsatishga yuborildi",
+    sAccept: "Qabul qilish", sReject: "Rad etish", sShip: "Jo'natildi deb belgilash",
+    sTracking: "BTS trek raqami", sTrackingPh: "Masalan: BTS-77410293",
+    sPrepaid: "Oldindan to'lov tushdi", sRestWait: "Qolgani olishda",
+    sBuyer: "Xaridor", sPickup: "Yetkazish", sYourPart: "Sizning qismingiz",
+    sAccepted: "Buyurtma qabul qilindi", sRejected: "Buyurtma rad etildi", sShipped: "Jo'natildi deb belgilandi",
+    sConfirmReject: "Buyurtmani rad etasizmi? Xaridorga xabar boradi.",
+    sNeedTracking: "Trek raqamini kiriting",
     perUnit: "1 dona rulon narxi", notifTitle: "Bildirishnomalar", notifEmpty: "Hozircha xabarlar yo'q",
     notifEmptySub: "Yangi bildirishnomalar shu yerda ko'rinadi", social: "Ijtimoiy tarmoqlar" },
   ru: { brand: "LolaMarket", brandSub: "Оптовый рынок тканей", miniApp: "мини-приложение", greetSub: "Какие ткани нужны сегодня?",
@@ -83,6 +101,24 @@ const STR = {
     shareContact: "Поделиться номером телефона", contactPending: "Запрашивается номер, подождите…", contactDone: "Номер телефона обновлён",
     orderErr: "Заказ не отправлен", netErr: "Нет соединения — попробуйте ещё раз",
     authErr: "Чтобы оформить заказ, откройте приложение через Telegram",
+    // — Кабинет продавца —
+    sellerMode: "Режим продавца", buyerMode: "Вернуться в режим покупателя", toSeller: "Режим продавца",
+    sProducts: "Мои товары", sOrders: "Заказы", sActive: "Активные", sHidden: "Скрытые",
+    sNew: "Новые", sProgress: "В работе", sDone: "Завершённые",
+    stPublished: "В продаже", stPending: "На модерации", stRejected: "Отклонён", stDraft: "Скрыт",
+    sNoProducts: "Товаров пока нет", sNoProductsSub: "Добавьте первую ткань",
+    sNoOrders: "В этом разделе заказов нет",
+    sAdd: "Добавить товар", sEdit: "Изменить", sHide: "Скрыть", sShow: "Показать снова",
+    sSave: "Сохранить", sName: "Название", sPrice: "Цена (сум)", sMoq: "Мин. заказ", sCat: "Категория",
+    sComp: "Состав", sSaved: "Сохранено — отправлено на модерацию", sHidden2: "Товар скрыт",
+    sShown: "Отправлено на повторную проверку",
+    sAccept: "Принять", sReject: "Отклонить", sShip: "Отметить отправленным",
+    sTracking: "Трек-номер BTS", sTrackingPh: "Например: BTS-77410293",
+    sPrepaid: "Предоплата получена", sRestWait: "Остаток при получении",
+    sBuyer: "Покупатель", sPickup: "Доставка", sYourPart: "Ваша часть",
+    sAccepted: "Заказ принят", sRejected: "Заказ отклонён", sShipped: "Отмечено как отправленное",
+    sConfirmReject: "Отклонить заказ? Покупатель получит уведомление.",
+    sNeedTracking: "Введите трек-номер",
     perUnit: "Цена за 1 рулон", notifTitle: "Уведомления", notifEmpty: "Пока нет уведомлений",
     notifEmptySub: "Новые уведомления появятся здесь", social: "Соцсети" },
 };
@@ -234,6 +270,17 @@ const S = {
   btsSheet: false,
   btsQuery: '',
   ordersTab: 'active',
+  // — Sotuvchi kabineti —
+  role: 'buyer',        // serverdan (/api/me) keladi — mijoz o'zi belgilamaydi
+  seller: null,         // { id, name, verified }
+  sellerMode: false,    // kabinet ko'rinishi yoqilganmi
+  sProducts: [],
+  sOrders: [],
+  sProdTab: 'active',   // active | hidden
+  sOrdTab: 'new',       // new | progress | done
+  sEditId: null,        // tahrirlanayotgan mahsulot (null = yangi qo'shish)
+  sTracking: {},        // buyurtma id → kiritilayotgan trek raqami
+  sLoading: false,
   liked: { 'ik-9001': true },
   lang: 'uz',
   notif: true,
@@ -394,9 +441,11 @@ function updateHeader() {
     search:T.search, cart:T.cart, checkout:T.checkoutT,
     orders:T.orders, profile:T.profile, success:T.checkoutT,
     notifications:T.notifTitle,
+    's-products':T.sProducts, 's-orders':T.sOrders, 's-profile':T.profile,
+    's-form':S.sEditId ? T.sEdit : T.sAdd,
   };
 
-  document.getElementById('btn-back').classList.toggle('hidden', !['detail','checkout'].includes(sc));
+  document.getElementById('btn-back').classList.toggle('hidden', !['detail','checkout','s-form'].includes(sc));
   document.getElementById('header-brand').style.display = sc === 'home' ? 'flex' : 'none';
   document.getElementById('btn-header-search').classList.toggle('hidden', !['catalog','orders','cart'].includes(sc));
 
@@ -422,11 +471,32 @@ function updateNav() {
   const sc = S.screen;
   const T = STR[S.lang];
   const TAB_SCREENS = ['home','catalog','search','cart','orders','profile','notifications'];
-  const showTabBar = TAB_SCREENS.includes(sc);
-  const showMainBtn = sc === 'detail' || sc === 'checkout';
+  const S_TABS = ['s-products','s-orders','s-profile'];
+  const inSeller = S.sellerMode;
+  const showTabBar = !inSeller && TAB_SCREENS.includes(sc);
+  const showSellerBar = inSeller && S_TABS.includes(sc);
+  // 's-form' ekranida pastda "Saqlash" tugmasi turadi (detail/checkout kabi)
+  const showMainBtn = sc === 'detail' || sc === 'checkout' || sc === 's-form';
 
   document.getElementById('app-nav').classList.toggle('hidden', !showTabBar);
+  document.getElementById('seller-nav').classList.toggle('hidden', !showSellerBar);
   document.getElementById('main-btn-bar').classList.toggle('hidden', !showMainBtn);
+
+  if (showSellerBar) {
+    const sIdx = { 's-products':0, 's-orders':1, 's-profile':2 }[sc] ?? 0;
+    const lens = document.getElementById('snav-lens');
+    lens.classList.remove('hidden');
+    lens.style.left = `calc(7px + ${sIdx} * ((100% - 14px) / 3))`;
+    const on = '#ffe9db', off = 'rgba(104,17,11,.68)';
+    document.getElementById('snav-products').style.color = sc === 's-products' ? on : off;
+    document.getElementById('snav-orders').style.color   = sc === 's-orders'   ? on : off;
+    document.getElementById('snav-profile').style.color  = sc === 's-profile'  ? on : off;
+    // Yangi buyurtmalar soni — sotuvchi darhol ko'radi
+    const nNew = S.sOrders.filter(o => o.statusKey === 'pending').length;
+    const b = document.getElementById('snav-badge');
+    b.classList.toggle('hidden', nNew === 0);
+    if (nNew) b.textContent = nNew;
+  }
 
   document.querySelector('#nav-home .nav-label').textContent    = T.tabHome;
   document.querySelector('#nav-catalog .nav-label').textContent = T.tabCatalog;
@@ -471,6 +541,10 @@ function updateNav() {
       document.getElementById('main-btn-label').textContent = T.payNowBtn;
       document.getElementById('main-btn-sub').textContent   = ready ? money(prepayAmount(cartTotal())) : T.needPoint;
       if (btn) btn.classList.toggle('disabled', !ready);
+    } else if (sc === 's-form') {
+      document.getElementById('main-btn-label').textContent = T.sSave;
+      document.getElementById('main-btn-sub').textContent   = '';
+      if (btn) btn.classList.remove('disabled');
     }
   }
 }
@@ -1041,6 +1115,18 @@ function renderProfile() {
       </div>
     </div>
 
+    ${S.role === 'seller' ? `
+    <button onclick="enterSellerMode()" style="display:flex;align-items:center;gap:12px;width:100%;text-align:left;cursor:pointer;padding:15px;border-radius:var(--radius-md);border:1px solid rgba(17,157,171,.25);background:var(--teal-50)">
+      <span style="flex:none;width:36px;height:36px;border-radius:11px;background:#fff;display:flex;align-items:center;justify-content:center;color:var(--teal-700)">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.6l8.5 4.2v10.4L12 21.4 3.5 17.2V6.8L12 2.6zm0 2.3L6.2 7.8 12 10.7l5.8-2.9L12 4.9z"/></svg>
+      </span>
+      <span style="flex:1">
+        <span style="display:block;font-size:14.5px;font-weight:700;color:var(--teal-700)">${T.toSeller}</span>
+        <span style="display:block;font-size:12px;color:var(--teal-700);opacity:.75;margin-top:1px">${S.seller?.name?.[S.lang] || ''}</span>
+      </span>
+      <span style="color:var(--teal-700);font-size:17px">›</span>
+    </button>` : ''}
+
     <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-subtle);margin-top:4px">${T.settings}</div>
     <div style="display:flex;flex-direction:column;border:1px solid rgba(255,255,255,.55);border-radius:var(--radius-md);overflow:hidden;background:rgba(255,255,255,.6);backdrop-filter:blur(16px) saturate(160%);-webkit-backdrop-filter:blur(16px) saturate(160%);box-shadow:0 5px 16px -12px rgba(81,1,0,.12)">
       <div style="display:flex;align-items:center;gap:12px;padding:13px 14px;border-bottom:1px solid var(--border-hair)">
@@ -1258,6 +1344,8 @@ function mainBtnAction() {
   } else if (S.screen === 'checkout') {
     if (!btsById(S.btsPoint)) { showToast(STR[S.lang].needPoint); openBtsSheet(); return; }
     submitOrder();
+  } else if (S.screen === 's-form') {
+    saveProduct();
   }
 }
 
@@ -1340,6 +1428,9 @@ function render() {
     search: renderSearch, cart: renderCart, checkout: renderCheckout,
     success: renderSuccess, orders: renderOrders, profile: renderProfile,
     notifications: renderNotifications,
+    // Sotuvchi kabineti
+    's-products': renderSellerProducts, 's-orders': renderSellerOrders,
+    's-profile': renderSellerProfile, 's-form': renderProductForm,
   };
   const fn = map[S.screen];
   if (fn) document.getElementById('screen-wrap').innerHTML = fn();
@@ -1437,6 +1528,345 @@ async function loadOrdersFromServer() {
   } catch (e) {}
 }
 
+// ============ SOTUVCHI KABINETI — EKRANLAR ============
+const P_STATUS = {
+  published: { key:'stPublished', bg:'var(--success-100)', fg:'#0d6b45', dot:'var(--success-500)' },
+  pending:   { key:'stPending',   bg:'var(--saffron-50)',  fg:'var(--saffron-700)', dot:'var(--saffron-500)' },
+  rejected:  { key:'stRejected',  bg:'var(--danger-100)',  fg:'#a3181c', dot:'var(--danger-500)' },
+  draft:     { key:'stDraft',     bg:'var(--ink-100)',     fg:'var(--ink-500)', dot:'var(--ink-300)' },
+};
+
+function segTabs(items, current, fn) {
+  return `<div style="display:flex;gap:4px;background:rgba(255,255,255,.55);border-radius:999px;padding:4px;margin-bottom:13px;box-shadow:var(--shadow-sm)">
+    ${items.map(t => {
+      const on = current === t.k;
+      return `<button onclick="${fn}('${t.k}')" style="flex:1;cursor:pointer;border:none;text-align:center;font-family:var(--font-sans);font-size:12.5px;font-weight:700;padding:8px 4px;border-radius:999px;background:${on ? 'linear-gradient(135deg,#8f1a10,#510100)' : 'transparent'};color:${on ? '#ffe9db' : 'var(--ink-500)'}">${t.label}</button>`;
+    }).join('')}
+  </div>`;
+}
+
+function emptyState(title, sub) {
+  return `<div style="padding:44px 20px;text-align:center">
+    <div style="font-size:15px;font-weight:700;color:var(--text-strong)">${title}</div>
+    ${sub ? `<div style="font-size:13px;color:var(--text-muted);margin-top:5px">${sub}</div>` : ''}
+  </div>`;
+}
+
+// ---- Mahsulotlarim ----
+function renderSellerProducts() {
+  const T = STR[S.lang];
+  const active = S.sProducts.filter(p => p.status !== 'draft');
+  const hidden = S.sProducts.filter(p => p.status === 'draft');
+  const list = S.sProdTab === 'hidden' ? hidden : active;
+
+  return `
+  <div style="padding:14px 16px 28px">
+    ${segTabs([
+      { k:'active', label:`${T.sActive} ${active.length}` },
+      { k:'hidden', label:`${T.sHidden} ${hidden.length}` },
+    ], S.sProdTab, 'setSProdTab')}
+
+    ${S.sLoading ? emptyState('…') : (list.length ? list.map(p => {
+      const st = P_STATUS[p.status] || P_STATUS.draft;
+      return `<div style="${CARD_BOX};margin-bottom:9px">
+        <div style="display:flex;gap:11px;align-items:center">
+          <div style="flex:none;width:46px;height:46px;border-radius:11px;background:linear-gradient(135deg,#e8c9b8,#c98f74);overflow:hidden">
+            ${p.img ? `<img src="${p.img}" alt="" style="width:100%;height:100%;object-fit:cover">` : ''}
+          </div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:14px;font-weight:700;color:var(--text-strong);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.name[S.lang]}</div>
+            <div style="font-family:var(--font-mono);font-size:12px;color:var(--text-muted);margin-top:2px">${money(p.price)} · ${T.minOrder}: ${num(p.moq)}</div>
+            <div style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:${st.fg};margin-top:4px">
+              <span style="width:6px;height:6px;border-radius:50%;background:${st.dot}"></span>${T[st.key]}
+            </div>
+          </div>
+        </div>
+        ${p.status === 'rejected' && p.rejectReason ? `<div style="margin-top:9px;padding:9px 11px;border-radius:var(--radius-sm);background:var(--danger-100);font-size:12px;color:#a3181c;line-height:1.45">${p.rejectReason}</div>` : ''}
+        <div style="display:flex;gap:8px;margin-top:11px">
+          <button onclick="openProductForm('${p.id}')" style="flex:1;cursor:pointer;padding:9px;border-radius:var(--radius-sm);border:1px solid var(--border-hair);background:rgba(255,255,255,.7);font-family:var(--font-sans);font-size:13px;font-weight:600;color:var(--text-strong)">${T.sEdit}</button>
+          <button onclick="toggleProduct('${p.id}','${p.status === 'draft' ? 'show' : 'hide'}')" style="flex:1;cursor:pointer;padding:9px;border-radius:var(--radius-sm);border:1px solid var(--border-hair);background:rgba(255,255,255,.7);font-family:var(--font-sans);font-size:13px;font-weight:600;color:var(--text-muted)">${p.status === 'draft' ? T.sShow : T.sHide}</button>
+        </div>
+      </div>`;
+    }).join('') : emptyState(T.sNoProducts, S.sProdTab === 'active' ? T.sNoProductsSub : ''))}
+  </div>
+
+  <button onclick="openProductForm(null)" aria-label="${T.sAdd}" style="position:absolute;right:16px;bottom:calc(var(--dock-h) + 12px);z-index:22;width:52px;height:52px;border-radius:50%;border:none;cursor:pointer;background:linear-gradient(135deg,#8f1a10,#510100);color:#ffe9db;font-size:27px;line-height:1;display:flex;align-items:center;justify-content:center;box-shadow:0 12px 28px -8px rgba(81,1,0,.55)">+</button>`;
+}
+
+// ---- Mahsulot formasi (qo'shish / tahrirlash) ----
+const P_CATS = [
+  { k:'silk',   uz:'Ipak',   ru:'Шёлк' },
+  { k:'ikat',   uz:'Ikat',   ru:'Икат' },
+  { k:'suzani', uz:"So'zana", ru:'Сюзане' },
+  { k:'cotton', uz:'Paxta',  ru:'Хлопок' },
+  { k:'wool',   uz:'Jun',    ru:'Шерсть' },
+  { k:'linen',  uz:'Zig\'ir', ru:'Лён' },
+];
+
+function renderProductForm() {
+  const T = STR[S.lang];
+  const p = S.sEditId ? S.sProducts.find(x => x.id === S.sEditId) : null;
+  const inp = 'width:100%;padding:12px 14px;border:1px solid var(--border-hair);border-radius:var(--radius-md);background:var(--glass-fill-strong);font-family:var(--font-sans);font-size:16px;color:var(--text-strong);outline:none';
+  const lbl = 'font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#7a140d;margin-bottom:7px;display:block';
+
+  return `
+  <div style="padding:16px 16px 28px;display:flex;flex-direction:column;gap:15px">
+    <div><label style="${lbl}">${T.sName}</label>
+      <input id="pf-name" value="${p ? String(p.name[S.lang]).replace(/"/g,'&quot;') : ''}" style="${inp}"></div>
+
+    <div><label style="${lbl}">${T.sPrice}</label>
+      <input id="pf-price" type="number" inputmode="numeric" value="${p ? p.price : ''}" style="${inp};font-family:var(--font-mono)"></div>
+
+    <div><label style="${lbl}">${T.sMoq}</label>
+      <input id="pf-moq" type="number" inputmode="numeric" value="${p ? p.moq : 1}" style="${inp};font-family:var(--font-mono)"></div>
+
+    ${p ? '' : `<div><label style="${lbl}">${T.sCat}</label>
+      <div style="display:flex;flex-wrap:wrap;gap:7px">
+        ${P_CATS.map((c,i) => `<button onclick="pickPfCat('${c.k}')" id="pf-cat-${c.k}" data-cat="${c.k}" style="cursor:pointer;font-size:12.5px;font-weight:600;padding:8px 14px;border-radius:999px;background:${i===0?'var(--ink-900)':'rgba(255,255,255,.66)'};color:${i===0?'#fff':'var(--ink-700)'};border:1px solid ${i===0?'var(--ink-900)':'rgba(255,255,255,.8)'}">${c[S.lang]}</button>`).join('')}
+      </div></div>`}
+
+    <div><label style="${lbl}">${T.sComp}</label>
+      <textarea id="pf-comp" rows="2" placeholder="100% tut ipagi" style="${inp};resize:none"></textarea></div>
+
+    <div style="font-size:12px;color:var(--text-muted);line-height:1.5;padding:11px 12px;border-radius:var(--radius-md);background:var(--saffron-50);border:1px solid rgba(217,142,12,.22)">
+      ${S.lang === 'ru' ? 'После сохранения объявление отправится на модерацию и появится в каталоге после проверки.' : "Saqlangach e'lon moderatsiyaga yuboriladi va tekshiruvdan keyin katalogda ko'rinadi."}
+    </div>
+  </div>`;
+}
+
+function pickPfCat(k) {
+  S.pfCat = k;
+  P_CATS.forEach(c => {
+    const el = document.getElementById('pf-cat-' + c.k);
+    if (!el) return;
+    const on = c.k === k;
+    el.style.background = on ? 'var(--ink-900)' : 'rgba(255,255,255,.66)';
+    el.style.color = on ? '#fff' : 'var(--ink-700)';
+    el.style.borderColor = on ? 'var(--ink-900)' : 'rgba(255,255,255,.8)';
+  });
+}
+
+function openProductForm(id) {
+  S.sEditId = id;
+  S.pfCat = 'silk';
+  navigate('s-form');
+}
+
+async function saveProduct() {
+  const T = STR[S.lang];
+  const name = document.getElementById('pf-name')?.value.trim() || '';
+  const price = parseInt(document.getElementById('pf-price')?.value, 10);
+  const moq = parseInt(document.getElementById('pf-moq')?.value, 10) || 1;
+  const comp = document.getElementById('pf-comp')?.value.trim() || '';
+  if (name.length < 2) return showToast(T.sName);
+  if (!Number.isInteger(price) || price < 1) return showToast(T.sPrice);
+
+  try {
+    if (S.sEditId) {
+      await sellerFetch('/api/seller/products', {
+        method: 'PATCH',
+        body: JSON.stringify({ id: S.sEditId, name_uz: name, price, moq, comp_uz: comp }),
+      });
+    } else {
+      await sellerFetch('/api/products', {
+        method: 'POST',
+        body: JSON.stringify({ name_uz: name, price, moq, comp_uz: comp, cat_key: S.pfCat || 'silk' }),
+      });
+    }
+    showToast(T.sSaved);
+    await loadSellerData();
+    S.screen = 's-products';
+    S.history = [];
+    render();
+  } catch (e) { showToast(e.message); }
+}
+
+async function toggleProduct(id, action) {
+  try {
+    await sellerFetch('/api/seller/products', { method: 'PATCH', body: JSON.stringify({ id, action }) });
+    showToast(action === 'hide' ? STR[S.lang].sHidden2 : STR[S.lang].sShown);
+    await loadSellerData();
+    render();
+  } catch (e) { showToast(e.message); }
+}
+
+// ---- Kelgan buyurtmalar ----
+const ORD_GROUP = {
+  new:      ['pending'],
+  progress: ['confirmed', 'shipped'],
+  done:     ['delivered', 'cancelled'],
+};
+
+function renderSellerOrders() {
+  const T = STR[S.lang];
+  const counts = {
+    new: S.sOrders.filter(o => ORD_GROUP.new.includes(o.statusKey)).length,
+    progress: S.sOrders.filter(o => ORD_GROUP.progress.includes(o.statusKey)).length,
+    done: S.sOrders.filter(o => ORD_GROUP.done.includes(o.statusKey)).length,
+  };
+  const list = S.sOrders.filter(o => ORD_GROUP[S.sOrdTab].includes(o.statusKey));
+
+  return `
+  <div style="padding:14px 16px 28px">
+    ${segTabs([
+      { k:'new', label:`${T.sNew}${counts.new ? ' ' + counts.new : ''}` },
+      { k:'progress', label:T.sProgress },
+      { k:'done', label:T.sDone },
+    ], S.sOrdTab, 'setSOrdTab')}
+
+    ${S.sLoading ? emptyState('…') : (list.length ? list.map(o => {
+      const isNew = o.statusKey === 'pending';
+      const canShip = o.statusKey === 'confirmed';
+      return `<div style="${CARD_BOX};margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:9px">
+          <div>
+            <div style="font-family:var(--font-mono);font-size:12.5px;font-weight:600;color:var(--text-muted)">${o.id}</div>
+            <div style="font-size:11px;color:var(--text-subtle);margin-top:2px">${o.date[S.lang] || o.date}</div>
+          </div>
+          ${o.prepay ? `<span style="flex:none;font-size:11px;font-weight:700;padding:4px 9px;border-radius:999px;background:var(--success-100);color:#0d6b45">${T.sPrepaid}</span>` : ''}
+        </div>
+
+        ${o.items.map(it => `<div style="display:flex;justify-content:space-between;gap:10px;font-size:13px;margin-bottom:6px">
+          <span style="color:var(--text-body)">${it.name} · ${num(it.qty)}</span>
+          <span style="font-family:var(--font-mono);font-weight:600;color:var(--text-strong);flex:none">${money(it.unitPrice * it.qty)}</span>
+        </div>`).join('')}
+
+        <div style="margin-top:9px;padding-top:9px;border-top:1px solid var(--border-hair);font-size:12px;color:var(--text-muted);line-height:1.6">
+          <div>${T.sYourPart}: <b style="color:var(--text-strong);font-family:var(--font-mono)">${money(o.sellerTotal)}</b></div>
+          ${o.prepay ? `<div>${T.sPrepaid}: <b style="color:var(--text-body);font-family:var(--font-mono)">${money(o.prepay)}</b> · ${T.sRestWait}: <span style="font-family:var(--font-mono)">${money(o.rest || 0)}</span></div>` : ''}
+          <div>${T.sBuyer}: <b style="color:var(--text-body)">${o.buyerName || '—'}</b></div>
+          <div>${T.sPickup}: <b style="color:var(--text-body)">${o.address || '—'}</b></div>
+          ${o.tracking ? `<div>${T.sTracking}: <b style="font-family:var(--font-mono);color:var(--text-body)">${o.tracking}</b></div>` : ''}
+          ${o.comment ? `<div style="margin-top:4px;font-style:italic">"${o.comment}"</div>` : ''}
+        </div>
+
+        ${isNew ? `<div style="display:flex;gap:8px;margin-top:11px">
+          <button onclick="sellerOrder('${o.id}','reject')" style="flex:1;cursor:pointer;padding:11px;border-radius:var(--radius-sm);border:1.5px solid var(--danger-500);background:transparent;font-family:var(--font-sans);font-size:13.5px;font-weight:700;color:var(--danger-500)">${T.sReject}</button>
+          <button onclick="sellerOrder('${o.id}','accept')" style="flex:1;cursor:pointer;padding:11px;border-radius:var(--radius-sm);border:none;background:linear-gradient(135deg,#8f1a10,#510100);font-family:var(--font-sans);font-size:13.5px;font-weight:700;color:#ffe9db">${T.sAccept}</button>
+        </div>` : ''}
+
+        ${canShip ? `<div style="margin-top:11px">
+          <input id="trk-${o.id}" value="${S.sTracking[o.id] || ''}" oninput="S.sTracking['${o.id}']=this.value" placeholder="${T.sTrackingPh}" style="width:100%;padding:11px 13px;border:1px solid var(--border-hair);border-radius:var(--radius-sm);background:var(--glass-fill-strong);font-family:var(--font-mono);font-size:16px;color:var(--text-strong);outline:none">
+          <button onclick="sellerOrder('${o.id}','ship')" style="width:100%;margin-top:8px;cursor:pointer;padding:11px;border-radius:var(--radius-sm);border:none;background:linear-gradient(135deg,#8f1a10,#510100);font-family:var(--font-sans);font-size:13.5px;font-weight:700;color:#ffe9db">${T.sShip}</button>
+        </div>` : ''}
+      </div>`;
+    }).join('') : emptyState(T.sNoOrders))}
+  </div>`;
+}
+
+// Telegram ichida native dialog ishlatiladi (brauzerdagi confirm() u yerda ishonchsiz)
+function askConfirm(text) {
+  const tg = window.Telegram?.WebApp;
+  if (tg?.showConfirm) return new Promise((res) => tg.showConfirm(text, (okd) => res(!!okd)));
+  return Promise.resolve(window.confirm(text));
+}
+
+async function sellerOrder(orderId, action) {
+  const T = STR[S.lang];
+  if (action === 'reject' && !(await askConfirm(T.sConfirmReject))) return;
+  const tracking = action === 'ship' ? (S.sTracking[orderId] || '').trim() : undefined;
+  if (action === 'ship' && !tracking) return showToast(T.sNeedTracking);
+  try {
+    await sellerFetch('/api/seller/orders', {
+      method: 'POST',
+      body: JSON.stringify({ orderId, action, tracking }),
+    });
+    showToast(action === 'accept' ? T.sAccepted : action === 'reject' ? T.sRejected : T.sShipped);
+    if (action === 'ship') delete S.sTracking[orderId];
+    await loadSellerData();
+    render();
+  } catch (e) { showToast(e.message); }
+}
+
+// ---- Sotuvchi profili ----
+function renderSellerProfile() {
+  const T = STR[S.lang];
+  const s = S.seller;
+  return `
+  <div style="padding:16px 16px 28px;display:flex;flex-direction:column;gap:14px">
+    <div style="${CARD_BOX};display:flex;gap:13px;align-items:center">
+      <span style="flex:none;width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#8f1a10,#510100);color:#ffe9db;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:19px;font-weight:800">${(s?.name?.[S.lang] || '?').slice(0,1)}</span>
+      <div>
+        <div style="font-family:var(--font-display);font-size:17px;font-weight:800;color:var(--text-strong);letter-spacing:-.02em">${s?.name?.[S.lang] || '—'}</div>
+        <div style="display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:999px;margin-top:4px;background:${s?.verified ? 'var(--teal-50)' : 'var(--saffron-50)'};color:${s?.verified ? 'var(--teal-700)' : 'var(--saffron-700)'}">
+          ${s?.verified ? T.verified : T.stPending}
+        </div>
+      </div>
+    </div>
+
+    <div style="${CARD_BOX};display:flex;gap:10px">
+      <div style="flex:1;text-align:center">
+        <div style="font-family:var(--font-mono);font-size:20px;font-weight:600;color:var(--text-strong)">${S.sProducts.length}</div>
+        <div style="font-size:11.5px;color:var(--text-muted);margin-top:2px">${T.sProducts}</div>
+      </div>
+      <div style="width:1px;background:var(--border-hair)"></div>
+      <div style="flex:1;text-align:center">
+        <div style="font-family:var(--font-mono);font-size:20px;font-weight:600;color:var(--text-strong)">${S.sOrders.length}</div>
+        <div style="font-size:11.5px;color:var(--text-muted);margin-top:2px">${T.sOrders}</div>
+      </div>
+    </div>
+
+    <button onclick="exitSellerMode()" style="width:100%;cursor:pointer;padding:14px;border-radius:var(--radius-md);border:1px solid var(--glass-border);background:var(--glass-fill-strong);font-family:var(--font-sans);font-size:15px;font-weight:600;color:var(--text-strong)">${T.buyerMode}</button>
+  </div>`;
+}
+
+// ============ SOTUVCHI KABINETI — MA'LUMOT ============
+// Rol SERVERDAN keladi. Frontend uni faqat ko'rinish uchun ishlatadi —
+// har bir sotuvchi endpointi rolni serverda mustaqil qayta tekshiradi.
+function sellerFetch(path, opts) {
+  return fetch(path, {
+    ...opts,
+    headers: { 'Content-Type': 'application/json', 'X-Telegram-Init-Data': tgInitData(), ...(opts?.headers || {}) },
+  }).then(async (r) => {
+    const d = await r.json().catch(() => null);
+    if (!d || d.ok !== true) throw new Error((d && d.error) || STR[S.lang].orderErr);
+    return d.data;
+  });
+}
+
+async function loadMe() {
+  if (!tgInitData()) return;
+  try {
+    const d = await sellerFetch('/api/me');
+    S.role = d.role || 'buyer';
+    S.seller = d.seller || null;
+  } catch (e) { /* rol aniqlanmadi — xaridor bo'lib qolaveradi */ }
+}
+
+async function loadSellerData() {
+  if (S.role !== 'seller') return;
+  S.sLoading = true;
+  try {
+    const [prods, orders] = await Promise.all([
+      sellerFetch('/api/seller/products'),
+      sellerFetch('/api/seller/orders'),
+    ]);
+    S.sProducts = Array.isArray(prods) ? prods : [];
+    S.sOrders = Array.isArray(orders) ? orders : [];
+  } catch (e) {
+    showToast(e.message);
+  } finally {
+    S.sLoading = false;
+  }
+}
+
+function enterSellerMode() {
+  S.sellerMode = true;
+  S.screen = 's-products';
+  S.history = [];
+  render();
+  loadSellerData().then(render);
+}
+function exitSellerMode() {
+  S.sellerMode = false;
+  S.screen = 'home';
+  S.history = [];
+  render();
+}
+function sTab(k) { S.screen = k; S.history = []; render(); }
+function setSProdTab(k) { S.sProdTab = k; render(); }
+function setSOrdTab(k) { S.sOrdTab = k; render(); }
+
 // ============ ISHGA TUSHIRISH ============
 const inTelegram = !!(window.Telegram?.WebApp?.initData);
 if (window.Telegram?.WebApp) {
@@ -1461,5 +1891,7 @@ render();
   await loadProductsFromServer();
   await loginTelegram();          // Telegram orqali kirish (imzo serverda tekshiriladi)
   await loadOrdersFromServer();
+  await loadMe();                 // rol: xaridormi yoki sotuvchi (serverda aniqlanadi)
   render();
+  if (S.role === 'seller') loadSellerData().then(render);
 })();

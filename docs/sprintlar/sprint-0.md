@@ -13,14 +13,14 @@ LolaMarket ning barcha asosiy ekranlarini vizual tarzda loyihalash. Kodga o'tish
 ## Bajariladigan vazifalar
 
 - [x] Brend uslubi aniqlash — amalda bajarildi: dizayn tizimining yagona manbasi `telegram-app/styles.css` (2026-07-22 qarori); ranglar dastlabki burgundy/oltin rejadan anor gradientlari + teal + za'faron + ink shkalasiga rivojlandi, shriftlar Bricolage Grotesque + Hanken Grotesk + Geist Mono, glassmorphism material tili
-- [ ] Asosiy ekranlar wireframe/mockup (4/6 tayyor — wireframe o'rniga to'g'ridan-to'g'ri kodda qurildi):
+- [ ] Asosiy ekranlar wireframe/mockup (5/6 tayyor — wireframe o'rniga to'g'ridan-to'g'ri kodda qurildi):
   - [x] Bosh sahifa — landing va Mini App'da kodda tayyor
   - [x] Katalog sahifasi — kodda tayyor (7 kategoriya chipi, qidiruv, mahsulot kartochkalari)
   - [x] Mahsulot detail sahifasi — Mini App'da kodda tayyor
   - [x] Buyurtma berish sahifasi (checkout) — 2026-07-25 da kodda qurildi: 4 raqamlangan bo'lim, BTS nuqtasi tanlash sheet, 50% oldindan to'lov hisob-kitobi, Payme/Click
-  - [ ] Ishlab chiqaruvchi kabineti (mahsulotlar ro'yxati, buyurtmalar)
+  - [x] Ishlab chiqaruvchi kabineti (mahsulotlar ro'yxati, buyurtmalar) — 2026-07-25 da Mini App ichida rol-rejimi sifatida kodda qurildi: Mahsulotlarim / Buyurtmalar / Profil ekranlari, alohida sotuvchi nav'i, mahsulot formasi
   - [ ] Admin panel yangi dizaynda (hozirgisi ataylab eski stilda — 2026-07-22 qarori)
-- [ ] Foydalanuvchi oqimi (user flow): xaridor oqimi kodda amalda mavjud, ishlab chiqaruvchi oqimi (ro'yxatdan o'tish → tasdiqlash → mahsulot qo'shish → buyurtma olish) hali aniqlanmagan
+- [ ] Foydalanuvchi oqimi (user flow): xaridor oqimi kodda amalda mavjud; ishlab chiqaruvchi oqimining ikkinchi yarmi (mahsulot qo'shish → moderatsiya → buyurtma olish → qabul/jo'natish) 2026-07-25 da kodda qurildi, birinchi yarmi (ariza → bot suhbati → tasdiqlash) hali qurilmagan
 - [x] Dizaynni founder bilan kelishish — iterativ tarzda davom etmoqda: har o'zgarish jonli fikr-mulohaza bilan kelishiladi, rad etilgan g'oyalar ham hujjatlashtirilgan (2026-07-24 yozuvi)
 
 ---
@@ -70,6 +70,8 @@ LolaMarket ning barcha asosiy ekranlarini vizual tarzda loyihalash. Kodga o'tish
 
 - [2026-07-25] Bug tuzatildi: "Buyurtma yuborilmadi" xatosi. Sabab — API umuman ulanmagani (404/501, HTML javob) bilan API buyurtmani ATAYLAB rad etgani bir xil ko'rilardi, natijada foydalanuvchiga takrorlangan va noto'g'ri toast chiqardi. Endi uch holat ajratildi: (a) JSON xato javobi → aynan server aytgan sabab ko'rsatiladi; (b) `401` → yangi `authErr` matni "Buyurtma berish uchun ilovani Telegram orqali oching"; (c) javob JSON emas yoki tarmoq yo'q → jimgina mahalliy zaxira yo'liga tushadi. Uchala holat ham brauzerda sinab tasdiqlandi
 
+- [2026-07-25] **Sotuvchi kabineti ekranlari kodda qurildi — Sprint 0 dagi 6 ekrandan 5 tasi tayyor (qolgani: admin panel yangi dizaynda).** Kabinet alohida sayt emas, o'sha Mini App ichidagi rol-rejimi (2026-07-25 qarori). Uchta ekran: **Mahsulotlarim** (Faol / Yashirin tab, har kartochkada holat nuqtasi — nashrda / moderatsiyada / rad etilgan / yashirin, rad etilganda sabab matni, pastda yangi e'lon uchun FAB), **Buyurtmalar** (Yangi / Jarayonda / Yakunlangan tab, qabul qilish / rad etish tugmalari, jo'natishda trek raqami maydoni, "Oldindan to'lov tushdi" belgisi), **Profil** (korxona nomi, statistika, "Xaridor rejimiga qaytish"). Mahsulot qo'shish/tahrirlash uchun alohida forma ekrani (`s-form`): nom, narx, MOQ, kategoriya chiplari, tarkib va pastda "Saqlash" main-btn. Xaridor navidan mustaqil `#seller-nav` (3 tab, `.snav-lens` 1/3 kenglik) qo'shildi, yangi buyurtmalar soni badge'da ko'rinadi. Xaridor profilida teal "Sotuvchi rejimi" kartasi turadi — u faqat rol `seller` bo'lganda ko'rinadi va rol serverdan (`/api/me`) keladi, frontend faqat ko'rinishni boshqaradi. Tasdiq oynalari uchun Telegram'ning native `showConfirm` ishlatiladi. Kesh: `styles.css?v=15`, `app.js?v=45`. Jonli serverga deploy qilinib tasdiqlandi
+
 - [2026-07-24] Sinab ko'rilib QAYTARILGAN ikki g'oya (kelajakda qayta taklif qilinmasligi uchun yozib qo'yiladi) — (1) bosh ekranda logoni 48px'ga kattalashtirish: juda katta chiqdi, header muvozanatini buzdi; (2) katalogda "scroll edge" effekti (skroll paytida header yuqoriga chiqib ketishi): foydalanuvchi eski qadalgan (pin) holatni afzal ko'rdi
 
 ---
@@ -118,3 +120,7 @@ LolaMarket ning barcha asosiy ekranlarini vizual tarzda loyihalash. Kodga o'tish
 - [2026-07-25] Qaror: xato holatlari uch turga ajratiladi — server rad etdi / auth yo'q / server umuman yo'q. Sabab: ilgari uchalasi bitta "Buyurtma yuborilmadi" toast'i bilan tugardi, foydalanuvchi nima qilishni bilmasdi. Endi har holat o'z matnini beradi, faqat "server yo'q" holati mahalliy zaxira yo'liga tushadi
 
 - [2026-07-22] Qaror: Landing sahifasida `<h1>` sarlavha bo'lmaydi — katalog ustidagi kirish bloki (sarlavha + izoh + ishonch chiplari) sinab ko'rilib, foydalanuvchi so'roviga ko'ra olib tashlandi. Sabab: sahifa do'kon, matnli kirish mahsulotlarni pastga surib yuboradi. SEO uchun sarlavha kerak bo'lsa keyinroq boshqa shaklda qaytariladi
+
+- [2026-07-25] Qaror: sotuvchi kabinetidagi tasdiq oynalari uchun brauzerning `confirm()` i emas, Telegram'ning native `showConfirm` i ishlatiladi. Sabab: `confirm()` Telegram WebView ichida ishonchsiz — ba'zi mijozlarda umuman chiqmaydi yoki oynani bloklaydi, natijada "Rad etish" kabi qaytarib bo'lmaydigan amal jimgina bajarilmay qolardi
+
+- [2026-07-25] Qaror: foydalanuvchi roli faqat serverda aniqlanadi (`/api/me`: `initData` → `users.role` → `sellers`), frontend uni saqlamaydi ham, o'zi hisoblamaydi ham — faqat ko'rinishni boshqaradi. Sabab: rolni klient tomonda tutish "sotuvchi rejimi"ni qo'lda yoqib olish imkonini berardi; endi ekran ochilsa ham har API chaqiruvi serverda rolni mustaqil qayta tekshiradi

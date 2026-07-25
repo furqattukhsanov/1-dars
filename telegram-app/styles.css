@@ -430,3 +430,6 @@ body {
 .hidden { display: none !important; }
 button:active { opacity: .88; }
 .nav-tab:active, .nav-profile-btn:active { opacity: 1; }
+
+/* Sotuvchi kabineti navigatsiyasi — 4 emas, 3 tab */
+.snav-lens { width: calc((100% - 14px) / 3); }
