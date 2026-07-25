@@ -46,3 +46,4 @@ ssh root@65.21.180.44 "journalctl -u lolamarket-notify -n 20 --no-pager"
 | `WEBHOOK_SECRET` | Telegram webhook maxfiy tokeni |
 | `ALLOWED_ORIGIN` | CORS origin (default `https://lolamarket.uz`) |
 | `MINI_APP_URL` | Mini App URL |
+| `ADMIN_PANEL_TOKEN` | `admin/index.html` kirish kaliti (`X-Admin-Token` header, `/api/admin/summary`) — Telegram initData'dan mustaqil, alohida sir |

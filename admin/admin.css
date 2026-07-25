@@ -1,10 +1,13 @@
-/* ─── Utilities ─── */
+/* ─── Admin panel — Mini App dizayn tizimi ustida ─── */
+/* Token'lar ../style.css'dan keladi (--pom-*, --ink-*, --glass-*, --font-*) */
+
 .hidden { display: none !important; }
+
+body { min-height: 100vh; }
 
 /* ─── Login Screen ─── */
 .login-screen {
   min-height: 100vh;
-  background: var(--bg);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -12,44 +15,39 @@
 }
 
 .login-card {
-  background: #fff;
-  border: 1px solid var(--border);
-  border-radius: 20px;
+  border-radius: var(--radius-xl);
   padding: 3rem 2.5rem;
   width: 100%;
   max-width: 360px;
   text-align: center;
-  box-shadow: 0 8px 40px rgba(0,0,0,0.06);
 }
 
 .login-logo {
   width: 56px;
   height: 56px;
-  border-radius: 12px;
-  object-fit: cover;
+  object-fit: contain;
   margin: 0 auto 1.2rem;
 }
 
 .login-title {
-  font-family: 'Cormorant Garamond', serif;
-  font-size: 2rem;
-  font-weight: 300;
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--text-strong);
   margin-bottom: 0.3rem;
 }
-
-.login-title em { font-style: italic; color: var(--muted); }
 
 .login-sub {
   font-size: 0.65rem;
   letter-spacing: 2.5px;
   text-transform: uppercase;
-  color: var(--muted);
+  color: var(--text-muted);
   margin-bottom: 2rem;
 }
 
 .login-field {
   display: flex;
-  border-bottom: 1px solid var(--text);
+  border-bottom: 1px solid var(--border-hair);
   margin-bottom: 0.8rem;
 }
 
@@ -59,25 +57,22 @@
   background: transparent;
   border: none;
   outline: none;
-  font-family: 'Inter', sans-serif;
   font-size: 0.9rem;
-  font-weight: 300;
-  color: var(--text);
+  color: var(--text-strong);
 }
 
-.login-field input::placeholder { color: var(--muted); }
+.login-field input::placeholder { color: var(--text-subtle); }
 
 .login-field button {
   background: transparent;
   border: none;
-  font-family: 'Inter', sans-serif;
-  font-size: 0.65rem;
-  font-weight: 500;
-  letter-spacing: 2px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 1.5px;
   text-transform: uppercase;
-  color: var(--brand);
+  color: var(--pom-600);
   cursor: pointer;
-  transition: opacity 0.2s;
+  transition: opacity var(--dur-fast);
   padding: 0.7rem 0 0.7rem 1rem;
 }
 
@@ -86,12 +81,12 @@
 .login-error {
   display: none;
   font-size: 0.72rem;
-  color: var(--brand);
-  letter-spacing: 0.5px;
+  color: var(--danger-500);
+  letter-spacing: 0.3px;
 }
 
 /* ─── Dashboard ─── */
-.dashboard { min-height: 100vh; background: var(--bg); }
+.dashboard { min-height: 100vh; }
 
 .admin-header {
   position: sticky;
@@ -100,61 +95,49 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 2rem;
-  height: 64px;
-  background: rgba(248,245,241,0.92);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-bottom: 1px solid var(--border);
+  padding: 0 1.5rem;
+  height: var(--header-h);
 }
 
-.admin-header-left { display: flex; align-items: center; gap: 0.8rem; }
+.admin-header-left { display: flex; align-items: center; gap: 0.75rem; }
 
-.admin-logo {
-  width: 32px;
-  height: 32px;
-  border-radius: 7px;
-  object-fit: cover;
-}
+.admin-logo { width: 34px; height: 34px; object-fit: contain; }
 
 .admin-title {
-  font-family: 'Cormorant Garamond', serif;
-  font-size: 1.2rem;
-  font-weight: 600;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  color: var(--text);
-  line-height: 1;
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-strong);
+  line-height: 1.1;
 }
 
 .admin-subtitle {
-  font-size: 0.6rem;
-  letter-spacing: 2px;
+  font-size: 0.62rem;
+  letter-spacing: 1.5px;
   text-transform: uppercase;
-  color: var(--muted);
+  color: var(--text-muted);
 }
 
 .admin-logout {
-  font-family: 'Inter', sans-serif;
-  font-size: 0.62rem;
-  font-weight: 400;
-  letter-spacing: 1.5px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 1px;
   text-transform: uppercase;
-  color: var(--muted);
+  color: var(--text-muted);
   background: transparent;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-hair);
   border-radius: 100px;
-  padding: 0.4rem 1rem;
+  padding: 0.45rem 1.1rem;
   cursor: pointer;
-  transition: color 0.2s, border-color 0.2s;
+  transition: color var(--dur-fast), border-color var(--dur-fast);
 }
 
-.admin-logout:hover { color: var(--text); border-color: var(--text); }
+.admin-logout:hover { color: var(--text-strong); border-color: var(--ink-300); }
 
 .admin-main {
   max-width: 1000px;
   margin: 0 auto;
-  padding: 2rem 2rem 5rem;
+  padding: 2rem 1.5rem 5rem;
 }
 
 /* ─── Stats ─── */
@@ -166,35 +149,32 @@
 }
 
 .stat-card {
-  background: #fff;
-  border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: var(--radius-lg);
   padding: 1.5rem;
   text-align: center;
 }
 
 .stat-card.accent {
-  background: var(--brand);
-  border-color: var(--brand);
+  background: var(--grad-pom);
 }
 
 .stat-card.accent .stat-number,
 .stat-card.accent .stat-label { color: #fff; }
 
 .stat-number {
-  font-family: 'Cormorant Garamond', serif;
-  font-size: 2.5rem;
-  font-weight: 300;
+  font-family: var(--font-display);
+  font-size: 2.2rem;
+  font-weight: 700;
   line-height: 1;
-  color: var(--text);
+  color: var(--text-strong);
   margin-bottom: 0.4rem;
 }
 
 .stat-label {
   font-size: 0.62rem;
-  letter-spacing: 2px;
+  letter-spacing: 1.5px;
   text-transform: uppercase;
-  color: var(--muted);
+  color: var(--text-muted);
 }
 
 /* ─── Section header ─── */
@@ -206,18 +186,17 @@
 }
 
 .section-title {
-  font-family: 'Cormorant Garamond', serif;
-  font-size: 1.5rem;
-  font-weight: 300;
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-strong);
 }
-
-.section-title em { font-style: italic; color: var(--muted); }
 
 .section-count {
   font-size: 0.65rem;
   letter-spacing: 1.5px;
   text-transform: uppercase;
-  color: var(--muted);
+  color: var(--text-muted);
 }
 
 /* ─── Orders filters ─── */
@@ -229,31 +208,28 @@
 }
 
 .order-filter {
-  font-family: 'Inter', sans-serif;
-  font-size: 0.62rem;
-  font-weight: 400;
-  letter-spacing: 1.5px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 1px;
   text-transform: uppercase;
-  padding: 0.4rem 1rem;
-  border: 1px solid var(--border);
+  padding: 0.45rem 1.1rem;
+  border: 1px solid var(--border-hair);
   border-radius: 100px;
   background: transparent;
-  color: var(--muted);
+  color: var(--text-muted);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all var(--dur-fast);
 }
 
 .order-filter.active {
-  background: var(--brand);
-  border-color: var(--brand);
+  background: var(--grad-pom);
+  border-color: transparent;
   color: #fff;
 }
 
 /* ─── Orders table ─── */
 .orders-table-wrap {
-  background: #fff;
-  border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: var(--radius-lg);
   overflow: hidden;
   overflow-x: auto;
 }
@@ -266,51 +242,58 @@
 .orders-table th {
   text-align: left;
   font-size: 0.6rem;
-  font-weight: 500;
-  letter-spacing: 2px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
   text-transform: uppercase;
-  color: var(--muted);
+  color: var(--text-muted);
   padding: 1rem 1.2rem;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--border-hair);
   white-space: nowrap;
 }
 
 .orders-table td {
   padding: 1rem 1.2rem;
   font-size: 0.82rem;
-  color: var(--text);
-  border-bottom: 1px solid rgba(224,216,206,0.5);
+  color: var(--text-body);
+  border-bottom: 1px solid var(--border-hair);
 }
 
 .orders-table tr:last-child td { border-bottom: none; }
 
-.order-id { font-family: 'Cormorant Garamond', serif; font-size: 1rem; color: var(--muted); }
-.order-product { font-weight: 500; }
-.order-type, .order-date { color: var(--muted); font-size: 0.75rem; }
+/* ../style.css allaqachon .order-id ni buyurtma tasdiqlash bloki uchun band
+   qilgan (pom-100 fon + pill) — bu yerda bekor qilamiz, faqat matn kerak */
+.order-id {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  background: none;
+  padding: 0;
+  border-radius: 0;
+}
+.order-product { font-weight: 600; color: var(--text-strong); }
+.order-type, .order-date { color: var(--text-muted); font-size: 0.75rem; }
 
 .status-badge {
   display: inline-block;
   font-size: 0.58rem;
-  font-weight: 500;
-  letter-spacing: 1px;
+  font-weight: 600;
+  letter-spacing: 0.6px;
   text-transform: uppercase;
   padding: 0.3rem 0.7rem;
   border-radius: 100px;
   white-space: nowrap;
 }
 
-.status-new     { background: #FFF3CD; color: #856404; }
-.status-pending { background: #E8F0FE; color: #1a56db; }
-.status-done    { background: #D1F2E1; color: #1a7a45; }
+.status-new     { background: var(--saffron-50); color: var(--saffron-700); }
+.status-pending { background: var(--teal-50); color: var(--teal-700); }
+.status-done    { background: var(--success-100); color: var(--success-500); }
 
 /* ─── Chart ─── */
 .chart-grid {
   display: flex;
   gap: 1.5rem;
   align-items: flex-end;
-  background: #fff;
-  border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: var(--radius-lg);
   padding: 1.5rem 2rem 1.2rem;
 }
 
@@ -331,10 +314,10 @@
 
 .chart-bar {
   width: 100%;
-  background: var(--brand);
+  background: var(--grad-pom);
   border-radius: 4px 4px 0 0;
   opacity: 0.15;
-  transition: opacity 0.2s;
+  transition: opacity var(--dur-fast);
 }
 
 .chart-item:first-child .chart-bar { opacity: 1; }
@@ -342,17 +325,26 @@
 .chart-item:nth-child(3) .chart-bar { opacity: 0.35; }
 
 .chart-num {
-  font-family: 'Cormorant Garamond', serif;
-  font-size: 1.2rem;
-  color: var(--text);
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-strong);
 }
 
 .chart-label {
   font-size: 0.6rem;
-  letter-spacing: 1px;
+  letter-spacing: 0.8px;
   text-transform: uppercase;
-  color: var(--muted);
+  color: var(--text-muted);
   text-align: center;
+}
+
+/* ─── Bo'sh holat ─── */
+.empty-cell {
+  padding: 2rem 1rem;
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--text-muted);
 }
 
 /* ─── Responsive ─── */

@@ -11,6 +11,10 @@ const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || 'https://lolamarket.uz';
 const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET;
 const MINI_APP_URL = process.env.MINI_APP_URL || 'https://lolamarket.uz/mini-app/';
 const CONTACTS_FILE = __dirname + '/contacts.json';
+// admin/index.html panelidagi kirish kaliti — Telegram initData'ga bog'liq emas
+// (standalone sahifa uni ishlab chiqara olmaydi), shuning uchun alohida sir.
+// Berilmasa — /api/admin/summary doim 401 qaytaradi (panel ishlamaydi, lekin xavfsiz).
+const ADMIN_PANEL_TOKEN = process.env.ADMIN_PANEL_TOKEN || '';
 // Oldindan to'lov ulushi. Mini App'dagi PREPAY_RATE bilan bir xil bo'lishi shart —
 // lekin haqiqiy manba shu yer: summa har doim server tomonda qayta hisoblanadi.
 const PREPAY_RATE = Number(process.env.PREPAY_RATE) || 0.5;
@@ -52,6 +56,14 @@ function clientIp(req) {
 
 function escapeHtml(s) {
   return String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+}
+
+// Doimiy vaqtli satr taqqoslash (admin panel token uchun — timing attack'dan himoya)
+function safeEqual(a, b) {
+  const ab = Buffer.from(String(a));
+  const bb = Buffer.from(String(b));
+  if (ab.length !== bb.length) return false;
+  return crypto.timingSafeEqual(ab, bb);
 }
 
 // So'm formatlash: 1720000 -> "1 720 000 so'm"
@@ -465,6 +477,50 @@ async function handleModerationAction(req, res, ip) {
     ok(res, rows[0]);
   } catch (e) {
     console.error('modAction xatosi:', e.message);
+    fail(res, 'server error', 500);
+  }
+}
+
+// ============ /api/admin/summary — admin panel statistikasi ============
+// admin/index.html (standalone sahifa) uchun. Telegram initData bilan emas —
+// ADMIN_PANEL_TOKEN bilan himoyalanadi (X-Admin-Token header). Faqat O'QISH —
+// tasdiqlash/rad etish hamon bot buyruqlari orqali (initData'siz sahifa
+// harakatlarni ishonchli bajara olmaydi).
+async function handleAdminSummary(req, res, ip) {
+  if (rateLimited(`adminsummary:${ip}`, 30)) return fail(res, 'too many requests', 429);
+  const token = req.headers['x-admin-token'];
+  if (!ADMIN_PANEL_TOKEN || !token || !safeEqual(token, ADMIN_PANEL_TOKEN)) {
+    return fail(res, 'unauthorized', 401);
+  }
+  try {
+    const [modRes, appRes, sellerRes, todayRes, catRes, ordersRes] = await Promise.all([
+      pool.query(`SELECT count(*)::int AS n FROM products WHERE status='pending'`),
+      pool.query(`SELECT count(*)::int AS n FROM seller_applications WHERE status='pending' AND step='done'`),
+      pool.query(`SELECT count(*)::int AS n FROM sellers WHERE is_verified = true`),
+      pool.query(`SELECT count(*)::int AS n FROM orders WHERE created_at >= date_trunc('day', now())`),
+      pool.query(`SELECT cat_key, count(*)::int AS n FROM products WHERE status='published' GROUP BY cat_key ORDER BY n DESC`),
+      pool.query(`
+        SELECT o.id, o.buyer_name, o.status, o.total_amount, o.created_at,
+               (SELECT count(*) FROM order_items oi WHERE oi.order_id = o.id)::int AS items_count
+          FROM orders o ORDER BY o.created_at DESC LIMIT 20`),
+    ]);
+    ok(res, {
+      moderationPending: modRes.rows[0].n,
+      sellerAppsPending: appRes.rows[0].n,
+      sellersVerified: sellerRes.rows[0].n,
+      ordersToday: todayRes.rows[0].n,
+      categories: catRes.rows.map((r) => ({ catKey: r.cat_key, count: r.n })),
+      recentOrders: ordersRes.rows.map((r) => ({
+        id: r.id,
+        buyerName: r.buyer_name,
+        status: r.status,
+        total: r.total_amount === null ? null : Number(r.total_amount),
+        itemsCount: r.items_count,
+        date: dateLabel(new Date(r.created_at)),
+      })),
+    });
+  } catch (e) {
+    console.error('adminSummary xatosi:', e.message);
     fail(res, 'server error', 500);
   }
 }
@@ -971,6 +1027,193 @@ function handleGetContact(req, res, ip) {
   sendJson(res, 200, { phone: entry ? entry.phone : null });
 }
 
+// ============ SOTUVCHI ARIZASI (bot suhbati, Sprint 0) ============
+// PRD §9 chegarasi: o'z-o'zini ro'yxatdan o'tkazish yo'q — founder qo'lda
+// tasdiqlaydi. Ariza bosqichlari seller_applications.step ustunida saqlanadi
+// (in-memory emas), shu sabab server qayta ishga tushsa ham suhbat davom etadi.
+const SELLER_APP_QUESTIONS = {
+  city: "Qaysi shaharda joylashgansiz?",
+  product_type: 'Qanday turdagi mato yoki mahsulot ishlab chiqarasiz? (masalan: ikat, atlas, shoyi)',
+};
+
+async function getOpenSellerApplication(tgUserId) {
+  const { rows } = await pool.query(
+    `SELECT id, step FROM seller_applications
+      WHERE tg_user_id = $1 AND status = 'pending' AND step != 'done'
+      ORDER BY created_at DESC LIMIT 1`,
+    [String(tgUserId)]
+  );
+  return rows[0] || null;
+}
+
+async function startSellerApplication(msg) {
+  const existing = await getOpenSellerApplication(msg.from.id);
+  if (existing) {
+    await callTelegram('sendMessage', {
+      chat_id: msg.chat.id,
+      text: 'Sizda allaqachon ochiq ariza bor — javob berishda davom eting.',
+    });
+    return;
+  }
+  await pool.query(
+    `INSERT INTO seller_applications (tg_user_id, tg_username, step) VALUES ($1, $2, 'business_name')`,
+    [String(msg.from.id), msg.from.username || null]
+  );
+  await callTelegram('sendMessage', {
+    chat_id: msg.chat.id,
+    text: "🌷 LolaMarket sotuvchisi bo'lish uchun 4 ta savolga javob bering.\n\n1) Korxona nomi qanday?",
+  });
+}
+
+// Ochiq arizasi bor foydalanuvchining oddiy matn xabarini navbatdagi javob
+// sifatida qabul qiladi. Ariza yo'q bo'lsa false qaytadi (chaqiruvchi odatdagi
+// buyruq/ /start yo'liga o'tadi).
+async function handleSellerApplicationStep(msg, text) {
+  const app = await getOpenSellerApplication(msg.from.id);
+  if (!app) return false;
+
+  if (app.step === 'business_name') {
+    if (!text) {
+      await callTelegram('sendMessage', { chat_id: msg.chat.id, text: "Iltimos, korxona nomini matn ko'rinishida yuboring." });
+      return true;
+    }
+    await pool.query(`UPDATE seller_applications SET business_name=$1, step='city' WHERE id=$2`, [text.slice(0, 200), app.id]);
+    await callTelegram('sendMessage', { chat_id: msg.chat.id, text: `2) ${SELLER_APP_QUESTIONS.city}` });
+    return true;
+  }
+  if (app.step === 'city') {
+    if (!text) {
+      await callTelegram('sendMessage', { chat_id: msg.chat.id, text: 'Iltimos, shahar nomini yuboring.' });
+      return true;
+    }
+    await pool.query(`UPDATE seller_applications SET city=$1, step='product_type' WHERE id=$2`, [text.slice(0, 120), app.id]);
+    await callTelegram('sendMessage', { chat_id: msg.chat.id, text: `3) ${SELLER_APP_QUESTIONS.product_type}` });
+    return true;
+  }
+  if (app.step === 'product_type') {
+    if (!text) {
+      await callTelegram('sendMessage', { chat_id: msg.chat.id, text: 'Iltimos, mahsulot turini yuboring.' });
+      return true;
+    }
+    await pool.query(`UPDATE seller_applications SET product_type=$1, step='phone' WHERE id=$2`, [text.slice(0, 200), app.id]);
+    await callTelegram('sendMessage', {
+      chat_id: msg.chat.id,
+      text: '4) Telefon raqamingizni pastdagi tugma orqali yuboring:',
+      reply_markup: {
+        keyboard: [[{ text: '📱 Telefon raqamni yuborish', request_contact: true }]],
+        resize_keyboard: true,
+        one_time_keyboard: true,
+      },
+    });
+    return true;
+  }
+  // step === 'phone' — faqat contact xabari qabul qilinadi, matn emas
+  await callTelegram('sendMessage', {
+    chat_id: msg.chat.id,
+    text: 'Iltimos, telefon raqamingizni yuqoridagi tugma orqali yuboring.',
+  });
+  return true;
+}
+
+// Telefon (contact) xabari kelganda arizani yakunlaydi va adminga xabar beradi.
+async function handleSellerApplicationContact(msg) {
+  const app = await getOpenSellerApplication(msg.from.id);
+  if (!app || app.step !== 'phone') return;
+  const { rows } = await pool.query(
+    `UPDATE seller_applications SET phone=$1, step='done' WHERE id=$2
+     RETURNING id, business_name, city, product_type, phone, tg_username`,
+    [msg.contact.phone_number, app.id]
+  );
+  if (!rows.length) return;
+  const a = rows[0];
+  await callTelegram('sendMessage', {
+    chat_id: msg.chat.id,
+    text: "✅ Arizangiz qabul qilindi! Founder tez orada ko'rib chiqadi — natija shu yerga xabar bilan keladi.",
+    reply_markup: { remove_keyboard: true },
+  });
+  const summary = [
+    '🆕 <b>Yangi sotuvchi arizasi</b>',
+    '',
+    `<b>Korxona:</b> ${escapeHtml(a.business_name || '-')}`,
+    `<b>Shahar:</b> ${escapeHtml(a.city || '-')}`,
+    `<b>Mahsulot turi:</b> ${escapeHtml(a.product_type || '-')}`,
+    `<b>Telefon:</b> ${escapeHtml(a.phone || '-')}`,
+    a.tg_username ? `<b>Telegram:</b> @${escapeHtml(a.tg_username)}` : '',
+    '',
+    `<code>/sotuvchi_tasdiqla ${a.id}</code>   <code>/sotuvchi_rad ${a.id}</code>`,
+  ]
+    .filter(Boolean)
+    .join('\n');
+  await sendOrderNotifyMessage(summary).catch((e) => console.error('sellerApp admin notify:', e.message));
+}
+
+// Admin /sotuvchi_tasdiqla yoki /sotuvchi_rad buyrug'ini bajaradi.
+async function handleSellerApplicationReview(chatId, action, appId) {
+  const { rows } = await pool.query(
+    `SELECT id, tg_user_id, tg_username, business_name, city FROM seller_applications
+      WHERE id = $1 AND status = 'pending' AND step = 'done'`,
+    [appId]
+  );
+  if (!rows.length) {
+    await callTelegram('sendMessage', { chat_id: chatId, text: `❌ #${appId} ariza topilmadi yoki allaqachon ko'rib chiqilgan.` });
+    return;
+  }
+  const app = rows[0];
+
+  if (action === 'reject') {
+    await pool.query(`UPDATE seller_applications SET status='rejected', reviewed_at=now() WHERE id=$1`, [app.id]);
+    await callTelegram('sendMessage', { chat_id: chatId, text: `🚫 #${app.id} ariza rad etildi.` });
+    await callTelegram('sendMessage', {
+      chat_id: app.tg_user_id,
+      text: "Afsuski, arizangiz hozircha tasdiqlanmadi. Savollar bo'lsa botga yozing.",
+    }).catch(() => {});
+    return;
+  }
+
+  // approve — foydalanuvchi hali /api/auth/telegram chaqirmagan bo'lishi mumkin
+  // (Mini App'ni ochmagan), shuning uchun users'ga ham upsert qilamiz.
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const { rows: userRows } = await client.query(
+      `INSERT INTO users (tg_user_id, full_name, role)
+         VALUES ($1, $2, 'seller')
+         ON CONFLICT (tg_user_id) DO UPDATE SET role = 'seller'
+         RETURNING id`,
+      [String(app.tg_user_id), app.business_name || app.tg_username || null]
+    );
+    const userId = userRows[0].id;
+
+    const { rows: existingSeller } = await client.query(`SELECT id FROM sellers WHERE user_id = $1`, [userId]);
+    if (existingSeller.length) {
+      await client.query(
+        `UPDATE sellers SET business_name_uz=$1, city_uz=$2, is_verified=true WHERE id=$3`,
+        [app.business_name, app.city, existingSeller[0].id]
+      );
+    } else {
+      await client.query(
+        `INSERT INTO sellers (user_id, business_name_uz, city_uz, is_verified) VALUES ($1,$2,$3,true)`,
+        [userId, app.business_name, app.city]
+      );
+    }
+    await client.query(`UPDATE seller_applications SET status='approved', reviewed_at=now() WHERE id=$1`, [app.id]);
+    await client.query('COMMIT');
+  } catch (e) {
+    await client.query('ROLLBACK').catch(() => {});
+    console.error('sellerApp approve xatosi:', e.message);
+    await callTelegram('sendMessage', { chat_id: chatId, text: `❌ #${app.id} tasdiqlashda xato yuz berdi.` });
+    return;
+  } finally {
+    client.release();
+  }
+
+  await callTelegram('sendMessage', { chat_id: chatId, text: `✅ #${app.id} — ${app.business_name || '?'} sotuvchi sifatida tasdiqlandi.` });
+  await sendOpenAppMessage(
+    app.tg_user_id,
+    "🎉 <b>Tabriklaymiz!</b> Siz LolaMarket sotuvchisi sifatida tasdiqlandingiz.\n\nQuyidagi tugma orqali kabinetingizni oching:"
+  ).catch(() => {});
+}
+
 // ============ Telegram webhook ============
 async function handleTelegramWebhook(req, res) {
   if (WEBHOOK_SECRET) {
@@ -993,6 +1236,7 @@ async function handleTelegramWebhook(req, res) {
     if (msg.contact) {
       if (msg.contact.user_id && msg.from && msg.contact.user_id === msg.from.id) {
         saveContact(msg.contact.user_id, msg.contact.phone_number);
+        await handleSellerApplicationContact(msg).catch((e) => console.error('sellerApp contact xatosi:', e.message));
       }
       return;
     }
@@ -1067,12 +1311,52 @@ async function handleTelegramWebhook(req, res) {
         }
         return;
       }
+
+      // ---- Sotuvchi arizalari (Sprint 0) ----
+      if (/^\/sotuvchilar\b/i.test(text)) {
+        try {
+          const { rows } = await pool.query(
+            `SELECT id, business_name, city FROM seller_applications
+              WHERE status='pending' AND step='done' ORDER BY created_at DESC LIMIT 20`
+          );
+          if (!rows.length) {
+            await callTelegram('sendMessage', { chat_id: msg.chat.id, text: "✅ Ko'rib chiqilmagan sotuvchi arizasi yo'q." });
+          } else {
+            const list = rows
+              .map((r) => `• <b>${escapeHtml(r.business_name || '?')}</b> — ${escapeHtml(r.city || '?')}\n  <code>/sotuvchi_tasdiqla ${r.id}</code>   <code>/sotuvchi_rad ${r.id}</code>`)
+              .join('\n\n');
+            await callTelegram('sendMessage', { chat_id: msg.chat.id, parse_mode: 'HTML', text: `🗂 <b>Sotuvchi arizalari (${rows.length})</b>\n\n${list}` });
+          }
+        } catch (e) {
+          console.error('sotuvchilar list xatosi:', e.message);
+        }
+        return;
+      }
+      const sellerAppCmd = text.match(/^\/(sotuvchi_tasdiqla|sotuvchi_rad)\s+(\d+)/i);
+      if (sellerAppCmd) {
+        const action = sellerAppCmd[1].toLowerCase() === 'sotuvchi_tasdiqla' ? 'approve' : 'reject';
+        await handleSellerApplicationReview(msg.chat.id, action, parseInt(sellerAppCmd[2], 10)).catch((e) => {
+          console.error('sellerApp review xatosi:', e.message);
+        });
+        return;
+      }
+    }
+
+    // ---- Ochiq sotuvchi arizasi bo'lsa — matn navbatdagi javob sifatida qabul qilinadi ----
+    if (await handleSellerApplicationStep(msg, text).catch((e) => {
+      console.error('sellerApp step xatosi:', e.message);
+      return false;
+    })) return;
+
+    if (/^\/sotuvchi\b/i.test(text)) {
+      await startSellerApplication(msg).catch((e) => console.error('sellerApp start xatosi:', e.message));
+      return;
     }
 
     if (text.startsWith('/start')) {
       await sendOpenAppMessage(
         msg.chat.id,
-        "Assalomu alaykum! 🌷 <b>LolaMarket</b> — to'qima materiallar uchun B2B platforma.\n\nQuyidagi tugma orqali katalogni oching:"
+        "Assalomu alaykum! 🌷 <b>LolaMarket</b> — to'qima materiallar uchun B2B platforma.\n\nQuyidagi tugma orqali katalogni oching. Ishlab chiqaruvchi bo'lsangiz — /sotuvchi buyrug'ini yuboring."
       );
     } else {
       await sendOpenAppMessage(msg.chat.id, "Ilovani ochish uchun quyidagi tugmani bosing:");
@@ -1086,7 +1370,7 @@ async function handleTelegramWebhook(req, res) {
 function cors(res, methods) {
   res.setHeader('Access-Control-Allow-Origin', ALLOWED_ORIGIN);
   res.setHeader('Access-Control-Allow-Methods', methods);
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Telegram-Init-Data');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Telegram-Init-Data, X-Admin-Token');
 }
 
 const server = http.createServer((req, res) => {
@@ -1114,6 +1398,13 @@ const server = http.createServer((req, res) => {
     if (req.method === 'GET') return handleModerationList(req, res, ip);
     if (req.method === 'POST') return handleModerationAction(req, res, ip);
     return fail(res, 'method not allowed', 405);
+  }
+
+  if (path === '/api/admin/summary') {
+    cors(res, 'GET, OPTIONS');
+    if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
+    if (req.method !== 'GET') return fail(res, 'method not allowed', 405);
+    return handleAdminSummary(req, res, ip);
   }
 
   if (path === '/api/orders') {

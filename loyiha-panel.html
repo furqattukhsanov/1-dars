@@ -333,6 +333,16 @@
     <div id="faoliyat-list">
       <div class="faoliyat-item">
         <span class="faoliyat-sana">2026-07-25</span>
+        <span class="faoliyat-text">Sprint 7 (Admin panel) boshlandi — admin panel mock ma'lumotlardan real API'ga o'tkazildi. Backend: yangi ADMIN_PANEL_TOKEN siri (Telegram initData'dan mustaqil), safeEqual() timing-attack himoyasi, faqat O'QISH uchun GET /api/admin/summary endpointi (moderatsiyadagi mahsulotlar, ko'rib chiqilmagan sotuvchi arizalari, bugungi buyurtmalar, tasdiqlangan sotuvchilar, kategoriya statistikasi, so'nggi 20 buyurtma). Frontend: admin.js to'liq qayta yozildi — eski hardcoded parol (PASSWORD='lolamarket', konsolida ochiq) va mock massiv olib tashlandi, login endi X-Admin-Token yuboradi va sessionStorage'da saqlaydi; admin/index.html statistika/filtrlar real status kalitlariga o'tkazildi. Qaror: tasdiqlash/rad etish kabi yozuvchi amallar hamon Telegram bot buyruqlari orqali qoladi — standalone sahifa initData avtorizatsiyasini bera olmaydi. Mock fetch bilan brauzerda to'liq test qilindi, 0 konsol xatosi; haqiqiy Postgres backend bilan test deploy vaqtida qilinadi</span>
+        <span class="faoliyat-sprint">Sprint 7</span>
+      </div>
+      <div class="faoliyat-item">
+        <span class="faoliyat-sana">2026-07-25</span>
+        <span class="faoliyat-text">Sprint 0 yakunlandi — ikkita ish bilan. (1) Admin panel yangi (Mini App) dizaynga o'tkazildi: admin/index.html va admin/admin.css eski sayt-eski/style.css o'rniga root style.css'ni (glassmorphism, --grad-pom, Bricolage + Hanken) ishlatadi, logo Photo/logo/lola-mark.png; funksionallik o'zgarmadi (mock parol, statik mock ma'lumot — haqiqiy admin endpointlar Telegram initData talab qiladi, standalone sahifa buni bera olmaydi); bug tuzatildi — .order-id va .section-title klasslari boshqa maqsad uchun band edi, admin.css'da qayta ishlatilganda vizual to'qnashuv chiqdi, aniq bekor qilindi. (2) Ishlab chiqaruvchi ro'yxatdan o'tish oqimining birinchi yarmi qurildi (bot ariza → admin tasdiqlash): yangi db/004_seller_applications.sql migratsiya (hali serverga qo'llanilmagan), server.js'ga /sotuvchi 4-bosqichli bot suhbati (holat DB'da saqlanadi), admin uchun /sotuvchilar, /sotuvchi_tasdiqla, /sotuvchi_rad buyruqlari (tasdiqlashda users.role='seller' va sellers yozuvi tranzaksiya ichida). Qaror: tasdiqlash web admin panel emas, bot buyruqlari orqali — chunki admin panel Telegram initData avtorizatsiyasini bera olmaydi. Deploy hali qilinmadi (server.js production'ga ko'chirilishi va DB migratsiyasi qo'lda ishga tushirilishi kerak)</span>
+        <span class="faoliyat-sprint">Sprint 0</span>
+      </div>
+      <div class="faoliyat-item">
+        <span class="faoliyat-sana">2026-07-25</span>
         <span class="faoliyat-text">Sotuvchi kabineti ishga tushdi — Mini App ichida alohida rol-rejimi (alohida sayt emas). Backend'da beshta yangi endpoint: /api/me (rol serverda aniqlanadi: initData → users.role → sellers), /api/seller/products GET (o'z mahsulotlari barcha holatlarda — ommaviy katalog faqat published ko'rsatadi), PATCH (tahrirlash / yashirish → draft / qayta ko'rsatish → pending; tahrirlangan e'lon qayta moderatsiyaga tushadi), /api/seller/orders GET (bitta buyurtmada bir nechta sotuvchi matosi bo'lishi mumkin — faqat shu sotuvchining qatorlari va sellerTotal qaytadi) va POST (accept / reject / ship + trek raqami, har amal xaridorga Telegram xabari yuboradi). Xavfsizlik: requireSeller() har endpointda rolni mustaqil qayta tekshiradi, har amalda egalik tasdiqlanadi, holat o'zgarishi status = ANY(from) sharti bilan yoziladi (tugma ikki marta bosilsa 409). Bug tuzatildi: yangi e'lon seller_id bilan saqlanmasdi — mahsulot hech qaysi sotuvchiga tegishli bo'lmay qolardi. Frontend: Mahsulotlarim (Faol/Yashirin tab, holat nuqtasi, rad etish sababi, FAB), Buyurtmalar (Yangi/Jarayonda/Yakunlangan, qabul/rad/jo'natish, "Oldindan to'lov tushdi" belgisi), Profil (korxona, statistika, "Xaridor rejimiga qaytish"), mahsulot formasi ekrani, alohida #seller-nav va yangi buyurtmalar badge'i; tasdiq oynalari Telegram native showConfirm (brauzer confirm() Telegram ichida ishonchsiz). Bundan tashqari 50% oldindan to'lov backend'ga tushdi: PREPAY_RATE env orqali, hisob-kitob SERVER tomonda (klient yuborgan prepay/rest'ga ishonilmaydi), orders.prepay_amount / rest_amount / tracking_code ustunlari, sotuvchi Telegram xabarida "Oldindan to'landi" va "Qolgani (BTS'da olishda)" qatorlari — ilgari sotuvchi faqat "Jami" ni ko'rib to'liq to'langan deb o'ylashi mumkin edi. .gitignore kengaytirildi (Mahsulotlar/, prd.md.zip, .agents/, .claude/skills/ — .claude/agents/ ataylab repoda qoldi). Nginx'ga /api/me va /api/seller/ proxy bloklari qo'lda qo'shildi. Kesh: styles.css?v=15, app.js?v=45 — deploy qilinib jonli tasdiqlandi</span>
         <span class="faoliyat-sprint">Sprint 0 · 4</span>
       </div>
@@ -535,14 +545,14 @@
 
 <script>
   const sprintlar = [
-    { num: 0, nom: "Dizayn va ekranlar",        dars: "Dars 7",  holat: "jarayonda",  sana: "2026-07-25" },
+    { num: 0, nom: "Dizayn va ekranlar",        dars: "Dars 7",  holat: "tugadi",  sana: "2026-07-25" },
     { num: 1, nom: "Telegram Mini App MVP",     dars: "Dars 8",  holat: "jarayonda",  sana: "2026-07-12" },
     { num: 2, nom: "Ma'lumotlar bazasi / Backend", dars: "Dars 9",  holat: "tugadi", sana: "2026-07-23" },
     { num: 3, nom: "Foydalanuvchilar + rollar", dars: "Dars 10", holat: "tugadi", sana: "2026-07-23" },
     { num: 4, nom: "Asosiy funksiya",           dars: "Dars 11", holat: "jarayonda",  sana: "2026-07-25" },
     { num: 5, nom: "Mobil / PWA",               dars: "Dars 12", holat: "kutilmoqda", sana: "" },
     { num: 6, nom: "Integratsiyalar",           dars: "Dars 13", holat: "jarayonda",  sana: "2026-07-22" },
-    { num: 7, nom: "Admin panel",               dars: "Dars 14", holat: "kutilmoqda", sana: "" },
+    { num: 7, nom: "Admin panel",               dars: "Dars 14", holat: "jarayonda", sana: "2026-07-25" },
     { num: 8, nom: "Sifat tekshiruvi",          dars: "Dars 15", holat: "kutilmoqda", sana: "" },
     { num: 9, nom: "Production + launch",       dars: "Dars 16", holat: "kutilmoqda", sana: "" },
   ];
@@ -565,7 +575,7 @@
   barEl.style.width = foiz + "%";
   percentEl.textContent = foiz + "%";
   countEl.textContent = tugaganlar + " / " + sprintlar.length + " sprint";
-  updatedEl.textContent = "Yangilanish: 2026-07-25";
+  updatedEl.textContent = "Yangilanish: 2026-07-25 (Sprint 7 boshlandi — admin panel real API'ga o'tdi)";
 
   sprintlar.forEach(s => {
     const card = document.createElement("div");
