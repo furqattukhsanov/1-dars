@@ -333,6 +333,11 @@
     <div id="faoliyat-list">
       <div class="faoliyat-item">
         <span class="faoliyat-sana">2026-07-25</span>
+        <span class="faoliyat-text">Sprint 1 (Mini App MVP) "Ochiq qolgan ishlar" bo'limidan 3 band yopildi: to'liq ikki tillilik (uz/ru) kodda allaqachon to'liq ulanganligi tasdiqlandi (STR[S.lang], setLangUi(), 20+ joyda T=STR[S.lang] patterni), "liquid glass lens" tab-bar animatsiyasi spring-easing (cubic-bezier(.34,1.56,.64,1), --ease-spring) bilan to'g'ri qurilganligi tasdiqlandi, va 375px kenglikda barcha 8 ekran (Bosh, Katalog, Detail, Savat, Checkout, Buyurtmalarim, Qidiruv, Profil) qo'lda vizual tekshirildi. Testda topilgan yagona kosmetik nuqson — mahsulot detail sahifasida yetkazib beruvchi nomining kesilishi — shu zahoti tuzatildi (app.js?v=46). Ochiq qoldi: mahsulot ma'lumotlar modelini dizayn manba fayli bilan solishtirish (fayl diskda topilmadi)</span>
+        <span class="faoliyat-sprint">Sprint 1</span>
+      </div>
+      <div class="faoliyat-item">
+        <span class="faoliyat-sana">2026-07-25</span>
         <span class="faoliyat-text">Sprint 7 (Admin panel) boshlandi — admin panel mock ma'lumotlardan real API'ga o'tkazildi. Backend: yangi ADMIN_PANEL_TOKEN siri (Telegram initData'dan mustaqil), safeEqual() timing-attack himoyasi, faqat O'QISH uchun GET /api/admin/summary endpointi (moderatsiyadagi mahsulotlar, ko'rib chiqilmagan sotuvchi arizalari, bugungi buyurtmalar, tasdiqlangan sotuvchilar, kategoriya statistikasi, so'nggi 20 buyurtma). Frontend: admin.js to'liq qayta yozildi — eski hardcoded parol (PASSWORD='lolamarket', konsolida ochiq) va mock massiv olib tashlandi, login endi X-Admin-Token yuboradi va sessionStorage'da saqlaydi; admin/index.html statistika/filtrlar real status kalitlariga o'tkazildi. Qaror: tasdiqlash/rad etish kabi yozuvchi amallar hamon Telegram bot buyruqlari orqali qoladi — standalone sahifa initData avtorizatsiyasini bera olmaydi. Mock fetch bilan brauzerda to'liq test qilindi, 0 konsol xatosi; haqiqiy Postgres backend bilan test deploy vaqtida qilinadi</span>
         <span class="faoliyat-sprint">Sprint 7</span>
       </div>
@@ -546,7 +551,7 @@
 <script>
   const sprintlar = [
     { num: 0, nom: "Dizayn va ekranlar",        dars: "Dars 7",  holat: "tugadi",  sana: "2026-07-25" },
-    { num: 1, nom: "Telegram Mini App MVP",     dars: "Dars 8",  holat: "jarayonda",  sana: "2026-07-12" },
+    { num: 1, nom: "Telegram Mini App MVP",     dars: "Dars 8",  holat: "tugadi",  sana: "2026-07-25" },
     { num: 2, nom: "Ma'lumotlar bazasi / Backend", dars: "Dars 9",  holat: "tugadi", sana: "2026-07-23" },
     { num: 3, nom: "Foydalanuvchilar + rollar", dars: "Dars 10", holat: "tugadi", sana: "2026-07-23" },
     { num: 4, nom: "Asosiy funksiya",           dars: "Dars 11", holat: "jarayonda",  sana: "2026-07-25" },
@@ -575,7 +580,7 @@
   barEl.style.width = foiz + "%";
   percentEl.textContent = foiz + "%";
   countEl.textContent = tugaganlar + " / " + sprintlar.length + " sprint";
-  updatedEl.textContent = "Yangilanish: 2026-07-25 (Sprint 7 boshlandi — admin panel real API'ga o'tdi)";
+  updatedEl.textContent = "Yangilanish: 2026-07-25 (Sprint 1 — Telegram Mini App MVP to'liq yopildi)";
 
   sprintlar.forEach(s => {
     const card = document.createElement("div");

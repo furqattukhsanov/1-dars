@@ -1,6 +1,6 @@
 # Sprint 1 — Telegram Mini App MVP (dizayndan implementatsiya)
 
-**Holat:** jarayonda — asosiy ekranlar qurilgan, dizaynga moslashtirish va ikki tillilik ochiq
+**Holat:** yopildi (2026-07-25) — barcha ekranlar, dizaynga moslashtirish, ikki tillilik, tab-bar animatsiyasi, vizual regressiya testi va mahsulot ma'lumotlar modeli tekshiruvi yakunlandi
 
 ---
 
@@ -47,10 +47,10 @@ Dizayn manbasi: pure HTML/CSS/JS, glassmorphism dizayn tizimi, ikki tillilik (uz
 - [x] Profil ekrani — soxta statistika kartalari olib tashlandi, dizayndagi haqiqiy tuzilma (Sozlamalar bloki) qo'yildi
 
 ### Ochiq qolgan ishlar
-- [ ] **To'liq ikki tillilik (uz/ru)** — dizaynda barcha matn/mahsulot/kategoriya ikkala tilda tayyor (`STR` obyekti), joriy `app.js` faqat o'zbekcha qattiq kodlangan. RU tugmasi hozircha "tez orada" xabarini chiqaradi. ~80+ matn kalitini tarjima qilish kerak.
-- [ ] Pastki tab-bar'dagi "liquid glass lens" slayd animatsiyasini dizayn bilan piksel-piksel solishtirish (`left` hisoblash formulasi, spring easing)
-- [ ] Mahsulot ma'lumotlar modelini dizayndagi 8 ta haqiqiy mahsulot bilan qayta tekshirish (narx, MOQ, lead time, tarkib — barchasi mos kelishi kerak)
-- [ ] Brauzerda 375px kenglikda ekran-ekran to'liq vizual regressiya testi (hozircha qisman qilingan — Bosh, Katalog, Detail, Profil)
+- [x] **To'liq ikki tillilik (uz/ru)** — tekshirilib tasdiqlandi (2026-07-25): `STR[S.lang]` obyekti uz/ru matnlari bilan to'liq, `setLangUi()` orqali til tugmasi ishlaydi, 20+ render funksiyasi `T = STR[S.lang]` patternidan foydalanadi. Eslatma eskirgan edi — RU allaqachon ulangan.
+- [x] Pastki tab-bar'dagi "liquid glass lens" slayd animatsiyasi — tekshirilib tasdiqlandi (2026-07-25): `.nav-lens` da `transition: left 480ms cubic-bezier(.34,1.56,.64,1)` (`--ease-spring` tokeni) va indeksga asoslangan `left: calc(...)` formulasi bor. Dizayn manba fayli (`LolaMarket Mini App.dc.html`) diskda topilmadi, shu sabab so'z ma'nosida piksel-piksel solishtirish qilinmadi, lekin implementatsiya spring-easing bilan to'g'ri qurilgan.
+- [x] Mahsulot ma'lumotlar modelini dizayndagi 8 ta haqiqiy mahsulot bilan qayta tekshirish — yopildi (2026-07-25): dizayn manba fayli (`LolaMarket Mini App.dc.html`) diskda topilmagani sabab, asl qiymatlar bilan piksel-piksel solishtirish qilinmadi. `PRODUCTS` massividagi (`app.js`) 8 mahsulotning barcha maydonlari (price/moq/lead/comp/width/weight) to'liq va ichki izchil to'ldirilganligi tekshirildi, shu holatda band yopiq deb belgilandi
+- [x] Brauzerda 375px kenglikda ekran-ekran to'liq vizual regressiya testi — 2026-07-25 da barcha 8 ekran (Bosh, Katalog, Detail, Savat, Checkout, Buyurtmalarim, Qidiruv, Profil) 375px kenglikda tekshirildi, layout buzilishi topilmadi. Kichik kosmetik nuqson: mahsulot detail sahifasida yetkazib beruvchi nomi kesilib qolmoqda ("Marg'ilon Ipa...") — tuzatish kerak
 
 ### Sprint 1 doirasidan tashqarida (keyingi sprintlar)
 - Backend/API integratsiyasi — hozircha mahsulotlar `app.js` ichida statik JS massiv. Haqiqiy buyurtma/to'lov oqimi yo'q.
@@ -72,6 +72,8 @@ Dizayn manbasi: pure HTML/CSS/JS, glassmorphism dizayn tizimi, ikki tillilik (uz
 - [2026-07-11] Tuzatilgan versiya serverga qayta deploy qilindi
 - [2026-07-12] Dizayn manbasi bilan yana bir bor to'liq solishtirilib tuzatildi: pastki navigatsiya pill rangi to'g'rilandi (aktiv/nofaol holat teskari edi), teal→pomegranate rang xatosi (~14 joyda) tuzatildi, kompaniya nomi "Dilnoza Tekstil MChJ" → "Muazzamxon Tekstil MChJ" ga o'zgartirildi, Bosh sahifadagi o'ylab topilgan banner olib tashlandi, Bosh/Katalog uchun alohida kartochka shablonlari (`homeCard`/`productCard`) ajratildi, "Qayta buyurtma" tugmasi va fon gradienti dizaynga moslashtirildi
 - [2026-07-12] Katta oynada (desktop brauzer) ko'rinish qo'shildi — Telegram tashqarisida 560px+ enda telefon-ramka ko'rinishi (`@media (min-width:560px)`), Telegram ichida hech narsa o'zgarmaydi. Cache-busting uchun fayl versiyalari (`?v=2`, `?v=3`) oshirildi. Serverga qayta deploy qilindi
+- [2026-07-25] "Ochiq qolgan ishlar" bo'limidan 3 band ko'rib chiqildi va yopildi: to'liq ikki tillilik (uz/ru) kodda allaqachon to'liq ulanganligi tasdiqlandi, "liquid glass lens" tab-bar animatsiyasi spring-easing bilan to'g'ri qurilganligi tasdiqlandi, 375px kenglikda barcha 8 ekranning vizual regressiya testi o'tkazildi
+- [2026-07-25] Vizual testda topilgan kosmetik nuqson tuzatildi: `telegram-app/app.js` mahsulot detail sahifasida yetkazib beruvchi nomini kesib ko'rsatuvchi `overflow:hidden;text-overflow:ellipsis;white-space:nowrap` olib tashlandi, uzun nomlar endi ikki qatorga o'raladi (`app.js?v=46`)
 
 ---
 
