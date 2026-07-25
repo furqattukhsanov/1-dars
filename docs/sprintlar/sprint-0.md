@@ -12,16 +12,16 @@ LolaMarket ning barcha asosiy ekranlarini vizual tarzda loyihalash. Kodga o'tish
 
 ## Bajariladigan vazifalar
 
-- [ ] Brend uslubi aniqlash: ranglar (`#6B1020` burgundy, `#C8A24B` oltin), shrift, tugma stili
-- [ ] Asosiy ekranlar wireframe/mockup:
-  - Bosh sahifa (hero + qisqa katalog preview)
-  - Katalog sahifasi (filtr: kategoriya + narx, mahsulot kartochkalari)
-  - Mahsulot detail sahifasi (rasm, narx/rulon, reyting, "Buyurtma" tugmasi)
-  - Buyurtma berish sahifasi (miqdor, BTS nuqtasi tanlash, to'lov)
-  - Ishlab chiqaruvchi kabineti (mahsulotlar ro'yxati, buyurtmalar)
-  - Admin panel (ishlab chiqaruvchi tasdiqlash, bahsli holatlar)
-- [ ] Foydalanuvchi oqimi (user flow) chizish: xaridor va ishlab chiqaruvchi uchun alohida
-- [ ] Dizaynni founder bilan kelishish va tasdiqlash
+- [x] Brend uslubi aniqlash — amalda bajarildi: dizayn tizimining yagona manbasi `telegram-app/styles.css` (2026-07-22 qarori); ranglar dastlabki burgundy/oltin rejadan anor gradientlari + teal + za'faron + ink shkalasiga rivojlandi, shriftlar Bricolage Grotesque + Hanken Grotesk + Geist Mono, glassmorphism material tili
+- [ ] Asosiy ekranlar wireframe/mockup (4/6 tayyor — wireframe o'rniga to'g'ridan-to'g'ri kodda qurildi):
+  - [x] Bosh sahifa — landing va Mini App'da kodda tayyor
+  - [x] Katalog sahifasi — kodda tayyor (7 kategoriya chipi, qidiruv, mahsulot kartochkalari)
+  - [x] Mahsulot detail sahifasi — Mini App'da kodda tayyor
+  - [x] Buyurtma berish sahifasi (checkout) — 2026-07-25 da kodda qurildi: 4 raqamlangan bo'lim, BTS nuqtasi tanlash sheet, 50% oldindan to'lov hisob-kitobi, Payme/Click
+  - [ ] Ishlab chiqaruvchi kabineti (mahsulotlar ro'yxati, buyurtmalar)
+  - [ ] Admin panel yangi dizaynda (hozirgisi ataylab eski stilda — 2026-07-22 qarori)
+- [ ] Foydalanuvchi oqimi (user flow): xaridor oqimi kodda amalda mavjud, ishlab chiqaruvchi oqimi (ro'yxatdan o'tish → tasdiqlash → mahsulot qo'shish → buyurtma olish) hali aniqlanmagan
+- [x] Dizaynni founder bilan kelishish — iterativ tarzda davom etmoqda: har o'zgarish jonli fikr-mulohaza bilan kelishiladi, rad etilgan g'oyalar ham hujjatlashtirilgan (2026-07-24 yozuvi)
 
 ---
 
@@ -60,6 +60,16 @@ LolaMarket ning barcha asosiy ekranlarini vizual tarzda loyihalash. Kodga o'tish
 
 - [2026-07-24] Kesh-bust versiyasi bo'yicha xato tutildi va tuzatildi — `index.html` dagi `style.css?v=` regex bilan almashtirilganda versiya `v=20` dan `v=7` ga **orqaga** tushib ketgan edi. Bu jimgina buzuvchi xato: `style.css?v=7` URL'i 2026-07-22 da butunlay boshqa mazmun bilan allaqachon berilgan, ya'ni o'sha kuni saytga kirgan qaytuvchi foydalanuvchi (yoki Cloudflare edge tuguni) yangi CSS o'rniga eski keshlangan faylni olardi — telefonda `.m-nav` stilsiz chiqib, `#nav` qadalmay qolardi. Toza keshda o'tkazilgan jonli tekshiruv buni ko'rsatmagan. Versiya `v=21` ga (v=20 dan oldinga) ko'tarilib qayta deploy qilindi, jonli tasdiqlandi. **Qoida:** kesh versiyasi faqat oldinga o'sadi, hech qachon qayta ishlatilmaydi
 
+- [2026-07-25] **Qolgan 3 ekran uchun dizayn spetsifikatsiyasi yozildi — `docs/dizayn-qolgan-ekranlar.md`.** (1) Ishlab chiqaruvchi user flow: 6 qadam (bot ariza → admin tasdiqlashi → mahsulot qo'shish → buyurtma qabul → jo'natish+trek → escrow ozod), xaridor oqimi bilan taqqoslama diagramma; qoida — har holat o'zgarishi ikkala tomonga bot xabari yuboradi, bitta `STATUS_STAGES` lug'ati ishlatiladi. (2) Checkout: ko'p qadamli wizard EMAS, bitta skrollda 4 bo'lim (tarkib → BTS nuqtasi → to'lov → izoh), faqat BTS tanlash bottom-sheet'da — 200+ nuqta ikki bosqichli filtr bilan (viloyat chipi → qidiruv+ro'yxat), tanlangan nuqta `localStorage`'da saqlanadi; escrow radio VARIANTI emas, doimiy teal banner (u to'lov usuli emas, rejim); tasdiqlash tugmasi BTS tanlanmaguncha o'chirilgan. (3) Ishlab chiqaruvchi kabineti — alohida sahifa EMAS, Mini App ichida rol-rejimi (5 tab: Do'kon·Mahsulotlar·Buyurtmalar·Balans·Profil), sabab: bitta bot, `initData` auth allaqachon ishlaydi, ko'p fabrika ayni paytda xaridor ham; balansda komissiya ochiq ko'rsatiladi, "Pul yechish" tugmasi MVP'da yo'q (escrow avtomatik ozod bo'ladi). Yangi komponent yaratilmaydi — mavjud naqshlar qayta ishlatiladi (PAY radio, STATUS_STAGES stepper, segmented tab, searchRow, main-btn-bar, CATS chiplari). Founder hal qilishi kerak bo'lgan 5 ochiq savol hujjat oxirida sanab o'tilgan
+
+- [2026-07-25] Spetsifikatsiya jonli maketga aylantirildi — `maket-yangi-ekranlar.html`: 8 ekranli, brauzerda ochib ko'rish mumkin bo'lgan maket (checkout, BTS sheet, sotuvchi kabineti tablari). Founder bilan kelishish shu maket ustida olib borildi
+
+- [2026-07-25] Sprint auditi o'tkazildi — vazifalar ro'yxati haqiqiy holatga moslandi: brend uslubi va founder bilan kelishish amalda bajarilgan deb belgilandi, 6 ekrandan 3 tasi kodda tayyor. Sprintni yopish uchun qolgan ish: buyurtma/to'lov ekrani (BTS + to'lov), ishlab chiqaruvchi kabineti dizayni va ishlab chiqaruvchi user flow
+
+- [2026-07-25] **Checkout ekrani kodda qayta qurildi (`telegram-app/app.js`, `telegram-app/index.html`, `telegram-app/styles.css`, `index.html`) — dizayn spetsifikatsiyasi amalga oshirildi.** "Escrow" so'zi ikkala yuzadan ham butunlay olib tashlandi (foydalanuvchi: "odamlarga tushunarsiz") — to'lov usullaridan escrow varianti va savatdagi escrow izohi o'chirildi, bosh sahifadagi va landing'dagi matnlar oddiy tilga almashtirildi. To'lov usullari endi faqat Payme va Click (logotip belgisi bilan). Checkout bitta skrollda 4 raqamlangan bo'limga bo'lindi: tarkib → BTS nuqtasi → to'lov → izoh. BTS nuqtasi tanlash uchun bottom-sheet qo'shildi — 9 nuqta, 5 viloyat chipi, qidiruv; tanlangan nuqta `localStorage`da saqlanadi. 50% oldindan to'lov modeli kodga tushdi: `PREPAY_RATE` konstantasi, hisob-kitobda "Hozir to'lanadi / Olishda to'lanadi" qatorlari, tasdiqlash tugmasi jami emas oldindan to'lov summasini ko'rsatadi. Tugma BTS nuqtasi tanlanmaguncha o'chirilgan (`.main-action-btn.disabled`), sababi tugmaning o'zida yozilgan. Texnik to'siq: sheet `#screen-wrap` skroll konteyneri tomonidan kesilardi — `index.html` ga `#sheet-wrap` portali qo'shildi va sheet shu yerdan chiqadi. Yangi animatsiyalar: `fade`, `sheetUp`. Kesh: `styles.css?v=14`, `app.js?v=43`
+
+- [2026-07-25] Bug tuzatildi: "Buyurtma yuborilmadi" xatosi. Sabab — API umuman ulanmagani (404/501, HTML javob) bilan API buyurtmani ATAYLAB rad etgani bir xil ko'rilardi, natijada foydalanuvchiga takrorlangan va noto'g'ri toast chiqardi. Endi uch holat ajratildi: (a) JSON xato javobi → aynan server aytgan sabab ko'rsatiladi; (b) `401` → yangi `authErr` matni "Buyurtma berish uchun ilovani Telegram orqali oching"; (c) javob JSON emas yoki tarmoq yo'q → jimgina mahalliy zaxira yo'liga tushadi. Uchala holat ham brauzerda sinab tasdiqlandi
+
 - [2026-07-24] Sinab ko'rilib QAYTARILGAN ikki g'oya (kelajakda qayta taklif qilinmasligi uchun yozib qo'yiladi) — (1) bosh ekranda logoni 48px'ga kattalashtirish: juda katta chiqdi, header muvozanatini buzdi; (2) katalogda "scroll edge" effekti (skroll paytida header yuqoriga chiqib ketishi): foydalanuvchi eski qadalgan (pin) holatni afzal ko'rdi
 
 ---
@@ -87,6 +97,24 @@ LolaMarket ning barcha asosiy ekranlarini vizual tarzda loyihalash. Kodga o'tish
 
 - [2026-07-24] Qaror: Shisha ustidagi boshqaruv elementlariga (`.icon-btn` kabi) qo'shimcha `backdrop-filter` QO'YILMAYDI — o'rniga yengil oq to'ldirish va nozik qirra ishlatiladi. Sabab: shisha ustidagi shisha ikki qavat blur berib loyqa, iflos ko'rinish hosil qiladi
 
+- [2026-07-25] **Qaror (founder): to'lov modeli — qisman oldindan to'lov, to'liq escrow EMAS.** Xaridor checkout'da 50% to'laydi, matoni qabul qilgach qolgan 50% ni to'laydi. Muhim natija: alohida "qabul qildim" tugmasi KERAK EMAS — ikkinchi to'lovning tushishi qabul qilinganlik dalili bo'ladi va holatni avtomatik "yakunlandi"ga o'tkazadi. Checkout tugmasi jami summani emas, oldindan to'lov summasini ko'rsatadi. Ulush kodda bitta konstanta (`PREPAY_RATE = 0.5`). Xaridor qolgan qismni to'lamay qo'ysa nima bo'lishi — Sprint 6 (to'lov integratsiyasi) da hal qilinadi
+
+- [2026-07-25] Qaror (founder): buyurtmani qabul qilish uchun muddat va avtomatik bekor qilish YO'Q — buyurtmalar tez tasdiqlanadi, kechikkanini founder qo'lda kuzatadi. Dizayndan qaytasanoq ("23 soat qoldi") olib tashlandi, o'rniga nisbiy vaqt ("12 daqiqa oldin")
+
+- [2026-07-25] Qaror (founder): komissiya foizi yagona emas — har sotuvchi bilan offlayn kelishiladi. Shu sabab UI'da hech qayerda foiz yozilmaydi (jumladan "10–12%"), balans ekrani komissiyani faqat so'mda ko'rsatadi. Foiz bazada sotuvchi profilida saqlanadi
+
+- [2026-07-25] Qaror (founder): BTS yetkazish narxi hozircha hisoblanmaydi — integratsiya ulangach avtomatik hisoblanadi. Checkout'da "Yetkazish (BTS)" qatori "BTS'da to'lanadi" matni bilan turadi, tuzilma keyin o'zgarmaydi
+
+- [2026-07-25] Qaror (founder): tasdiqlangan sotuvchi xohlasa xaridor sifatida ham buyurtma bera oladi (ixtiyoriy ikki rol). Shu bilan Mini App ichidagi rejim-almashtirish ("Xaridor rejimiga qaytish") tasdiqlandi
+
+- [2026-07-25] Qaror: ishlab chiqaruvchi kabineti alohida sayt/ilova EMAS — o'sha Mini App ichida rol-rejimi. Sabablari: bitta bot va `initData` auth allaqachon ishlaydi (ikkinchi ilova ikkinchi marta ishonch qozonishni talab qilardi), dizayn tizimining yagona manba qoidasi, va fabrikalarning ko'pi ayni paytda xaridor ham. Admin panel alohida qoladi
+
+- [2026-07-25] Qaror: ishlab chiqaruvchi arizasi Mini App formasi orqali emas, bot suhbati orqali olinadi (4 savol). Sabab: B2B auditoriya uchun bot suhbati tanish va ishonchli, telefon raqami Telegram `request_contact` bilan bir bosishda olinadi
+
 - [2026-07-24] Qaror: Mobil pastki nav faqat telefonda ko'rinadi, desktopda (≥880px) butunlay yashiriladi. Sabab: landing bir vaqtning o'zida ikki auditoriyaga xizmat qiladi — telefonda u Mini App'dek ilova bo'lishi kerak, kompyuterda esa SEO va odatiy foydalanuvchi uchun oddiy veb-sayt bo'lib qolishi kerak. Shuningdek `mNav()` yangi ekran yaratmay mavjud drawer'larni ochadi, ya'ni sahifa tuzilmasi va indekslanishi umuman o'zgarmaydi
+
+- [2026-07-25] **Qaror: "Escrow" so'zi foydalanuvchi yuzasida umuman ishlatilmaydi** — Mini App'da ham, landing'da ham. Sabab (foydalanuvchi): "odamlarga tushunarsiz". Mexanizmning o'zi qoladi (pul platformada ushlab turiladi), lekin u faqat oddiy til bilan tushuntiriladi: "50% hozir, qolgani matoni olayotganda". To'lov usullari ro'yxatida escrow VARIANT sifatida ham turmaydi — u to'lov usuli emas edi, dizayn spetsifikatsiyasidagi "doimiy teal banner" g'oyasi ham shu bilan bekor qilindi
+
+- [2026-07-25] Qaror: xato holatlari uch turga ajratiladi — server rad etdi / auth yo'q / server umuman yo'q. Sabab: ilgari uchalasi bitta "Buyurtma yuborilmadi" toast'i bilan tugardi, foydalanuvchi nima qilishni bilmasdi. Endi har holat o'z matnini beradi, faqat "server yo'q" holati mahalliy zaxira yo'liga tushadi
 
 - [2026-07-22] Qaror: Landing sahifasida `<h1>` sarlavha bo'lmaydi — katalog ustidagi kirish bloki (sarlavha + izoh + ishonch chiplari) sinab ko'rilib, foydalanuvchi so'roviga ko'ra olib tashlandi. Sabab: sahifa do'kon, matnli kirish mahsulotlarni pastga surib yuboradi. SEO uchun sarlavha kerak bo'lsa keyinroq boshqa shaklda qaytariladi

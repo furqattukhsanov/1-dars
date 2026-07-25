@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LolaMarket — yangi ekranlar maketi</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --pom-900:#2A0701; --pom-800:#510100; --pom-700:#7a140d; --pom-600:#8f1a10;
+  --pom-500:#C9362D; --pom-400:#E84B40; --pom-100:#FFE9DB; --pom-50:#FBF6EC;
+  --teal-700:#0C656F; --teal-600:#119DAB; --teal-50:#EBF8F9;
+  --saffron-700:#89540C; --saffron-500:#D98E0C; --saffron-50:#FFF8EA;
+  --ink-900:#171A30; --ink-800:#232842; --ink-700:#374060; --ink-500:#5A6480;
+  --ink-400:#7A859A; --ink-300:#A8B0C2; --ink-200:#C8CDD8; --ink-100:#E8EAF0;
+  --success-500:#1FA971; --success-100:#D5F2E4; --danger-500:#E5484D;
+  --text-strong:var(--ink-900); --text-body:var(--ink-700); --text-muted:var(--ink-500);
+  --surface-app:
+    radial-gradient(120% 70% at 12% 0%, rgba(255,241,232,.3) 0%, transparent 46%),
+    radial-gradient(120% 60% at 100% 8%, rgba(248,225,214,.2) 0%, transparent 44%),
+    radial-gradient(130% 80% at 90% 100%, rgba(122,20,13,.03) 0%, transparent 52%),
+    linear-gradient(160deg,#FFFDFB,#FDF7F4);
+  --glass-blur:blur(32px) saturate(200%) brightness(1.09);
+  --glass-tint:linear-gradient(to bottom, rgba(255,253,251,.74), rgba(255,248,245,.6));
+  --glass-edge:rgba(255,255,255,.58);
+  --glass-spec:inset 0 1px 0 rgba(255,255,255,.92), inset 0 -1px 1px rgba(255,255,255,.3);
+  --glass-cast:0 10px 34px -8px rgba(81,1,0,.20), 0 2px 8px -2px rgba(23,26,48,.08);
+  --shadow-sm:0 2px 6px rgba(23,26,48,.07),0 1px 2px rgba(23,26,48,.06);
+  --radius-sm:10px; --radius-md:14px; --radius-lg:20px; --radius-xl:28px;
+  --font-display:'Bricolage Grotesque',system-ui,sans-serif;
+  --font-sans:'Hanken Grotesk',system-ui,sans-serif;
+  --font-mono:'Geist Mono','SF Mono',monospace;
+  --grad:linear-gradient(135deg,#8f1a10,#510100);
+  --header-h:58px; --dock-h:92px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans);background:#EFE9E4;color:var(--text-body);
+  -webkit-font-smoothing:antialiased;padding:28px 16px 60px}
+
+/* ==== maket sahnasi ==== */
+.stage{max-width:1400px;margin:0 auto}
+.stage-head{text-align:center;margin-bottom:8px}
+.stage-head h1{font-family:var(--font-display);font-size:26px;font-weight:800;
+  color:var(--pom-800);letter-spacing:-.02em}
+.stage-head p{font-size:14px;color:var(--ink-500);margin-top:6px}
+.frames{display:flex;flex-wrap:wrap;gap:34px;justify-content:center;margin-top:32px}
+.frame{width:375px;flex:none}
+.frame-label{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;
+  color:var(--pom-700);margin-bottom:4px}
+.frame-note{font-size:12px;color:var(--ink-400);margin-bottom:10px;line-height:1.45;min-height:32px}
+.phone{width:375px;height:760px;border-radius:38px;overflow:hidden;position:relative;
+  background:var(--surface-app);box-shadow:0 22px 60px -18px rgba(42,7,1,.4),
+  0 0 0 9px #17141a, 0 0 0 10px #3a3440}
+
+/* ==== app chrome ==== */
+.hdr{position:absolute;top:0;left:0;right:0;height:var(--header-h);z-index:20;
+  display:flex;align-items:center;gap:10px;padding:0 14px;
+  backdrop-filter:blur(24px) saturate(180%) brightness(1.06);
+  -webkit-backdrop-filter:blur(24px) saturate(180%) brightness(1.06);
+  background:var(--glass-tint);box-shadow:0 4px 16px -10px rgba(81,1,0,.18)}
+.hdr-back{width:32px;height:32px;border-radius:50%;border:1px solid rgba(255,255,255,.7);
+  background:rgba(255,255,255,.5);display:flex;align-items:center;justify-content:center;
+  color:var(--pom-700);font-size:17px;flex:none}
+.hdr-title{font-family:var(--font-display);font-size:17px;font-weight:800;
+  color:var(--text-strong);letter-spacing:-.02em}
+.scroll{position:absolute;inset:0;overflow:hidden;padding:calc(var(--header-h) + 14px) 14px
+  calc(var(--dock-h) + 10px)}
+.dock{position:absolute;left:0;right:0;bottom:0;z-index:20;padding:12px 14px 20px;
+  backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);
+  background:var(--glass-tint);box-shadow:var(--glass-spec),var(--glass-cast)}
+
+/* ==== umumiy komponentlar ==== */
+.sec{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;
+  color:var(--pom-700);margin:16px 2px 8px;display:flex;align-items:center;gap:7px}
+.sec:first-child{margin-top:0}
+.sec-n{width:17px;height:17px;border-radius:50%;background:var(--pom-100);color:var(--pom-700);
+  display:flex;align-items:center;justify-content:center;font-size:9.5px;font-weight:700}
+.card{background:rgba(255,255,255,.62);border:1px solid rgba(255,255,255,.75);
+  border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);padding:13px}
+.btn{width:100%;border:none;border-radius:var(--radius-md);background:var(--grad);
+  color:#fff;font-family:var(--font-sans);font-weight:700;font-size:15px;padding:14px;
+  display:flex;flex-direction:column;align-items:center;gap:2px;line-height:1.2}
+.btn small{font-size:12.5px;font-weight:600;opacity:.82;font-family:var(--font-mono)}
+.btn.off{background:var(--ink-200);color:#fff;opacity:.55}
+.btn.ghost{background:transparent;border:1.5px solid var(--danger-500);color:var(--danger-500)}
+.mono{font-family:var(--font-mono)}
+.pill{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;
+  padding:4px 9px;border-radius:999px}
+.pill.ok{background:var(--success-100);color:#0d6b45}
+.pill.saf{background:var(--saffron-50);color:var(--saffron-700)}
+.pill.teal{background:var(--teal-50);color:var(--teal-700)}
+
+/* ==== 1 · checkout ==== */
+.line{display:flex;gap:11px;align-items:center}
+.thumb{width:52px;height:52px;border-radius:12px;flex:none;
+  background:linear-gradient(135deg,#e8c9b8,#c98f74)}
+.t-name{font-weight:700;font-size:14px;color:var(--text-strong);letter-spacing:-.01em}
+.t-sub{font-size:12px;color:var(--ink-400);margin-top:2px}
+.qty{display:flex;align-items:center;gap:9px;margin-top:11px;padding-top:11px;
+  border-top:1px solid var(--ink-100)}
+.qty b{width:30px;height:30px;border-radius:9px;background:var(--grad);color:#fff;
+  display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:600}
+.qty span{font-size:13.5px;font-weight:600;color:var(--text-strong);min-width:56px;text-align:center}
+.qty-price{margin-left:auto;font-family:var(--font-mono);font-size:13.5px;font-weight:600;
+  color:var(--pom-700)}
+
+.bts-empty{border:1.5px dashed var(--ink-200);background:rgba(255,255,255,.4);
+  border-radius:var(--radius-lg);padding:15px 13px;display:flex;align-items:center;gap:10px}
+.bts-empty .ic{width:34px;height:34px;border-radius:11px;background:var(--ink-100);
+  display:flex;align-items:center;justify-content:center;font-size:15px;flex:none}
+.bts-empty div{font-size:13.5px;font-weight:600;color:var(--ink-500)}
+.bts-empty i{margin-left:auto;color:var(--ink-300);font-style:normal;font-size:17px}
+.bts-sel{display:flex;gap:10px}
+.bts-sel .ic{width:34px;height:34px;border-radius:11px;background:var(--teal-50);
+  display:flex;align-items:center;justify-content:center;font-size:15px;flex:none}
+.bts-name{font-weight:700;font-size:13.5px;color:var(--text-strong)}
+.bts-addr{font-size:12px;color:var(--ink-400);margin-top:2px;line-height:1.4}
+.bts-ch{font-size:12px;font-weight:700;color:var(--teal-600);margin-top:5px;display:inline-block}
+
+.pay{display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:var(--radius-md);
+  background:rgba(255,255,255,.62);border:1px solid rgba(255,255,255,.75);margin-bottom:7px;
+  box-shadow:var(--shadow-sm)}
+.pay.on{border-color:var(--pom-500);background:#fff}
+.radio{width:19px;height:19px;border-radius:50%;border:2px solid var(--ink-200);flex:none;
+  display:flex;align-items:center;justify-content:center}
+.pay.on .radio{border-color:var(--pom-500)}
+.pay.on .radio::after{content:'';width:9px;height:9px;border-radius:50%;background:var(--pom-500)}
+.pay-logo{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;
+  justify-content:center;font-size:9px;font-weight:800;color:#fff;flex:none}
+.pay-name{font-size:14px;font-weight:600;color:var(--text-strong)}
+
+.escrow{background:var(--teal-50);border:1px solid rgba(17,157,171,.2);
+  border-radius:var(--radius-md);padding:11px 12px;display:flex;gap:9px;margin-top:9px}
+.escrow .sh{font-size:15px;flex:none;line-height:1.3}
+.escrow p{font-size:12px;color:var(--teal-700);line-height:1.5;font-weight:500}
+
+.sum{margin-top:16px;padding-top:13px;border-top:1px solid var(--ink-100)}
+.sum-row{display:flex;justify-content:space-between;align-items:center;
+  font-size:13px;color:var(--ink-500);padding:5px 2px}
+.sum-row .v{font-family:var(--font-mono);font-weight:500}
+.sum-div{height:1px;background:var(--ink-100);margin:8px 2px}
+.sum-row.now{font-size:15px;color:var(--text-strong);font-weight:700}
+.sum-row.now .v{font-weight:700;color:var(--pom-700);font-size:15px}
+.sum-row.later{font-size:13px;color:var(--ink-500)}
+.prepay-tag{font-size:10px;font-weight:700;background:var(--pom-100);color:var(--pom-700);
+  padding:2px 6px;border-radius:999px;margin-left:6px;vertical-align:1px}
+
+/* ==== 2 · BTS sheet ==== */
+.scrim{position:absolute;inset:0;background:rgba(23,26,48,.34);z-index:30}
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:31;max-height:78%;
+  border-radius:var(--radius-xl) var(--radius-xl) 0 0;padding:10px 14px 18px;
+  backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);
+  background:var(--glass-tint);box-shadow:var(--glass-spec),0 -12px 40px -8px rgba(81,1,0,.28);
+  display:flex;flex-direction:column}
+.grab{width:38px;height:4px;border-radius:99px;background:var(--ink-200);margin:0 auto 12px}
+.sheet h3{font-family:var(--font-display);font-size:17px;font-weight:800;
+  color:var(--text-strong);margin-bottom:11px;letter-spacing:-.02em}
+.search{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.7);
+  border:1px solid rgba(255,255,255,.8);border-radius:999px;padding:10px 14px;
+  font-size:13.5px;color:var(--ink-300);box-shadow:var(--shadow-sm)}
+.chips{display:flex;gap:7px;margin:11px 0 9px;overflow:hidden}
+.chip{font-size:12.5px;font-weight:600;padding:7px 13px;border-radius:999px;flex:none;
+  background:rgba(255,255,255,.66);border:1px solid rgba(255,255,255,.8);color:var(--ink-700)}
+.chip.on{background:var(--ink-900);color:#fff;border-color:var(--ink-900)}
+.found{font-size:11.5px;color:var(--ink-400);margin:2px 2px 9px;font-weight:600}
+.point{display:flex;align-items:center;gap:11px;padding:12px;border-radius:var(--radius-md);
+  background:rgba(255,255,255,.6);margin-bottom:7px}
+.point.on{background:#fff;box-shadow:0 0 0 1.5px var(--pom-500)}
+.point .radio{margin-left:auto}
+.point.on .radio{border-color:var(--pom-500)}
+.point.on .radio::after{content:'';width:9px;height:9px;border-radius:50%;background:var(--pom-500)}
+
+/* ==== 3 · buyurtma holati ==== */
+.steps{padding:4px 0 2px}
+.step{display:flex;gap:11px;align-items:flex-start;position:relative;padding-bottom:17px}
+.step:last-child{padding-bottom:0}
+.step::before{content:'';position:absolute;left:10px;top:22px;bottom:0;width:2px;
+  background:var(--ink-100)}
+.step:last-child::before{display:none}
+.step.done::before{background:var(--success-500);opacity:.35}
+.dot{width:22px;height:22px;border-radius:50%;flex:none;display:flex;align-items:center;
+  justify-content:center;font-size:11px;font-weight:700;background:var(--ink-100);
+  color:var(--ink-400);z-index:1}
+.step.done .dot{background:var(--success-500);color:#fff}
+.step.now .dot{background:var(--grad);color:#fff;box-shadow:0 0 0 4px rgba(143,26,16,.13)}
+.step-t{font-size:13.5px;font-weight:700;color:var(--text-strong);line-height:1.3}
+.step.wait .step-t{color:var(--ink-300)}
+.step-d{font-size:11.5px;color:var(--ink-400);margin-top:2px}
+
+.locked{margin-top:13px;background:var(--saffron-50);border:1px solid rgba(217,142,12,.22);
+  border-radius:var(--radius-md);padding:11px 12px;display:flex;gap:9px}
+.locked p{font-size:12px;color:var(--saffron-700);line-height:1.5;font-weight:500}
+
+.code-card{background:var(--grad);border-radius:var(--radius-lg);padding:18px 16px;
+  color:#fff;text-align:center;box-shadow:0 14px 34px -14px rgba(81,1,0,.6)}
+.code-card .lbl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;
+  opacity:.75}
+.code-card .code{font-family:var(--font-mono);font-size:38px;font-weight:600;letter-spacing:.16em;
+  margin:7px 0 3px}
+.code-card .where{font-size:12px;opacity:.8;line-height:1.45}
+
+/* ==== 4 · sotuvchi kabineti ==== */
+.tabs{display:flex;gap:4px;background:rgba(255,255,255,.55);border-radius:999px;padding:4px;
+  margin-bottom:13px;box-shadow:var(--shadow-sm)}
+.tab{flex:1;text-align:center;font-size:12.5px;font-weight:700;padding:8px 4px;
+  border-radius:999px;color:var(--ink-500)}
+.tab.on{background:var(--grad);color:#fff}
+.prow{display:flex;gap:11px;align-items:center;margin-bottom:9px}
+.prow .thumb{width:46px;height:46px;border-radius:11px}
+.stock{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;
+  color:var(--ink-500);margin-top:3px}
+.stock::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--success-500)}
+.pact{margin-left:auto;display:flex;gap:5px}
+.pact i{width:28px;height:28px;border-radius:9px;background:rgba(255,255,255,.8);
+  border:1px solid var(--ink-100);display:flex;align-items:center;justify-content:center;
+  font-style:normal;font-size:12px;color:var(--ink-500)}
+.fab{position:absolute;right:16px;bottom:calc(var(--dock-h) + 12px);width:52px;height:52px;
+  border-radius:50%;background:var(--grad);color:#fff;font-size:26px;z-index:22;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 12px 28px -8px rgba(81,1,0,.55)}
+.ord-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:9px}
+.ord-id{font-family:var(--font-mono);font-size:12.5px;font-weight:600;color:var(--ink-500)}
+.ord-when{font-size:11px;color:var(--ink-300);margin-top:2px}
+.ord-btns{display:flex;gap:8px;margin-top:11px}
+.ord-btns .btn{padding:10px;font-size:13.5px}
+.meta{font-size:12px;color:var(--ink-500);line-height:1.6;margin-top:8px;
+  padding-top:8px;border-top:1px solid var(--ink-100)}
+.meta b{color:var(--text-body);font-weight:600}
+
+.bal{background:var(--grad);border-radius:var(--radius-lg);padding:19px 17px;color:#fff;
+  box-shadow:0 16px 38px -16px rgba(81,1,0,.55)}
+.bal .lbl{font-size:11.5px;font-weight:600;opacity:.78}
+.bal .big{font-family:var(--font-mono);font-size:29px;font-weight:600;margin:5px 0 13px;
+  letter-spacing:-.01em}
+.bal .out{border-top:1px solid rgba(255,255,255,.22);padding-top:11px;display:flex;
+  justify-content:space-between;font-size:12.5px;opacity:.86}
+.bal .out span:last-child{font-family:var(--font-mono);font-weight:600}
+.trow{display:flex;justify-content:space-between;align-items:flex-start;padding:11px 0;
+  border-bottom:1px solid var(--ink-100)}
+.trow:last-child{border-bottom:none}
+.trow .l .id{font-family:var(--font-mono);font-size:12.5px;font-weight:600;color:var(--text-strong)}
+.trow .l .sub{font-size:11px;color:var(--ink-400);margin-top:3px}
+.trow .r{text-align:right}
+.trow .r .amt{font-family:var(--font-mono);font-size:13.5px;font-weight:600;color:var(--success-500)}
+.trow .r .amt.wait{color:var(--saffron-700)}
+
+/* nav dock */
+.nav{display:flex;justify-content:space-around;align-items:center}
+.nv{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px;
+  font-weight:600;color:rgba(104,17,11,.68)}
+.nv .ic{font-size:17px;line-height:1}
+.nv.on{color:var(--pom-700)}
+.nv.on .ic{filter:none}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="stage-head">
+    <h1>LolaMarket — yangi ekranlar</h1>
+    <p>Sprint 0 maketi · 50% oldindan to'lov modeli · mavjud dizayn tokenlari bilan</p>
+  </div>
+
+  <div class="frames">
+
+    <!-- ===== 1. CHECKOUT ===== -->
+    <div class="frame">
+      <div class="frame-label">1 · Buyurtma berish</div>
+      <div class="frame-note">Bitta skrollda 4 bo'lim. Tugmada JAMI emas, oldindan to'lov summasi turadi.</div>
+      <div class="phone">
+        <div class="hdr"><div class="hdr-back">‹</div><div class="hdr-title">Buyurtma berish</div></div>
+        <div class="scroll">
+          <div class="sec"><span class="sec-n">1</span> Buyurtma tarkibi</div>
+          <div class="card">
+            <div class="line">
+              <div class="thumb"></div>
+              <div>
+                <div class="t-name">Qo'lbola adras</div>
+                <div class="t-sub">Marg'ilon To'qimachi · 1 rulon ≈ 30 m</div>
+              </div>
+            </div>
+            <div class="qty">
+              <b>−</b><span>2 rulon</span><b>+</b>
+              <div class="qty-price">1 460 000</div>
+            </div>
+          </div>
+
+          <div class="sec"><span class="sec-n">2</span> Olish nuqtasi (BTS)</div>
+          <div class="bts-empty">
+            <div class="ic">📍</div>
+            <div>Olish nuqtasini tanlang</div>
+            <i>›</i>
+          </div>
+
+          <div class="sec"><span class="sec-n">3</span> To'lov</div>
+          <div class="pay">
+            <div class="radio"></div>
+            <div class="pay-logo" style="background:#00CCCC">P</div>
+            <div class="pay-name">Payme</div>
+          </div>
+          <div class="pay on">
+            <div class="radio"></div>
+            <div class="pay-logo" style="background:#0073E6">C</div>
+            <div class="pay-name">Click</div>
+          </div>
+          <div class="escrow">
+            <div class="sh">🛡</div>
+            <p>To'lovingiz escrow'da saqlanadi. Mato BTS'ga yetib kelmaguncha sotuvchiga o'tmaydi.</p>
+          </div>
+
+          <div class="sum">
+            <div class="sum-row"><span>Mahsulotlar</span><span class="v">1 460 000</span></div>
+            <div class="sum-row"><span>Yetkazish (BTS)</span><span class="v">BTS'da to'lanadi</span></div>
+            <div class="sum-div"></div>
+            <div class="sum-row now"><span>Hozir to'lanadi<span class="prepay-tag">50%</span></span><span class="v">730 000</span></div>
+            <div class="sum-row later"><span>Olishda to'lanadi</span><span class="v">730 000</span></div>
+          </div>
+        </div>
+        <div class="dock">
+          <button class="btn off">Hozir to'lash <small>Avval olish nuqtasini tanlang</small></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== 2. BTS SHEET ===== -->
+    <div class="frame">
+      <div class="frame-label">2 · BTS nuqtasi tanlash</div>
+      <div class="frame-note">200+ nuqta ikki bosqichli filtr bilan: viloyat chipi → qidiruv va ro'yxat.</div>
+      <div class="phone">
+        <div class="hdr"><div class="hdr-back">‹</div><div class="hdr-title">Buyurtma berish</div></div>
+        <div class="scroll">
+          <div class="sec"><span class="sec-n">1</span> Buyurtma tarkibi</div>
+          <div class="card">
+            <div class="line">
+              <div class="thumb"></div>
+              <div>
+                <div class="t-name">Qo'lbola adras</div>
+                <div class="t-sub">Marg'ilon To'qimachi · 1 rulon ≈ 30 m</div>
+              </div>
+            </div>
+          </div>
+          <div class="sec"><span class="sec-n">2</span> Olish nuqtasi (BTS)</div>
+          <div class="bts-empty"><div class="ic">📍</div><div>Olish nuqtasini tanlang</div><i>›</i></div>
+        </div>
+        <div class="scrim"></div>
+        <div class="sheet">
+          <div class="grab"></div>
+          <h3>Olish nuqtasini tanlang</h3>
+          <div class="search">🔍 Nuqta yoki manzil qidiring</div>
+          <div class="chips">
+            <div class="chip on">Toshkent</div><div class="chip">Farg'ona</div>
+            <div class="chip">Buxoro</div><div class="chip">Andi</div>
+          </div>
+          <div class="found">27 nuqta topildi</div>
+          <div class="point on">
+            <div>
+              <div class="bts-name">BTS №112 — Chilonzor</div>
+              <div class="bts-addr">Bunyodkor 45 · 9:00–19:00</div>
+            </div>
+            <div class="radio"></div>
+          </div>
+          <div class="point">
+            <div>
+              <div class="bts-name">BTS №097 — Yunusobod</div>
+              <div class="bts-addr">Amir Temur 12 · 9:00–18:00</div>
+            </div>
+            <div class="radio"></div>
+          </div>
+          <div class="point">
+            <div>
+              <div class="bts-name">BTS №054 — Sergeli</div>
+              <div class="bts-addr">Yangi Sergeli 8 · 9:00–19:00</div>
+            </div>
+            <div class="radio"></div>
+          </div>
+          <button class="btn" style="margin-top:10px">Tanlash</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== 3. TO'LDIRILGAN CHECKOUT ===== -->
+    <div class="frame">
+      <div class="frame-label">3 · Nuqta tanlangach</div>
+      <div class="frame-note">Tanlangan nuqta saqlanadi — ikkinchi buyurtmada bu qadam allaqachon to'ldirilgan keladi.</div>
+      <div class="phone">
+        <div class="hdr"><div class="hdr-back">‹</div><div class="hdr-title">Buyurtma berish</div></div>
+        <div class="scroll">
+          <div class="sec"><span class="sec-n">2</span> Olish nuqtasi (BTS)</div>
+          <div class="card">
+            <div class="bts-sel">
+              <div class="ic">📍</div>
+              <div>
+                <div class="bts-name">BTS №112 — Chilonzor</div>
+                <div class="bts-addr">Toshkent, Bunyodkor 45<br>Ish vaqti 9:00–19:00</div>
+                <span class="bts-ch">O'zgartirish</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="sec"><span class="sec-n">3</span> To'lov</div>
+          <div class="pay on">
+            <div class="radio"></div>
+            <div class="pay-logo" style="background:#0073E6">C</div>
+            <div class="pay-name">Click</div>
+          </div>
+          <div class="escrow">
+            <div class="sh">🛡</div>
+            <p>To'lovingiz escrow'da saqlanadi. Mato BTS'ga yetib kelmaguncha sotuvchiga o'tmaydi.</p>
+          </div>
+
+          <div class="sec"><span class="sec-n">4</span> Izoh (ixtiyoriy)</div>
+          <div class="card" style="color:var(--ink-300);font-size:13px">Sotuvchiga izoh…</div>
+
+          <div class="sum">
+            <div class="sum-row"><span>Mahsulotlar</span><span class="v">1 460 000</span></div>
+            <div class="sum-row"><span>Yetkazish (BTS)</span><span class="v">BTS'da to'lanadi</span></div>
+            <div class="sum-div"></div>
+            <div class="sum-row now"><span>Hozir to'lanadi<span class="prepay-tag">50%</span></span><span class="v">730 000</span></div>
+            <div class="sum-row later"><span>Olishda to'lanadi</span><span class="v">730 000</span></div>
+          </div>
+        </div>
+        <div class="dock">
+          <button class="btn">Hozir to'lash <small>730 000 so'm</small></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== 4. HOLAT — QOLGANINI TO'LASH ===== -->
+    <div class="frame">
+      <div class="frame-label">4 · Mato BTS'da — to'lov kutilmoqda</div>
+      <div class="frame-note">Qolgan 50% to'lanmaguncha BTS mahsulotni bermaydi. Alohida "qabul qildim" tugmasi yo'q.</div>
+      <div class="phone">
+        <div class="hdr"><div class="hdr-back">‹</div><div class="hdr-title">Buyurtma #LM-3012</div></div>
+        <div class="scroll">
+          <div class="card">
+            <div class="line">
+              <div class="thumb"></div>
+              <div>
+                <div class="t-name">Qo'lbola adras</div>
+                <div class="t-sub">2 rulon · 1 460 000 so'm</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="sec">Holat</div>
+          <div class="card">
+            <div class="steps">
+              <div class="step done"><div class="dot">✓</div><div>
+                <div class="step-t">Oldindan to'lov qabul qilindi</div>
+                <div class="step-d">22-iyul · 730 000 so'm</div></div></div>
+              <div class="step done"><div class="dot">✓</div><div>
+                <div class="step-t">Sotuvchi tasdiqladi</div>
+                <div class="step-d">22-iyul, 14:20</div></div></div>
+              <div class="step done"><div class="dot">✓</div><div>
+                <div class="step-t">Yo'lga chiqdi</div>
+                <div class="step-d">Trek: BTS-77410293</div></div></div>
+              <div class="step now"><div class="dot">●</div><div>
+                <div class="step-t">BTS'ga yetib keldi — to'lov kutilmoqda</div>
+                <div class="step-d">BTS №112 — Chilonzor</div></div></div>
+              <div class="step wait"><div class="dot"></div><div>
+                <div class="step-t">Qo'lga olindi</div></div></div>
+            </div>
+            <div class="locked">
+              <div class="sh">🔒</div>
+              <p>Qolgan to'lovdan keyin olish kodi beriladi. BTS mahsulotni faqat kod bilan topshiradi.</p>
+            </div>
+          </div>
+
+          <div class="sum">
+            <div class="sum-row"><span>Jami</span><span class="v">1 460 000</span></div>
+            <div class="sum-row"><span>To'langan (50%)</span><span class="v" style="color:var(--success-500)">−730 000</span></div>
+            <div class="sum-div"></div>
+            <div class="sum-row now"><span>Qolgan to'lov</span><span class="v">730 000</span></div>
+          </div>
+        </div>
+        <div class="dock">
+          <button class="btn">Qolganini to'lash <small>730 000 so'm</small></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== 5. OLISH KODI ===== -->
+    <div class="frame">
+      <div class="frame-label">5 · To'langach — olish kodi</div>
+      <div class="frame-note">Xaridor shu ekranni BTS'da ko'rsatadi. Kod katta mono shriftda — uzoqdan o'qiladi.</div>
+      <div class="phone">
+        <div class="hdr"><div class="hdr-back">‹</div><div class="hdr-title">Buyurtma #LM-3012</div></div>
+        <div class="scroll">
+          <div class="code-card">
+            <div class="lbl">Olish kodi</div>
+            <div class="code">4821</div>
+            <div class="where">BTS №112 — Chilonzor<br>Toshkent, Bunyodkor 45 · 9:00–19:00</div>
+          </div>
+
+          <div class="sec">Holat</div>
+          <div class="card">
+            <div class="steps">
+              <div class="step done"><div class="dot">✓</div><div>
+                <div class="step-t">Yo'lga chiqdi</div>
+                <div class="step-d">Trek: BTS-77410293</div></div></div>
+              <div class="step done"><div class="dot">✓</div><div>
+                <div class="step-t">BTS'ga yetib keldi</div>
+                <div class="step-d">25-iyul, 09:40</div></div></div>
+              <div class="step done"><div class="dot">✓</div><div>
+                <div class="step-t">To'lov to'liq amalga oshirildi</div>
+                <div class="step-d">25-iyul · 730 000 so'm</div></div></div>
+              <div class="step now"><div class="dot">●</div><div>
+                <div class="step-t">Olishni kutmoqda</div>
+                <div class="step-d">Kodni BTS xodimiga ko'rsating</div></div></div>
+            </div>
+          </div>
+
+          <div class="sec">Buyurtma</div>
+          <div class="card">
+            <div class="sum-row" style="padding:3px 0"><span>Qo'lbola adras · 2 rulon</span><span class="v">1 460 000</span></div>
+            <div class="sum-div"></div>
+            <div class="sum-row" style="padding:3px 0"><span>To'liq to'landi</span><span class="pill ok">✓ yakunlandi</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== 6. SOTUVCHI — MAHSULOTLAR ===== -->
+    <div class="frame">
+      <div class="frame-label">6 · Sotuvchi · Mahsulotlarim</div>
+      <div class="frame-note">Alohida sayt emas — o'sha Mini App ichida rol-rejimi. Nav 5 tabga almashadi.</div>
+      <div class="phone">
+        <div class="hdr"><div class="hdr-title">Mahsulotlarim</div>
+          <span class="pill teal" style="margin-left:auto">Sotuvchi rejimi</span></div>
+        <div class="scroll">
+          <div class="tabs"><div class="tab on">Faol 6</div><div class="tab">Yashirin 2</div></div>
+          <div class="card" style="margin-bottom:9px">
+            <div class="prow">
+              <div class="thumb"></div>
+              <div>
+                <div class="t-name">Qo'lbola adras</div>
+                <div class="t-sub mono">730 000 so'm · 14 rulon</div>
+                <div class="stock">Sotuvda</div>
+              </div>
+              <div class="pact"><i>✎</i><i>⋯</i></div>
+            </div>
+          </div>
+          <div class="card" style="margin-bottom:9px">
+            <div class="prow">
+              <div class="thumb" style="background:linear-gradient(135deg,#cbd7c9,#89a68b)"></div>
+              <div>
+                <div class="t-name">Atlas ipak</div>
+                <div class="t-sub mono">1 120 000 so'm · 6 rulon</div>
+                <div class="stock">Sotuvda</div>
+              </div>
+              <div class="pact"><i>✎</i><i>⋯</i></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="prow">
+              <div class="thumb" style="background:linear-gradient(135deg,#d6c8e0,#9b83ab)"></div>
+              <div>
+                <div class="t-name">Bekasab</div>
+                <div class="t-sub mono">640 000 so'm · 2 rulon</div>
+                <div class="stock" style="color:var(--saffron-700)">Kam qoldi</div>
+              </div>
+              <div class="pact"><i>✎</i><i>⋯</i></div>
+            </div>
+          </div>
+        </div>
+        <div class="fab">+</div>
+        <div class="dock"><div class="nav">
+          <div class="nv"><span class="ic">🏠</span>Do'kon</div>
+          <div class="nv on"><span class="ic">📦</span>Mahsulot</div>
+          <div class="nv"><span class="ic">🧾</span>Buyurtma</div>
+          <div class="nv"><span class="ic">💰</span>Balans</div>
+          <div class="nv"><span class="ic">👤</span>Profil</div>
+        </div></div>
+      </div>
+    </div>
+
+    <!-- ===== 7. SOTUVCHI — BUYURTMALAR ===== -->
+    <div class="frame">
+      <div class="frame-label">7 · Sotuvchi · Buyurtmalar</div>
+      <div class="frame-note">Qaytasanoq yo'q — avtomatik bekor qilish bekor qilindi. Oldindan to'lov ko'rinadi.</div>
+      <div class="phone">
+        <div class="hdr"><div class="hdr-title">Buyurtmalar</div>
+          <span class="pill teal" style="margin-left:auto">Sotuvchi rejimi</span></div>
+        <div class="scroll">
+          <div class="tabs"><div class="tab on">Yangi 2</div><div class="tab">Jarayonda</div><div class="tab">Yakuni</div></div>
+          <div class="card" style="margin-bottom:10px">
+            <div class="ord-head">
+              <div><div class="ord-id">#LM-3012</div><div class="ord-when">12 daqiqa oldin</div></div>
+              <span class="pill ok">Oldindan to'lov tushdi</span>
+            </div>
+            <div class="line">
+              <div class="thumb" style="width:44px;height:44px"></div>
+              <div>
+                <div class="t-name">Qo'lbola adras · 2 rulon</div>
+                <div class="t-sub mono">1 460 000 so'm · oldindan 730 000</div>
+              </div>
+            </div>
+            <div class="meta">Xaridor: <b>Nodira Teks MChJ</b><br>Yetkazish: <b>BTS №112 — Chilonzor</b></div>
+            <div class="ord-btns">
+              <button class="btn ghost">Rad etish</button>
+              <button class="btn">Qabul qilish</button>
+            </div>
+          </div>
+          <div class="card">
+            <div class="ord-head">
+              <div><div class="ord-id">#LM-3015</div><div class="ord-when">1 soat oldin</div></div>
+              <span class="pill ok">Oldindan to'lov tushdi</span>
+            </div>
+            <div class="line">
+              <div class="thumb" style="width:44px;height:44px;background:linear-gradient(135deg,#cbd7c9,#89a68b)"></div>
+              <div>
+                <div class="t-name">Atlas ipak · 1 rulon</div>
+                <div class="t-sub mono">1 120 000 so'm · oldindan 560 000</div>
+              </div>
+            </div>
+            <div class="meta">Xaridor: <b>Samarqand Moda</b><br>Yetkazish: <b>BTS №203 — Samarqand</b></div>
+          </div>
+        </div>
+        <div class="dock"><div class="nav">
+          <div class="nv"><span class="ic">🏠</span>Do'kon</div>
+          <div class="nv"><span class="ic">📦</span>Mahsulot</div>
+          <div class="nv on"><span class="ic">🧾</span>Buyurtma</div>
+          <div class="nv"><span class="ic">💰</span>Balans</div>
+          <div class="nv"><span class="ic">👤</span>Profil</div>
+        </div></div>
+      </div>
+    </div>
+
+    <!-- ===== 8. SOTUVCHI — BALANS ===== -->
+    <div class="frame">
+      <div class="frame-label">8 · Sotuvchi · Balans</div>
+      <div class="frame-note">Komissiya faqat so'mda — foiz yozilmaydi, chunki har sotuvchi bilan offlayn kelishiladi.</div>
+      <div class="phone">
+        <div class="hdr"><div class="hdr-title">Balans</div>
+          <span class="pill teal" style="margin-left:auto">Sotuvchi rejimi</span></div>
+        <div class="scroll">
+          <div class="bal">
+            <div class="lbl">Escrow'da kutilmoqda</div>
+            <div class="big">1 290 000</div>
+            <div class="out"><span>Chiqarilgan (jami)</span><span>14 620 000</span></div>
+          </div>
+
+          <div class="sec">Tarix</div>
+          <div class="card">
+            <div class="trow">
+              <div class="l"><div class="id">#LM-3008</div><div class="sub">komissiya −146 000 · 24-iyul</div></div>
+              <div class="r"><div class="amt">+1 314 000</div><span class="pill ok" style="margin-top:4px">chiqarildi</span></div>
+            </div>
+            <div class="trow">
+              <div class="l"><div class="id">#LM-3012</div><div class="sub">oldindan 730 000 · qolgani kutilmoqda</div></div>
+              <div class="r"><div class="amt wait">730 000</div><span class="pill saf" style="margin-top:4px">escrow</span></div>
+            </div>
+            <div class="trow">
+              <div class="l"><div class="id">#LM-3015</div><div class="sub">oldindan 560 000 · qolgani kutilmoqda</div></div>
+              <div class="r"><div class="amt wait">560 000</div><span class="pill saf" style="margin-top:4px">escrow</span></div>
+            </div>
+            <div class="trow">
+              <div class="l"><div class="id">#LM-2994</div><div class="sub">komissiya −98 000 · 19-iyul</div></div>
+              <div class="r"><div class="amt">+882 000</div><span class="pill ok" style="margin-top:4px">chiqarildi</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="dock"><div class="nav">
+          <div class="nv"><span class="ic">🏠</span>Do'kon</div>
+          <div class="nv"><span class="ic">📦</span>Mahsulot</div>
+          <div class="nv"><span class="ic">🧾</span>Buyurtma</div>
+          <div class="nv on"><span class="ic">💰</span>Balans</div>
+          <div class="nv"><span class="ic">👤</span>Profil</div>
+        </div></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</body>
+</html>

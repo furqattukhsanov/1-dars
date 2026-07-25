@@ -259,6 +259,18 @@ body {
   transition: transform var(--dur-fast);
 }
 .main-action-btn:active { transform: scale(0.98); }
+/* Nuqta tanlanmagunicha o'chirilgan holat — bosilsa sabab toast bo'lib chiqadi */
+.main-action-btn.disabled {
+  background: var(--ink-200);
+  color: #fff;
+  box-shadow: none;
+  opacity: .75;
+}
+.main-action-btn.disabled .main-btn-sub {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+}
 .main-btn-sub {
   font-family: var(--font-mono);
   opacity: .9;
@@ -387,6 +399,14 @@ body {
 @keyframes toastIn {
   from { transform: translateX(-50%) translateY(12px); opacity: 0; }
   to   { transform: translateX(-50%) translateY(0);    opacity: 1; }
+}
+@keyframes fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes sheetUp {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
 }
 
 /* ===== TOAST ===== */

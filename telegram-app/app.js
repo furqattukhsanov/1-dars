@@ -25,13 +25,20 @@ function pSize(k) { return PSIZES[k] || 'auto'; }
 const STR = {
   uz: { brand: "LolaMarket", brandSub: "Ulgurji matolar bozori", miniApp: "mini ilova", greetSub: "Bugun qanday matolar kerak?",
     searchPh: "Mato yoki kategoriya qidiring", cats: "Kategoriyalar", all: "Barchasi", featured: "Tavsiya etiladi",
-    verifiedMills: "28 tasdiqlangan fabrika · har bir buyurtmada escrow", catalog: "Katalog", filter: "Filtr", sort: "Saralash",
+    verifiedMills: "28 tasdiqlangan fabrika · xavfsiz to'lov", catalog: "Katalog", filter: "Filtr", sort: "Saralash",
     day: "kun", addCart: "Savatga qo'shish", order: "Buyurtma berish", specs: "Tafsilotlar", width: "Eni", weight: "Zichlik",
     comp: "Tarkibi", leadTime: "Yetkazish muddati", minOrder: "Minimal buyurtma (MOQ)", supplierL: "Yetkazib beruvchi",
     verified: "Tasdiqlangan", reviews: "sharh", message: "Xabar yuborish", qty: "Miqdor", cart: "Savat", cartEmpty: "Savat bo'sh",
     cartEmptySub: "Katalogdan mato tanlang", browse: "Katalogga o'tish", subtotal: "Oraliq jami", delivery: "Yetkazish",
     deliveryCalc: "Alohida hisoblanadi", total: "Jami", checkout: "Rasmiylashtirish", checkoutT: "Buyurtma berish",
-    address: "Yetkazib berish manzili", changeAddr: "O'zgartirish", payment: "To'lov usuli", commentL: "Izoh",
+    address: "Yetkazib berish manzili", changeAddr: "O'zgartirish", payment: "To'lov", commentL: "Izoh",
+    orderItems: "Buyurtma tarkibi", pickupL: "Olish nuqtasi (BTS)", pickPoint: "Olish nuqtasini tanlang",
+    pickSheetT: "Olish nuqtasini tanlang", pickSearchPh: "Nuqta yoki manzil qidiring",
+    pointsFound: "nuqta topildi", pointsNone: "Bu viloyatda nuqta topilmadi", pickSelect: "Tanlash",
+    changePoint: "O'zgartirish", workHours: "Ish vaqti",
+    deliveryBts: "Yetkazish (BTS)", deliveryAtPickup: "BTS'da to'lanadi",
+    payNow: "Hozir to'lanadi", payLater: "Olishda to'lanadi", payNowBtn: "Hozir to'lash",
+    needPoint: "Avval olish nuqtasini tanlang",
     commentPh: "Buyurtma uchun izoh (ixtiyoriy)", summary: "Buyurtma tarkibi", placeOrder: "Buyurtmani tasdiqlash",
     orders: "Buyurtmalarim", active: "Faol", past: "Tarix", noActive: "Faol buyurtma yo'q", track: "Kuzatish", reorder: "Qayta buyurtma",
     profile: "Profil", editP: "Tahrirlash", ordersCount: "buyurtma", settings: "Sozlamalar", language: "Til", notifications: "Bildirishnomalar",
@@ -39,22 +46,30 @@ const STR = {
     noResultsSub: "Boshqa so'z bilan urinib ko'ring", resultsN: "natija topildi", tabHome: "Bosh", tabCatalog: "Katalog",
     tabCart: "Savat", tabOrders: "Buyurtma", tabProfile: "Profil", added: "Savatga qo'shildi 🌷", liked: "Sevimlilarga qo'shildi",
     orderPlaced: "Buyurtma qabul qilindi", orderPlacedSub: "Ishlab chiqaruvchi tasdiqlaydi — tez orada xabar beramiz",
-    viewOrders: "Buyurtmalarni ko'rish", continue: "Xaridni davom ettirish", escrowNote: "To'lov yetkazilgunga qadar escrow hisobida saqlanadi",
+    viewOrders: "Buyurtmalarni ko'rish", continue: "Xaridni davom ettirish",
     items: "tur", panelU: "dona", mU: "m", product: "Mahsulot", noProducts: "Mahsulot topilmadi",
     tgVerified: "Telegram orqali tasdiqlangan", tgNotConnected: "Telegram orqali ochilganda profil avtomatik aniqlanadi", tgUserFallback: "Telegram foydalanuvchisi",
     shareContact: "Telefon raqamni ulashish", contactPending: "Raqam so'ralmoqda, biroz kuting…", contactDone: "Telefon raqami yangilandi",
     orderErr: "Buyurtma yuborilmadi", netErr: "Internet aloqasi yo'q — qayta urinib ko'ring",
+    authErr: "Buyurtma berish uchun ilovani Telegram orqali oching",
     perUnit: "1 dona rulon narxi", notifTitle: "Bildirishnomalar", notifEmpty: "Hozircha xabarlar yo'q",
     notifEmptySub: "Yangi bildirishnomalar shu yerda ko'rinadi", social: "Ijtimoiy tarmoqlar" },
   ru: { brand: "LolaMarket", brandSub: "Оптовый рынок тканей", miniApp: "мини-приложение", greetSub: "Какие ткани нужны сегодня?",
     searchPh: "Поиск ткани или категории", cats: "Категории", all: "Все", featured: "Рекомендуем",
-    verifiedMills: "28 проверенных фабрик · эскроу на каждый заказ", catalog: "Каталог", filter: "Фильтр", sort: "Сортировка",
+    verifiedMills: "28 проверенных фабрик · безопасная оплата", catalog: "Каталог", filter: "Фильтр", sort: "Сортировка",
     day: "дн.", addCart: "В корзину", order: "Оформить заказ", specs: "Характеристики", width: "Ширина", weight: "Плотность",
     comp: "Состав", leadTime: "Срок поставки", minOrder: "Мин. заказ (MOQ)", supplierL: "Поставщик",
     verified: "Проверен", reviews: "отзыв.", message: "Написать", qty: "Количество", cart: "Корзина", cartEmpty: "Корзина пуста",
     cartEmptySub: "Выберите ткань в каталоге", browse: "В каталог", subtotal: "Подытог", delivery: "Доставка",
     deliveryCalc: "Рассчитывается отдельно", total: "Итого", checkout: "Оформить", checkoutT: "Оформление заказа",
-    address: "Адрес доставки", changeAddr: "Изменить", payment: "Способ оплаты", commentL: "Комментарий",
+    address: "Адрес доставки", changeAddr: "Изменить", payment: "Оплата", commentL: "Комментарий",
+    orderItems: "Состав заказа", pickupL: "Пункт выдачи (BTS)", pickPoint: "Выберите пункт выдачи",
+    pickSheetT: "Выберите пункт выдачи", pickSearchPh: "Поиск пункта или адреса",
+    pointsFound: "пунктов найдено", pointsNone: "В этой области пунктов не найдено", pickSelect: "Выбрать",
+    changePoint: "Изменить", workHours: "Часы работы",
+    deliveryBts: "Доставка (BTS)", deliveryAtPickup: "Оплата в пункте выдачи",
+    payNow: "К оплате сейчас", payLater: "Оплата при получении", payNowBtn: "Оплатить сейчас",
+    needPoint: "Сначала выберите пункт выдачи",
     commentPh: "Комментарий к заказу (необязательно)", summary: "Состав заказа", placeOrder: "Подтвердить заказ",
     orders: "Мои заказы", active: "Активные", past: "История", noActive: "Нет активных заказов", track: "Отследить", reorder: "Повторить",
     profile: "Профиль", editP: "Изменить", ordersCount: "заказов", settings: "Настройки", language: "Язык", notifications: "Уведомления",
@@ -62,11 +77,12 @@ const STR = {
     noResultsSub: "Попробуйте другой запрос", resultsN: "результатов", tabHome: "Главная", tabCatalog: "Каталог",
     tabCart: "Корзина", tabOrders: "Заказы", tabProfile: "Профиль", added: "Добавлено в корзину 🌷", liked: "Добавлено в избранное",
     orderPlaced: "Заказ принят", orderPlacedSub: "Производитель подтвердит — мы сообщим вам",
-    viewOrders: "Посмотреть заказы", continue: "Продолжить покупки", escrowNote: "Платёж хранится на эскроу до доставки",
+    viewOrders: "Посмотреть заказы", continue: "Продолжить покупки",
     items: "поз.", panelU: "шт", mU: "м", product: "Товар", noProducts: "Товары не найдены",
     tgVerified: "Подтверждено через Telegram", tgNotConnected: "При открытии через Telegram профиль определится автоматически", tgUserFallback: "Пользователь Telegram",
     shareContact: "Поделиться номером телефона", contactPending: "Запрашивается номер, подождите…", contactDone: "Номер телефона обновлён",
     orderErr: "Заказ не отправлен", netErr: "Нет соединения — попробуйте ещё раз",
+    authErr: "Чтобы оформить заказ, откройте приложение через Telegram",
     perUnit: "Цена за 1 рулон", notifTitle: "Уведомления", notifEmpty: "Пока нет уведомлений",
     notifEmptySub: "Новые уведомления появятся здесь", social: "Соцсети" },
 };
@@ -147,10 +163,47 @@ function saveOrders() {
 let ORDERS = loadOrders();
 
 const PAY = [
-  { key:'escrow', label:{ uz:"Escrow — xavfsiz to'lov", ru:"Эскроу — защищённый платёж" },  sub:{ uz:"Tavsiya etiladi · yetkazilgach ozod etiladi", ru:"Рекомендуется · после доставки" } },
-  { key:'bank',   label:{ uz:"Bank o'tkazmasi", ru:"Банковский перевод" },           sub:{ uz:"FOB / CIF · 30% oldindan", ru:"FOB / CIF · 30% предоплата" } },
-  { key:'click',  label:{ uz:"Click / Payme", ru:"Click / Payme" },             sub:{ uz:"Tezkor to'lov", ru:"Быстрая оплата" } },
+  { key:'payme', label:{ uz:"Payme", ru:"Payme" }, mark:'P', color:'#00CCCC' },
+  { key:'click', label:{ uz:"Click", ru:"Click" }, mark:'C', color:'#0073E6' },
 ];
+
+// Oldindan to'lov ulushi. Xaridor buyurtma berishda shuncha to'laydi,
+// qolganini mato BTS'ga yetib kelgach to'laydi — to'lamaguncha BTS bermaydi.
+const PREPAY_RATE = 0.5;
+function prepayAmount(total) { return Math.round(total * PREPAY_RATE); }
+function restAmount(total) { return total - prepayAmount(total); }
+
+// BTS olish nuqtalari. Vaqtinchalik ro'yxat — BTS integratsiyasi ulangach
+// bu ma'lumot serverdan (/api/bts-points) keladi.
+const BTS_REGIONS = [
+  { key:'tas', name:{ uz:"Toshkent",  ru:"Ташкент" } },
+  { key:'far', name:{ uz:"Farg'ona",  ru:"Фергана" } },
+  { key:'sam', name:{ uz:"Samarqand", ru:"Самарканд" } },
+  { key:'bux', name:{ uz:"Buxoro",    ru:"Бухара" } },
+  { key:'and', name:{ uz:"Andijon",   ru:"Андижан" } },
+];
+const BTS_POINTS = [
+  { id:'bts-112', region:'tas', name:{ uz:"BTS №112 — Chilonzor", ru:"BTS №112 — Чиланзар" }, addr:{ uz:"Bunyodkor ko'ch. 45", ru:"ул. Бунёдкор 45" }, hours:"9:00–19:00" },
+  { id:'bts-097', region:'tas', name:{ uz:"BTS №097 — Yunusobod", ru:"BTS №097 — Юнусабад" }, addr:{ uz:"Amir Temur ko'ch. 12", ru:"ул. Амира Темура 12" }, hours:"9:00–18:00" },
+  { id:'bts-054', region:'tas', name:{ uz:"BTS №054 — Sergeli", ru:"BTS №054 — Сергели" }, addr:{ uz:"Yangi Sergeli 8", ru:"Янги Сергели 8" }, hours:"9:00–19:00" },
+  { id:'bts-021', region:'tas', name:{ uz:"BTS №021 — Mirzo Ulug'bek", ru:"BTS №021 — Мирзо Улугбек" }, addr:{ uz:"Mustaqillik ko'ch. 78", ru:"ул. Мустакиллик 78" }, hours:"9:00–18:00" },
+  { id:'bts-140', region:'far', name:{ uz:"BTS №140 — Farg'ona markaz", ru:"BTS №140 — Фергана центр" }, addr:{ uz:"Mustaqillik ko'ch. 24", ru:"ул. Мустакиллик 24" }, hours:"9:00–18:00" },
+  { id:'bts-146', region:'far', name:{ uz:"BTS №146 — Marg'ilon", ru:"BTS №146 — Маргилан" }, addr:{ uz:"Toshkent ko'ch. 5", ru:"ул. Ташкентская 5" }, hours:"9:00–18:00" },
+  { id:'bts-203', region:'sam', name:{ uz:"BTS №203 — Samarqand markaz", ru:"BTS №203 — Самарканд центр" }, addr:{ uz:"Registon ko'ch. 3", ru:"ул. Регистан 3" }, hours:"9:00–19:00" },
+  { id:'bts-311', region:'bux', name:{ uz:"BTS №311 — Buxoro markaz", ru:"BTS №311 — Бухара центр" }, addr:{ uz:"Bahouddin Naqshband 17", ru:"ул. Бахоуддина Накшбанда 17" }, hours:"9:00–18:00" },
+  { id:'bts-408', region:'and', name:{ uz:"BTS №408 — Andijon markaz", ru:"BTS №408 — Андижан центр" }, addr:{ uz:"Navoiy shoh ko'chasi 41", ru:"пр. Навои 41" }, hours:"9:00–18:00" },
+];
+function btsById(id) { return BTS_POINTS.find(p => p.id === id) || null; }
+
+// Tanlangan nuqta saqlanadi — B2B xaridor deyarli doim bitta nuqtadan oladi,
+// shuning uchun ikkinchi buyurtmada bu qadam allaqachon to'ldirilgan keladi.
+function loadBtsPoint() {
+  try { return localStorage.getItem('lolamarket_bts_point') || null; }
+  catch (e) { return null; }
+}
+function saveBtsPoint(id) {
+  try { localStorage.setItem('lolamarket_bts_point', id); } catch (e) {}
+}
 
 const RECENT_SEARCHES = {
   uz: ["adras","ipak","so'zana","jun","Marg'ilon"],
@@ -175,7 +228,11 @@ const S = {
   qty: 300,
   search: '',
   cat: 'all',
-  pay: 'escrow',
+  pay: 'payme',
+  btsPoint: loadBtsPoint(),   // oxirgi tanlangan nuqta eslab qolinadi
+  btsRegion: 'tas',
+  btsSheet: false,
+  btsQuery: '',
   ordersTab: 'active',
   liked: { 'ik-9001': true },
   lang: 'uz',
@@ -402,12 +459,18 @@ function updateNav() {
 
   if (showMainBtn) {
     const p = byId(S.selectedId);
+    const btn = document.getElementById('main-btn');
     if (sc === 'detail' && p) {
       document.getElementById('main-btn-label').textContent = T.addCart;
       document.getElementById('main-btn-sub').textContent   = money(p.price * S.qty);
+      if (btn) btn.classList.remove('disabled');
     } else if (sc === 'checkout') {
-      document.getElementById('main-btn-label').textContent = T.placeOrder;
-      document.getElementById('main-btn-sub').textContent   = money(cartTotal());
+      // Nuqta tanlanmagunicha tugma o'chirilgan bo'ladi va sababi tugmaning
+      // o'zida yoziladi — foydalanuvchi nima yetishmayotganini izlab yurmaydi.
+      const ready = !!btsById(S.btsPoint);
+      document.getElementById('main-btn-label').textContent = T.payNowBtn;
+      document.getElementById('main-btn-sub').textContent   = ready ? money(prepayAmount(cartTotal())) : T.needPoint;
+      if (btn) btn.classList.toggle('disabled', !ready);
     }
   }
 }
@@ -540,10 +603,6 @@ function renderDetail() {
         </div>
       </div>
 
-      <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-muted)">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" style="flex:none;color:#7a140d"><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
-        ${T.escrowNote}
-      </div>
     </div>
   </div>`;
 }
@@ -662,61 +721,179 @@ function renderCart() {
 }
 
 // ============ EKRAN: CHECKOUT ============
+// Ko'p qadamli wizard emas — bitta skrollda tartiblangan 4 bo'lim.
+// Faqat BTS nuqtasi tanlash bottom-sheet'ga chiqadi (200+ nuqta inline sig'maydi).
+const SEC_LABEL = 'font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#7a140d';
+const CARD_BOX = 'padding:14px;border-radius:var(--radius-md);background:rgba(255,255,255,.62);backdrop-filter:blur(16px) saturate(160%);-webkit-backdrop-filter:blur(16px) saturate(160%);border:1px solid rgba(255,255,255,.55);box-shadow:0 5px 16px -12px rgba(81,1,0,.12)';
+
+function secHead(n, label) {
+  return `<div style="display:flex;align-items:center;gap:7px;margin-bottom:9px">
+    <span style="flex:none;width:17px;height:17px;border-radius:50%;background:var(--pom-100);color:#7a140d;display:flex;align-items:center;justify-content:center;font-size:9.5px;font-weight:700">${n}</span>
+    <span style="${SEC_LABEL}">${label}</span>
+  </div>`;
+}
+
 function renderCheckout() {
   const T = STR[S.lang];
+  const total = cartTotal();
+  const point = btsById(S.btsPoint);
+
   return `
   <div style="padding:16px 16px 28px;display:flex;flex-direction:column;gap:16px">
     <div>
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:9px">
-        <span style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#7a140d">${T.address}</span>
-        <button style="font-size:12.5px;font-weight:600;color:var(--teal-600);background:none;border:none;cursor:pointer">${T.changeAddr}</button>
-      </div>
-      <div style="display:flex;gap:12px;padding:14px;border-radius:var(--radius-md);background:rgba(255,255,255,.62);backdrop-filter:blur(16px) saturate(160%);-webkit-backdrop-filter:blur(16px) saturate(160%);border:1px solid rgba(255,255,255,.55);box-shadow:0 5px 16px -12px rgba(81,1,0,.12)">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style="flex:none;color:var(--color-primary);margin-top:2px"><path d="M12 21s-6-5.7-6-10a6 6 0 0 1 12 0c0 4.3-6 10-6 10z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="11" r="2.2" stroke="currentColor" stroke-width="2"/></svg>
-        <div>
-          <div style="font-size:14px;font-weight:700;color:var(--text-strong)">${COMPANY.name[S.lang]}</div>
-          <div style="font-size:13px;color:var(--text-muted);line-height:1.45;margin-top:2px">${COMPANY.addr[S.lang]}</div>
-        </div>
+      ${secHead(1, T.orderItems)}
+      <div style="${CARD_BOX}">
+        ${S.cart.map(c => {
+          const p = byId(c.id);
+          return `<div style="display:flex;justify-content:space-between;gap:10px;font-size:13px;margin-bottom:8px"><span style="color:var(--text-body)">${p.name[S.lang]} · ${num(c.qty)} ${uShort(p.unit)}</span><span style="font-family:var(--font-mono);font-weight:600;color:var(--text-strong);flex:none">${money(p.price * c.qty)}</span></div>`;
+        }).join('')}
       </div>
     </div>
 
     <div>
-      <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#7a140d;margin-bottom:9px">${T.payment}</div>
+      ${secHead(2, T.pickupL)}
+      ${point ? `
+      <div style="${CARD_BOX};display:flex;gap:12px">
+        <span style="flex:none;width:34px;height:34px;border-radius:11px;background:var(--teal-50);display:flex;align-items:center;justify-content:center;color:var(--teal-600)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 21s-6-5.7-6-10a6 6 0 0 1 12 0c0 4.3-6 10-6 10z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="11" r="2.2" stroke="currentColor" stroke-width="2"/></svg>
+        </span>
+        <div style="flex:1">
+          <div style="font-size:14px;font-weight:700;color:var(--text-strong)">${point.name[S.lang]}</div>
+          <div style="font-size:12.5px;color:var(--text-muted);line-height:1.45;margin-top:2px">${point.addr[S.lang]}<br>${T.workHours} ${point.hours}</div>
+          <button onclick="openBtsSheet()" style="font-size:12.5px;font-weight:700;color:var(--teal-600);background:none;border:none;cursor:pointer;padding:6px 0 0">${T.changePoint}</button>
+        </div>
+      </div>` : `
+      <button onclick="openBtsSheet()" style="display:flex;align-items:center;gap:11px;width:100%;text-align:left;cursor:pointer;padding:15px 13px;border-radius:var(--radius-md);border:1.5px dashed var(--ink-200);background:rgba(255,255,255,.4)">
+        <span style="flex:none;width:34px;height:34px;border-radius:11px;background:var(--ink-100);display:flex;align-items:center;justify-content:center;color:var(--ink-400)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 21s-6-5.7-6-10a6 6 0 0 1 12 0c0 4.3-6 10-6 10z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="11" r="2.2" stroke="currentColor" stroke-width="2"/></svg>
+        </span>
+        <span style="flex:1;font-size:13.5px;font-weight:600;color:var(--text-muted)">${T.pickPoint}</span>
+        <span style="color:var(--ink-300);font-size:17px">›</span>
+      </button>`}
+    </div>
+
+    <div>
+      ${secHead(3, T.payment)}
       <div style="display:flex;flex-direction:column;gap:9px">
         ${PAY.map(o => {
           const sel = S.pay === o.key;
-          return `<button onclick="setPay('${o.key}')" style="display:flex;align-items:center;gap:12px;width:100%;text-align:left;cursor:pointer;padding:13px 14px;border-radius:var(--radius-md);background:rgba(255,255,255,.55);backdrop-filter:blur(16px) saturate(160%);-webkit-backdrop-filter:blur(16px) saturate(160%);border:1.5px solid ${sel ? '#7a140d' : 'var(--border-hair)'};transition:border-color 200ms">
+          return `<button onclick="setPay('${o.key}')" style="display:flex;align-items:center;gap:12px;width:100%;text-align:left;cursor:pointer;padding:11px 13px;border-radius:var(--radius-md);background:${sel ? '#fff' : 'rgba(255,255,255,.55)'};backdrop-filter:blur(16px) saturate(160%);-webkit-backdrop-filter:blur(16px) saturate(160%);border:1.5px solid ${sel ? '#7a140d' : 'var(--border-hair)'};transition:border-color 200ms">
             <div style="flex:none;width:20px;height:20px;border-radius:50%;border:2px solid ${sel ? '#7a140d' : 'var(--ink-300)'};display:flex;align-items:center;justify-content:center">
               <div style="width:9px;height:9px;border-radius:50%;background:${sel ? '#7a140d' : 'transparent'}"></div>
             </div>
-            <div style="flex:1">
-              <div style="font-size:14px;font-weight:700;color:var(--text-strong)">${o.label[S.lang]}</div>
-              <div style="font-size:12px;color:var(--text-muted);margin-top:1px">${o.sub[S.lang]}</div>
-            </div>
+            <span style="flex:none;width:30px;height:30px;border-radius:8px;background:${o.color};color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800">${o.mark}</span>
+            <div style="flex:1;font-size:14px;font-weight:600;color:var(--text-strong)">${o.label[S.lang]}</div>
           </button>`;
         }).join('')}
       </div>
     </div>
 
     <div>
-      <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#7a140d;margin-bottom:9px">${T.commentL}</div>
+      ${secHead(4, T.commentL)}
       <textarea id="checkout-comment" oninput="S.comment=this.value" placeholder="${T.commentPh}" rows="3" style="width:100%;resize:none;padding:12px 14px;border:1px solid var(--border-hair);border-radius:var(--radius-md);background:var(--glass-fill-strong);font-family:var(--font-sans);font-size:16px;color:var(--text-strong);outline:none;box-shadow:var(--glass-highlight)">${S.comment || ''}</textarea>
     </div>
 
-    <div>
-      <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#7a140d;margin-bottom:9px">${T.summary}</div>
-      <div style="padding:14px 16px;border-radius:var(--radius-md);background:rgba(255,255,255,.62);backdrop-filter:blur(16px) saturate(160%);-webkit-backdrop-filter:blur(16px) saturate(160%);border:1px solid rgba(255,255,255,.55);box-shadow:0 5px 16px -12px rgba(81,1,0,.12)">
-        ${S.cart.map(c => {
-          const p = byId(c.id);
-          return `<div style="display:flex;justify-content:space-between;gap:10px;font-size:13px;margin-bottom:8px"><span style="color:var(--text-body)">${p.name[S.lang]} · ${num(c.qty)} ${uShort(p.unit)}</span><span style="font-family:var(--font-mono);font-weight:600;color:var(--text-strong);flex:none">${money(p.price * c.qty)}</span></div>`;
-        }).join('')}
-        <div style="display:flex;justify-content:space-between;align-items:baseline;padding-top:10px;border-top:1px solid var(--border-hair)">
-          <span style="font-size:14.5px;font-weight:700;color:var(--text-strong)">${T.total}</span>
-          <span style="font-family:var(--font-mono);font-size:19px;font-weight:600;color:var(--text-strong)">${money(cartTotal())}</span>
-        </div>
+    <div style="padding-top:2px">
+      <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--text-muted);padding:5px 2px">
+        <span>${T.subtotal}</span><span style="font-family:var(--font-mono)">${money(total)}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--text-muted);padding:5px 2px">
+        <span>${T.deliveryBts}</span><span style="font-family:var(--font-mono)">${T.deliveryAtPickup}</span>
+      </div>
+      <div style="height:1px;background:var(--border-hair);margin:8px 2px"></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 2px">
+        <span style="font-size:15px;font-weight:700;color:var(--text-strong)">${T.payNow}
+          <span style="font-size:10px;font-weight:700;background:var(--pom-100);color:#7a140d;padding:2px 6px;border-radius:999px;margin-left:5px;vertical-align:1px">${Math.round(PREPAY_RATE * 100)}%</span>
+        </span>
+        <span style="font-family:var(--font-mono);font-size:15px;font-weight:700;color:#7a140d">${money(prepayAmount(total))}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--text-muted);padding:5px 2px">
+        <span>${T.payLater}</span><span style="font-family:var(--font-mono)">${money(restAmount(total))}</span>
       </div>
     </div>
   </div>`;
+}
+
+// ============ BTS NUQTASI TANLASH (bottom-sheet) ============
+function renderBtsSheet() {
+  const T = STR[S.lang];
+  const q = S.btsQuery.trim().toLowerCase();
+  const list = BTS_POINTS.filter(p => {
+    if (q) return (p.name[S.lang] + ' ' + p.addr[S.lang]).toLowerCase().includes(q);
+    return p.region === S.btsRegion;
+  });
+
+  return `
+  <div onclick="closeBtsSheet()" style="position:absolute;inset:0;background:rgba(23,26,48,.34);z-index:60;animation:fade var(--dur-base) var(--ease-out)"></div>
+  <div style="position:absolute;left:0;right:0;bottom:0;z-index:61;max-height:80%;display:flex;flex-direction:column;border-radius:var(--radius-xl) var(--radius-xl) 0 0;padding:10px 14px calc(18px + env(safe-area-inset-bottom));backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);background:var(--glass-tint);box-shadow:var(--glass-spec),0 -12px 40px -8px rgba(81,1,0,.28);animation:sheetUp var(--dur-base) var(--ease-out)">
+    <div style="width:38px;height:4px;border-radius:99px;background:var(--ink-200);margin:0 auto 12px;flex:none"></div>
+    <div style="font-family:var(--font-display);font-size:17px;font-weight:800;color:var(--text-strong);letter-spacing:-.02em;margin-bottom:11px;flex:none">${T.pickSheetT}</div>
+
+    <div style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.8);border-radius:999px;padding:9px 14px;flex:none;box-shadow:var(--shadow-sm)">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style="flex:none;color:var(--ink-400)"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M20 20l-3.5-3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <input id="bts-search" value="${S.btsQuery}" oninput="onBtsSearch(this.value)" placeholder="${T.pickSearchPh}" style="flex:1;border:none;background:none;outline:none;font-family:var(--font-sans);font-size:16px;color:var(--text-strong)">
+    </div>
+
+    ${q ? '' : `<div style="display:flex;gap:7px;margin:11px 0 9px;overflow-x:auto;flex:none;scrollbar-width:none">
+      ${BTS_REGIONS.map(r => {
+        const on = S.btsRegion === r.key;
+        return `<button onclick="setBtsRegion('${r.key}')" style="flex:none;cursor:pointer;font-size:12.5px;font-weight:600;padding:7px 13px;border-radius:999px;background:${on ? 'var(--ink-900)' : 'rgba(255,255,255,.66)'};color:${on ? '#fff' : 'var(--ink-700)'};border:1px solid ${on ? 'var(--ink-900)' : 'rgba(255,255,255,.8)'}">${r.name[S.lang]}</button>`;
+      }).join('')}
+    </div>`}
+
+    <div style="font-size:11.5px;color:var(--text-muted);font-weight:600;margin:${q ? '11px' : '2px'} 2px 9px;flex:none">${list.length ? `${list.length} ${T.pointsFound}` : T.pointsNone}</div>
+
+    <div style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch">
+      ${list.map(p => {
+        const sel = S.btsPoint === p.id;
+        return `<button onclick="pickBts('${p.id}')" style="display:flex;align-items:center;gap:11px;width:100%;text-align:left;cursor:pointer;padding:12px;border-radius:var(--radius-md);margin-bottom:7px;border:none;background:${sel ? '#fff' : 'rgba(255,255,255,.6)'};box-shadow:${sel ? '0 0 0 1.5px #7a140d' : 'none'}">
+          <div style="flex:1">
+            <div style="font-size:13.5px;font-weight:700;color:var(--text-strong)">${p.name[S.lang]}</div>
+            <div style="font-size:12px;color:var(--text-muted);margin-top:2px">${p.addr[S.lang]} · ${p.hours}</div>
+          </div>
+          <div style="flex:none;width:20px;height:20px;border-radius:50%;border:2px solid ${sel ? '#7a140d' : 'var(--ink-200)'};display:flex;align-items:center;justify-content:center">
+            <div style="width:9px;height:9px;border-radius:50%;background:${sel ? '#7a140d' : 'transparent'}"></div>
+          </div>
+        </button>`;
+      }).join('')}
+    </div>
+
+    <button onclick="closeBtsSheet()" style="flex:none;margin-top:10px;width:100%;height:50px;border:none;border-radius:var(--radius-md);background:linear-gradient(135deg,#8f1a10,#510100);color:#ffe9db;font-family:var(--font-sans);font-size:15px;font-weight:600;cursor:pointer;box-shadow:var(--shadow-sm)">${T.pickSelect}</button>
+  </div>`;
+}
+
+// Sheet #screen-wrap dan tashqarida chiziladi — aks holda skroll konteyneri uni kesadi
+function paintSheet() {
+  const wrap = document.getElementById('sheet-wrap');
+  if (wrap) wrap.innerHTML = S.btsSheet ? renderBtsSheet() : '';
+}
+function openBtsSheet() {
+  S.btsSheet = true;
+  S.btsQuery = '';
+  paintSheet();
+}
+function closeBtsSheet() {
+  S.btsSheet = false;
+  paintSheet();
+  document.getElementById('screen-wrap').innerHTML = renderCheckout();
+  updateNav();
+}
+function setBtsRegion(k) {
+  S.btsRegion = k;
+  paintSheet();
+}
+function onBtsSearch(v) {
+  S.btsQuery = v;
+  paintSheet();
+  const inp = document.getElementById('bts-search');
+  if (inp) { inp.focus(); const l = inp.value.length; inp.setSelectionRange(l, l); }
+}
+function pickBts(id) {
+  S.btsPoint = id;
+  saveBtsPoint(id);
+  const p = btsById(id);
+  if (p) S.btsRegion = p.region;
+  closeBtsSheet();
 }
 
 // ============ EKRAN: MUVAFFAQIYAT ============
@@ -1034,6 +1211,8 @@ function sendOrderNotify(orderId) {
     });
     const payOpt = PAY.find(o => o.key === S.pay);
     const tgUser = S.tgUser?.username;
+    const point = btsById(S.btsPoint);
+    const total = cartTotal();
     fetch('/api/telegram-notify', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1042,11 +1221,13 @@ function sendOrderNotify(orderId) {
         buyerName: COMPANY.name[S.lang],
         tgUser: tgUser || undefined,
         tgUserId: S.tgUser?.id || undefined,
-        address: COMPANY.addr[S.lang],
+        address: point ? `${point.name[S.lang]}, ${point.addr[S.lang]}` : COMPANY.addr[S.lang],
         payment: payOpt ? payOpt.label[S.lang] : S.pay,
         comment: S.comment || '',
         items,
-        total: money(cartTotal()),
+        total: money(total),
+        prepay: money(prepayAmount(total)),
+        rest: money(restAmount(total)),
       }),
     }).catch(() => {});
   } catch (e) {}
@@ -1075,6 +1256,7 @@ function mainBtnAction() {
     addToCart(S.selectedId, S.qty);
     tab('cart');
   } else if (S.screen === 'checkout') {
+    if (!btsById(S.btsPoint)) { showToast(STR[S.lang].needPoint); openBtsSheet(); return; }
     submitOrder();
   }
 }
@@ -1083,41 +1265,52 @@ function mainBtnAction() {
 async function submitOrder() {
   const cartSnapshot = S.cart.map(c => ({ id: c.id, qty: c.qty }));
   const payOpt = PAY.find(o => o.key === S.pay);
+  const point = btsById(S.btsPoint);
+  const total = cartTotal();
   const payload = {
     items: cartSnapshot,
     buyerName: COMPANY.name[S.lang],
     tgUser: S.tgUser?.username || undefined,
     tgUserId: S.tgUser?.id || undefined,
-    address: COMPANY.addr[S.lang],
+    // Yetkazish manzili endi xaridor ofisi emas — tanlangan BTS olish nuqtasi
+    address: point ? `${point.name[S.lang]}, ${point.addr[S.lang]}` : COMPANY.addr[S.lang],
+    pickupPointId: point ? point.id : undefined,
     payment: payOpt ? payOpt.label[S.lang] : S.pay,
+    prepay: prepayAmount(total),
+    rest: restAmount(total),
     comment: S.comment || '',
     lang: S.lang,
   };
 
   let orderId = null;
-  let serverError = null;    // server biznes xatosi (validatsiya/MOQ) — foydalanuvchiga ko'rsatamiz
-  let reachedServer = false; // serverga yetdikmi (tarmoq bormi)?
+  let serverError = null;   // API tushunarli javob qaytardi va RAD ETDI (validatsiya/MOQ/auth)
   try {
     const r = await fetch('/api/orders', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-Telegram-Init-Data': tgInitData() },
       body: JSON.stringify(payload),
     });
-    reachedServer = true;
     const d = await r.json().catch(() => null);
-    if (d && d.ok && d.orderId) orderId = d.orderId;
-    else serverError = (d && d.error) || STR[S.lang].orderErr;
+    if (d && d.ok && d.orderId) {
+      orderId = d.orderId;
+    } else if (d && d.error) {
+      // API'ning o'zi javob berdi — sababi bor, foydalanuvchiga ko'rsatamiz.
+      // 401 = Telegram tashqarisida ochilgan (imzo yo'q), buni tushunarli tilda aytamiz.
+      serverError = (r.status === 401) ? STR[S.lang].authErr : d.error;
+    }
+    // JSON emas (404/501/502 — HTML sahifa): API umuman ulanmagan.
+    // Bu server biznes xatosi EMAS, shuning uchun mahalliy zaxira yo'lidan ketamiz.
   } catch (e) {
     // tarmoq uzildi — serverga umuman yetmadik
   }
 
-  // Server biznes xatosi bilan RAD ETDI — success ko'rsatMAYMIZ, do'stona toast chiqaramiz
-  if (!orderId && reachedServer) {
-    showToast(`${STR[S.lang].orderErr}: ${serverError}`);
+  // API buyurtmani RAD ETDI — success ko'rsatMAYMIZ, sababini aytamiz
+  if (serverError) {
+    showToast(serverError);
     return;
   }
 
-  // Serverga umuman yetmadik (offline) — zaxira: mahalliy id + eski bildirishnoma yo'li
+  // API'ga yetmadik (offline yoki API ulanmagan) — zaxira: mahalliy id + bildirishnoma yo'li
   if (!orderId) {
     orderId = nextOrderId();
     sendOrderNotify(orderId);
@@ -1150,6 +1343,9 @@ function render() {
   };
   const fn = map[S.screen];
   if (fn) document.getElementById('screen-wrap').innerHTML = fn();
+  // Ekran almashsa ochiq sheet qolib ketmasin
+  if (S.screen !== 'checkout') S.btsSheet = false;
+  paintSheet();
 }
 
 // ============ TELEGRAM ORQALI RO'YXATDAN O'TISH ============
