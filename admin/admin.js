@@ -226,6 +226,8 @@ function renderSummary(d) {
 
   renderStats(d);
   renderRevenueChart();
+  renderPlanGauge();
+  renderWeekBars();
   renderVisitorStats();
 
   const activeFilter = document.querySelector('.order-filter.active');
@@ -240,7 +242,6 @@ function renderSummary(d) {
   renderSellers();
   renderModQueue();
   renderPlanFakt(d);
-  initEarnCard();
 
   updateNavBadges(d);
 }
@@ -292,12 +293,33 @@ function renderOrders(filter) {
     : `<tr><td colspan="5" class="empty-cell">Buyurtma topilmadi</td></tr>`;
 }
 
+// Dashboard'da so'nggi buyurtmalar jadval emas — kartochkalarda ko'rsatiladi
 function renderOrdersMini() {
-  const tbody = document.getElementById('ordersBodyMini');
-  const list = lastOrders.slice(0, 5);
-  tbody.innerHTML = list.length
-    ? list.map(orderRow).join('')
-    : `<tr><td colspan="5" class="empty-cell">Buyurtma topilmadi</td></tr>`;
+  const wrap = document.getElementById('orderCardsMini');
+  const list = lastOrders.slice(0, 4);
+  if (!list.length) {
+    wrap.innerHTML = `<div class="empty-panel">Buyurtma topilmadi</div>`;
+    return;
+  }
+  wrap.innerHTML = list.map((o) => {
+    const st = STATUS_LABELS[o.status] || { text: o.status || '?', cls: 'status-pending' };
+    const name = o.buyerName || "Noma'lum";
+    return `
+      <div class="order-card">
+        <div class="oc-top">
+          <span class="oc-id">${o.id}</span>
+          <span class="status-badge ${st.cls}">${st.text}</span>
+        </div>
+        <div class="oc-buyer">
+          <span class="oc-avatar">${initials(name)}</span>
+          <span class="oc-name">${name}</span>
+        </div>
+        <div class="oc-foot">
+          <span>${o.itemsCount} ta mahsulot</span>
+          <span>${o.date ? o.date.uz : '-'}</span>
+        </div>
+      </div>`;
+  }).join('');
 }
 
 document.querySelectorAll('.order-filter').forEach((btn) => {
@@ -466,18 +488,11 @@ function renderRevenueChart() {
   const marks = [0, 6, 12, 18, 24, s.length - 1];
   axis.innerHTML = marks.map((i) => `<span>${fmtDay(s[i].date)}</span>`).join('');
 
-  // Panel sarlavhasi va xulosa qatori
-  const pct = SERIES_PLAN_TOTAL ? Math.round((SERIES_FAKT_TOTAL / SERIES_PLAN_TOTAL) * 100) : 0;
-  const today = s[s.length - 1];
-  // Sarlavha summasi to'liq raqamlarda — balansdek o'qilsin (1 420 385 000 so'm)
+  // Panel sarlavhasi — summa to'liq raqamlarda, balansdek o'qilsin
+  // (O'rtacha kunlik / reja / bajarilish / bugun ko'rsatkichlari founder qaroriga
+  // ko'ra olib tashlandi — reja va bajarilish "Reja bajarilishi" doira
+  // kartochkasida, bugungi GMV esa 7 kunlik ustunlarda ko'rinadi.)
   document.getElementById('revenueTotal').textContent = fmtSom(SERIES_FAKT_TOTAL);
-  document.getElementById('heroAvg').textContent = fmtSom(SERIES_FAKT_TOTAL / s.length);
-  document.getElementById('heroPlan').textContent = fmtSom(SERIES_PLAN_TOTAL);
-  document.getElementById('heroToday').textContent = fmtSom(today.fakt);
-
-  const pctEl = document.getElementById('heroPct');
-  pctEl.textContent = pct + '%';
-  pctEl.className = 'hs-value ' + (pct >= 90 ? 'is-good' : 'is-warn');
 }
 
 function renderVisitorStats() {
@@ -493,53 +508,86 @@ function renderVisitorStats() {
   renderLineChart('buyersChart', 'buyersAxis', MOCK_BUYERS_TREND, MOCK_WEEK_DAYS, '#D98E0C', 'buyersFill');
 }
 
-/* ─── Bizning daromad (komissiya) — bosilganda ochiladi ─── */
+/* ─── Reja bajarilishi — doira ko'rsatkich ─── */
 
-// Raqamni saqlab, bosilgunga qadar tasodifiy raqamlar "biji-bijir" qilib turadi
-function initEarnCard() {
-  const card = document.getElementById('earnCard');
-  const val = document.getElementById('earnValue');
-  if (!card || !val) return;
+function renderPlanGauge() {
+  const el = document.getElementById('planGauge');
+  if (!el) return;
 
-  const real = fmtSom(SERIES_FAKT_TOTAL * PLAN_COMMISSION_RATE);
-  let scrambleTimer = null;
-  let settleTimer = null;
+  const pct = SERIES_PLAN_TOTAL ? (SERIES_FAKT_TOTAL / SERIES_PLAN_TOTAL) * 100 : 0;
+  const shown = Math.max(0, Math.min(pct, 100));
+  const r = 58, cx = 74, cy = 74;
+  const circ = 2 * Math.PI * r;
+  const dash = (shown / 100) * circ;
 
-  // Yopiq holatda raqamlar o'zgarib turadi (ostidagi haqiqiy summa bilinmasin)
-  const scramble = () => real.replace(/\d/g, () => Math.floor(Math.random() * 10));
-  const startNoise = () => {
-    stop();
-    scrambleTimer = setInterval(() => { val.textContent = scramble(); }, 70);
-  };
-  const stop = () => {
-    clearInterval(scrambleTimer);
-    clearTimeout(settleTimer);
-    scrambleTimer = null;
-  };
+  el.innerHTML = `
+    <svg viewBox="0 0 148 148">
+      <defs>
+        <linearGradient id="gaugeArc" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#E84B40" />
+          <stop offset="100%" stop-color="#8f1a10" />
+        </linearGradient>
+      </defs>
+      <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#E8EAF0" stroke-width="13" />
+      <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="url(#gaugeArc)" stroke-width="13"
+        stroke-linecap="round" stroke-dasharray="${dash.toFixed(1)} ${circ.toFixed(1)}"
+        transform="rotate(-90 ${cx} ${cy})" />
+      <text class="gauge-center-val" x="${cx}" y="${cy + 2}" text-anchor="middle">${Math.round(pct)}%</text>
+      <text class="gauge-center-lbl" x="${cx}" y="${cy + 20}" text-anchor="middle">BAJARILDI</text>
+    </svg>`;
 
-  startNoise();
+  const gap = SERIES_FAKT_TOTAL - SERIES_PLAN_TOTAL;
+  document.getElementById('gaugePctText').textContent = Math.round(pct) + '%';
+  document.getElementById('gaugeFakt').textContent = fmtSom(SERIES_FAKT_TOTAL);
+  document.getElementById('gaugePlan').textContent = fmtSom(SERIES_PLAN_TOTAL);
 
-  card.addEventListener('click', () => {
-    const open = card.classList.toggle('revealed');
-    card.setAttribute('aria-pressed', String(open));
+  const gapEl = document.getElementById('gaugeGap');
+  gapEl.textContent = (gap >= 0 ? '+' : '−') + fmtSom(Math.abs(gap));
+  gapEl.className = 'gl-val ' + (gap >= 0 ? 'is-ahead' : 'is-behind');
+}
 
-    if (!open) { startNoise(); return; }
+/* ─── Oxirgi 7 kun — kunlik GMV ustunlari ─── */
 
-    // Ochilish: 550ms tez aylanadi, keyin haqiqiy summaga "qo'nadi"
-    stop();
-    let elapsed = 0;
-    scrambleTimer = setInterval(() => {
-      elapsed += 45;
-      val.textContent = scramble();
-    }, 45);
-    settleTimer = setTimeout(() => { stop(); val.textContent = real; }, 550);
-  });
+function renderWeekBars() {
+  const el = document.getElementById('weekBars');
+  if (!el) return;
+
+  const last7 = DAILY_SERIES.slice(-7);
+  // Shkala fakt VA reja'ning kattasiga qo'yiladi (reja chizig'i ham ramka ichida
+  // qolishi kerak), ustiga 8% bo'sh joy — aks holda reja chizig'i track'ning eng
+  // tepasiga qadalib, oddiy chegaraga o'xshab ko'rinmay qoladi
+  const peak = Math.max(...last7.map((p) => Math.max(p.fakt, p.plan))) || 1;
+  const max = peak * 1.08;
+  const total = last7.reduce((s, p) => s + p.fakt, 0);
+
+  el.innerHTML = last7.map((p) => {
+    const h = Math.max(4, Math.round((p.fakt / max) * 100));
+    const ph = Math.min(100, Math.round((p.plan / max) * 100));
+    const done = p.plan && p.fakt >= p.plan;
+    return `
+      <div class="wb-item" title="${fmtDay(p.date)} — fakt ${fmtSom(p.fakt)}, reja ${fmtSom(p.plan)}">
+        <div class="wb-track">
+          <div class="wb-bar${done ? ' is-good' : ''}" style="height:${h}%"></div>
+          <div class="wb-plan" style="bottom:${ph}%"></div>
+        </div>
+        <div class="wb-val">${fmtSomShort(p.fakt)}</div>
+        <div class="wb-day">${fmtDay(p.date)}</div>
+      </div>`;
+  }).join('');
+
+  document.getElementById('weekTotal').textContent = fmtSom(total);
 }
 
 /* ─── Status distribution (haqiqiy buyurtmalardan hisoblanadi) ─── */
 
+// Bir xil taqsimot ikki joyda ko'rinadi: Dashboard va Statistika sahifasida
 function renderStatusDist() {
-  const wrap = document.getElementById('statusDist');
+  ['statusDist', 'statusDistDash'].forEach(renderStatusDistInto);
+}
+
+function renderStatusDistInto(elId) {
+  const wrap = document.getElementById(elId);
+  if (!wrap) return;
   if (!lastOrders.length) {
     wrap.innerHTML = `<div class="empty-panel">Buyurtma yo'q</div>`;
     return;

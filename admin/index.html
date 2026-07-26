@@ -11,7 +11,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 
   <link rel="stylesheet" href="../style.css?v=21" />
-  <link rel="stylesheet" href="admin.css?v=6" />
+  <link rel="stylesheet" href="admin.css?v=16" />
 </head>
 <body>
 
@@ -110,39 +110,6 @@
                   <span class="lg"><i class="lg-bar"></i>GMV (kunlik)</span>
                 </div>
               </div>
-
-              <!-- Bizning daromad — bosilganda ochiladi -->
-              <button type="button" class="earn-card" id="earnCard" aria-pressed="false">
-                <span class="earn-label">
-                  <svg viewBox="0 0 24 24"><path fill-rule="evenodd" d="M5.5 4h13A2.5 2.5 0 0121 6.5v11a2.5 2.5 0 01-2.5 2.5h-13A2.5 2.5 0 013 17.5v-11A2.5 2.5 0 015.5 4zM12 9a3 3 0 100 6 3 3 0 000-6z"/></svg>
-                  Bizning daromad
-                </span>
-                <span class="earn-value" id="earnValue">000 000 000 so'm</span>
-                <span class="earn-hint">
-                  <svg viewBox="0 0 24 24"><path d="M12 5c-6.8 0-10.6 6.9-10.8 7.2a.6.6 0 000 .6C1.4 13.1 5.2 20 12 20s10.6-6.9 10.8-7.2a.6.6 0 000-.6C22.6 11.9 18.8 5 12 5zm0 4a3.5 3.5 0 110 7 3.5 3.5 0 010-7z"/></svg>
-                  ko'rish uchun bosing
-                </span>
-                <span class="earn-shine"></span>
-              </button>
-            </div>
-
-            <div class="hero-summary">
-              <div class="hs-item">
-                <span class="hs-label">O'rtacha kunlik</span>
-                <span class="hs-value" id="heroAvg">–</span>
-              </div>
-              <div class="hs-item">
-                <span class="hs-label">Aylanma — reja</span>
-                <span class="hs-value hs-teal" id="heroPlan">–</span>
-              </div>
-              <div class="hs-item">
-                <span class="hs-label">Bajarilish</span>
-                <span class="hs-value" id="heroPct">–</span>
-              </div>
-              <div class="hs-item">
-                <span class="hs-label">Bugun</span>
-                <span class="hs-value" id="heroToday">–</span>
-              </div>
             </div>
 
             <div class="chart-wrap">
@@ -195,26 +162,76 @@
             </div>
           </div>
 
-          <div class="panel glass" style="margin-bottom:1.75rem">
-            <div class="panel-head">
-              <div class="panel-title">Kategoriyalar</div>
-              <a class="panel-link" data-page="stats">Batafsil</a>
+          <!-- ─── Reja bajarilishi (doira) + oxirgi 7 kun (ustunlar) ─── -->
+          <div class="dash-grid dash-grid-even">
+            <div class="panel glass">
+              <div class="panel-head">
+                <div>
+                  <div class="panel-title">Reja bajarilishi — 30 kun</div>
+                  <div class="panel-value" id="gaugePctText">–</div>
+                </div>
+              </div>
+              <div class="gauge-wrap">
+                <div class="gauge" id="planGauge"></div>
+                <div class="gauge-legend">
+                  <div class="gl-row">
+                    <span class="gl-dot gl-fakt"></span>
+                    <span class="gl-label">Fakt</span>
+                    <span class="gl-val" id="gaugeFakt">–</span>
+                  </div>
+                  <div class="gl-row">
+                    <span class="gl-dot gl-plan"></span>
+                    <span class="gl-label">Reja</span>
+                    <span class="gl-val" id="gaugePlan">–</span>
+                  </div>
+                  <div class="gl-row">
+                    <span class="gl-dot gl-gap"></span>
+                    <span class="gl-label">Farq</span>
+                    <span class="gl-val" id="gaugeGap">–</span>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div class="cat-list cat-list-wide" id="catList"></div>
+
+            <div class="panel glass">
+              <div class="panel-head">
+                <div>
+                  <div class="panel-title">Oxirgi 7 kun — kunlik GMV</div>
+                  <div class="panel-value" id="weekTotal">–</div>
+                </div>
+                <div class="hero-legend">
+                  <span class="lg"><i class="lg-bar"></i>Fakt</span>
+                  <span class="lg"><i class="lg-plan-dash"></i>Reja</span>
+                </div>
+              </div>
+              <div class="week-bars" id="weekBars"></div>
+            </div>
+          </div>
+
+          <!-- ─── Kategoriyalar + buyurtma holatlari ─── -->
+          <div class="dash-grid dash-grid-even">
+            <div class="panel glass">
+              <div class="panel-head">
+                <div class="panel-title">Kategoriyalar</div>
+                <a class="panel-link" data-page="stats">Batafsil</a>
+              </div>
+              <div class="cat-list" id="catList"></div>
+            </div>
+
+            <div class="panel glass">
+              <div class="panel-head">
+                <div class="panel-title">Buyurtma holatlari taqsimoti</div>
+                <a class="panel-link" data-page="orders">Hammasi</a>
+              </div>
+              <div class="status-dist" id="statusDistDash"></div>
+            </div>
           </div>
 
           <div class="section-header" style="margin-top:.5rem">
             <div class="section-title">So'nggi buyurtmalar</div>
             <a class="panel-link" data-page="orders">Hammasini ko'rish</a>
           </div>
-          <div class="orders-table-wrap glass">
-            <table class="orders-table">
-              <thead>
-                <tr><th>#</th><th>Xaridor</th><th>Tarkib</th><th>Sana</th><th>Holat</th></tr>
-              </thead>
-              <tbody id="ordersBodyMini"></tbody>
-            </table>
-          </div>
+          <div class="order-cards" id="orderCardsMini"></div>
         </section>
 
         <!-- ═══ Orders page ═══ -->
@@ -403,6 +420,6 @@
     </div>
   </div>
 
-  <script src="admin.js?v=6"></script>
+  <script src="admin.js?v=16"></script>
 </body>
 </html>
