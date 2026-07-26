@@ -332,6 +332,11 @@
     <div style="font-size:0.68rem; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; color:#9C7B5A; margin-bottom:0.7rem;">So'nggi faoliyat</div>
     <div id="faoliyat-list">
       <div class="faoliyat-item">
+        <span class="faoliyat-sana">2026-07-26</span>
+        <span class="faoliyat-text">Admin panel UI qayta qurildi: bitta sahifalik header o'rniga sidebar-navigatsiyali ilova qobig'i (Dashboard / Buyurtmalar / Sotuvchilar / Moderatsiya / Statistika sahifalari, GMV va tashrifchi/xaridor chiziqli grafiklari). admin/index.html, admin.css, admin.js uch fayl ham qayta ishlandi. Sotuvchilar, Moderatsiya va sotuvchi arizalari bo'limlari hozircha MOCK_* konstantalar bilan to'ldirilgan vizual maket — faqat /api/admin/summary'dan kelgan hisoblagichlar, so'nggi buyurtmalar va kategoriya statistikasi real. Hali qilinmagan: bu yangi sahifalar uchun real backend endpointlari</span>
+        <span class="faoliyat-sprint">Sprint 7</span>
+      </div>
+      <div class="faoliyat-item">
         <span class="faoliyat-sana">2026-07-25</span>
         <span class="faoliyat-text">Operatsion insident tuzatildi: admin panel (lolamarket.uz/admin) production'da kira olmasdi. Uch qavatli sabab: (1) ADMIN_PANEL_TOKEN production .env'ga hali qo'shilmagan edi (endpoint doim 401 qaytargan), (2) nginx'da /api/admin/ uchun proxy bloki umuman yo'q edi (so'rov backend'ga yetmay statik HTML qaytarardi, "kalit noto'g'ri" deb ko'rinardi), (3) db/004_seller_applications.sql migratsiyasi production bazada ishga tushirilmagan edi, ishga tushgach jadval egaligi (OWNER) xato bo'lib permission denied chiqdi. Barchasi Hetzner serverda SSH orqali to'g'ridan-to'g'ri tuzatildi: .env token qo'yildi, nginx proxy bloki qo'shildi, migratsiya qo'lda qo'llandi, OWNER/GRANT tuzatildi. Brauzerda tasdiqlandi — dashboard to'liq ishlayapti. Repo'da diff yo'q (nginx/.env/DB git'ga kirmaydi CLAUDE.md qoidasiga ko'ra) — faqat hujjatlashtirish commit qilindi</span>
         <span class="faoliyat-sprint">Sprint 7</span>
@@ -562,7 +567,7 @@
     { num: 4, nom: "Asosiy funksiya",           dars: "Dars 11", holat: "jarayonda",  sana: "2026-07-25" },
     { num: 5, nom: "Mobil / PWA",               dars: "Dars 12", holat: "kutilmoqda", sana: "" },
     { num: 6, nom: "Integratsiyalar",           dars: "Dars 13", holat: "jarayonda",  sana: "2026-07-22" },
-    { num: 7, nom: "Admin panel",               dars: "Dars 14", holat: "jarayonda", sana: "2026-07-25" },
+    { num: 7, nom: "Admin panel",               dars: "Dars 14", holat: "jarayonda", sana: "2026-07-26" },
     { num: 8, nom: "Sifat tekshiruvi",          dars: "Dars 15", holat: "kutilmoqda", sana: "" },
     { num: 9, nom: "Production + launch",       dars: "Dars 16", holat: "kutilmoqda", sana: "" },
   ];
@@ -585,7 +590,7 @@
   barEl.style.width = foiz + "%";
   percentEl.textContent = foiz + "%";
   countEl.textContent = tugaganlar + " / " + sprintlar.length + " sprint";
-  updatedEl.textContent = "Yangilanish: 2026-07-25 (Sprint 7 — admin panel production insidenti tuzatildi)";
+  updatedEl.textContent = "Yangilanish: 2026-07-26 (Sprint 7 — admin panel UI sidebar-navigatsiya bilan qayta qurildi)";
 
   sprintlar.forEach(s => {
     const card = document.createElement("div");
