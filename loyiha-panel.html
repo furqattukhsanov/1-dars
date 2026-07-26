@@ -333,6 +333,11 @@
     <div id="faoliyat-list">
       <div class="faoliyat-item">
         <span class="faoliyat-sana">2026-07-26</span>
+        <span class="faoliyat-text">Admin panel dashboard'i qayta dizayn qilindi. "Savdo dinamikasi" hero blokka aylandi: eski 7 kunlik kichik grafik o'rniga to'liq kenglikdagi 260px panel, 30 kunlik oyna, faqat fakt silliq chizig'i + gradient to'ldirish. Founder qarori bilan ustun (bar) va reja chizig'i olib tashlandi — reja endi faqat matn sifatida: xulosa qatorida Aylanma—reja va Bajarilish %, hamda hover tooltip'da. Yangi "Bizning daromad" kartasi: yopiq holatda blur ostida va raqamlari doim aylanib turadi, bosilganda haqiqiy summaga qo'nadi. Barcha ikonkalar to'ldirilgan (filled) silhouette'ga o'tkazildi, sidebar'ning faol bandi iPhone uslubidagi "bosilgan shisha" pill bo'ldi, glassmorphism barcha kartalar va panellarga tarqatildi. Stat kartalar bir xillashtirildi — rangli aksent chizig'i va to'q bordo "accent" karta olib tashlandi, rang faqat yumshoq fon tusi orqali. Summalar hero panelda balans uslubida to'liq raqamlarda, mono shriftda. Login ekrani brendlashtirildi. Qattiq kodlangan MOCK_GMV_* konstantalar olib tashlandi — kunlik seriya endi deterministik hosil qilinadi, shuning uchun grafik va stat kartalar bir-biriga mos. Fakt raqamlari hozircha havodan (mock). Hali qilinmagan: backend'da kunlik GMV agregatsiyasi</span>
+        <span class="faoliyat-sprint">Sprint 7</span>
+      </div>
+      <div class="faoliyat-item">
+        <span class="faoliyat-sana">2026-07-26</span>
         <span class="faoliyat-text">Admin panelga yangi "Reja/Fakt" sahifasi qo'shildi: tasdiqlangan 12 oylik savdo rejasi (future/lolamarket-future.html'dan ko'chirilgan) bilan joriy holatni solishtiruvchi 3 ta stat-karta va to'liq 12 oylik reja jadvali. Reja Sentabrdan boshlanadi, joriy oy avtomatik moslanadi. Fakt ustuni hozircha faqat joriy oy uchun (bugungi buyurtmalar, /api/admin/summary'dan). Hali qilinmagan: o'tgan oylar uchun real fakt — backend'da oylik agregatsiya kerak</span>
         <span class="faoliyat-sprint">Sprint 7</span>
       </div>
@@ -595,7 +600,7 @@
   barEl.style.width = foiz + "%";
   percentEl.textContent = foiz + "%";
   countEl.textContent = tugaganlar + " / " + sprintlar.length + " sprint";
-  updatedEl.textContent = "Yangilanish: 2026-07-26 (Sprint 7 — admin panelga Reja/Fakt sahifasi qo'shildi)";
+  updatedEl.textContent = "Yangilanish: 2026-07-26 (Sprint 7 — admin dashboard qayta dizayni: hero grafik, daromad kartasi, shisha qatlam)";
 
   sprintlar.forEach(s => {
     const card = document.createElement("div");

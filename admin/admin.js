@@ -27,12 +27,6 @@ const STATUS_LABELS = {
 
 /* ═══════════════════════ Mock — dizayn bosqichi ═══════════════════════ */
 
-const MOCK_GMV_TOTAL = 84500000;
-const MOCK_GMV_TREND = [38, 52, 45, 61, 58, 74, 90]; // nisbiy qiymatlar, so'nggi 7 kun
-const MOCK_GMV_DAYS = ['Du', 'Se', 'Cho', 'Pa', 'Ju', 'Sh', 'Ya'];
-const MOCK_COMMISSION_TOTAL = 9800000;
-const MOCK_ORDERS_THIS_MONTH = 342;
-
 const MOCK_VISITORS_TODAY = 612;
 const MOCK_VISITORS_MONTH = 12480;
 const MOCK_VISITORS_TREND = [1240, 1380, 1510, 1290, 1670, 1840, 1960]; // kunlik tashriflar
@@ -75,6 +69,7 @@ const PLAN_UNITS_PER_MONTH = [150, 450, 750, 1050, 1350, 1650, 1650, 1350, 1650,
 const PLAN_ESTIMATED = [false, false, false, false, false, false, false, false, false, false, true, true];
 const PLAN_PRICE_PER_UNIT = 82; // $, manbadagi o'rtacha chek
 const PLAN_COMMISSION_RATE = 0.12;
+const USD_TO_SOM = 12600; // reja $ da, fakt so'mda — grafikda solishtirish uchun
 
 function fmtUsd(n) {
   return '$' + Math.round(n).toLocaleString('ru-RU').replace(/,/g, ' ');
@@ -116,6 +111,51 @@ function renderPlanFakt(d) {
   }).join('');
 }
 
+/* ═══════════ Kunlik seriya: reja (tekis taqsimot) + fakt (mock) ═══════════
+   Reja kunlik qiymati = oylik reja / o'sha oydagi kunlar soni (tekis taqsimot,
+   founder qarori). 30 kunlik oyna ikki kalendar oyni qamrasa, reja chizig'i oy
+   chegarasida pog'ona ko'rinishida o'zgaradi — bu ataylab shunday.
+   FAKT hozircha MOCK: backend'da kunlik GMV agregatsiyasi qo'shilgach
+   buildDailySeries()dagi `fakt` maydonini real ma'lumotga almashtirish kifoya. */
+
+const CHART_DAYS = 30;
+
+function daysInMonth(date) {
+  return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+}
+
+function planSomForDate(date) {
+  const i = (date.getMonth() - 8 + 12) % 12; // reja Sentabrdan boshlanadi
+  return (PLAN_UNITS_PER_MONTH[i] / daysInMonth(date)) * PLAN_PRICE_PER_UNIT * USD_TO_SOM;
+}
+
+function buildDailySeries() {
+  const today = new Date();
+  // Deterministik generator — sahifa har yuklanganda grafik bir xil ko'rinsin
+  let seed = 20260726;
+  const rnd = () => { seed = (seed * 1103515245 + 12345) % 2147483648; return seed / 2147483648; };
+
+  // Fakt uchun bazis — joriy oyning kunlik rejasi. Ataylab kunlik rejaga bog'lanmagan:
+  // oy chegarasida reja pog'ona bo'lib sakraydi va fakt chizig'i ham "jar" bo'lib tushardi.
+  const base = planSomForDate(today);
+
+  const out = [];
+  for (let i = CHART_DAYS - 1; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    const k = CHART_DAYS - 1 - i;        // 0 → 29
+    const t = k / (CHART_DAYS - 1);      // 0 → 1, yengil o'sish trendi
+    // Sinus to'lqin + kichik shovqin: chiziq "tishli" emas, oqib turadigan ko'rinishda
+    const ratio = Math.max(0.4, 0.66 + t * 0.30 + Math.sin(k / 4.2) * 0.055 + (rnd() - 0.5) * 0.05);
+    out.push({ date: d, plan: planSomForDate(d), fakt: Math.round(base * ratio) });
+  }
+  return out;
+}
+
+const DAILY_SERIES = buildDailySeries();
+const SERIES_FAKT_TOTAL = DAILY_SERIES.reduce((s, p) => s + p.fakt, 0);
+const SERIES_PLAN_TOTAL = DAILY_SERIES.reduce((s, p) => s + p.plan, 0);
+
 /* ═══════════════════════════════════════════════════════════════════ */
 
 let lastOrders = [];
@@ -123,6 +163,13 @@ let lastCategories = [];
 
 function fmtSom(n) {
   return Math.round(n).toLocaleString('ru-RU').replace(/,/g, ' ') + " so'm";
+}
+
+// Katta summalarni ixcham ko'rsatish: 1 240 000 000 → 1.24 mlrd so'm
+function fmtSomShort(n) {
+  if (n >= 1e9) return (n / 1e9).toFixed(2).replace('.', ',') + ' mlrd';
+  if (n >= 1e6) return (n / 1e6).toFixed(1).replace('.', ',') + ' mln';
+  return Math.round(n).toLocaleString('ru-RU').replace(/,/g, ' ');
 }
 
 async function fetchSummary(token) {
@@ -193,18 +240,20 @@ function renderSummary(d) {
   renderSellers();
   renderModQueue();
   renderPlanFakt(d);
+  initEarnCard();
 
   updateNavBadges(d);
 }
 
 function renderStats(d) {
-  document.getElementById('statOrdersTotal').textContent = MOCK_ORDERS_THIS_MONTH.toLocaleString('ru-RU').replace(/,/g, ' ');
+  // GMV/komissiya/buyurtma soni kunlik seriyadan hisoblanadi — grafik bilan mos bo'lsin
+  const orders = Math.round(SERIES_FAKT_TOTAL / (PLAN_PRICE_PER_UNIT * USD_TO_SOM));
+  document.getElementById('statOrdersTotal').textContent = orders.toLocaleString('ru-RU').replace(/,/g, ' ');
   document.getElementById('statOrdersToday').textContent = `${d.ordersToday} bugun`;
-  document.getElementById('statGmv').textContent = fmtSom(MOCK_GMV_TOTAL);
-  document.getElementById('statCommission').textContent = fmtSom(MOCK_COMMISSION_TOTAL);
+  document.getElementById('statGmv').textContent = fmtSomShort(SERIES_FAKT_TOTAL) + " so'm";
+  document.getElementById('statCommission').textContent = fmtSomShort(SERIES_FAKT_TOTAL * PLAN_COMMISSION_RATE) + " so'm";
   document.getElementById('statModeration').textContent = d.moderationPending;
   document.getElementById('statSellerApps').textContent = `${d.sellerAppsPending} yangi ariza`;
-  document.getElementById('revenueTotal').textContent = fmtSom(MOCK_GMV_TOTAL);
 }
 
 function updateNavBadges(d) {
@@ -349,8 +398,86 @@ function renderLineChart(chartElId, axisElId, data, days, color, gradId) {
   axis.innerHTML = days.map((d) => `<span>${d}</span>`).join('');
 }
 
+/* ─── Hero combo chart: kunlik fakt ustunlari + reja chizig'i ─── */
+
+const MONTHS_SHORT = ['Yan', 'Fev', 'Mar', 'Apr', 'May', 'Iyn', 'Iyl', 'Avg', 'Sen', 'Okt', 'Noy', 'Dek'];
+function fmtDay(d) {
+  return `${d.getDate()} ${MONTHS_SHORT[d.getMonth()]}`;
+}
+
 function renderRevenueChart() {
-  renderLineChart('revenueChart', 'revenueAxis', MOCK_GMV_TREND, MOCK_GMV_DAYS, '#8f1a10', 'gmvFill');
+  const el = document.getElementById('revenueChart');
+  const axis = document.getElementById('revenueAxis');
+  const tip = document.getElementById('chartTip');
+  const s = DAILY_SERIES;
+
+  const w = 720, h = 260, padT = 16, padB = 8;
+  const innerH = h - padT - padB;
+  const max = Math.max(...s.map((p) => p.fakt)) * 1.12 || 1;
+  const slot = w / s.length;
+  const y = (v) => padT + (1 - v / max) * innerH;
+
+  // FAKT — silliq chiziq + gradient to'ldirish (Statistika sahifasidagi grafik uslubi)
+  const faktPts = s.map((p, i) => [i * slot + slot / 2, y(p.fakt)]);
+  const faktLine = smoothPath(faktPts);
+  const faktArea = `${faktLine} L ${faktPts[faktPts.length - 1][0].toFixed(1)} ${h} L ${faktPts[0][0].toFixed(1)} ${h} Z`;
+  const faktEnd = faktPts[faktPts.length - 1];
+
+  const hits = s.map((p, i) =>
+    `<rect class="col-hit" x="${(i * slot).toFixed(1)}" y="0" width="${slot.toFixed(1)}" height="${h}" data-i="${i}" />`
+  ).join('');
+
+  el.innerHTML = `
+    <svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+      <defs>
+        <linearGradient id="gmvFill" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#E84B40" stop-opacity="0.30" />
+          <stop offset="100%" stop-color="#E84B40" stop-opacity="0" />
+        </linearGradient>
+      </defs>
+      <path d="${faktArea}" fill="url(#gmvFill)" />
+      <path d="${faktLine}" fill="none" stroke="#C9362D" stroke-width="2.6"
+        stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke" />
+      <circle cx="${faktEnd[0].toFixed(1)}" cy="${faktEnd[1].toFixed(1)}" r="4"
+        fill="#C9362D" stroke="#fff" stroke-width="2" vector-effect="non-scaling-stroke" />
+      ${hits}
+    </svg>
+  `;
+
+  el.querySelectorAll('.col-hit').forEach((rect) => {
+    rect.addEventListener('mouseenter', () => {
+      const p = s[Number(rect.dataset.i)];
+      const pct = p.plan ? Math.round((p.fakt / p.plan) * 100) : 0;
+      tip.innerHTML = `
+        <div class="tip-date">${fmtDay(p.date)}</div>
+        <div class="tip-row"><span>Fakt</span><b>${fmtSomShort(p.fakt)}</b></div>
+        <div class="tip-row"><span>Reja</span><b>${fmtSomShort(p.plan)}</b></div>
+        <div class="tip-row"><span>Bajarilish</span><b>${pct}%</b></div>`;
+      // Chekka ustunlarda tooltip panel tashqarisiga chiqmasin
+      const pos = ((Number(rect.dataset.i) + 0.5) / s.length) * 100;
+      tip.style.left = pos.toFixed(2) + '%';
+      tip.style.transform = pos < 18 ? 'translateX(-6%)' : pos > 82 ? 'translateX(-94%)' : 'translateX(-50%)';
+      tip.classList.add('show');
+    });
+  });
+  el.addEventListener('mouseleave', () => tip.classList.remove('show'));
+
+  // O'q: 30 ta yorliq siqilib ketadi — har 6-kunni ko'rsatamiz
+  const marks = [0, 6, 12, 18, 24, s.length - 1];
+  axis.innerHTML = marks.map((i) => `<span>${fmtDay(s[i].date)}</span>`).join('');
+
+  // Panel sarlavhasi va xulosa qatori
+  const pct = SERIES_PLAN_TOTAL ? Math.round((SERIES_FAKT_TOTAL / SERIES_PLAN_TOTAL) * 100) : 0;
+  const today = s[s.length - 1];
+  // Sarlavha summasi to'liq raqamlarda — balansdek o'qilsin (1 420 385 000 so'm)
+  document.getElementById('revenueTotal').textContent = fmtSom(SERIES_FAKT_TOTAL);
+  document.getElementById('heroAvg').textContent = fmtSom(SERIES_FAKT_TOTAL / s.length);
+  document.getElementById('heroPlan').textContent = fmtSom(SERIES_PLAN_TOTAL);
+  document.getElementById('heroToday').textContent = fmtSom(today.fakt);
+
+  const pctEl = document.getElementById('heroPct');
+  pctEl.textContent = pct + '%';
+  pctEl.className = 'hs-value ' + (pct >= 90 ? 'is-good' : 'is-warn');
 }
 
 function renderVisitorStats() {
@@ -364,6 +491,49 @@ function renderVisitorStats() {
 
   renderLineChart('visitorsChart', 'visitorsAxis', MOCK_VISITORS_TREND, MOCK_WEEK_DAYS, '#119DAB', 'visitorsFill');
   renderLineChart('buyersChart', 'buyersAxis', MOCK_BUYERS_TREND, MOCK_WEEK_DAYS, '#D98E0C', 'buyersFill');
+}
+
+/* ─── Bizning daromad (komissiya) — bosilganda ochiladi ─── */
+
+// Raqamni saqlab, bosilgunga qadar tasodifiy raqamlar "biji-bijir" qilib turadi
+function initEarnCard() {
+  const card = document.getElementById('earnCard');
+  const val = document.getElementById('earnValue');
+  if (!card || !val) return;
+
+  const real = fmtSom(SERIES_FAKT_TOTAL * PLAN_COMMISSION_RATE);
+  let scrambleTimer = null;
+  let settleTimer = null;
+
+  // Yopiq holatda raqamlar o'zgarib turadi (ostidagi haqiqiy summa bilinmasin)
+  const scramble = () => real.replace(/\d/g, () => Math.floor(Math.random() * 10));
+  const startNoise = () => {
+    stop();
+    scrambleTimer = setInterval(() => { val.textContent = scramble(); }, 70);
+  };
+  const stop = () => {
+    clearInterval(scrambleTimer);
+    clearTimeout(settleTimer);
+    scrambleTimer = null;
+  };
+
+  startNoise();
+
+  card.addEventListener('click', () => {
+    const open = card.classList.toggle('revealed');
+    card.setAttribute('aria-pressed', String(open));
+
+    if (!open) { startNoise(); return; }
+
+    // Ochilish: 550ms tez aylanadi, keyin haqiqiy summaga "qo'nadi"
+    stop();
+    let elapsed = 0;
+    scrambleTimer = setInterval(() => {
+      elapsed += 45;
+      val.textContent = scramble();
+    }, 45);
+    settleTimer = setTimeout(() => { stop(); val.textContent = real; }, 550);
+  });
 }
 
 /* ─── Status distribution (haqiqiy buyurtmalardan hisoblanadi) ─── */
