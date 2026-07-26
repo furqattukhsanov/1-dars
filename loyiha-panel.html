@@ -333,6 +333,11 @@
     <div id="faoliyat-list">
       <div class="faoliyat-item">
         <span class="faoliyat-sana">2026-07-26</span>
+        <span class="faoliyat-text">Admin panelga yangi "Reja/Fakt" sahifasi qo'shildi: tasdiqlangan 12 oylik savdo rejasi (future/lolamarket-future.html'dan ko'chirilgan) bilan joriy holatni solishtiruvchi 3 ta stat-karta va to'liq 12 oylik reja jadvali. Reja Sentabrdan boshlanadi, joriy oy avtomatik moslanadi. Fakt ustuni hozircha faqat joriy oy uchun (bugungi buyurtmalar, /api/admin/summary'dan). Hali qilinmagan: o'tgan oylar uchun real fakt — backend'da oylik agregatsiya kerak</span>
+        <span class="faoliyat-sprint">Sprint 7</span>
+      </div>
+      <div class="faoliyat-item">
+        <span class="faoliyat-sana">2026-07-26</span>
         <span class="faoliyat-text">Admin panel UI qayta qurildi: bitta sahifalik header o'rniga sidebar-navigatsiyali ilova qobig'i (Dashboard / Buyurtmalar / Sotuvchilar / Moderatsiya / Statistika sahifalari, GMV va tashrifchi/xaridor chiziqli grafiklari). admin/index.html, admin.css, admin.js uch fayl ham qayta ishlandi. Sotuvchilar, Moderatsiya va sotuvchi arizalari bo'limlari hozircha MOCK_* konstantalar bilan to'ldirilgan vizual maket — faqat /api/admin/summary'dan kelgan hisoblagichlar, so'nggi buyurtmalar va kategoriya statistikasi real. Hali qilinmagan: bu yangi sahifalar uchun real backend endpointlari</span>
         <span class="faoliyat-sprint">Sprint 7</span>
       </div>
@@ -590,7 +595,7 @@
   barEl.style.width = foiz + "%";
   percentEl.textContent = foiz + "%";
   countEl.textContent = tugaganlar + " / " + sprintlar.length + " sprint";
-  updatedEl.textContent = "Yangilanish: 2026-07-26 (Sprint 7 — admin panel UI sidebar-navigatsiya bilan qayta qurildi)";
+  updatedEl.textContent = "Yangilanish: 2026-07-26 (Sprint 7 — admin panelga Reja/Fakt sahifasi qo'shildi)";
 
   sprintlar.forEach(s => {
     const card = document.createElement("div");

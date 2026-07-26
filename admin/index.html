@@ -66,6 +66,10 @@
           <svg viewBox="0 0 24 24" fill="none"><path d="M4 20V10"/><path d="M11 20V4"/><path d="M18 20v-7"/></svg>
           <span>Statistika</span>
         </button>
+        <button class="nav-item" data-page="planfakt">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M9 11l3 3 8-8"/><path d="M20 12v6a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h9"/></svg>
+          <span>Reja/Fakt</span>
+        </button>
       </nav>
 
       <button class="sidebar-logout" onclick="logout()">
@@ -303,6 +307,55 @@
               </div>
               <div class="status-dist" id="statusDist"></div>
             </div>
+          </div>
+        </section>
+
+        <!-- ═══ Reja/Fakt page ═══ -->
+        <section id="page-planfakt" class="page">
+
+          <div class="stats-grid stats-grid-3">
+            <div class="stat-card accent">
+              <div class="stat-top">
+                <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M9 11l3 3 8-8"/><path d="M20 12v6a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h9"/></svg></div>
+              </div>
+              <div class="stat-number" id="pfPlanUnitsDay">–</div>
+              <div class="stat-label">Reja: kunlik birlik</div>
+              <div class="stat-foot" id="pfPlanMonth">joriy oy</div>
+            </div>
+
+            <div class="stat-card glass">
+              <div class="stat-top">
+                <div class="stat-icon teal"><svg viewBox="0 0 24 24" fill="none"><path d="M4 6h16M4 12h16M4 18h10"/></svg></div>
+              </div>
+              <div class="stat-number" id="pfFaktOrdersToday">–</div>
+              <div class="stat-label">Fakt: bugungi buyurtma</div>
+              <div class="stat-foot">/api/admin/summary — real</div>
+            </div>
+
+            <div class="stat-card glass">
+              <div class="stat-top">
+                <div class="stat-icon saffron"><svg viewBox="0 0 24 24" fill="none"><path d="M4 17l5-5 4 4 7-8"/><path d="M15 8h5v5"/></svg></div>
+              </div>
+              <div class="stat-number" id="pfBajarilish">–</div>
+              <div class="stat-label">Bajarilish (bugun / reja)</div>
+              <div class="stat-foot">1 buyurtma ≈ 1 birlik deb taxmin qilingan</div>
+            </div>
+          </div>
+
+          <div class="section-header" style="margin-top:.5rem">
+            <div class="section-title">12 oylik savdo rejasi</div>
+            <div class="section-count">future/lolamarket-future.html'dan</div>
+          </div>
+          <div class="orders-table-wrap glass">
+            <table class="orders-table">
+              <thead>
+                <tr><th>Oy</th><th>Kunlik birlik</th><th>Oylik birlik</th><th>O'rtacha chek</th><th>GMV (reja)</th><th>Komissiya (reja)</th></tr>
+              </thead>
+              <tbody id="planBody"></tbody>
+            </table>
+          </div>
+          <div class="sample-note" style="margin-top:.6rem; font-size:0.75rem; color:var(--text-muted)">
+            Reja Sentabrdan boshlanadi, 12 oylik siklda takrorlanadi. * — Iyul/Avgust uchun haqiqiy reja yo'q, naqsh asosida taxmin qilingan. Summalar manbadagi kabi $ da — hozircha so'mdagi haqiqiy GMV/komissiya bilan to'g'ridan-to'g'ri solishtirilmaydi. Fakt ustuni hali faqat joriy oy uchun, backend'da oylik agregatsiya qo'shilgach to'liq ulanadi.
           </div>
         </section>
 

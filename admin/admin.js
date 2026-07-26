@@ -61,6 +61,61 @@ const MOCK_MOD_QUEUE = [
   { name: "Paxta mato — oq", seller: 'Shahnoza Qodirova', price: '95 000 so\'m/rulon', date: 'Kecha', img: '../Photo/textile/668f7de0e14d13ef96a6a44b2b4c51ba.jpg' },
 ];
 
+/* ═══════════════ Reja (future/lolamarket-future.html'dan) ═══════════════
+   Manba: LolaMarketning tasdiqlangan 12 oylik savdo rejasi, Sentabrdan
+   boshlab qayta tartiblangan (kunlik sotuv 5 → 80 birlikkacha o'sadi, ~12%
+   komissiya marjasi bilan). Iyul va Avgust uchun haqiqiy reja yo'q — naqsh
+   davomiga ko'ra taxminiy hisoblab qo'shilgan (PLAN_ESTIMATED). Summalar
+   manbadagi kabi $ da — hozircha so'mdagi haqiqiy GMV bilan bevosita
+   solishtirilmaydi, faqat reja ko'lamini ko'rsatish uchun. */
+
+const PLAN_MONTHS = ['Sentabr', 'Oktabr', 'Noyabr', 'Dekabr', 'Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'Iyun', 'Iyul', 'Avgust'];
+const PLAN_UNITS_PER_DAY = [5, 15, 25, 35, 45, 55, 55, 45, 55, 80, 55, 30];
+const PLAN_UNITS_PER_MONTH = [150, 450, 750, 1050, 1350, 1650, 1650, 1350, 1650, 2400, 1650, 900];
+const PLAN_ESTIMATED = [false, false, false, false, false, false, false, false, false, false, true, true];
+const PLAN_PRICE_PER_UNIT = 82; // $, manbadagi o'rtacha chek
+const PLAN_COMMISSION_RATE = 0.12;
+
+function fmtUsd(n) {
+  return '$' + Math.round(n).toLocaleString('ru-RU').replace(/,/g, ' ');
+}
+
+// Reja Sentabrdan boshlanadi (indeks 0) — joriy kalendar oyni shu siklga moslaydi
+function currentPlanIndex() {
+  const realMonth = new Date().getMonth(); // 0 = Yanvar ... 8 = Sentabr
+  return (realMonth - 8 + 12) % 12;
+}
+
+function renderPlanFakt(d) {
+  const idx = currentPlanIndex();
+  const planUnitsDay = PLAN_UNITS_PER_DAY[idx];
+  const faktOrdersToday = d && typeof d.ordersToday === 'number' ? d.ordersToday : 0;
+
+  document.getElementById('pfPlanUnitsDay').textContent = planUnitsDay;
+  document.getElementById('pfPlanMonth').textContent = PLAN_MONTHS[idx] + (PLAN_ESTIMATED[idx] ? ' (taxminiy)' : '');
+  document.getElementById('pfFaktOrdersToday').textContent = faktOrdersToday;
+
+  const pct = planUnitsDay ? Math.round((faktOrdersToday / planUnitsDay) * 100) : 0;
+  document.getElementById('pfBajarilish').textContent = pct + '%';
+
+  const tbody = document.getElementById('planBody');
+  tbody.innerHTML = PLAN_MONTHS.map((name, i) => {
+    const gmv = PLAN_UNITS_PER_MONTH[i] * PLAN_PRICE_PER_UNIT;
+    const commission = gmv * PLAN_COMMISSION_RATE;
+    const star = PLAN_ESTIMATED[i] ? ' *' : '';
+    const current = i === idx ? ' style="font-weight:700"' : '';
+    return `
+      <tr${current}>
+        <td>${name}${star}</td>
+        <td>${PLAN_UNITS_PER_DAY[i]}</td>
+        <td>${PLAN_UNITS_PER_MONTH[i].toLocaleString('ru-RU').replace(/,/g, ' ')}</td>
+        <td>${fmtUsd(PLAN_PRICE_PER_UNIT)}</td>
+        <td>${fmtUsd(gmv)}</td>
+        <td>${fmtUsd(commission)}</td>
+      </tr>`;
+  }).join('');
+}
+
 /* ═══════════════════════════════════════════════════════════════════ */
 
 let lastOrders = [];
@@ -137,6 +192,7 @@ function renderSummary(d) {
   renderApplications();
   renderSellers();
   renderModQueue();
+  renderPlanFakt(d);
 
   updateNavBadges(d);
 }
@@ -404,6 +460,7 @@ const PAGE_META = {
   sellers:    { title: 'Sotuvchilar', subtitle: 'Arizalar va tasdiqlangan sotuvchilar' },
   moderation: { title: 'Moderatsiya', subtitle: 'Nashr navbati' },
   stats:      { title: 'Statistika',  subtitle: "Tashriflar, buyurtmalar va kategoriya tahlili" },
+  planfakt:   { title: 'Reja/Fakt',   subtitle: "12 oylik savdo rejasi va joriy holat" },
 };
 
 function goToPage(page) {
