@@ -6,6 +6,19 @@
 - **Barcha commit xabarlari o'zbek tilida bo'lsin.**
 - Commit format: `tip: tavsif` (feat / fix / docs / style / refactor / chore)
 
+## Arxitektura qoidalari
+
+- **Admin panelning YOZUV amallari Telegram'da tasdiqlanadi** (2026-07-27 founder
+  qarori). Panel faqat so'rov yaratadi (`POST /api/admin/action`), amal
+  `ADMIN_CHAT_ID` chatidagi inline tugma bosilgandan keyin bajariladi; so'rov 30
+  daqiqada eskiradi va tugmani bosgan odam `ADMIN_TG_IDS` ro'yxatida bo'lishi
+  tekshiriladi. Sabab: panel tokeni brauzer `sessionStorage`ida yashaydi va
+  o'g'irlanishi mumkin, pul o'tkazish/refund esa qaytarib bo'lmaydi.
+  **Yangi yozuv amali qo'shilsa ham shu yo'ldan o'tsin** — paneldan
+  to'g'ridan-to'g'ri DB'ga yozadigan endpoint qo'shilmasin.
+- **Panelda o'ylab topilgan raqam ko'rsatilmasin.** Ma'lumot bazadan kelmasa,
+  o'sha blok umuman ko'rsatilmaydi (mock raqam yoki soxta trend foizi emas).
+
 ## Loyiha haqida
 
 LolaMarket — O'zbekistonda to'qima materiallar uchun B2B web platforma.
