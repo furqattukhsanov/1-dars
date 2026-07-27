@@ -41,6 +41,12 @@ const STR = {
     needPoint: "Avval olish nuqtasini tanlang",
     commentPh: "Buyurtma uchun izoh (ixtiyoriy)", summary: "Buyurtma tarkibi", placeOrder: "Buyurtmani tasdiqlash",
     orders: "Buyurtmalarim", active: "Faol", past: "Tarix", noActive: "Faol buyurtma yo'q", track: "Kuzatish", reorder: "Qayta buyurtma",
+    dispProblem: "Muammo bor", dispTitle: "Muammoni bildiring",
+    dispSub: "Muammoni tanlang. Keyin bot rasm so'raydi — moderator ko'rib chiqadi.",
+    dispCommentPh: "Qisqacha izoh (ixtiyoriy)", dispSend: "Yuborish", dispCancel: "Bekor qilish",
+    dispSent: "Bahs ochildi — botga muammo rasmini yuboring",
+    dispOpenBadge: "Bahs ko'rib chiqilmoqda", dispResolvedBadge: "Bahs hal qilindi",
+    dispDecision: "Qaror", dispRefund: "Qaytarildi", dispNeedPhoto: "Botga rasm yuboring",
     profile: "Profil", editP: "Tahrirlash", ordersCount: "buyurtma", settings: "Sozlamalar", language: "Til", notifications: "Bildirishnomalar",
     help: "Yordam markazi", logout: "Chiqish", search: "Qidiruv", recent: "So'nggi qidiruvlar", noResults: "Hech narsa topilmadi",
     noResultsSub: "Boshqa so'z bilan urinib ko'ring", resultsN: "natija topildi", tabHome: "Bosh", tabCatalog: "Katalog",
@@ -60,6 +66,9 @@ const STR = {
     sNoProducts: "Hali mahsulot yo'q", sNoProductsSub: "Birinchi matongizni qo'shing",
     sNoOrders: "Bu bo'limda buyurtma yo'q",
     sAdd: "Mahsulot qo'shish", sEdit: "Tahrirlash", sHide: "Yashirish", sShow: "Qayta ko'rsatish",
+    sDispute: "Xaridor shikoyati", sDisputeReplyPh: "Javobingiz — moderator va xaridor ko'radi",
+    sDisputeSend: "Javob yuborish", sDisputeSent: "Javob yuborildi",
+    sDisputeYours: "Sizning javobingiz", sDisputeNeed: "Javob matnini yozing",
     sSave: "Saqlash", sName: "Nomi", sPrice: "Narxi (so'm)", sMoq: "Minimal buyurtma", sCat: "Kategoriya",
     sComp: "Tarkibi", sSaved: "Saqlandi — moderatsiyaga yuborildi", sHidden2: "Mahsulot yashirildi",
     sShown: "Qayta ko'rsatishga yuborildi",
@@ -90,6 +99,12 @@ const STR = {
     needPoint: "Сначала выберите пункт выдачи",
     commentPh: "Комментарий к заказу (необязательно)", summary: "Состав заказа", placeOrder: "Подтвердить заказ",
     orders: "Мои заказы", active: "Активные", past: "История", noActive: "Нет активных заказов", track: "Отследить", reorder: "Повторить",
+    dispProblem: "Есть проблема", dispTitle: "Сообщите о проблеме",
+    dispSub: "Выберите проблему. Затем бот попросит фото — модератор рассмотрит.",
+    dispCommentPh: "Краткий комментарий (необязательно)", dispSend: "Отправить", dispCancel: "Отмена",
+    dispSent: "Спор открыт — отправьте фото боту",
+    dispOpenBadge: "Спор рассматривается", dispResolvedBadge: "Спор решён",
+    dispDecision: "Решение", dispRefund: "Возвращено", dispNeedPhoto: "Отправьте фото боту",
     profile: "Профиль", editP: "Изменить", ordersCount: "заказов", settings: "Настройки", language: "Язык", notifications: "Уведомления",
     help: "Центр помощи", logout: "Выйти", search: "Поиск", recent: "Недавние поиски", noResults: "Ничего не найдено",
     noResultsSub: "Попробуйте другой запрос", resultsN: "результатов", tabHome: "Главная", tabCatalog: "Каталог",
@@ -109,6 +124,9 @@ const STR = {
     sNoProducts: "Товаров пока нет", sNoProductsSub: "Добавьте первую ткань",
     sNoOrders: "В этом разделе заказов нет",
     sAdd: "Добавить товар", sEdit: "Изменить", sHide: "Скрыть", sShow: "Показать снова",
+    sDispute: "Жалоба покупателя", sDisputeReplyPh: "Ваш ответ — увидят модератор и покупатель",
+    sDisputeSend: "Отправить ответ", sDisputeSent: "Ответ отправлен",
+    sDisputeYours: "Ваш ответ", sDisputeNeed: "Напишите текст ответа",
     sSave: "Сохранить", sName: "Название", sPrice: "Цена (сум)", sMoq: "Мин. заказ", sCat: "Категория",
     sComp: "Состав", sSaved: "Сохранено — отправлено на модерацию", sHidden2: "Товар скрыт",
     sShown: "Отправлено на повторную проверку",
@@ -270,6 +288,12 @@ const S = {
   btsSheet: false,
   btsQuery: '',
   ordersTab: 'active',
+  // — Bahsli holatlar (xaridor tomoni) —
+  disputes: [],          // /api/disputes dan — o'z bahslari
+  dispSheet: null,       // ochiq sheet: { orderId }
+  dispReason: 'damaged',
+  dispComment: '',
+  sDispReply: {},        // bahs id → sotuvchi yozayotgan javob
   // — Sotuvchi kabineti —
   role: 'buyer',        // serverdan (/api/me) keladi — mijoz o'zi belgilamaydi
   seller: null,         // { id, name, verified }
@@ -309,14 +333,27 @@ const BADGE_COLORS = {
 };
 const STOCK_COLOR = { in:'var(--success-500)', low:'var(--saffron-500)', made:'var(--teal-500)' };
 const STOCK_TXT   = { in:{ uz:'Sotuvda', ru:'В наличии' }, low:{ uz:'Kam qoldi', ru:'Мало осталось' }, made:{ uz:'Buyurtmaga', ru:'Под заказ' } };
-const STATUS_TXT  = { production:{ uz:'Ishlab chiqarilmoqda', ru:'В производстве' }, shipped:{ uz:"Yo'lda", ru:'В пути' }, delivered:{ uz:'Yetkazildi', ru:'Доставлено' }, pending:{ uz:'Tasdiq kutilmoqda', ru:'Ожидает' }, confirmed:{ uz:'Tasdiqlandi', ru:'Подтверждено' } };
+const STATUS_TXT  = {
+  production:{ uz:'Ishlab chiqarilmoqda', ru:'В производстве' },
+  shipped:   { uz:"Yo'lda",              ru:'В пути' },
+  delivered: { uz:'Yetkazildi',          ru:'Доставлено' },
+  pending:   { uz:'Tasdiq kutilmoqda',   ru:'Ожидает' },
+  confirmed: { uz:'Tasdiqlandi',         ru:'Подтверждено' },
+  // Sprint 7 holatlari — bularsiz kartochka chizilayotganda xato bo'lardi
+  completed: { uz:'Yakunlandi',          ru:'Завершён' },
+  refunded:  { uz:'Pul qaytarildi',      ru:'Возвращено' },
+  cancelled: { uz:'Bekor qilindi',       ru:'Отменён' },
+};
 const STATUS_COL  = {
   saffron: ['var(--saffron-50)','var(--saffron-700)'],
   teal:    ['var(--teal-50)','var(--teal-700)'],
   success: ['var(--success-100)','#0E6B47'],
   neutral: ['var(--ink-100)','var(--ink-700)'],
 };
-const STATUS_TONE = { production:'saffron', shipped:'teal', delivered:'success', pending:'neutral', confirmed:'saffron' };
+const STATUS_TONE = {
+  production:'saffron', shipped:'teal', delivered:'success', pending:'neutral', confirmed:'saffron',
+  completed:'success', refunded:'neutral', cancelled:'neutral',
+};
 const STATUS_STAGES = ['pending','confirmed','shipped','delivered'];
 
 function vm(p) {
@@ -939,7 +976,8 @@ function renderBtsSheet() {
 // Sheet #screen-wrap dan tashqarida chiziladi — aks holda skroll konteyneri uni kesadi
 function paintSheet() {
   const wrap = document.getElementById('sheet-wrap');
-  if (wrap) wrap.innerHTML = S.btsSheet ? renderBtsSheet() : '';
+  if (!wrap) return;
+  wrap.innerHTML = S.btsSheet ? renderBtsSheet() : S.dispSheet ? renderDisputeSheet() : '';
 }
 function openBtsSheet() {
   S.btsSheet = true;
@@ -970,6 +1008,123 @@ function pickBts(id) {
   closeBtsSheet();
 }
 
+// ============ BAHSLI HOLAT (xaridor tomoni) ============
+// Kalitlar SERVERDAGI DISPUTE_REASONS bilan bir xil bo'lishi shart — matn
+// klientdan emas, kalit yuboriladi, sababni server o'zi yozadi.
+const DISP_REASONS = [
+  { key: 'not_delivered', uz: 'Mato yetib kelmadi',     ru: 'Ткань не пришла' },
+  { key: 'damaged',       uz: 'Mato shikastlangan',     ru: 'Ткань повреждена' },
+  { key: 'wrong_item',    uz: 'Boshqa mato keldi',      ru: 'Пришла другая ткань' },
+  { key: 'quality',       uz: 'Sifat mos emas',         ru: 'Качество не соответствует' },
+  { key: 'quantity',      uz: 'Miqdor kam chiqdi',      ru: 'Количество меньше' },
+  { key: 'other',         uz: 'Boshqa muammo',          ru: 'Другая проблема' },
+];
+
+// Bahs faqat mato yo'lga chiqqandan keyin — serverdagi qoida bilan bir xil
+const DISP_ALLOWED = ['shipped', 'delivered', 'completed'];
+
+function disputeFor(orderId) {
+  return S.disputes.find(d => d.orderId === orderId) || null;
+}
+
+function renderDisputeSheet() {
+  const T = STR[S.lang];
+  return `
+  <div onclick="closeDisputeSheet()" style="position:fixed;inset:0;z-index:60;background:rgba(24,10,8,.42);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)"></div>
+  <div style="position:fixed;left:0;right:0;bottom:0;z-index:61;max-height:82vh;display:flex;flex-direction:column;padding:18px 16px calc(18px + env(safe-area-inset-bottom));border-radius:22px 22px 0 0;background:var(--surface-solid);box-shadow:0 -12px 40px -12px rgba(81,1,0,.3)">
+    <span style="flex:none;width:38px;height:4px;border-radius:999px;background:var(--ink-100);margin:0 auto 14px"></span>
+
+    <div style="flex:none;font-family:var(--font-display);font-size:19px;font-weight:800;color:var(--text-strong);letter-spacing:-.02em">${T.dispTitle}</div>
+    <div style="flex:none;font-size:12.5px;color:var(--text-muted);line-height:1.5;margin-top:5px">${T.dispSub}</div>
+
+    <div style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;margin-top:14px;display:flex;flex-direction:column;gap:7px">
+      ${DISP_REASONS.map(r => {
+        const on = S.dispReason === r.key;
+        return `<button onclick="setDispReason('${r.key}')" style="display:flex;align-items:center;gap:10px;text-align:left;padding:13px;border-radius:var(--radius-sm);cursor:pointer;border:1.5px solid ${on ? '#8f1a10' : 'var(--border-hair)'};background:${on ? 'rgba(143,26,16,.05)' : 'transparent'}">
+          <span style="flex:none;width:18px;height:18px;border-radius:50%;border:1.5px solid ${on ? '#8f1a10' : 'var(--ink-200)'};display:flex;align-items:center;justify-content:center">
+            ${on ? '<span style="width:9px;height:9px;border-radius:50%;background:#8f1a10"></span>' : ''}
+          </span>
+          <span style="font-size:14px;font-weight:${on ? 700 : 500};color:var(--text-strong)">${r[S.lang]}</span>
+        </button>`;
+      }).join('')}
+
+      <textarea oninput="S.dispComment=this.value" placeholder="${T.dispCommentPh}" rows="3"
+        style="margin-top:6px;width:100%;padding:12px;border:1px solid var(--border-hair);border-radius:var(--radius-sm);background:var(--glass-fill-strong);font-family:var(--font-sans);font-size:16px;color:var(--text-strong);outline:none;resize:none">${S.dispComment}</textarea>
+    </div>
+
+    <div style="flex:none;display:flex;gap:9px;margin-top:12px">
+      <button onclick="closeDisputeSheet()" style="flex:1;height:50px;border-radius:var(--radius-md);border:1px solid var(--border-hair);background:transparent;font-family:var(--font-sans);font-size:15px;font-weight:600;color:var(--text-muted);cursor:pointer">${T.dispCancel}</button>
+      <button onclick="submitDispute()" style="flex:1.4;height:50px;border:none;border-radius:var(--radius-md);background:linear-gradient(135deg,#8f1a10,#510100);color:#ffe9db;font-family:var(--font-sans);font-size:15px;font-weight:600;cursor:pointer;box-shadow:var(--shadow-sm)">${T.dispSend}</button>
+    </div>
+  </div>`;
+}
+
+function openDisputeSheet(orderId) {
+  S.dispSheet = { orderId };
+  S.dispReason = 'damaged';
+  S.dispComment = '';
+  paintSheet();
+}
+function closeDisputeSheet() {
+  S.dispSheet = null;
+  paintSheet();
+}
+function setDispReason(k) {
+  S.dispReason = k;
+  paintSheet();
+}
+
+async function submitDispute() {
+  const T = STR[S.lang];
+  const orderId = S.dispSheet && S.dispSheet.orderId;
+  if (!orderId) return;
+  const body = { orderId, reasonKey: S.dispReason, comment: S.dispComment.trim() || undefined };
+  closeDisputeSheet();
+  try {
+    // sellerFetch faqat nomi bo'yicha "sotuvchi" — aslida initData bilan
+    // yuboradigan umumiy yordamchi, xaridor uchun ham shu ishlatiladi
+    await sellerFetch('/api/disputes', { method: 'POST', body: JSON.stringify(body) });
+    showToast(T.dispSent);
+    await loadDisputes();
+    if (S.screen === 'orders') document.getElementById('screen-wrap').innerHTML = renderOrders();
+  } catch (e) {
+    showToast(e.message);
+  }
+}
+
+async function loadDisputes() {
+  if (!tgInitData()) return;
+  try {
+    const d = await sellerFetch('/api/disputes');
+    if (Array.isArray(d)) S.disputes = d;
+  } catch (e) { /* bahs yo'q yoki kirilmagan — jim o'tamiz */ }
+}
+
+// Xaridor buyurtma kartochkasidagi bahs bloki
+function disputeBlock(o) {
+  const T = STR[S.lang];
+  const d = disputeFor(o.id);
+
+  if (!d) {
+    if (!DISP_ALLOWED.includes(o.statusKey)) return '';
+    return `<button onclick="openDisputeSheet('${o.id}')" style="width:100%;margin-top:9px;height:36px;border-radius:var(--radius-sm);border:1px solid var(--danger-500);background:transparent;font-size:12.5px;font-weight:600;color:var(--danger-500);cursor:pointer">${T.dispProblem}</button>`;
+  }
+
+  const open = d.status === 'open';
+  return `
+  <div style="margin-top:11px;padding-top:11px;border-top:1px solid var(--border-hair)">
+    <div style="display:flex;align-items:center;gap:7px">
+      <span style="display:inline-flex;align-items:center;height:22px;padding:0 10px;border-radius:999px;font-size:11px;font-weight:700;background:${open ? 'var(--saffron-50)' : 'var(--success-100)'};color:${open ? 'var(--saffron-700)' : '#0d6b45'}">
+        ${open ? T.dispOpenBadge : T.dispResolvedBadge}
+      </span>
+    </div>
+    <div style="font-size:12px;color:var(--text-muted);margin-top:6px;line-height:1.5">${d.reason || ''}</div>
+    ${open && !d.photos ? `<div style="font-size:11.5px;color:var(--saffron-700);margin-top:5px">📸 ${T.dispNeedPhoto}</div>` : ''}
+    ${d.decision ? `<div style="font-size:12px;color:var(--text-body);margin-top:6px;line-height:1.5"><b>${T.dispDecision}:</b> ${d.decision}</div>` : ''}
+    ${d.refundAmount ? `<div style="font-size:12px;color:var(--text-body);margin-top:3px"><b>${T.dispRefund}:</b> <span style="font-family:var(--font-mono)">${money(d.refundAmount)}</span></div>` : ''}
+  </div>`;
+}
+
 // ============ EKRAN: MUVAFFAQIYAT ============
 function renderSuccess() {
   const T = STR[S.lang];
@@ -991,8 +1146,10 @@ function renderSuccess() {
 // ============ EKRAN: BUYURTMALAR ============
 function renderOrders() {
   const T = STR[S.lang];
-  const activeOrders = ORDERS.filter(o => o.statusKey !== 'delivered');
-  const pastOrders   = ORDERS.filter(o => o.statusKey === 'delivered');
+  // Yakunlangan holatlar "Tarix"ga tushadi (Sprint 7 da completed/refunded qo'shildi)
+  const DONE = ['delivered', 'completed', 'refunded', 'cancelled'];
+  const activeOrders = ORDERS.filter(o => !DONE.includes(o.statusKey));
+  const pastOrders   = ORDERS.filter(o => DONE.includes(o.statusKey));
   const list = S.ordersTab === 'active' ? activeOrders : pastOrders;
 
   return `
@@ -1004,15 +1161,16 @@ function renderOrders() {
 
     ${list.length === 0 ? `<div style="text-align:center;padding:40px;color:var(--text-muted)">${T.noActive}</div>` :
     list.map(o => {
-      const tone = STATUS_TONE[o.statusKey];
+      const tone = STATUS_TONE[o.statusKey] || 'neutral';
       const [sbg,sfg] = STATUS_COL[tone];
+      const stTxt = (STATUS_TXT[o.statusKey] || STATUS_TXT.pending)[S.lang];
       const lines = o.items.map(it => { const p = byId(it.id); return { name:p.name[S.lang], bgStyle:vm(p).bgStyle, qty:it.qty, unit:uShort(p.unit), total:p.price*it.qty }; });
       const total = o.items.reduce((s,it) => s + byId(it.id).price * it.qty, 0);
       return `
       <div style="padding:14px;border-radius:var(--radius-lg);background:rgba(255,255,255,.62);backdrop-filter:blur(16px) saturate(160%);-webkit-backdrop-filter:blur(16px) saturate(160%);border:1px solid rgba(255,255,255,.55);box-shadow:0 5px 16px -12px rgba(81,1,0,.12)">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:11px">
           <span style="font-family:var(--font-mono);font-size:13.5px;font-weight:600;color:var(--text-strong)">${o.id}</span>
-          <span style="display:inline-flex;align-items:center;height:24px;padding:0 11px;border-radius:999px;font-size:11.5px;font-weight:600;background:${sbg};color:${sfg}">${STATUS_TXT[o.statusKey][S.lang]}</span>
+          <span style="display:inline-flex;align-items:center;height:24px;padding:0 11px;border-radius:999px;font-size:11.5px;font-weight:600;background:${sbg};color:${sfg}">${stTxt}</span>
         </div>
         <div style="display:flex;align-items:center;gap:12px">
           <span style="position:relative;flex:none;width:52px;height:52px;border-radius:var(--radius-sm);${lines[0].bgStyle}">
@@ -1040,6 +1198,7 @@ function renderOrders() {
           </div>`).join('')}
         </div>`;
         })() : ''}
+        ${disputeBlock(o)}
       </div>`;
     }).join('')}
   </div>`;
@@ -1321,7 +1480,9 @@ function sendOrderNotify(orderId) {
 
 // ============ BUYURTMA HOLATINI SERVERDAN SINXRONLASH ============
 function syncOrderStatuses() {
-  const open = ORDERS.filter(o => o.statusKey !== 'delivered');
+  // Yakunlangan buyurtmalar holati boshqa o'zgarmaydi — ularni so'ramaymiz
+  const CLOSED = ['delivered', 'completed', 'refunded', 'cancelled'];
+  const open = ORDERS.filter(o => !CLOSED.includes(o.statusKey));
   if (!open.length) return;
   open.forEach((o) => {
     fetch('/api/order-status?id=' + encodeURIComponent(o.id))
@@ -1749,9 +1910,46 @@ function renderSellerOrders() {
           <input id="trk-${o.id}" value="${S.sTracking[o.id] || ''}" oninput="S.sTracking['${o.id}']=this.value" placeholder="${T.sTrackingPh}" style="width:100%;padding:11px 13px;border:1px solid var(--border-hair);border-radius:var(--radius-sm);background:var(--glass-fill-strong);font-family:var(--font-mono);font-size:16px;color:var(--text-strong);outline:none">
           <button onclick="sellerOrder('${o.id}','ship')" style="width:100%;margin-top:8px;cursor:pointer;padding:11px;border-radius:var(--radius-sm);border:none;background:linear-gradient(135deg,#8f1a10,#510100);font-family:var(--font-sans);font-size:13.5px;font-weight:700;color:#ffe9db">${T.sShip}</button>
         </div>` : ''}
+
+        ${o.dispute ? sellerDisputeBlock(o.dispute) : ''}
       </div>`;
     }).join('') : emptyState(T.sNoOrders))}
   </div>`;
+}
+
+// Sotuvchi kabinetidagi bahs bloki — shikoyat matni va javob maydoni.
+// Javob bir marta yozilgach o'zgartirilmaydi (moderator ko'rgan matn qolsin).
+function sellerDisputeBlock(d) {
+  const T = STR[S.lang];
+  return `
+  <div style="margin-top:11px;padding:11px;border-radius:var(--radius-sm);background:var(--danger-100);border:1px solid rgba(163,24,28,.18)">
+    <div style="font-size:12px;font-weight:700;color:#a3181c">⚖️ ${T.sDispute}</div>
+    <div style="font-size:12.5px;color:var(--text-body);margin-top:5px;line-height:1.5">${d.reason || ''}</div>
+
+    ${d.sellerResponse
+      ? `<div style="margin-top:8px;font-size:12px;color:var(--text-muted);line-height:1.5"><b>${T.sDisputeYours}:</b> ${d.sellerResponse}</div>`
+      : `<div style="margin-top:9px">
+           <textarea oninput="S.sDispReply[${d.id}]=this.value" placeholder="${T.sDisputeReplyPh}" rows="3"
+             style="width:100%;padding:10px;border:1px solid var(--border-hair);border-radius:var(--radius-sm);background:var(--surface-solid);font-family:var(--font-sans);font-size:16px;color:var(--text-strong);outline:none;resize:none">${S.sDispReply[d.id] || ''}</textarea>
+           <button onclick="sendDisputeReply(${d.id})" style="width:100%;margin-top:7px;cursor:pointer;padding:10px;border-radius:var(--radius-sm);border:none;background:linear-gradient(135deg,#8f1a10,#510100);font-family:var(--font-sans);font-size:13px;font-weight:700;color:#ffe9db">${T.sDisputeSend}</button>
+         </div>`}
+  </div>`;
+}
+
+async function sendDisputeReply(disputeId) {
+  const T = STR[S.lang];
+  const text = (S.sDispReply[disputeId] || '').trim();
+  if (text.length < 3) return showToast(T.sDisputeNeed);
+  try {
+    await sellerFetch('/api/seller/dispute', {
+      method: 'POST',
+      body: JSON.stringify({ disputeId, response: text }),
+    });
+    delete S.sDispReply[disputeId];
+    showToast(T.sDisputeSent);
+    await loadSellerData();
+    render();
+  } catch (e) { showToast(e.message); }
 }
 
 // Telegram ichida native dialog ishlatiladi (brauzerdagi confirm() u yerda ishonchsiz)
@@ -1891,6 +2089,7 @@ render();
   await loadProductsFromServer();
   await loginTelegram();          // Telegram orqali kirish (imzo serverda tekshiriladi)
   await loadOrdersFromServer();
+  await loadDisputes();           // o'z bahslari — buyurtma kartochkasida ko'rsatiladi
   await loadMe();                 // rol: xaridormi yoki sotuvchi (serverda aniqlanadi)
   render();
   if (S.role === 'seller') loadSellerData().then(render);

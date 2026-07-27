@@ -11,7 +11,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 
   <link rel="stylesheet" href="../style.css?v=21" />
-  <link rel="stylesheet" href="admin.css?v=16" />
+  <link rel="stylesheet" href="admin.css?v=17" />
 </head>
 <body>
 
@@ -64,6 +64,11 @@
           <span>Moderatsiya</span>
           <span class="nav-badge" id="navBadgeModeration"></span>
         </button>
+        <button class="nav-item" data-page="disputes">
+          <svg viewBox="0 0 24 24"><path d="M11 2.6h2v2.1l6.6 2.2-.63 1.9L13 6.9v12.2h4v2H7v-2h4V6.9L4.03 8.8 3.4 6.9 11 4.7V2.6z"/><path d="M4.6 10.2l2.9 5.6H1.7l2.9-5.6zm14.8 0l2.9 5.6h-5.8l2.9-5.6z"/></svg>
+          <span>Bahslar</span>
+          <span class="nav-badge" id="navBadgeDisputes"></span>
+        </button>
         <button class="nav-item" data-page="stats">
           <svg viewBox="0 0 24 24"><rect x="2.6" y="9.5" width="4.2" height="11" rx="1.8"/><rect x="9.9" y="3.5" width="4.2" height="17" rx="1.8"/><rect x="17.2" y="12.5" width="4.2" height="8" rx="1.8"/></svg>
           <span>Statistika</span>
@@ -89,8 +94,8 @@
         </div>
         <div class="topbar-actions">
           <div class="range-pill">Oxirgi 30 kun</div>
-          <button class="icon-btn" aria-label="Bildirishnomalar">
-            <svg viewBox="0 0 24 24"><path d="M12 2a6.4 6.4 0 016.4 6.4c0 4.1 1 6 1.9 7a1 1 0 01-.74 1.67H4.44A1 1 0 013.7 15.4c.9-1 1.9-2.9 1.9-7A6.4 6.4 0 0112 2z"/><path d="M9.6 18.5h4.8a2.4 2.4 0 01-4.8 0z"/></svg>
+          <button class="icon-btn" id="refreshBtn" aria-label="Yangilash" title="Yangilash">
+            <svg viewBox="0 0 24 24"><path d="M12 4V1L8 5l4 4V6a6 6 0 11-5.65 8h-2.1A8 8 0 1012 4z"/></svg>
           </button>
         </div>
       </header>
@@ -125,7 +130,6 @@
                 <div class="stat-icon pom">
                   <svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="2.6" rx="1.3"/><rect x="3.5" y="10.7" width="17" height="2.6" rx="1.3"/><rect x="3.5" y="16.4" width="10.5" height="2.6" rx="1.3"/></svg>
                 </div>
-                <div class="stat-trend up">+12%</div>
               </div>
               <div class="stat-number" id="statOrdersTotal">–</div>
               <div class="stat-label">Buyurtmalar (30 kun)</div>
@@ -135,7 +139,6 @@
             <div class="stat-card glass">
               <div class="stat-top">
                 <div class="stat-icon pom"><svg viewBox="0 0 24 24"><path fill-rule="evenodd" d="M5.5 4h13A2.5 2.5 0 0121 6.5v11a2.5 2.5 0 01-2.5 2.5h-13A2.5 2.5 0 013 17.5v-11A2.5 2.5 0 015.5 4zM12 9a3 3 0 100 6 3 3 0 000-6z"/></svg></div>
-                <div class="stat-trend up">+18%</div>
               </div>
               <div class="stat-number" id="statGmv">–</div>
               <div class="stat-label">Savdo hajmi (GMV)</div>
@@ -145,11 +148,10 @@
             <div class="stat-card glass tone-teal">
               <div class="stat-top">
                 <div class="stat-icon teal"><svg viewBox="0 0 24 24"><path fill-rule="evenodd" d="M9.4 2.6h5.2a2.8 2.8 0 012.8 2.8v1.4h3.1A1.5 1.5 0 0122 8.3v9.2a2.9 2.9 0 01-2.9 2.9H4.9A2.9 2.9 0 012 17.5V8.3a1.5 1.5 0 011.5-1.5h3.1V5.4a2.8 2.8 0 012.8-2.8zm.2 4.2h4.8V5.6a.9.9 0 00-.9-.9h-3a.9.9 0 00-.9.9v1.2z"/></svg></div>
-                <div class="stat-trend up">+9%</div>
               </div>
               <div class="stat-number" id="statCommission">–</div>
               <div class="stat-label">Komissiya daromadi</div>
-              <div class="stat-foot">10–12% stavka bo'yicha</div>
+              <div class="stat-foot" id="statCommissionFoot">–</div>
             </div>
 
             <div class="stat-card glass tone-saffron">
@@ -247,16 +249,26 @@
             <button class="order-filter" data-filter="confirmed">Tasdiqlangan</button>
             <button class="order-filter" data-filter="shipped">Yo'lda</button>
             <button class="order-filter" data-filter="delivered">Yetkazildi</button>
+            <button class="order-filter" data-filter="completed">Yakunlandi</button>
+            <button class="order-filter" data-filter="refunded">Qaytarildi</button>
             <button class="order-filter" data-filter="cancelled">Bekor qilindi</button>
           </div>
 
           <div class="orders-table-wrap glass">
-            <table class="orders-table">
+            <table class="orders-table orders-table-wide">
               <thead>
-                <tr><th>#</th><th>Xaridor</th><th>Tarkib</th><th>Sana</th><th>Holat</th></tr>
+                <tr>
+                  <th>#</th><th>Xaridor</th><th>Tarkib</th>
+                  <th class="num">Jami</th><th class="num">Komissiya</th><th class="num">Sotuvchiga</th>
+                  <th>Sana</th><th>Holat</th><th>Amal</th>
+                </tr>
               </thead>
               <tbody id="ordersBody"></tbody>
             </table>
+          </div>
+          <div class="sample-note">
+            "Pul o'tkazish" faqat <b>Yetkazildi</b> holatidagi va ochiq bahsi yo'q buyurtmada mumkin.
+            Har ikkala amal ham Telegram'da tasdiqlanadi.
           </div>
         </section>
 
@@ -275,7 +287,7 @@
           <div class="orders-table-wrap glass">
             <table class="orders-table">
               <thead>
-                <tr><th>Sotuvchi</th><th>Telefon</th><th>Mahsulot</th><th>Reyting</th><th>Qo'shildi</th></tr>
+                <tr><th>Sotuvchi</th><th>Telefon</th><th>Shahar</th><th>Mahsulot</th><th>Reyting</th><th>Qo'shildi</th></tr>
               </thead>
               <tbody id="sellersBody"></tbody>
             </table>
@@ -291,72 +303,35 @@
           <div class="mod-grid" id="modGrid"></div>
         </section>
 
+        <!-- ═══ Bahslar page ═══ -->
+        <section id="page-disputes" class="page">
+          <div class="section-header">
+            <div class="section-title">Ochiq bahslar</div>
+            <div class="section-count" id="disputeCount"></div>
+          </div>
+          <div class="dispute-list" id="disputeOpenList"></div>
+
+          <div class="section-header" style="margin-top:2.5rem">
+            <div class="section-title">Hal qilingan bahslar</div>
+          </div>
+          <div class="dispute-list" id="disputeClosedList"></div>
+
+          <div class="sample-note">
+            Dalil rasmlari xaridordan Telegram bot orqali yig'iladi va Telegram serverida qoladi —
+            bu yerda faqat ko'rsatiladi. 24 soatdan oshgan ochiq bahs qizil bilan belgilanadi va
+            admin chatiga eslatma yuboriladi.
+          </div>
+        </section>
+
         <!-- ═══ Statistika page ═══ -->
         <section id="page-stats" class="page">
-
-          <div class="stats-grid stats-grid-3">
-            <div class="stat-card glass tone-pom">
-              <div class="stat-top">
-                <div class="stat-icon pom"><svg viewBox="0 0 24 24"><path fill-rule="evenodd" d="M12 4.5c6.8 0 10.6 6.9 10.8 7.2a.6.6 0 010 .6C22.6 12.6 18.8 19.5 12 19.5S1.4 12.6 1.2 12.3a.6.6 0 010-.6C1.4 11.4 5.2 4.5 12 4.5zm0 4a3.5 3.5 0 100 7 3.5 3.5 0 000-7z"/></svg></div>
-                <div class="stat-trend up">+22%</div>
-              </div>
-              <div class="stat-number" id="statVisitors">–</div>
-              <div class="stat-label">Saytga tashriflar (oy)</div>
-              <div class="stat-foot" id="statVisitorsToday">– bugun</div>
-            </div>
-
-            <div class="stat-card glass">
-              <div class="stat-top">
-                <div class="stat-icon pom"><svg viewBox="0 0 24 24"><circle cx="9" cy="7.8" r="3.7"/><path d="M9 13c3.7 0 6.7 3 6.7 6.7a1 1 0 01-1 1H3.3a1 1 0 01-1-1C2.3 16 5.3 13 9 13z"/><circle cx="17.4" cy="8.4" r="2.9"/><path d="M17.4 13.2c2.9 0 5.3 2.4 5.3 5.3a1 1 0 01-1 1h-3.5c.1-.3.1-.6.1-.9 0-2.2-.8-4.2-2.2-5.7.4-.1.9-.1 1.3-.1z"/></svg></div>
-                <div class="stat-trend up">+14%</div>
-              </div>
-              <div class="stat-number" id="statBuyers">–</div>
-              <div class="stat-label">Buyurtma beruvchilar (oy)</div>
-              <div class="stat-foot" id="statBuyersToday">– bugun</div>
-            </div>
-
-            <div class="stat-card glass">
-              <div class="stat-top">
-                <div class="stat-icon teal"><svg viewBox="0 0 24 24"><path d="M14.6 4.6h6a1 1 0 011 1v6h-2.2V8.2l-6 6.9a1.1 1.1 0 01-1.6.05L9 11.4l-4.2 4.3-1.6-1.55 5-5.1a1.1 1.1 0 011.58 0l2.8 2.75 5-5.6h-3v-2.2z"/></svg></div>
-              </div>
-              <div class="stat-number" id="statConversion">–</div>
-              <div class="stat-label">Konversiya</div>
-              <div class="stat-foot">Tashrif → buyurtma</div>
-            </div>
-          </div>
-
-          <div class="dash-grid">
-            <div class="panel glass revenue-panel">
-              <div class="panel-head">
-                <div>
-                  <div class="panel-title">Tashriflar dinamikasi</div>
-                  <div class="panel-value" id="visitorsTotal">–</div>
-                </div>
-                <div class="panel-legend"><span class="dot dot-teal"></span>Tashriflar (kunlik)</div>
-              </div>
-              <div class="revenue-chart" id="visitorsChart"></div>
-              <div class="revenue-axis" id="visitorsAxis"></div>
-            </div>
-
-            <div class="panel glass revenue-panel">
-              <div class="panel-head">
-                <div>
-                  <div class="panel-title">Buyurtma beruvchilar</div>
-                  <div class="panel-value" id="buyersTotal">–</div>
-                </div>
-                <div class="panel-legend"><span class="dot dot-saffron"></span>Xaridorlar (kunlik)</div>
-              </div>
-              <div class="revenue-chart" id="buyersChart"></div>
-              <div class="revenue-axis" id="buyersAxis"></div>
-            </div>
-          </div>
 
           <div class="dash-grid">
             <div class="panel glass">
               <div class="panel-head">
-                <div class="panel-title">Kategoriyalar bo'yicha e'lonlar</div>
+                <div class="panel-title">Eng faol sotuvchilar — 30 kun</div>
               </div>
-              <div class="chart-grid" id="chartGrid"></div>
+              <div class="cat-list" id="topSellers"></div>
             </div>
             <div class="panel glass">
               <div class="panel-head">
@@ -364,6 +339,19 @@
               </div>
               <div class="status-dist" id="statusDist"></div>
             </div>
+          </div>
+
+          <div class="panel glass">
+            <div class="panel-head">
+              <div class="panel-title">Kategoriyalar bo'yicha e'lonlar</div>
+            </div>
+            <div class="chart-grid" id="chartGrid"></div>
+          </div>
+
+          <div class="sample-note">
+            Sayt tashriflari va konversiya ko'rsatkichlari bu yerda YO'Q — loyihada hali
+            veb-analitika ulanmagan. Ilgari bu sahifada turgan raqamlar o'ylab topilgan edi,
+            shuning uchun olib tashlandi. Barcha qolgan raqamlar bazadan keladi.
           </div>
         </section>
 
@@ -375,8 +363,8 @@
               <div class="stat-top">
                 <div class="stat-icon pom"><svg viewBox="0 0 24 24"><path fill-rule="evenodd" d="M6.2 3h9.3l-2 2H6.2a1.2 1.2 0 00-1.2 1.2v11.6A1.2 1.2 0 006.2 19h11.6a1.2 1.2 0 001.2-1.2v-5.3l2-2v7.3A3.2 3.2 0 0117.8 21H6.2A3.2 3.2 0 013 17.8V6.2A3.2 3.2 0 016.2 3zM8.3 10.3l3.7 3.7 8-8-1.5-1.4L12 11.1 9.7 8.9l-1.4 1.4z"/></svg></div>
               </div>
-              <div class="stat-number" id="pfPlanUnitsDay">–</div>
-              <div class="stat-label">Reja: kunlik birlik</div>
+              <div class="stat-number" id="pfPlanMonthSom">–</div>
+              <div class="stat-label">Reja: shu oy</div>
               <div class="stat-foot" id="pfPlanMonth">joriy oy</div>
             </div>
 
@@ -384,9 +372,9 @@
               <div class="stat-top">
                 <div class="stat-icon teal"><svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="2.6" rx="1.3"/><rect x="3.5" y="10.7" width="17" height="2.6" rx="1.3"/><rect x="3.5" y="16.4" width="10.5" height="2.6" rx="1.3"/></svg></div>
               </div>
-              <div class="stat-number" id="pfFaktOrdersToday">–</div>
-              <div class="stat-label">Fakt: bugungi buyurtma</div>
-              <div class="stat-foot">/api/admin/summary — real</div>
+              <div class="stat-number" id="pfFaktMonth">–</div>
+              <div class="stat-label">Fakt: shu oy</div>
+              <div class="stat-foot" id="pfFaktOrders">–</div>
             </div>
 
             <div class="stat-card glass">
@@ -394,8 +382,8 @@
                 <div class="stat-icon saffron"><svg viewBox="0 0 24 24"><path d="M14.6 4.6h6a1 1 0 011 1v6h-2.2V8.2l-6 6.9a1.1 1.1 0 01-1.6.05L9 11.4l-4.2 4.3-1.6-1.55 5-5.1a1.1 1.1 0 011.58 0l2.8 2.75 5-5.6h-3v-2.2z"/></svg></div>
               </div>
               <div class="stat-number" id="pfBajarilish">–</div>
-              <div class="stat-label">Bajarilish (bugun / reja)</div>
-              <div class="stat-foot">1 buyurtma ≈ 1 birlik deb taxmin qilingan</div>
+              <div class="stat-label">Bajarilish (oylik fakt / reja)</div>
+              <div class="stat-foot">GMV bo'yicha, so'mda</div>
             </div>
           </div>
 
@@ -406,13 +394,20 @@
           <div class="orders-table-wrap glass">
             <table class="orders-table">
               <thead>
-                <tr><th>Oy</th><th>Kunlik birlik</th><th>Oylik birlik</th><th>O'rtacha chek</th><th>GMV (reja)</th><th>Komissiya (reja)</th></tr>
+                <tr>
+                  <th>Oy</th><th>Kunlik birlik</th><th>Oylik birlik</th><th>O'rtacha chek</th>
+                  <th class="num">Reja (so'm)</th><th class="num">Fakt (so'm)</th><th class="num">Bajarilish</th>
+                </tr>
               </thead>
               <tbody id="planBody"></tbody>
             </table>
           </div>
-          <div class="sample-note" style="margin-top:.6rem; font-size:0.75rem; color:var(--text-muted)">
-            Reja Sentabrdan boshlanadi, 12 oylik siklda takrorlanadi. * — Iyul/Avgust uchun haqiqiy reja yo'q, naqsh asosida taxmin qilingan. Summalar manbadagi kabi $ da — hozircha so'mdagi haqiqiy GMV/komissiya bilan to'g'ridan-to'g'ri solishtirilmaydi. Fakt ustuni hali faqat joriy oy uchun, backend'da oylik agregatsiya qo'shilgach to'liq ulanadi.
+          <div class="sample-note">
+            Reja Sentabrdan boshlanadi, 12 oylik siklda takrorlanadi. * — Iyul/Avgust uchun haqiqiy
+            reja yo'q, naqsh asosida taxmin qilingan. Reja manbada $ da — solishtirish uchun
+            1$ = 12 600 so'm kursi bilan so'mga o'girilgan, shuning uchun kurs o'zgarsa
+            "bajarilish" foizi ham siljiydi. Fakt ustuni bazadagi haqiqiy buyurtmalardan
+            (bekor qilingan va qaytarilganlar hisobga olinmaydi).
           </div>
         </section>
 
@@ -420,6 +415,34 @@
     </div>
   </div>
 
-  <script src="admin.js?v=16"></script>
+  <!-- Toast (qisqa xabar) -->
+  <div class="toast" id="toast"></div>
+
+  <!-- Modal: amal parametrlarini so'raydi -->
+  <div class="modal-back" id="modalBack">
+    <div class="modal glass-strong">
+      <div class="modal-title" id="modalTitle"></div>
+      <div class="modal-body" id="modalBody"></div>
+      <div class="modal-actions">
+        <button class="btn-ghost" id="modalCancel">Bekor</button>
+        <button class="btn-primary" id="modalOk">Davom etish</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Telegram tasdig'ini kutish -->
+  <div class="modal-back" id="waitBack">
+    <div class="modal glass-strong wait-modal">
+      <div class="wait-spinner"></div>
+      <div class="wait-title">Telegram'da tasdiqlash kutilmoqda</div>
+      <div class="wait-text" id="waitText"></div>
+      <div class="wait-hint">
+        Amal admin chatidagi "✅ Tasdiqlash" tugmasi bosilgandan keyin bajariladi.
+        Bu oynani yopsangiz ham so'rov kuchda qoladi.
+      </div>
+    </div>
+  </div>
+
+  <script src="admin.js?v=17"></script>
 </body>
 </html>

@@ -18,6 +18,15 @@ const ADMIN_PANEL_TOKEN = process.env.ADMIN_PANEL_TOKEN || '';
 // Oldindan to'lov ulushi. Mini App'dagi PREPAY_RATE bilan bir xil bo'lishi shart —
 // lekin haqiqiy manba shu yer: summa har doim server tomonda qayta hisoblanadi.
 const PREPAY_RATE = Number(process.env.PREPAY_RATE) || 0.5;
+// Platforma komissiyasi. Butun platformaga BITTA stavka (2026-07-27 founder
+// qarori) — sotuvchi bo'yicha alohida stavka emas. Buyurtma yaratilganda
+// o'sha paytdagi qiymat orders.commission_rate ga snapshot qilinadi, shuning
+// uchun stavka keyin o'zgarsa eski buyurtmalar hisoboti buzilmaydi.
+// PRD §4 diapazoni 10–12% — default 10%.
+const COMMISSION_RATE = (() => {
+  const v = Number(process.env.COMMISSION_RATE);
+  return Number.isFinite(v) && v >= 0 && v < 1 ? v : 0.10;
+})();
 
 // Moderatsiya ruxsati bor Telegram ID'lari (vergul bilan ajratilgan).
 // Berilmasa — ADMIN_CHAT_ID (admin shaxsiy chati = uning Telegram user id'si).
@@ -481,47 +490,846 @@ async function handleModerationAction(req, res, ip) {
   }
 }
 
-// ============ /api/admin/summary — admin panel statistikasi ============
-// admin/index.html (standalone sahifa) uchun. Telegram initData bilan emas —
-// ADMIN_PANEL_TOKEN bilan himoyalanadi (X-Admin-Token header). Faqat O'QISH —
-// tasdiqlash/rad etish hamon bot buyruqlari orqali (initData'siz sahifa
-// harakatlarni ishonchli bajara olmaydi).
-async function handleAdminSummary(req, res, ip) {
-  if (rateLimited(`adminsummary:${ip}`, 30)) return fail(res, 'too many requests', 429);
+// ============ ADMIN PANEL RUXSATI ============
+// admin/index.html (standalone sahifa) Telegram initData ishlab chiqara olmaydi,
+// shuning uchun alohida sir — ADMIN_PANEL_TOKEN (X-Admin-Token header).
+// O'QISH shu token bilan yetarli. YOZUV amallari qo'shimcha ravishda Telegram'da
+// tasdiqlanadi (handleAdminAction) — token o'g'irlansa ham pul o'tkazilmaydi.
+function adminPanelAuth(req, res) {
   const token = req.headers['x-admin-token'];
   if (!ADMIN_PANEL_TOKEN || !token || !safeEqual(token, ADMIN_PANEL_TOKEN)) {
-    return fail(res, 'unauthorized', 401);
+    fail(res, 'unauthorized', 401);
+    return false;
   }
+  return true;
+}
+
+// ============ /api/admin/summary — admin panel statistikasi ============
+// Savdo hajmi (GMV) hisobida bekor qilingan va qaytarilgan buyurtmalar
+// hisobga olinmaydi — quyidagi so'rovlarda `status NOT IN ('cancelled','refunded')`.
+// Ro'yxat ATAYLAB to'g'ridan-to'g'ri yozilgan, parametr sifatida emas:
+// `status <> ALL($1)` da Postgres massiv parametrining tipini aniqlay olmay
+// xato berishi mumkin.
+async function handleAdminSummary(req, res, ip) {
+  if (rateLimited(`adminsummary:${ip}`, 30)) return fail(res, 'too many requests', 429);
+  if (!adminPanelAuth(req, res)) return;
   try {
-    const [modRes, appRes, sellerRes, todayRes, catRes, ordersRes] = await Promise.all([
+    const [
+      modRes, appRes, sellerRes, todayRes, catRes, ordersRes,
+      dailyRes, monthlyRes, totalsRes, topSellersRes,
+      appListRes, sellerListRes, modListRes, disputeRes,
+    ] = await Promise.all([
       pool.query(`SELECT count(*)::int AS n FROM products WHERE status='pending'`),
       pool.query(`SELECT count(*)::int AS n FROM seller_applications WHERE status='pending' AND step='done'`),
       pool.query(`SELECT count(*)::int AS n FROM sellers WHERE is_verified = true`),
       pool.query(`SELECT count(*)::int AS n FROM orders WHERE created_at >= date_trunc('day', now())`),
       pool.query(`SELECT cat_key, count(*)::int AS n FROM products WHERE status='published' GROUP BY cat_key ORDER BY n DESC`),
       pool.query(`
-        SELECT o.id, o.buyer_name, o.status, o.total_amount, o.created_at,
-               (SELECT count(*) FROM order_items oi WHERE oi.order_id = o.id)::int AS items_count
-          FROM orders o ORDER BY o.created_at DESC LIMIT 20`),
+        SELECT o.id, o.buyer_name, o.status, o.total_amount, o.commission_amount,
+               o.payout_amount, o.prepay_amount, o.created_at, o.paid_out_at,
+               (SELECT count(*) FROM order_items oi WHERE oi.order_id = o.id)::int AS items_count,
+               EXISTS (SELECT 1 FROM disputes d WHERE d.order_id = o.id AND d.status='open') AS has_dispute
+          FROM orders o ORDER BY o.created_at DESC LIMIT 100`),
+
+      // ---- Kunlik GMV (30 kun). generate_series bo'sh kunlarni ham qatorga
+      // qo'shadi — aks holda grafik savdosiz kunlarni butunlay tashlab ketardi.
+      pool.query(`
+        SELECT d::date AS day,
+               COALESCE(SUM(o.total_amount), 0)::bigint      AS gmv,
+               COALESCE(SUM(o.commission_amount), 0)::bigint AS commission,
+               COUNT(o.id)::int                              AS orders
+          FROM generate_series(date_trunc('day', now()) - interval '29 days',
+                               date_trunc('day', now()), interval '1 day') d
+          LEFT JOIN orders o
+                 ON o.created_at >= d AND o.created_at < d + interval '1 day'
+                AND o.status NOT IN ('cancelled','refunded')
+         GROUP BY d ORDER BY d`),
+
+      // ---- Oylik GMV (12 oy) — Reja/Fakt sahifasi uchun
+      pool.query(`
+        SELECT m::date AS month,
+               COALESCE(SUM(o.total_amount), 0)::bigint      AS gmv,
+               COALESCE(SUM(o.commission_amount), 0)::bigint AS commission,
+               COUNT(o.id)::int                              AS orders
+          FROM generate_series(date_trunc('month', now()) - interval '11 months',
+                               date_trunc('month', now()), interval '1 month') m
+          LEFT JOIN orders o
+                 ON o.created_at >= m AND o.created_at < m + interval '1 month'
+                AND o.status NOT IN ('cancelled','refunded')
+         GROUP BY m ORDER BY m`),
+
+      pool.query(`
+        SELECT COUNT(*)::int                                   AS orders_total,
+               COALESCE(SUM(total_amount), 0)::bigint          AS gmv_total,
+               COALESCE(SUM(commission_amount), 0)::bigint     AS commission_total,
+               COUNT(*) FILTER (WHERE status='completed')::int AS completed,
+               COALESCE(SUM(payout_amount) FILTER (WHERE status='delivered'), 0)::bigint AS payout_due
+          FROM orders WHERE status NOT IN ('cancelled','refunded')`),
+
+      // ---- Eng faol sotuvchilar (30 kun). Buyurtmada bir nechta sotuvchi
+      // bo'lishi mumkin — shuning uchun order_items qatorlari bo'yicha yig'amiz.
+      pool.query(`
+        SELECT s.id, s.business_name_uz AS name,
+               COUNT(DISTINCT o.id)::int                        AS orders,
+               COALESCE(SUM(oi.qty * oi.unit_price), 0)::bigint AS gmv
+          FROM sellers s
+          JOIN products p     ON p.seller_id = s.id
+          JOIN order_items oi ON oi.product_id = p.id
+          JOIN orders o       ON o.id = oi.order_id AND o.status NOT IN ('cancelled','refunded')
+         WHERE o.created_at >= now() - interval '30 days'
+         GROUP BY s.id, s.business_name_uz
+         ORDER BY gmv DESC LIMIT 10`),
+
+      pool.query(`
+        SELECT id, business_name, city, product_type, phone, tg_username, created_at
+          FROM seller_applications
+         WHERE status='pending' AND step='done'
+         ORDER BY created_at DESC LIMIT 50`),
+
+      pool.query(`
+        SELECT s.id, s.business_name_uz AS name, s.city_uz AS city, s.rating, s.created_at,
+               COALESCE(u.phone, sa.phone) AS phone,
+               (SELECT count(*) FROM products p
+                 WHERE p.seller_id = s.id AND p.status='published')::int AS products
+          FROM sellers s
+          LEFT JOIN users u ON u.id = s.user_id
+          LEFT JOIN LATERAL (
+            SELECT phone FROM seller_applications sa2
+             WHERE sa2.tg_user_id = u.tg_user_id AND sa2.status='approved'
+             ORDER BY sa2.reviewed_at DESC NULLS LAST LIMIT 1
+          ) sa ON true
+         WHERE s.is_verified = true
+         ORDER BY s.created_at DESC LIMIT 100`),
+
+      pool.query(`
+        SELECT p.id, p.name_uz, p.price, p.unit, p.cat_key, p.img, p.created_at,
+               s.business_name_uz AS seller_name
+          FROM products p
+          LEFT JOIN sellers s ON s.id = p.seller_id
+         WHERE p.status='pending' ORDER BY p.created_at DESC LIMIT 50`),
+
+      pool.query(`SELECT count(*)::int AS n FROM disputes WHERE status='open'`),
     ]);
+
+    const t = totalsRes.rows[0];
     ok(res, {
       moderationPending: modRes.rows[0].n,
       sellerAppsPending: appRes.rows[0].n,
       sellersVerified: sellerRes.rows[0].n,
       ordersToday: todayRes.rows[0].n,
+      disputesOpen: disputeRes.rows[0].n,
+      commissionRate: COMMISSION_RATE,
+
+      totals: {
+        orders: t.orders_total,
+        gmv: Number(t.gmv_total),
+        commission: Number(t.commission_total),
+        completed: t.completed,
+        // Yetkazilgan, lekin hali sotuvchiga o'tkazilmagan summa
+        payoutDue: Number(t.payout_due),
+      },
+
+      daily: dailyRes.rows.map((r) => ({
+        day: r.day instanceof Date ? r.day.toISOString().slice(0, 10) : String(r.day),
+        gmv: Number(r.gmv),
+        commission: Number(r.commission),
+        orders: r.orders,
+      })),
+      monthly: monthlyRes.rows.map((r) => ({
+        month: r.month instanceof Date ? r.month.toISOString().slice(0, 7) : String(r.month).slice(0, 7),
+        gmv: Number(r.gmv),
+        commission: Number(r.commission),
+        orders: r.orders,
+      })),
+
+      topSellers: topSellersRes.rows.map((r) => ({
+        id: r.id, name: r.name, orders: r.orders, gmv: Number(r.gmv),
+      })),
+
       categories: catRes.rows.map((r) => ({ catKey: r.cat_key, count: r.n })),
+
       recentOrders: ordersRes.rows.map((r) => ({
         id: r.id,
         buyerName: r.buyer_name,
         status: r.status,
         total: r.total_amount === null ? null : Number(r.total_amount),
+        commission: r.commission_amount === null ? null : Number(r.commission_amount),
+        payout: r.payout_amount === null ? null : Number(r.payout_amount),
+        prepay: r.prepay_amount === null ? null : Number(r.prepay_amount),
+        paidOut: !!r.paid_out_at,
+        hasDispute: r.has_dispute,
         itemsCount: r.items_count,
+        date: dateLabel(new Date(r.created_at)),
+      })),
+
+      applications: appListRes.rows.map((r) => ({
+        id: r.id,
+        business: r.business_name,
+        city: r.city,
+        productType: r.product_type,
+        phone: r.phone,
+        tgUsername: r.tg_username,
+        date: dateLabel(new Date(r.created_at)),
+      })),
+
+      sellers: sellerListRes.rows.map((r) => ({
+        id: r.id, name: r.name, city: r.city, phone: r.phone,
+        products: r.products,
+        rating: r.rating == null ? null : Number(r.rating),
+        joined: new Date(r.created_at).toISOString().slice(0, 10),
+      })),
+
+      moderationQueue: modListRes.rows.map((r) => ({
+        id: r.id,
+        name: r.name_uz,
+        price: Number(r.price),
+        unit: r.unit,
+        catKey: r.cat_key,
+        img: r.img,
+        sellerName: r.seller_name,
         date: dateLabel(new Date(r.created_at)),
       })),
     });
   } catch (e) {
     console.error('adminSummary xatosi:', e.message);
     fail(res, 'server error', 500);
+  }
+}
+
+// ============ ADMIN AMALLARI: panel so'raydi → Telegram tasdiqlaydi ============
+//
+// Nega ikki bosqich (2026-07-27 founder qarori):
+// admin panel tokeni brauzer sessionStorage'da yashaydi va o'g'irlanishi mumkin.
+// Pul o'tkazish, refund va bahs qarori — qaytarib bo'lmaydigan amallar, ular
+// uchun bitta token yetarli emas. Panel faqat SO'ROV yaratadi; amal ADMIN_CHAT_ID
+// chatidagi tugma bosilgandan keyin bajariladi. Tasdiqlovchi shaxs Telegram
+// hisobiga ega bo'lishi shart — ya'ni ikkinchi, mustaqil omil.
+//
+// So'rov 30 daqiqadan keyin eskiradi — kechagi tugmani bosib qo'yish xavfi yo'q.
+const ADMIN_ACTION_TTL_MS = 30 * 60 * 1000;
+
+function callbackAnswer(id, text) {
+  return callTelegram('answerCallbackQuery', { callback_query_id: id, text: text || '' }).catch(() => {});
+}
+
+// Buyurtmada qatnashgan sotuvchilarning Telegram ID'lari (xabar yuborish uchun).
+// Bitta buyurtmada bir nechta sotuvchi bo'lishi mumkin.
+async function sellerTgIdsForOrder(orderId) {
+  const { rows } = await pool.query(
+    `SELECT DISTINCT u.tg_user_id
+       FROM order_items oi
+       JOIN products p ON p.id = oi.product_id
+       JOIN sellers s  ON s.id = p.seller_id
+       JOIN users u    ON u.id = s.user_id
+      WHERE oi.order_id = $1 AND u.tg_user_id IS NOT NULL`,
+    [orderId]
+  );
+  return rows.map((r) => r.tg_user_id);
+}
+
+function notify(chatId, text) {
+  if (!chatId) return Promise.resolve();
+  return callTelegram('sendMessage', { chat_id: chatId, text, parse_mode: 'HTML' }).catch(() => {});
+}
+
+// Har amal turi uchun: kirishni tekshirish (check), tasdiq xabari matni
+// (summary) va bajarish (run). `run` DB'ni o'zgartiradi va xabar yuboradi;
+// ClientError tashlasa admin chatiga sabab qaytadi.
+const ADMIN_ACTIONS = {
+  seller_approve: {
+    schema: {},
+    async check(targetId) {
+      const { rows } = await pool.query(
+        `SELECT id, business_name, city FROM seller_applications
+          WHERE id = $1 AND status='pending' AND step='done'`, [Number(targetId) || 0]);
+      if (!rows.length) throw new ClientError("ariza topilmadi yoki allaqachon ko'rib chiqilgan");
+      return rows[0];
+    },
+    summary: (t) => `🆕 <b>Sotuvchini tasdiqlash</b>\n\n${escapeHtml(t.business_name || '?')} — ${escapeHtml(t.city || '?')}`,
+    run: (a) => handleSellerApplicationReview(ADMIN_CHAT_ID, 'approve', Number(a.target_id)),
+  },
+
+  seller_reject: {
+    schema: { reason: { type: 'string', required: false, max: 500 } },
+    check: (targetId) => ADMIN_ACTIONS.seller_approve.check(targetId),
+    summary: (t, p) =>
+      `🚫 <b>Sotuvchi arizasini rad etish</b>\n\n${escapeHtml(t.business_name || '?')}` +
+      (p.reason ? `\n<b>Sabab:</b> ${escapeHtml(p.reason)}` : ''),
+    run: (a) => handleSellerApplicationReview(ADMIN_CHAT_ID, 'reject', Number(a.target_id), a.payload.reason),
+  },
+
+  product_publish: {
+    schema: {},
+    async check(targetId) {
+      const { rows } = await pool.query(
+        `SELECT id, name_uz, price FROM products WHERE id = $1 AND status='pending'`, [String(targetId)]);
+      if (!rows.length) throw new ClientError("e'lon topilmadi yoki allaqachon ko'rib chiqilgan");
+      return rows[0];
+    },
+    summary: (t) => `✅ <b>E'lonni nashr qilish</b>\n\n${escapeHtml(t.name_uz)} — ${escapeHtml(money(t.price))}`,
+    async run(a) {
+      const { rows } = await pool.query(
+        `UPDATE products SET status='published', reject_reason=NULL, reviewed_at=now()
+          WHERE id=$1 AND status='pending' RETURNING id, name_uz, submitted_by_tg`,
+        [a.target_id]);
+      if (!rows.length) throw new ClientError("e'lon holati o'zgargan");
+      await notify(rows[0].submitted_by_tg,
+        `✅ <b>E'loningiz nashr etildi</b>\n\n${escapeHtml(rows[0].name_uz)} endi katalogda ko'rinadi.`);
+      return `✅ nashr etildi: ${rows[0].name_uz}`;
+    },
+  },
+
+  product_reject: {
+    schema: { reason: { type: 'string', required: false, max: 500 } },
+    check: (targetId) => ADMIN_ACTIONS.product_publish.check(targetId),
+    summary: (t, p) =>
+      `🚫 <b>E'lonni rad etish</b>\n\n${escapeHtml(t.name_uz)}` +
+      (p.reason ? `\n<b>Sabab:</b> ${escapeHtml(p.reason)}` : ''),
+    async run(a) {
+      const { rows } = await pool.query(
+        `UPDATE products SET status='rejected', reject_reason=$1, reviewed_at=now()
+          WHERE id=$2 AND status='pending' RETURNING id, name_uz, submitted_by_tg`,
+        [a.payload.reason || null, a.target_id]);
+      if (!rows.length) throw new ClientError("e'lon holati o'zgargan");
+      await notify(rows[0].submitted_by_tg,
+        `🚫 <b>E'loningiz rad etildi</b>\n\n${escapeHtml(rows[0].name_uz)}` +
+        (a.payload.reason ? `\n<b>Sabab:</b> ${escapeHtml(a.payload.reason)}` : '') +
+        `\n\nTuzatib qayta yuborishingiz mumkin.`);
+      return `🚫 rad etildi: ${rows[0].name_uz}`;
+    },
+  },
+
+  // "Pul o'tkazildi" — savdoni yakunlaydi. Faqat yetkazilgan buyurtmada
+  // mumkin va ochiq bahs bo'lmasligi shart (bahs hal bo'lmasdan pul ketmasin).
+  order_payout: {
+    schema: {},
+    async check(targetId) {
+      const { rows } = await pool.query(
+        `SELECT o.id, o.status, o.total_amount, o.payout_amount, o.commission_amount,
+                EXISTS (SELECT 1 FROM disputes d WHERE d.order_id=o.id AND d.status='open') AS has_dispute
+           FROM orders o WHERE o.id = $1`, [String(targetId)]);
+      if (!rows.length) throw new ClientError('buyurtma topilmadi');
+      const o = rows[0];
+      if (o.status !== 'delivered') throw new ClientError(`faqat "yetkazildi" holatida mumkin (hozir: ${o.status})`);
+      if (o.has_dispute) throw new ClientError('bu buyurtmada ochiq bahs bor — avval uni hal qiling');
+      return o;
+    },
+    summary: (t) =>
+      `💸 <b>Sotuvchiga pul o'tkazish</b>\n\n<b>Buyurtma:</b> <code>${escapeHtml(t.id)}</code>\n` +
+      `<b>Jami:</b> ${escapeHtml(money(t.total_amount))}\n` +
+      `<b>Komissiya:</b> ${escapeHtml(money(t.commission_amount || 0))}\n` +
+      `<b>Sotuvchiga:</b> ${escapeHtml(money(t.payout_amount || 0))}`,
+    async run(a) {
+      const { rows } = await pool.query(
+        `UPDATE orders SET status='completed', paid_out_at=now()
+          WHERE id=$1 AND status='delivered' RETURNING id, payout_amount`,
+        [a.target_id]);
+      if (!rows.length) throw new ClientError("buyurtma holati o'zgargan");
+      for (const tg of await sellerTgIdsForOrder(a.target_id)) {
+        await notify(tg,
+          `💸 <b>To'lov o'tkazildi</b>\n\nBuyurtma: <code>${escapeHtml(a.target_id)}</code>\n` +
+          `Summa: ${escapeHtml(money(rows[0].payout_amount || 0))}`);
+      }
+      return `💸 ${a.target_id} — pul o'tkazildi deb belgilandi`;
+    },
+  },
+
+  // Refund — hozircha BUXGALTERIYA yozuvi: Payme/Click ulanmagan, pul qo'lda
+  // qaytariladi. Bu yozuv "qaytarildi" faktini qayd etadi va xaridorga xabar
+  // beradi; haqiqiy o'tkazma platforma tashqarisida bajariladi.
+  order_refund: {
+    schema: {
+      amount: { type: 'int', required: true, min: 1, max: 100000000000 },
+      reason: { type: 'string', required: true, min: 3, max: 500 },
+    },
+    async check(targetId, p) {
+      const { rows } = await pool.query(
+        `SELECT id, status, total_amount, tg_user_id FROM orders WHERE id = $1`, [String(targetId)]);
+      if (!rows.length) throw new ClientError('buyurtma topilmadi');
+      const o = rows[0];
+      if (o.status === 'refunded') throw new ClientError('bu buyurtma allaqachon qaytarilgan');
+      if (p.amount > Number(o.total_amount)) throw new ClientError('qaytarish summasi buyurtma summasidan katta');
+      return o;
+    },
+    summary: (t, p) =>
+      `↩️ <b>Pul qaytarish</b>\n\n<b>Buyurtma:</b> <code>${escapeHtml(t.id)}</code>\n` +
+      `<b>Buyurtma summasi:</b> ${escapeHtml(money(t.total_amount))}\n` +
+      `<b>Qaytariladi:</b> ${escapeHtml(money(p.amount))}` +
+      (p.amount < Number(t.total_amount) ? ' (qisman)' : ' (to\'liq)') +
+      `\n<b>Sabab:</b> ${escapeHtml(p.reason)}\n\n` +
+      `<i>Diqqat: pul o'tkazmasi qo'lda bajariladi — bu yozuv faqat faktni qayd etadi.</i>`,
+    async run(a) {
+      const { rows } = await pool.query(
+        `UPDATE orders SET status='refunded', refund_amount=$1, refund_reason=$2, refunded_at=now()
+          WHERE id=$3 AND status <> 'refunded' RETURNING id, tg_user_id`,
+        [a.payload.amount, a.payload.reason, a.target_id]);
+      if (!rows.length) throw new ClientError("buyurtma holati o'zgargan");
+      await notify(rows[0].tg_user_id,
+        `↩️ <b>Pul qaytarildi</b>\n\nBuyurtma: <code>${escapeHtml(a.target_id)}</code>\n` +
+        `Summa: ${escapeHtml(money(a.payload.amount))}\n<b>Sabab:</b> ${escapeHtml(a.payload.reason)}`);
+      return `↩️ ${a.target_id} — ${money(a.payload.amount)} qaytarildi`;
+    },
+  },
+
+  // Bahs qarori: kim aybdor + logistikani kim to'laydi + ixtiyoriy qaytarish.
+  dispute_resolve: {
+    schema: {
+      atFault:        { type: 'string', required: true, enum: ['buyer', 'seller', 'none'] },
+      logisticsPayer: { type: 'string', required: true, enum: ['buyer', 'seller', 'platform'] },
+      decision:       { type: 'string', required: true, min: 3, max: 1000 },
+      refundAmount:   { type: 'int', required: false, min: 0, max: 100000000000, default: 0 },
+    },
+    async check(targetId, p) {
+      const { rows } = await pool.query(
+        `SELECT d.id, d.order_id, d.reason, d.status, o.total_amount, o.tg_user_id
+           FROM disputes d JOIN orders o ON o.id = d.order_id
+          WHERE d.id = $1`, [Number(targetId) || 0]);
+      if (!rows.length) throw new ClientError('bahs topilmadi');
+      if (rows[0].status !== 'open') throw new ClientError('bahs allaqachon hal qilingan');
+      if (p.refundAmount > Number(rows[0].total_amount)) {
+        throw new ClientError('qaytarish summasi buyurtma summasidan katta');
+      }
+      return rows[0];
+    },
+    summary: (t, p) => {
+      const FAULT = { buyer: 'Xaridor', seller: 'Sotuvchi', none: 'Hech kim' };
+      const PAYER = { buyer: 'Xaridor', seller: 'Sotuvchi', platform: 'Platforma' };
+      return `⚖️ <b>Bahs qarori</b> — #${t.id}\n\n` +
+        `<b>Buyurtma:</b> <code>${escapeHtml(t.order_id)}</code>\n` +
+        `<b>Xaridor shikoyati:</b> ${escapeHtml(t.reason || '-')}\n\n` +
+        `<b>Aybdor:</b> ${FAULT[p.atFault]}\n` +
+        `<b>Logistikani to'laydi:</b> ${PAYER[p.logisticsPayer]}\n` +
+        (p.refundAmount ? `<b>Qaytariladi:</b> ${escapeHtml(money(p.refundAmount))}\n` : '') +
+        `<b>Qaror:</b> ${escapeHtml(p.decision)}`;
+    },
+    async run(a) {
+      const p = a.payload;
+      const client = await pool.connect();
+      let d;
+      try {
+        await client.query('BEGIN');
+        const { rows } = await client.query(
+          `UPDATE disputes SET status='resolved', decision=$1, at_fault=$2,
+                  logistics_payer=$3, refund_amount=$4, resolved_at=now(), awaiting_evidence=false
+            WHERE id=$5 AND status='open'
+            RETURNING id, order_id, opened_by_tg`,
+          [p.decision, p.atFault, p.logisticsPayer, p.refundAmount || null, Number(a.target_id)]);
+        if (!rows.length) throw new ClientError('bahs allaqachon hal qilingan');
+        d = rows[0];
+        // Qaytarish belgilangan bo'lsa buyurtma ham 'refunded' bo'ladi —
+        // shunda pul o'tkazish (payout) endi mumkin bo'lmaydi.
+        if (p.refundAmount > 0) {
+          await client.query(
+            `UPDATE orders SET status='refunded', refund_amount=$1,
+                    refund_reason=$2, refunded_at=now()
+              WHERE id=$3 AND status <> 'refunded'`,
+            [p.refundAmount, `Bahs #${d.id}: ${p.decision}`.slice(0, 500), d.order_id]);
+        }
+        await client.query('COMMIT');
+      } catch (e) {
+        await client.query('ROLLBACK').catch(() => {});
+        throw e;
+      } finally {
+        client.release();
+      }
+
+      const text =
+        `⚖️ <b>Bahs bo'yicha qaror qabul qilindi</b>\n\n` +
+        `Buyurtma: <code>${escapeHtml(d.order_id)}</code>\n` +
+        `<b>Qaror:</b> ${escapeHtml(p.decision)}` +
+        (p.refundAmount ? `\n<b>Qaytariladi:</b> ${escapeHtml(money(p.refundAmount))}` : '');
+      await notify(d.opened_by_tg, text);
+      for (const tg of await sellerTgIdsForOrder(d.order_id)) await notify(tg, text);
+      return `⚖️ Bahs #${d.id} hal qilindi`;
+    },
+  },
+};
+
+// ---- POST /api/admin/action — paneldan amal SO'RASH ----
+async function handleAdminActionRequest(req, res, ip) {
+  if (rateLimited(`adminaction:${ip}`, 20)) return fail(res, 'too many requests', 429);
+  if (!adminPanelAuth(req, res)) return;
+  try {
+    const data = JSON.parse(await readBody(req, 20_000));
+    const def = ADMIN_ACTIONS[data.kind];
+    if (!def) return fail(res, "noma'lum amal", 400);
+    const targetId = String(data.targetId || '').trim();
+    if (!targetId) return fail(res, 'targetId kerak', 400);
+
+    const v = validate(data.payload || {}, def.schema);
+    if (!v.ok) return fail(res, v.error, 400);
+
+    // Oldindan tekshiruv: admin Telegram'da mantiqsiz so'rov ko'rmasin
+    // (masalan allaqachon hal qilingan bahs uchun tugma).
+    const target = await def.check(targetId, v.data);
+
+    const { rows } = await pool.query(
+      `INSERT INTO admin_actions (kind, target_id, payload) VALUES ($1,$2,$3) RETURNING id`,
+      [data.kind, targetId, JSON.stringify(v.data)]);
+    const actionId = rows[0].id;
+
+    const sent = await callTelegram('sendMessage', {
+      chat_id: ADMIN_CHAT_ID,
+      parse_mode: 'HTML',
+      text: `${def.summary(target, v.data)}\n\n<i>So'rov admin paneldan keldi. Tasdiqlaysizmi?</i>`,
+      reply_markup: {
+        inline_keyboard: [[
+          { text: '✅ Tasdiqlash', callback_data: `aa:${actionId}:ok` },
+          { text: '✖️ Bekor',      callback_data: `aa:${actionId}:no` },
+        ]],
+      },
+    });
+
+    // Telegram'ga xabar ketmasa so'rov abadiy "pending" bo'lib osilib qolardi —
+    // darhol yopamiz va panelga aniq sabab qaytaramiz.
+    let messageId = null;
+    try { messageId = JSON.parse(sent.body).result.message_id; } catch (_) {}
+    if (!messageId) {
+      await pool.query(`UPDATE admin_actions SET status='failed', error=$1, decided_at=now() WHERE id=$2`,
+        ['Telegram xabarini yuborib bo\'lmadi', actionId]);
+      return fail(res, "Telegram'ga tasdiq so'rovi yuborilmadi — keyinroq urinib ko'ring", 502);
+    }
+    await pool.query(`UPDATE admin_actions SET tg_message_id=$1 WHERE id=$2`, [messageId, actionId]);
+
+    ok(res, { id: actionId, status: 'pending' }, 201);
+  } catch (e) {
+    console.error('adminAction xatosi:', e.message);
+    if (e.userFacing) return fail(res, e.message, 400);
+    fail(res, 'server error', 500);
+  }
+}
+
+// ---- GET /api/admin/action?id= — panel natijani kutadi ----
+async function handleAdminActionStatus(req, res, ip) {
+  if (rateLimited(`adminactionst:${ip}`, 120)) return fail(res, 'too many requests', 429);
+  if (!adminPanelAuth(req, res)) return;
+  let id;
+  try { id = new URL(req.url, 'http://x').searchParams.get('id'); } catch (_) { id = null; }
+  if (!id || !/^\d+$/.test(id)) return fail(res, 'invalid id', 400);
+  try {
+    const { rows } = await pool.query(
+      `SELECT id, kind, status, error, requested_at FROM admin_actions WHERE id=$1`, [Number(id)]);
+    if (!rows.length) return fail(res, 'not found', 404);
+    const a = rows[0];
+    // Eskirganini o'qish paytida ham belgilaymiz — panel "abadiy kutish"da qolmasin
+    if (a.status === 'pending' && Date.now() - new Date(a.requested_at).getTime() > ADMIN_ACTION_TTL_MS) {
+      await pool.query(`UPDATE admin_actions SET status='expired', decided_at=now() WHERE id=$1 AND status='pending'`, [a.id]);
+      a.status = 'expired';
+    }
+    ok(res, { id: a.id, kind: a.kind, status: a.status, error: a.error });
+  } catch (e) {
+    console.error('adminActionStatus xatosi:', e.message);
+    fail(res, 'server error', 500);
+  }
+}
+
+// ---- Telegram tugmasi bosilganda ----
+async function handleAdminActionCallback(cq) {
+  const m = String(cq.data || '').match(/^aa:(\d+):(ok|no)$/);
+  if (!m) return;
+  const actionId = Number(m[1]);
+  const approved = m[2] === 'ok';
+
+  // Tugmani kim bosgani MUHIM: xabar admin chatida tursa ham, tasdiqlovchi
+  // ADMIN_TG_IDS ro'yxatida bo'lishi shart (guruhga qo'shilgan begona bosmasin).
+  if (!isAdmin(cq.from)) {
+    await callbackAnswer(cq.id, 'Ruxsat yo\'q');
+    return;
+  }
+
+  const { rows } = await pool.query(`SELECT * FROM admin_actions WHERE id=$1`, [actionId]);
+  if (!rows.length) return callbackAnswer(cq.id, 'So\'rov topilmadi');
+  const a = rows[0];
+  if (a.status !== 'pending') return callbackAnswer(cq.id, `Allaqachon ko'rib chiqilgan (${a.status})`);
+  if (Date.now() - new Date(a.requested_at).getTime() > ADMIN_ACTION_TTL_MS) {
+    await pool.query(`UPDATE admin_actions SET status='expired', decided_at=now() WHERE id=$1`, [actionId]);
+    return callbackAnswer(cq.id, "So'rov eskirdi — paneldan qayta yuboring");
+  }
+
+  let resultText;
+  if (!approved) {
+    await pool.query(
+      `UPDATE admin_actions SET status='declined', decided_at=now(), decided_by=$1 WHERE id=$2 AND status='pending'`,
+      [String(cq.from.id), actionId]);
+    resultText = '✖️ Bekor qilindi';
+  } else {
+    try {
+      // Ijrochi ClientError tashlasa — bu biznes sababi (holat o'zgargan),
+      // uni adminga ko'rsatamiz. Boshqa xatolar yashiriladi.
+      const out = await ADMIN_ACTIONS[a.kind].run(a);
+      await pool.query(
+        `UPDATE admin_actions SET status='done', decided_at=now(), decided_by=$1 WHERE id=$2 AND status='pending'`,
+        [String(cq.from.id), actionId]);
+      resultText = typeof out === 'string' ? out : '✅ Bajarildi';
+    } catch (e) {
+      console.error('adminAction run xatosi:', e.message);
+      const reason = e.userFacing ? e.message : 'ichki xato';
+      await pool.query(
+        `UPDATE admin_actions SET status='failed', error=$1, decided_at=now(), decided_by=$2 WHERE id=$3`,
+        [reason, String(cq.from.id), actionId]);
+      resultText = `❌ Bajarilmadi: ${reason}`;
+    }
+  }
+
+  await callbackAnswer(cq.id, resultText.slice(0, 190));
+  if (a.tg_message_id) {
+    await callTelegram('editMessageReplyMarkup', {
+      chat_id: ADMIN_CHAT_ID, message_id: a.tg_message_id, reply_markup: { inline_keyboard: [] },
+    }).catch(() => {});
+  }
+  await notify(ADMIN_CHAT_ID, resultText);
+}
+
+// ============ BAHSLI HOLATLAR (disputes) ============
+// Dalil rasmi Telegram orqali yig'iladi: bahs ochilgach bot xaridordan rasm
+// so'raydi va faqat file_id saqlanadi (fayl Telegram serverida qoladi).
+const DISPUTE_REASONS = {
+  not_delivered: 'Mato yetib kelmadi',
+  damaged:       'Mato shikastlangan',
+  wrong_item:    "Boshqa mato keldi",
+  quality:       'Sifat mos emas',
+  quantity:      'Miqdor kam chiqdi',
+  other:         'Boshqa muammo',
+};
+
+// Bahs faqat mato yo'lga chiqqandan keyin ochiladi — bundan oldin muammo
+// "buyurtma" muammosi (bekor qilish), bahs emas.
+const DISPUTE_ALLOWED_ORDER_STATUS = ['shipped', 'delivered', 'completed'];
+
+async function handleCreateDispute(req, res, ip) {
+  if (rateLimited(`dispute:${ip}`, 10)) return fail(res, 'too many requests', 429);
+  const u = authUser(req);
+  if (!u || !u.id) return fail(res, 'unauthorized', 401);
+  try {
+    const data = JSON.parse(await readBody(req, 20_000));
+    const v = validate(data, {
+      orderId:    { type: 'string', required: true, max: 40 },
+      reasonKey:  { type: 'string', required: true, enum: Object.keys(DISPUTE_REASONS) },
+      comment:    { type: 'string', required: false, max: 1000 },
+    });
+    if (!v.ok) return fail(res, v.error, 400);
+
+    // Buyurtma shu xaridorniki ekanini imzolangan Telegram ID orqali tekshiramiz
+    const { rows: ord } = await pool.query(
+      `SELECT id, status, buyer_name FROM orders WHERE id=$1 AND tg_user_id=$2`,
+      [v.data.orderId, String(u.id)]);
+    if (!ord.length) return fail(res, 'buyurtma topilmadi', 404);
+    if (!DISPUTE_ALLOWED_ORDER_STATUS.includes(ord[0].status)) {
+      return fail(res, "bu buyurtma bo'yicha hali bahs ochib bo'lmaydi", 400);
+    }
+
+    const reason = DISPUTE_REASONS[v.data.reasonKey] +
+      (v.data.comment ? ` — ${v.data.comment}` : '');
+
+    // Buyurtmadagi birinchi sotuvchi (odatda bitta) — javob berish uchun
+    const { rows: sel } = await pool.query(
+      `SELECT p.seller_id FROM order_items oi JOIN products p ON p.id = oi.product_id
+        WHERE oi.order_id=$1 AND p.seller_id IS NOT NULL LIMIT 1`, [v.data.orderId]);
+
+    let d;
+    try {
+      const { rows } = await pool.query(
+        `INSERT INTO disputes (order_id, reason, opened_by_tg, seller_id, status, awaiting_evidence)
+         VALUES ($1,$2,$3,$4,'open',true) RETURNING id`,
+        [v.data.orderId, reason.slice(0, 1000), String(u.id), sel.length ? sel[0].seller_id : null]);
+      d = rows[0];
+    } catch (e) {
+      // Unikal indeks: bitta buyurtmada bitta ochiq bahs
+      if (e.code === '23505') return fail(res, "bu buyurtma bo'yicha ochiq bahs allaqachon bor", 409);
+      throw e;
+    }
+
+    // Xaridordan dalil rasmini so'raymiz (bot suhbati)
+    await notify(u.id,
+      `📸 <b>Bahs #${d.id} ochildi</b>\n\nBuyurtma: <code>${escapeHtml(v.data.orderId)}</code>\n` +
+      `<b>Muammo:</b> ${escapeHtml(reason)}\n\n` +
+      `Iltimos, muammoni ko'rsatuvchi <b>rasm yoki video yuboring</b> (10 tagacha).\n` +
+      `Yuborib bo'lgach <b>tayyor</b> deb yozing.`);
+
+    await notify(ADMIN_CHAT_ID,
+      `⚠️ <b>Yangi bahs #${d.id}</b>\n\nBuyurtma: <code>${escapeHtml(v.data.orderId)}</code>\n` +
+      `<b>Xaridor:</b> ${escapeHtml(ord[0].buyer_name || "Noma'lum")}\n` +
+      `<b>Muammo:</b> ${escapeHtml(reason)}\n\nAdmin panelning "Bahslar" bo'limida ko'rib chiqing.`);
+
+    if (sel.length) {
+      const { rows: stg } = await pool.query(
+        `SELECT u.tg_user_id FROM sellers s JOIN users u ON u.id=s.user_id WHERE s.id=$1`, [sel[0].seller_id]);
+      if (stg.length) {
+        await notify(stg[0].tg_user_id,
+          `⚠️ <b>Buyurtma bo'yicha shikoyat</b>\n\nBuyurtma: <code>${escapeHtml(v.data.orderId)}</code>\n` +
+          `<b>Muammo:</b> ${escapeHtml(reason)}\n\nKabinetingizdagi buyurtma sahifasida javob yozing.`);
+      }
+    }
+
+    ok(res, { id: d.id, status: 'open' }, 201);
+  } catch (e) {
+    console.error('createDispute xatosi:', e.message);
+    fail(res, 'server error', 500);
+  }
+}
+
+// GET /api/disputes — xaridorning o'z bahslari (Mini App'da holatni ko'rsatish uchun)
+async function handleGetDisputes(req, res, ip) {
+  if (rateLimited(`disputelist:${ip}`, 60)) return fail(res, 'too many requests', 429);
+  const u = authUser(req);
+  if (!u || !u.id) return fail(res, 'unauthorized', 401);
+  try {
+    const { rows } = await pool.query(
+      `SELECT id, order_id, reason, status, decision, refund_amount,
+              seller_response, created_at, array_length(evidence_file_ids, 1) AS photos
+         FROM disputes WHERE opened_by_tg = $1 ORDER BY created_at DESC LIMIT 50`,
+      [String(u.id)]);
+    ok(res, rows.map((r) => ({
+      id: r.id,
+      orderId: r.order_id,
+      reason: r.reason,
+      status: r.status,
+      decision: r.decision,
+      refundAmount: r.refund_amount === null ? null : Number(r.refund_amount),
+      sellerResponse: r.seller_response,
+      photos: r.photos || 0,
+      date: dateLabel(new Date(r.created_at)),
+    })));
+  } catch (e) {
+    console.error('getDisputes xatosi:', e.message);
+    fail(res, 'server error', 500);
+  }
+}
+
+// POST /api/seller/dispute — sotuvchining bahsga javobi
+async function handleSellerDisputeReply(req, res, ip) {
+  if (rateLimited(`sellerdispute:${ip}`, 20)) return fail(res, 'too many requests', 429);
+  const me = await requireSeller(req, res);
+  if (!me) return;
+  try {
+    const data = JSON.parse(await readBody(req, 20_000));
+    const v = validate(data, {
+      disputeId: { type: 'int', required: true, min: 1 },
+      response:  { type: 'string', required: true, min: 3, max: 1000 },
+    });
+    if (!v.ok) return fail(res, v.error, 400);
+
+    // Egalik: bahs shu sotuvchining buyurtmasiga tegishli bo'lishi shart
+    const { rows } = await pool.query(
+      `UPDATE disputes SET seller_response=$1, seller_responded_at=now()
+        WHERE id=$2 AND seller_id=$3 AND status='open'
+        RETURNING id, order_id, opened_by_tg`,
+      [v.data.response, v.data.disputeId, me.seller_id]);
+    if (!rows.length) return fail(res, 'bahs topilmadi yoki allaqachon yopilgan', 404);
+
+    await notify(rows[0].opened_by_tg,
+      `💬 <b>Ishlab chiqaruvchi javob berdi</b>\n\nBuyurtma: <code>${escapeHtml(rows[0].order_id)}</code>\n` +
+      `${escapeHtml(v.data.response)}\n\nModerator qarorini kuting.`);
+    await notify(ADMIN_CHAT_ID,
+      `💬 <b>Bahs #${rows[0].id}</b> — sotuvchi javob berdi:\n${escapeHtml(v.data.response)}`);
+
+    ok(res, { id: rows[0].id });
+  } catch (e) {
+    console.error('sellerDisputeReply xatosi:', e.message);
+    fail(res, 'server error', 500);
+  }
+}
+
+// GET /api/admin/disputes — moderator navbati (panel tokeni bilan)
+async function handleAdminDisputes(req, res, ip) {
+  if (rateLimited(`admindisputes:${ip}`, 30)) return fail(res, 'too many requests', 429);
+  if (!adminPanelAuth(req, res)) return;
+  try {
+    const { rows } = await pool.query(
+      `SELECT d.id, d.order_id, d.reason, d.status, d.decision, d.at_fault,
+              d.logistics_payer, d.refund_amount, d.seller_response, d.evidence_file_ids,
+              d.awaiting_evidence, d.created_at, d.resolved_at,
+              o.buyer_name, o.total_amount, o.status AS order_status,
+              s.business_name_uz AS seller_name
+         FROM disputes d
+         JOIN orders o  ON o.id = d.order_id
+         LEFT JOIN sellers s ON s.id = d.seller_id
+        ORDER BY (d.status='open') DESC, d.created_at DESC
+        LIMIT 100`);
+    ok(res, rows.map((r) => ({
+      id: r.id,
+      orderId: r.order_id,
+      reason: r.reason,
+      status: r.status,
+      decision: r.decision,
+      atFault: r.at_fault,
+      logisticsPayer: r.logistics_payer,
+      refundAmount: r.refund_amount === null ? null : Number(r.refund_amount),
+      sellerResponse: r.seller_response,
+      awaitingEvidence: r.awaiting_evidence,
+      buyerName: r.buyer_name,
+      sellerName: r.seller_name,
+      orderTotal: r.total_amount === null ? null : Number(r.total_amount),
+      orderStatus: r.order_status,
+      // Rasm havolasi imzolangan: Telegram fayl URL'ida bot tokeni bor,
+      // uni panelga BERMAYMIZ — server proksi qiladi (handleDisputePhoto).
+      photos: (r.evidence_file_ids || []).map((f) => `/api/admin/dispute-photo?f=${encodeURIComponent(f)}&s=${photoSig(f)}`),
+      date: dateLabel(new Date(r.created_at)),
+      ageHours: Math.floor((Date.now() - new Date(r.created_at).getTime()) / 3600000),
+    })));
+  } catch (e) {
+    console.error('adminDisputes xatosi:', e.message);
+    fail(res, 'server error', 500);
+  }
+}
+
+// Dalil rasmi uchun imzo: <img src> header yubora olmaydi, tokenni esa URL'ga
+// qo'yib bo'lmaydi (nginx loglariga tushadi). Shuning uchun file_id dan
+// ADMIN_PANEL_TOKEN bilan HMAC hosil qilamiz — imzo faqat shu faylga yaraydi.
+function photoSig(fileId) {
+  return crypto.createHmac('sha256', ADMIN_PANEL_TOKEN || 'x').update(String(fileId)).digest('hex').slice(0, 32);
+}
+
+function tgGetFile(fileId) {
+  return callTelegram('getFile', { file_id: fileId }).then((r) => {
+    try { return JSON.parse(r.body).result.file_path; } catch (_) { return null; }
+  });
+}
+
+async function handleDisputePhoto(req, res, ip) {
+  if (rateLimited(`disputephoto:${ip}`, 120)) return fail(res, 'too many requests', 429);
+  let f, s;
+  try {
+    const q = new URL(req.url, 'http://x').searchParams;
+    f = q.get('f'); s = q.get('s');
+  } catch (_) { return fail(res, 'invalid', 400); }
+  if (!f || !s || !ADMIN_PANEL_TOKEN || !safeEqual(s, photoSig(f))) return fail(res, 'unauthorized', 401);
+  try {
+    const filePath = await tgGetFile(f);
+    if (!filePath) return fail(res, 'not found', 404);
+    // Telegram'dan oqim sifatida uzatamiz — fayl serverimizda saqlanmaydi
+    https.get(`https://api.telegram.org/file/bot${BOT_TOKEN}/${filePath}`, (tgRes) => {
+      if (tgRes.statusCode !== 200) { tgRes.resume(); return fail(res, 'not found', 404); }
+      res.writeHead(200, {
+        'Content-Type': tgRes.headers['content-type'] || 'application/octet-stream',
+        'Cache-Control': 'private, max-age=300',
+      });
+      tgRes.pipe(res);
+    }).on('error', () => fail(res, 'server error', 500));
+  } catch (e) {
+    console.error('disputePhoto xatosi:', e.message);
+    fail(res, 'server error', 500);
+  }
+}
+
+// ---- 24 soatlik eslatma ----
+// Ochiq bahs 24 soatdan oshsa adminga bir marta eslatma yuboriladi
+// (reminded_at qo'yiladi — takror yuborilmaydi).
+const DISPUTE_REMINDER_MS = 15 * 60 * 1000;
+async function scanStaleDisputes() {
+  try {
+    const { rows } = await pool.query(
+      `UPDATE disputes SET reminded_at = now()
+        WHERE status='open' AND reminded_at IS NULL
+          AND created_at < now() - interval '24 hours'
+        RETURNING id, order_id, reason`);
+    for (const d of rows) {
+      await notify(ADMIN_CHAT_ID,
+        `⏰ <b>Bahs #${d.id} 24 soatdan beri hal qilinmagan</b>\n\n` +
+        `Buyurtma: <code>${escapeHtml(d.order_id)}</code>\n<b>Muammo:</b> ${escapeHtml(d.reason || '-')}`);
+    }
+  } catch (e) {
+    console.error('disputes eslatma xatosi:', e.message);
   }
 }
 
@@ -588,14 +1396,21 @@ async function handleCreateOrder(req, res, ip) {
     // kelgach to'lanadi; to'lanmaguncha BTS mahsulotni bermaydi.
     const prepay = Math.round(total * PREPAY_RATE);
     const rest = total - prepay;
+    // Komissiya ham SERVER tomonda: stavka snapshot qilinadi, sotuvchiga
+    // o'tkaziladigan summa shu yerda qat'iylashadi. Admin "Pul o'tkazildi"
+    // bosganda summa qaytadan hisoblanmaydi — buyurtmadagi qiymat ishlatiladi.
+    const commissionAmount = Math.round(total * COMMISSION_RATE);
+    const payoutAmount = total - commissionAmount;
 
     await client.query('BEGIN');
     const { rows: idRows } = await client.query(`SELECT '#LM-' || nextval('order_seq') AS id`);
     const orderId = idRows[0].id;
 
     await client.query(
-      `INSERT INTO orders (id, buyer_name, tg_user_id, tg_username, address, payment, comment, total_amount, prepay_amount, rest_amount, status)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'pending')`,
+      `INSERT INTO orders (id, buyer_name, tg_user_id, tg_username, address, payment, comment,
+                           total_amount, prepay_amount, rest_amount,
+                           commission_rate, commission_amount, payout_amount, status)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,'pending')`,
       [
         orderId,
         data.buyerName || null,
@@ -607,6 +1422,9 @@ async function handleCreateOrder(req, res, ip) {
         total,
         prepay,
         rest,
+        COMMISSION_RATE,
+        commissionAmount,
+        payoutAmount,
       ]
     );
     for (const it of items) {
@@ -640,6 +1458,8 @@ async function handleCreateOrder(req, res, ip) {
       // Sotuvchi jo'natishdan oldin puli kelganini ko'rishi shart — modelning asosi shu
       `💰 <b>Oldindan to'landi:</b> ${escapeHtml(money(prepay))}`,
       `<b>Qolgani (BTS'da olishda):</b> ${escapeHtml(money(rest))}`,
+      // Faqat ADMIN chatida — sotuvchi va xaridor komissiyani ko'rmaydi
+      `📊 <b>Komissiya:</b> ${escapeHtml(money(commissionAmount))} · <b>Sotuvchiga:</b> ${escapeHtml(money(payoutAmount))}`,
       `\nTasdiqlash uchun: <code>/tasdiqla ${escapeHtml(orderId)}</code>`,
     ]
       .filter(Boolean)
@@ -798,12 +1618,18 @@ async function handleSellerOrders(req, res, ip) {
   if (!me) return;
   try {
     const { rows } = await pool.query(
+      // Ochiq bahs ham qo'shiladi — sotuvchi kabinetidan javob yoza olishi kerak
       `SELECT o.id, o.status, o.created_at, o.buyer_name, o.address, o.comment,
               o.total_amount, o.prepay_amount, o.rest_amount, o.tracking_code,
-              oi.product_id, oi.name AS item_name, oi.qty, oi.unit_price
+              oi.product_id, oi.name AS item_name, oi.qty, oi.unit_price,
+              d.id AS dispute_id, d.reason AS dispute_reason, d.seller_response
          FROM orders o
          JOIN order_items oi ON oi.order_id = o.id
          JOIN products p ON p.id = oi.product_id
+         LEFT JOIN LATERAL (
+           SELECT id, reason, seller_response FROM disputes
+            WHERE order_id = o.id AND status = 'open' LIMIT 1
+         ) d ON true
         WHERE p.seller_id = $1
         ORDER BY o.created_at DESC
         LIMIT 300`,
@@ -821,6 +1647,9 @@ async function handleSellerOrders(req, res, ip) {
           address: r.address,
           comment: r.comment,
           tracking: r.tracking_code,
+          dispute: r.dispute_id
+            ? { id: r.dispute_id, reason: r.dispute_reason, sellerResponse: r.seller_response }
+            : null,
           // Butun buyurtma summasi (barcha sotuvchilar bo'yicha) — ma'lumot uchun
           orderTotal: r.total_amount === null ? null : Number(r.total_amount),
           prepay: r.prepay_amount === null ? null : Number(r.prepay_amount),
@@ -1148,15 +1977,15 @@ async function handleSellerApplicationContact(msg) {
 }
 
 // Admin /sotuvchi_tasdiqla yoki /sotuvchi_rad buyrug'ini bajaradi.
-async function handleSellerApplicationReview(chatId, action, appId) {
+async function handleSellerApplicationReview(chatId, action, appId, reason) {
   const { rows } = await pool.query(
-    `SELECT id, tg_user_id, tg_username, business_name, city FROM seller_applications
+    `SELECT id, tg_user_id, tg_username, business_name, city, phone FROM seller_applications
       WHERE id = $1 AND status = 'pending' AND step = 'done'`,
     [appId]
   );
   if (!rows.length) {
     await callTelegram('sendMessage', { chat_id: chatId, text: `❌ #${appId} ariza topilmadi yoki allaqachon ko'rib chiqilgan.` });
-    return;
+    throw new ClientError("ariza topilmadi yoki allaqachon ko'rib chiqilgan");
   }
   const app = rows[0];
 
@@ -1165,9 +1994,11 @@ async function handleSellerApplicationReview(chatId, action, appId) {
     await callTelegram('sendMessage', { chat_id: chatId, text: `🚫 #${app.id} ariza rad etildi.` });
     await callTelegram('sendMessage', {
       chat_id: app.tg_user_id,
-      text: "Afsuski, arizangiz hozircha tasdiqlanmadi. Savollar bo'lsa botga yozing.",
+      text: "Afsuski, arizangiz hozircha tasdiqlanmadi." +
+        (reason ? `\n\nSabab: ${reason}` : '') +
+        "\n\nSavollar bo'lsa botga yozing.",
     }).catch(() => {});
-    return;
+    return `🚫 #${app.id} ariza rad etildi`;
   }
 
   // approve — foydalanuvchi hali /api/auth/telegram chaqirmagan bo'lishi mumkin
@@ -1176,11 +2007,15 @@ async function handleSellerApplicationReview(chatId, action, appId) {
   try {
     await client.query('BEGIN');
     const { rows: userRows } = await client.query(
-      `INSERT INTO users (tg_user_id, full_name, role)
-         VALUES ($1, $2, 'seller')
-         ON CONFLICT (tg_user_id) DO UPDATE SET role = 'seller'
+      // Telefon ham users'ga yoziladi — admin panelidagi sotuvchilar ro'yxati
+      // uni shu yerdan oladi (ilgari faqat arizada qolib ketardi).
+      `INSERT INTO users (tg_user_id, full_name, phone, role)
+         VALUES ($1, $2, $3, 'seller')
+         ON CONFLICT (tg_user_id) DO UPDATE
+           SET role = 'seller',
+               phone = COALESCE(EXCLUDED.phone, users.phone)
          RETURNING id`,
-      [String(app.tg_user_id), app.business_name || app.tg_username || null]
+      [String(app.tg_user_id), app.business_name || app.tg_username || null, app.phone || null]
     );
     const userId = userRows[0].id;
 
@@ -1202,7 +2037,7 @@ async function handleSellerApplicationReview(chatId, action, appId) {
     await client.query('ROLLBACK').catch(() => {});
     console.error('sellerApp approve xatosi:', e.message);
     await callTelegram('sendMessage', { chat_id: chatId, text: `❌ #${app.id} tasdiqlashda xato yuz berdi.` });
-    return;
+    throw e;
   } finally {
     client.release();
   }
@@ -1212,6 +2047,66 @@ async function handleSellerApplicationReview(chatId, action, appId) {
     app.tg_user_id,
     "🎉 <b>Tabriklaymiz!</b> Siz LolaMarket sotuvchisi sifatida tasdiqlandingiz.\n\nQuyidagi tugma orqali kabinetingizni oching:"
   ).catch(() => {});
+  return `✅ #${app.id} — ${app.business_name || '?'} tasdiqlandi`;
+}
+
+// ---- Dalil rasmi/videosi (bahs ochilgandan keyingi bot suhbati) ----
+// Xaridorning ochiq, dalil kutayotgan bahsini topadi va file_id ni qo'shadi.
+// Hech qanday fayl bizning serverga yuklanmaydi.
+const MAX_EVIDENCE = 10;
+
+async function openAwaitingDispute(tgUserId) {
+  const { rows } = await pool.query(
+    `SELECT id, order_id, array_length(evidence_file_ids, 1) AS n
+       FROM disputes
+      WHERE opened_by_tg = $1 AND status='open' AND awaiting_evidence = true
+      ORDER BY created_at DESC LIMIT 1`,
+    [String(tgUserId)]);
+  return rows[0] || null;
+}
+
+async function handleDisputeEvidence(msg) {
+  // Telegram rasmni bir necha o'lchamda yuboradi — eng kattasi oxirgi element
+  const fileId = msg.photo ? msg.photo[msg.photo.length - 1].file_id
+    : msg.video ? msg.video.file_id
+    : null;
+  if (!fileId) return false;
+
+  const d = await openAwaitingDispute(msg.from.id);
+  if (!d) return false;
+
+  if ((d.n || 0) >= MAX_EVIDENCE) {
+    await callTelegram('sendMessage', {
+      chat_id: msg.chat.id,
+      text: `Dalil chegarasi ${MAX_EVIDENCE} ta. Yuborib bo'lgan bo'lsangiz "tayyor" deb yozing.`,
+    });
+    return true;
+  }
+
+  const { rows } = await pool.query(
+    `UPDATE disputes SET evidence_file_ids = array_append(evidence_file_ids, $1)
+      WHERE id=$2 AND status='open' RETURNING array_length(evidence_file_ids,1) AS n`,
+    [fileId, d.id]);
+  const n = rows.length ? rows[0].n : 0;
+  await callTelegram('sendMessage', {
+    chat_id: msg.chat.id,
+    text: `✅ Qabul qilindi (${n}/${MAX_EVIDENCE}). Yana yuborishingiz mumkin yoki "tayyor" deb yozing.`,
+  });
+  return true;
+}
+
+// "tayyor" — dalil yig'ish tugadi, moderator ko'rib chiqishga o'tadi
+async function handleDisputeEvidenceDone(msg, text) {
+  if (!/^(tayyor|tayyorman|готово|done)$/i.test(text.trim())) return false;
+  const d = await openAwaitingDispute(msg.from.id);
+  if (!d) return false;
+  await pool.query(`UPDATE disputes SET awaiting_evidence=false WHERE id=$1`, [d.id]);
+  await callTelegram('sendMessage', {
+    chat_id: msg.chat.id,
+    text: "Rahmat! Moderator ko'rib chiqadi va qaror haqida xabar beramiz.",
+  });
+  await notify(ADMIN_CHAT_ID, `📸 Bahs #${d.id} — xaridor dalillarni yuborib bo'ldi.`);
+  return true;
 }
 
 // ============ Telegram webhook ============
@@ -1229,9 +2124,23 @@ async function handleTelegramWebhook(req, res) {
   try {
     const body = await readBody(req, 200_000);
     const update = JSON.parse(body);
+
+    // Admin panel so'ragan amalning tasdiq tugmasi
+    if (update.callback_query) {
+      await handleAdminActionCallback(update.callback_query)
+        .catch((e) => console.error('adminAction callback xatosi:', e.message));
+      return;
+    }
+
     const msg = update.message;
     if (!msg || !msg.chat || msg.chat.type !== 'private') return;
     if (rateLimited(`webhook:${msg.chat.id}`, 20)) return;
+
+    // Bahs dalili (rasm/video) — ochiq bahs bo'lsa qabul qilinadi
+    if (msg.photo || msg.video) {
+      await handleDisputeEvidence(msg).catch((e) => console.error('dispute evidence xatosi:', e.message));
+      return;
+    }
 
     if (msg.contact) {
       if (msg.contact.user_id && msg.from && msg.contact.user_id === msg.from.id) {
@@ -1312,6 +2221,32 @@ async function handleTelegramWebhook(req, res) {
         return;
       }
 
+      // ---- Ochiq bahslar ro'yxati (qaror admin panelda qabul qilinadi) ----
+      if (/^\/bahslar\b/i.test(text)) {
+        try {
+          const { rows } = await pool.query(
+            `SELECT d.id, d.order_id, d.reason, d.seller_response,
+                    EXTRACT(EPOCH FROM (now() - d.created_at))/3600 AS hours
+               FROM disputes d WHERE d.status='open' ORDER BY d.created_at LIMIT 20`);
+          if (!rows.length) {
+            await callTelegram('sendMessage', { chat_id: msg.chat.id, text: "✅ Ochiq bahs yo'q." });
+          } else {
+            const list = rows.map((r) =>
+              `• <b>#${r.id}</b> — <code>${escapeHtml(r.order_id)}</code> (${Math.floor(r.hours)} soat)\n` +
+              `  ${escapeHtml(r.reason || '-')}` +
+              (r.seller_response ? `\n  <i>Sotuvchi javobi bor</i>` : `\n  <i>Sotuvchi hali javob bermagan</i>`)
+            ).join('\n\n');
+            await callTelegram('sendMessage', {
+              chat_id: msg.chat.id, parse_mode: 'HTML',
+              text: `⚖️ <b>Ochiq bahslar (${rows.length})</b>\n\n${list}\n\nQaror admin panelning "Bahslar" bo'limida qabul qilinadi.`,
+            });
+          }
+        } catch (e) {
+          console.error('bahslar list xatosi:', e.message);
+        }
+        return;
+      }
+
       // ---- Sotuvchi arizalari (Sprint 0) ----
       if (/^\/sotuvchilar\b/i.test(text)) {
         try {
@@ -1341,6 +2276,12 @@ async function handleTelegramWebhook(req, res) {
         return;
       }
     }
+
+    // ---- Bahs dalili yig'ish tugadi ----
+    if (await handleDisputeEvidenceDone(msg, text).catch((e) => {
+      console.error('dispute done xatosi:', e.message);
+      return false;
+    })) return;
 
     // ---- Ochiq sotuvchi arizasi bo'lsa — matn navbatdagi javob sifatida qabul qilinadi ----
     if (await handleSellerApplicationStep(msg, text).catch((e) => {
@@ -1407,6 +2348,45 @@ const server = http.createServer((req, res) => {
     return handleAdminSummary(req, res, ip);
   }
 
+  // Paneldan so'ralgan yozuv amali — Telegram'da tasdiqlanadi
+  if (path === '/api/admin/action') {
+    cors(res, 'GET, POST, OPTIONS');
+    if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
+    if (req.method === 'POST') return handleAdminActionRequest(req, res, ip);
+    if (req.method === 'GET') return handleAdminActionStatus(req, res, ip);
+    return fail(res, 'method not allowed', 405);
+  }
+
+  if (path === '/api/admin/disputes') {
+    cors(res, 'GET, OPTIONS');
+    if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
+    if (req.method !== 'GET') return fail(res, 'method not allowed', 405);
+    return handleAdminDisputes(req, res, ip);
+  }
+
+  // Dalil rasmi — imzolangan havola bilan (bot tokeni panelga chiqmaydi)
+  if (path === '/api/admin/dispute-photo') {
+    cors(res, 'GET, OPTIONS');
+    if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
+    if (req.method !== 'GET') return fail(res, 'method not allowed', 405);
+    return handleDisputePhoto(req, res, ip);
+  }
+
+  if (path === '/api/disputes') {
+    cors(res, 'GET, POST, OPTIONS');
+    if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
+    if (req.method === 'POST') return handleCreateDispute(req, res, ip);
+    if (req.method === 'GET') return handleGetDisputes(req, res, ip);
+    return fail(res, 'method not allowed', 405);
+  }
+
+  if (path === '/api/seller/dispute') {
+    cors(res, 'POST, OPTIONS');
+    if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
+    if (req.method !== 'POST') return fail(res, 'method not allowed', 405);
+    return handleSellerDisputeReply(req, res, ip);
+  }
+
   if (path === '/api/orders') {
     cors(res, 'GET, POST, OPTIONS');
     if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
@@ -1468,3 +2448,7 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, '127.0.0.1', () => console.log(`lolamarket-notify listening on ${PORT}`));
+
+// 24 soatdan oshgan hal qilinmagan bahslar uchun eslatma skaneri.
+// unref() — bu taymer jarayonni tirik ushlab turmasin (to'xtatish toza bo'lsin).
+setInterval(scanStaleDisputes, DISPUTE_REMINDER_MS).unref();

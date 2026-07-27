@@ -31,10 +31,10 @@ Tashqi servislarni (Payme, Click, BTS Pochta) to'liq ishga tushirish va Telegram
 - [ ] BTS nuqtalari ro'yxatini bazaga yuklash (200+ nuqta)
 
 ### Telegram Bot
-- [ ] Bot yaratish va token olish
+- [x] Bot yaratish va token olish — token server `.env`da, webhook `/api/telegram-webhook`
 - [x] Xaridorga: buyurtma tasdiqlandi, yo'lga chiqdi, yetib keldi
-- [ ] Ishlab chiqaruvchiga: yangi buyurtma keldi
-- [ ] Adminga: yangi bahsli holat yaratildi
+- [x] Ishlab chiqaruvchiga: yangi buyurtma keldi — buyurtma yaratilganda va sotuvchi amallarida xabar boradi (Sprint 4)
+- [x] Adminga: yangi bahsli holat yaratildi — 2026-07-27, bahs ochilganda ADMIN_CHAT_ID'ga xabar + 24 soatlik eslatma
 
 ---
 

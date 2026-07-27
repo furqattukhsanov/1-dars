@@ -332,6 +332,11 @@
     <div style="font-size:0.68rem; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; color:#9C7B5A; margin-bottom:0.7rem;">So'nggi faoliyat</div>
     <div id="faoliyat-list">
       <div class="faoliyat-item">
+        <span class="faoliyat-sana">2026-07-27</span>
+        <span class="faoliyat-text">Sprint 7 yakunlandi — admin panel mock ma'lumotdan butunlay chiqdi. Yangi migratsiya 005: bahslar (disputes) jadvali ish oqimiga kengaytirildi, buyurtmalarga komissiya/to'lov/refund ustunlari, admin_actions jadvali. Komissiya endi backendda — COMMISSION_RATE env, buyurtma yaratilganda stavka snapshot qilinadi. Yozuv amallari IKKI BOSQICHLI bo'ldi: panel so'rov yuboradi, amal Telegram'dagi "Tasdiqlash" tugmasi bosilgandan keyin bajariladi (tugmani bosgan odam ADMIN_TG_IDS'da bo'lishi ham tekshiriladi, so'rov 30 daqiqada eskiradi) — sotuvchi tasdiqlash/rad, e'lon nashr/rad, pul o'tkazish, refund, bahs qarori. Bahslar to'liq oqim bilan: xaridor Mini App'dan ochadi, bot rasm so'raydi (faqat Telegram file_id saqlanadi), sotuvchi kabinetdan javob yozadi, moderator panelda kim aybdor va logistikani kim to'lashini belgilaydi, 24 soatdan oshgani uchun avtomatik eslatma. Statistika real bo'ldi: kunlik/oylik GMV va komissiya agregatsiyasi, eng faol sotuvchilar, arizalar/sotuvchilar/moderatsiya ro'yxatlari. Olib tashlandi: sayt tashriflari, xaridorlar dinamikasi, konversiya va "+12%" trend belgilari — loyihada veb-analitika yo'q, ular o'ylab topilgan raqamlar edi. Yo'l-yo'lakay ikki nuqson tuzatildi: prepay_amount/rest_amount/tracking_code ustunlari hech qaysi migratsiyada yo'q edi (toza bazada loyiha ishga tushmasdi), va Mini App STATUS_TXT'da cancelled/completed/refunded yo'qligi yangi holatdagi buyurtma kartochkasini buzardi. 23 ta test o'tdi. O'sha kuni production'ga deploy qilindi: 005 migratsiyasi bazada qo'llandi, COMMISSION_RATE=0.10 .env'ga qo'shildi, nginx'ga /api/disputes proxy bloki qo'shildi (nginx -t o'tdi, reload), servis restart, admin/ va mini-app/ rsync qilindi — jonli tekshiruvda barcha yangi endpointlar to'g'ri javob berdi. Qolgan cheklov: eski 6 ta buyurtmada commission_amount NULL, komissiya hisoboti ular uchun 0 ko'rsatadi</span>
+        <span class="faoliyat-sprint">Sprint 7</span>
+      </div>
+      <div class="faoliyat-item">
         <span class="faoliyat-sana">2026-07-26</span>
         <span class="faoliyat-text">Admin panel dizayni founder bilan iterativ qayta ishlandi (admin.css/admin.js v=16). Asosiy rang (anor) kuchaytirildi: jadval sarlavhalari anor tintga o'tdi, bo'lim sarlavhalari oldiga tik anor chiziq, stat ikonkalari to'ldirilgan gradientga, bosh summalar anor rangda, filtr pill'lari va login fonidagi dog'lar kuchaytirildi. Sidebar bir necha iteratsiyadan keyin founder qarori bilan OQ bo'ldi — faol band to'ldirilgan anor gradient + oq matn bilan ajratiladi. Kontent foni to'liq oq; shu bilan bog'liq nuqson tuzatildi — karta chegarasi oq --glass-edge edi va oq fonda butunlay yo'qolardi, yumshoq issiq hairline bilan almashtirildi. Dashboard vizual kartochkalarga o'tdi: yangi "Reja bajarilishi" doira (donut) ko'rsatkichi, yangi "Oxirgi 7 kun — kunlik GMV" ustunlari (har kun uchun punktir reja chizig'i, rejani bajargan kun yashil), buyurtma holatlari taqsimoti dashboardga ham qo'shildi, so'nggi buyurtmalar jadval o'rniga kartochkalarda. Founder qarori bilan olib tashlandi: hero paneldagi 4 ta xulosa raqami va yashirin "Bizning daromad" kartasi — ma'lumot yo'qolmadi, reja/bajarilish doirada, komissiya stat kartada qoldi. Nuqson tuzatildi: .earn-card CSS'ini o'chirishda dashboard kartochkalari CSS'i ham o'chib ketgan edi, donut 577px ga cho'zilib panellar disbalans bo'lgan — qaytarildi va panel balandliklari tekislandi. Fakt raqamlari hamon mock</span>
         <span class="faoliyat-sprint">Sprint 7</span>
@@ -582,7 +587,7 @@
     { num: 4, nom: "Asosiy funksiya",           dars: "Dars 11", holat: "jarayonda",  sana: "2026-07-25" },
     { num: 5, nom: "Mobil / PWA",               dars: "Dars 12", holat: "kutilmoqda", sana: "" },
     { num: 6, nom: "Integratsiyalar",           dars: "Dars 13", holat: "jarayonda",  sana: "2026-07-22" },
-    { num: 7, nom: "Admin panel",               dars: "Dars 14", holat: "jarayonda", sana: "2026-07-26" },
+    { num: 7, nom: "Admin panel",               dars: "Dars 14", holat: "tugadi",  sana: "2026-07-27" },
     { num: 8, nom: "Sifat tekshiruvi",          dars: "Dars 15", holat: "kutilmoqda", sana: "" },
     { num: 9, nom: "Production + launch",       dars: "Dars 16", holat: "kutilmoqda", sana: "" },
   ];
@@ -605,7 +610,7 @@
   barEl.style.width = foiz + "%";
   percentEl.textContent = foiz + "%";
   countEl.textContent = tugaganlar + " / " + sprintlar.length + " sprint";
-  updatedEl.textContent = "Yangilanish: 2026-07-26 (Sprint 7 — admin panel dizayni: oq sidebar, oq fon, dashboard vizual kartochkalarda)";
+  updatedEl.textContent = "Yangilanish: 2026-07-27 (Sprint 7 yakunlandi — bahslar, komissiya, to'lov/refund va real statistika)";
 
   sprintlar.forEach(s => {
     const card = document.createElement("div");
