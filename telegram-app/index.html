@@ -8,6 +8,17 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css?v=15">
+
+  <!-- PWA: uy ekraniga qo'shish va offline sahifa -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#FFFDFB">
+  <link rel="icon" href="assets/pwa/icon-192.png">
+  <link rel="apple-touch-icon" href="assets/pwa/icon-192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="LolaMarket">
+
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
@@ -116,5 +127,6 @@
   <div id="toast" class="toast hidden"></div>
 
   <script src="app.js?v=47"></script>
+  <script src="pwa.js?v=4"></script>
 </body>
 </html>

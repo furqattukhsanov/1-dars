@@ -332,6 +332,11 @@
     <div style="font-size:0.68rem; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; color:#9C7B5A; margin-bottom:0.7rem;">So'nggi faoliyat</div>
     <div id="faoliyat-list">
       <div class="faoliyat-item">
+        <span class="faoliyat-sana">2026-07-28</span>
+        <span class="faoliyat-text">Sprint 5 boshlandi — Telegram Mini App PWA'ga aylandi. Yangi fayllar: manifest.json (nisbiy scope/start_url — serverdagi /mini-app/ yo'lida ham to'g'ri ishlaydi, 192/512 va alohida maskable ikonka), sw.js (service worker), offline.html (tashqi shrift/CSS'siz mustaqil sahifa) va pwa.js ("uy ekraniga qo'shish" banneri). Kesh strategiyasi ataylab ehtiyotkor: sahifa ochilishi HECH QACHON keshdan berilmaydi, faqat tarmoqdan — app.js ichida qattiq yozilgan namuna katalog narxlari bor, keshlangan HTML qaytarilsa internetsiz foydalanuvchi soxta narxlarni haqiqiy deb ko'rardi; tarmoq yo'q bo'lsa ochiq-oydin "internet yo'q" sahifasi chiqadi. JS/CSS network-first (deploy'dan keyin eski app.js keshda qolib ketmasin), /api/ umuman keshlanmaydi, faqat rasm va shriftlar cache-first. Banner Telegram ichida ko'rsatilmaydi (ilova allaqachon Telegram'da), Android'da brauzerning o'z o'rnatish taklifini chaqiradi, iOS Safari'da "Ulashish → Uy ekraniga qo'shish" maslahati beriladi, yopilsa 14 kun qayta chiqmaydi; pastki navigatsiya balandligi o'lchanib uning ustiga qo'yiladi. Brauzerda tekshirildi: SW activated, manifest va ikonkalar 200, server to'xtatilganda offline sahifa chiqdi, qayta yoqilganda ilova normal ochildi. Sprintning qolgan vazifalari — responsive audit, mobil tab bar, kameradan rasm yuklash, 44px auditi — hali qilinmadi</span>
+        <span class="faoliyat-sprint">Sprint 5</span>
+      </div>
+      <div class="faoliyat-item">
         <span class="faoliyat-sana">2026-07-27</span>
         <span class="faoliyat-text">Sprint 7 yakunlandi — admin panel mock ma'lumotdan butunlay chiqdi. Yangi migratsiya 005: bahslar (disputes) jadvali ish oqimiga kengaytirildi, buyurtmalarga komissiya/to'lov/refund ustunlari, admin_actions jadvali. Komissiya endi backendda — COMMISSION_RATE env, buyurtma yaratilganda stavka snapshot qilinadi. Yozuv amallari IKKI BOSQICHLI bo'ldi: panel so'rov yuboradi, amal Telegram'dagi "Tasdiqlash" tugmasi bosilgandan keyin bajariladi (tugmani bosgan odam ADMIN_TG_IDS'da bo'lishi ham tekshiriladi, so'rov 30 daqiqada eskiradi) — sotuvchi tasdiqlash/rad, e'lon nashr/rad, pul o'tkazish, refund, bahs qarori. Bahslar to'liq oqim bilan: xaridor Mini App'dan ochadi, bot rasm so'raydi (faqat Telegram file_id saqlanadi), sotuvchi kabinetdan javob yozadi, moderator panelda kim aybdor va logistikani kim to'lashini belgilaydi, 24 soatdan oshgani uchun avtomatik eslatma. Statistika real bo'ldi: kunlik/oylik GMV va komissiya agregatsiyasi, eng faol sotuvchilar, arizalar/sotuvchilar/moderatsiya ro'yxatlari. Olib tashlandi: sayt tashriflari, xaridorlar dinamikasi, konversiya va "+12%" trend belgilari — loyihada veb-analitika yo'q, ular o'ylab topilgan raqamlar edi. Yo'l-yo'lakay ikki nuqson tuzatildi: prepay_amount/rest_amount/tracking_code ustunlari hech qaysi migratsiyada yo'q edi (toza bazada loyiha ishga tushmasdi), va Mini App STATUS_TXT'da cancelled/completed/refunded yo'qligi yangi holatdagi buyurtma kartochkasini buzardi. 23 ta test o'tdi. O'sha kuni production'ga deploy qilindi: 005 migratsiyasi bazada qo'llandi, COMMISSION_RATE=0.10 .env'ga qo'shildi, nginx'ga /api/disputes proxy bloki qo'shildi (nginx -t o'tdi, reload), servis restart, admin/ va mini-app/ rsync qilindi — jonli tekshiruvda barcha yangi endpointlar to'g'ri javob berdi. Qolgan cheklov: eski 6 ta buyurtmada commission_amount NULL, komissiya hisoboti ular uchun 0 ko'rsatadi</span>
         <span class="faoliyat-sprint">Sprint 7</span>
@@ -585,7 +590,7 @@
     { num: 2, nom: "Ma'lumotlar bazasi / Backend", dars: "Dars 9",  holat: "tugadi", sana: "2026-07-23" },
     { num: 3, nom: "Foydalanuvchilar + rollar", dars: "Dars 10", holat: "tugadi", sana: "2026-07-23" },
     { num: 4, nom: "Asosiy funksiya",           dars: "Dars 11", holat: "jarayonda",  sana: "2026-07-25" },
-    { num: 5, nom: "Mobil / PWA",               dars: "Dars 12", holat: "kutilmoqda", sana: "" },
+    { num: 5, nom: "Mobil / PWA",               dars: "Dars 12", holat: "jarayonda",  sana: "2026-07-28" },
     { num: 6, nom: "Integratsiyalar",           dars: "Dars 13", holat: "jarayonda",  sana: "2026-07-22" },
     { num: 7, nom: "Admin panel",               dars: "Dars 14", holat: "tugadi",  sana: "2026-07-27" },
     { num: 8, nom: "Sifat tekshiruvi",          dars: "Dars 15", holat: "kutilmoqda", sana: "" },
@@ -610,7 +615,7 @@
   barEl.style.width = foiz + "%";
   percentEl.textContent = foiz + "%";
   countEl.textContent = tugaganlar + " / " + sprintlar.length + " sprint";
-  updatedEl.textContent = "Yangilanish: 2026-07-27 (Sprint 7 yakunlandi — bahslar, komissiya, to'lov/refund va real statistika)";
+  updatedEl.textContent = "Yangilanish: 2026-07-28 (Sprint 5 boshlandi — Mini App PWA'ga aylandi: manifest, service worker, offline sahifa, uy ekraniga qo'shish)";
 
   sprintlar.forEach(s => {
     const card = document.createElement("div");
