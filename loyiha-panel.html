@@ -333,6 +333,11 @@
     <div id="faoliyat-list">
       <div class="faoliyat-item">
         <span class="faoliyat-sana">2026-07-28</span>
+        <span class="faoliyat-text">Mini App production'ga deploy qilindi (rsync → /var/www/lolamarket/mini-app/) va jonli tekshirildi: service worker activated (scope https://lolamarket.uz/mini-app/), manifest va uchala ikonka 200. Deploy paytida nuqson topildi — nginx sw.js ni Cache-Control: max-age=14400 bilan beradi va Cloudflare uni keshlaydi (cf-cache-status: HIT), ya'ni kelajakda service worker o'zgartirilsa foydalanuvchilarda eskisi soatlab qolib ketardi. Bu ayniqsa xavfli, chunki service worker keshlash siyosatini o'zi boshqaradi — eskisi qolib ketsa uni oddiy deploy bilan tuzatib bo'lmaydi. Brauzer tomoni yopildi: pwa.js da register('sw.js', { updateViaCache: 'none' }), index.html da pwa.js?v=5. OCHIQ ISH: nginx/Cloudflare tomonida sw.js uchun Cache-Control: no-cache kerak — nginx konfiguratsiyasi qo'lda boshqariladi (CLAUDE.md), shuning uchun bu commit'da tegilmadi, serverda alohida qilinishi kerak</span>
+        <span class="faoliyat-sprint">Sprint 5</span>
+      </div>
+      <div class="faoliyat-item">
+        <span class="faoliyat-sana">2026-07-28</span>
         <span class="faoliyat-text">Sprint 5 boshlandi — Telegram Mini App PWA'ga aylandi. Yangi fayllar: manifest.json (nisbiy scope/start_url — serverdagi /mini-app/ yo'lida ham to'g'ri ishlaydi, 192/512 va alohida maskable ikonka), sw.js (service worker), offline.html (tashqi shrift/CSS'siz mustaqil sahifa) va pwa.js ("uy ekraniga qo'shish" banneri). Kesh strategiyasi ataylab ehtiyotkor: sahifa ochilishi HECH QACHON keshdan berilmaydi, faqat tarmoqdan — app.js ichida qattiq yozilgan namuna katalog narxlari bor, keshlangan HTML qaytarilsa internetsiz foydalanuvchi soxta narxlarni haqiqiy deb ko'rardi; tarmoq yo'q bo'lsa ochiq-oydin "internet yo'q" sahifasi chiqadi. JS/CSS network-first (deploy'dan keyin eski app.js keshda qolib ketmasin), /api/ umuman keshlanmaydi, faqat rasm va shriftlar cache-first. Banner Telegram ichida ko'rsatilmaydi (ilova allaqachon Telegram'da), Android'da brauzerning o'z o'rnatish taklifini chaqiradi, iOS Safari'da "Ulashish → Uy ekraniga qo'shish" maslahati beriladi, yopilsa 14 kun qayta chiqmaydi; pastki navigatsiya balandligi o'lchanib uning ustiga qo'yiladi. Brauzerda tekshirildi: SW activated, manifest va ikonkalar 200, server to'xtatilganda offline sahifa chiqdi, qayta yoqilganda ilova normal ochildi. Sprintning qolgan vazifalari — responsive audit, mobil tab bar, kameradan rasm yuklash, 44px auditi — hali qilinmadi</span>
         <span class="faoliyat-sprint">Sprint 5</span>
       </div>
@@ -615,7 +620,7 @@
   barEl.style.width = foiz + "%";
   percentEl.textContent = foiz + "%";
   countEl.textContent = tugaganlar + " / " + sprintlar.length + " sprint";
-  updatedEl.textContent = "Yangilanish: 2026-07-28 (Sprint 5 boshlandi — Mini App PWA'ga aylandi: manifest, service worker, offline sahifa, uy ekraniga qo'shish)";
+  updatedEl.textContent = "Yangilanish: 2026-07-28 (Sprint 5 — Mini App PWA'ga aylandi va production'ga deploy qilindi; sw.js keshlanishi uchun nginx tomoni ochiq)";
 
   sprintlar.forEach(s => {
     const card = document.createElement("div");

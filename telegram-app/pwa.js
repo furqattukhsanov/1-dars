@@ -22,7 +22,9 @@
   /* ===== 1. Service worker ===== */
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () {
-      navigator.serviceWorker.register('sw.js').catch(function (err) {
+      // updateViaCache:'none' — sw.js brauzer keshidan olinmasin, aks holda
+      // yangilangan service worker soatlab eskisi bilan qolib ketadi.
+      navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).catch(function (err) {
         console.warn('[pwa] service worker ro\'yxatdan o\'tmadi:', err);
       });
     });
