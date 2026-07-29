@@ -2,6 +2,7 @@ const http = require('http');
 const https = require('https');
 const fs = require('fs');
 const crypto = require('crypto');
+const { execSync } = require('child_process');
 const { Pool } = require('pg');
 
 const PORT = process.env.PORT || 3001;
@@ -13,6 +14,15 @@ const MINI_APP_URL = process.env.MINI_APP_URL || 'https://lolamarket.uz/mini-app
 // Saytdagi "Telegram orqali kirish" tugmasi shu botga deep-link yasaydi.
 const BOT_USERNAME = (process.env.BOT_USERNAME || 'lolamarketbot').replace(/^@/, '');
 const CONTACTS_FILE = __dirname + '/contacts.json';
+
+// Server versiyasi — git SHA (deploy diagnozida ishlatiladi)
+let GIT_SHA = 'unknown';
+try {
+  GIT_SHA = execSync('git rev-parse --short HEAD 2>/dev/null || echo "unknown"', { encoding: 'utf8' }).trim();
+} catch (_) {
+  GIT_SHA = 'unknown';
+}
+
 // admin/index.html panelidagi kirish kaliti — Telegram initData'ga bog'liq emas
 // (standalone sahifa uni ishlab chiqara olmaydi), shuning uchun alohida sir.
 // Berilmasa — /api/admin/summary doim 401 qaytaradi (panel ishlamaydi, lekin xavfsiz).
@@ -60,9 +70,24 @@ function rateLimited(key, max = 10) {
   return arr.length > max;
 }
 
+// Rate limit Map tozalash — xotira oqishi uchun. Hali keladigan so'rovlar ham
+// filtrladi hisoblanadi (windowMs ichida), shuning uchun tozalash xavfsiz.
+setInterval(() => {
+  for (const [key, arr] of hits.entries()) {
+    if (arr.length === 0) hits.delete(key);
+  }
+}, 5 * 60 * 1000).unref();
+
 function clientIp(req) {
+  // Nginx'dan X-Real-IP: server konfiguratsiyasida proxy_set_header X-Real-IP $remote_addr;
+  // bo'lishi kerak. Aks holda, Cloudflare orqasidagi hamma foydalanuvchi 127.0.0.1 bo'ladi
+  // va rate limit hamma uchun ishlaydi — nosozlik jimgina keladi.
   const fwd = req.headers['x-real-ip'] || (req.headers['x-forwarded-for'] || '').split(',')[0].trim();
-  return fwd || req.socket.remoteAddress;
+  const ip = fwd || req.socket.remoteAddress;
+  if (!fwd && req.socket.remoteAddress === '127.0.0.1') {
+    console.warn('⚠️  X-Real-IP header yo\'q — nginx proxy_set_header tekshirilsin');
+  }
+  return ip;
 }
 
 function escapeHtml(s) {
@@ -2790,6 +2815,14 @@ function cors(res, methods) {
 const server = http.createServer((req, res) => {
   const ip = clientIp(req);
   const path = req.url.split('?')[0];
+
+  // Versiyani tekshirish — deploy diagnozida serverda qaysi kod turgani bilish uchun
+  if (path === '/api/version') {
+    cors(res, 'GET, OPTIONS');
+    if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
+    if (req.method !== 'GET') return fail(res, 'method not allowed', 405);
+    return ok(res, { version: GIT_SHA });
+  }
 
   if (path === '/api/auth/telegram') {
     cors(res, 'POST, OPTIONS');
