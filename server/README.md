@@ -67,6 +67,16 @@ rsync -av --delete \
   --exclude='*.bak-*' \
   server/ root@65.21.180.44:/opt/lolamarket-notify/
 
+# 4b. Fayl egaligi — `chown -R` ISHLATMANG.
+#     2026-07-30 da `chown -R www-data:www-data /opt/lolamarket-notify` berilgan
+#     edi va u sirlarni ham qamrab oldi: .env, .mcp-db-url, pg-backup.sh
+#     root:root 600/700 dan www-data'ga o'tdi. pg-backup.sh ni root cron
+#     ishga tushirgani uchun bu root'gacha ko'tarilish yo'li ochardi.
+#     Faqat kod fayllariga teging:
+ssh root@65.21.180.44 "find /opt/lolamarket-notify -maxdepth 2 \
+  \( -name '*.js' -o -name '*.json' -o -name 'version.txt' \) \
+  -exec chown www-data:www-data {} +"
+
 # 5. Qayta ishga tushirish
 ssh root@65.21.180.44 "systemctl restart lolamarket-notify && systemctl is-active lolamarket-notify"
 
@@ -139,6 +149,26 @@ cd server && npm run check:live
 
 Bu skript router'dagi **har bir** yo'lni production'da sinaydi va serverga
 yetib bormaganini ko'rsatadi. Yashil bo'lsa — nginx to'g'ri sozlangan.
+
+## Serverdagi fayl egaligi
+
+Hozirgi holat (2026-07-30 dagi tozalashdan keyin):
+
+| Fayl | Egasi | Ruxsat | Izoh |
+|---|---|---|---|
+| `.env` | `root:root` | 600 | systemd `EnvironmentFile` sifatida PID1/root o'qiydi — ilova emas |
+| `.mcp-db-url` | `root:root` | 600 | Baza ulanish satri; servisga kerak emas |
+| `pg-backup.sh` | `root:root` | 700 | Root cron ishga tushiradi — www-data yozsa root'gacha ko'tarilish yo'li ochiladi |
+| `*.js`, `*.json`, `version.txt` | `www-data` | 644 | Servis o'qishi shart |
+| `contacts.json` | `www-data` | 600 | Servis YOZADI |
+
+**Qoida: `chown -R` hech qachon ishlatilmasin** — u sirlarni ham qamrab oladi.
+
+**Keyinroq qilinadigan qattiqlashtirish** (shoshilinch emas): kod fayllari ham
+`root:root 644` bo'lishi mumkin edi — shunda servis buzilsa ham o'z kodini
+qayta yoza olmaydi (persistence yo'li yopiladi). Faqat `contacts.json` va
+`version.txt` www-data uchun ochiq qolishi kerak. Hozirgi holatda kod
+www-data'ga tegishli, ya'ni bu himoya hali yo'q.
 
 ## Env o'zgaruvchilari (`.env` serverda)
 
