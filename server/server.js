@@ -79,14 +79,19 @@ setInterval(() => {
   }
 }, 5 * 60 * 1000).unref();
 
+// Ogohlantirish faqat bir marta chiqsin — har so'rovda yozilsa, nginx noto'g'ri
+// sozlangan holatda log to'lib ketadi (nosozlikning o'zi esa doimiy).
+let warnedNoRealIp = false;
+
 function clientIp(req) {
   // Nginx'dan X-Real-IP: server konfiguratsiyasida proxy_set_header X-Real-IP $remote_addr;
   // bo'lishi kerak. Aks holda, Cloudflare orqasidagi hamma foydalanuvchi 127.0.0.1 bo'ladi
-  // va rate limit hamma uchun ishlaydi — nosozlik jimgina keladi.
+  // va rate limit hammani birga bloklaydi — nosozlik jimgina keladi.
   const fwd = req.headers['x-real-ip'] || (req.headers['x-forwarded-for'] || '').split(',')[0].trim();
   const ip = fwd || req.socket.remoteAddress;
-  if (!fwd && req.socket.remoteAddress === '127.0.0.1') {
-    console.warn('⚠️  X-Real-IP header yo\'q — nginx proxy_set_header tekshirilsin');
+  if (!fwd && !warnedNoRealIp && req.socket.remoteAddress === '127.0.0.1') {
+    warnedNoRealIp = true;
+    console.warn('⚠️  X-Real-IP header yo\'q — nginx proxy_set_header tekshirilsin (bu ogohlantirish bir marta chiqadi)');
   }
   return ip;
 }
@@ -2782,7 +2787,7 @@ function cors(res, methods) {
   res.setHeader('Access-Control-Allow-Credentials', 'true');
 }
 
-const server = http.createServer((req, res) => {
+function handleRequest(req, res) {
   const ip = clientIp(req);
   const path = req.url.split('?')[0];
 
@@ -2965,10 +2970,17 @@ const server = http.createServer((req, res) => {
   }
 
   fail(res, 'not found', 404);
-});
+}
 
-server.listen(PORT, '127.0.0.1', () => console.log(`lolamarket-notify listening on ${PORT}`));
+// Faqat to'g'ridan-to'g'ri ishga tushirilganda tinglaymiz — `require` qilinganda
+// (test.js) tinglamaydi, shunda testlar port band qilmasdan router'ni sinaydi.
+if (require.main === module) {
+  http.createServer(handleRequest)
+    .listen(PORT, '127.0.0.1', () => console.log(`lolamarket-notify listening on ${PORT}`));
 
-// 24 soatdan oshgan hal qilinmagan bahslar uchun eslatma skaneri.
-// unref() — bu taymer jarayonni tirik ushlab turmasin (to'xtatish toza bo'lsin).
-setInterval(scanStaleDisputes, DISPUTE_REMINDER_MS).unref();
+  // 24 soatdan oshgan hal qilinmagan bahslar uchun eslatma skaneri.
+  // unref() — bu taymer jarayonni tirik ushlab turmasin (to'xtatish toza bo'lsin).
+  setInterval(scanStaleDisputes, DISPUTE_REMINDER_MS).unref();
+}
+
+module.exports = { handleRequest };

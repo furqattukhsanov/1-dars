@@ -1,10 +1,10 @@
 const crypto = require('crypto');
 const assert = require('assert');
+const http = require('http');
 const { verifyInitData } = require('./lib/telegram-auth');
 
 // ============ TESTLAR ============
-// npm test orqali ishga tushirish uchun: npm install && npm test
-// Hozir: node test.js (o'chirilmasin — keyingi xona test runner integratsiyalashadi)
+// Ishga tushirish: npm test
 //
 // MUHIM: verifyInitData shu yerda qayta yozilmagan — lib/telegram-auth.js dan
 // import qilinadi, xuddi server.js import qilgani kabi. Shunday qilib testlar
@@ -56,33 +56,25 @@ function testCommissionCalculation() {
 }
 
 // ============ TEST 3: Telegram initData imzosi ============
-// Telegram'ning Manifest o'ziga o'xshash imzo algoritmi:
-// 1. Barcha kalit=qiymatlarni alifbo tartibida \n bilan birlashtiramiz (hash olmang)
+// Telegram imzo algoritmi:
+// 1. Barcha kalit=qiymatlarni alifbo tartibida \n bilan birlashtiramiz (hash'siz)
 // 2. Bot tokendan secretKey yaratamiz: HMAC-SHA256(BOT_TOKEN, "WebAppData")
 // 3. secretKey orqali dataCheckString'ni HMAC-SHA256 qilamiz → hash
 // 4. Imzo taqqoslanadi (timingSafeEqual)
-// (verifyInitData shu faylning yuqorisida lib/telegram-auth.js dan import qilinadi)
 
 function testVerifyInitData() {
-  // To'g'ri imzo — qabul qilinishi kerak
-  // Telegram Mini App imzosi: URLSearchParams bilan ishlaydi, lekin
-  // hash hisoblash paytida barcha qatorlar alifbo tartibida bo'ladi.
   const user = { id: 123456789, first_name: 'Test', last_name: 'User' };
   const userJson = JSON.stringify(user);
   const now = Math.floor(Date.now() / 1000);
 
   // Alifbo tartibida: auth_date, user
-  const pairs = [
-    `auth_date=${now}`,
-    `user=${userJson}`
-  ];
+  const pairs = [`auth_date=${now}`, `user=${userJson}`];
   pairs.sort();
   const dataCheckString = pairs.join('\n');
 
   const secretKey = crypto.createHmac('sha256', 'WebAppData').update(BOT_TOKEN).digest();
   const hash = crypto.createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
 
-  // URLSearchParams'ni parse qiladi va alifbo tartibida qaytaradi
   const initData = `auth_date=${now}&hash=${hash}&user=${encodeURIComponent(userJson)}`;
   const verified = verifyInitData(initData, BOT_TOKEN, 86400); // 24 soat
 
@@ -107,7 +99,6 @@ function testVerifyInitDataInvalid() {
 }
 
 function testVerifyInitDataMissingHash() {
-  // hash yo'q — rad etilishi kerak
   const initDataNoHash = 'user={"id":123}&auth_date=1234567890';
   const verified = verifyInitData(initDataNoHash, BOT_TOKEN);
 
@@ -116,8 +107,123 @@ function testVerifyInitDataMissingHash() {
   console.log('✅ Test 3c: verifyInitData (hash yo\'q) — PASS');
 }
 
+function testVerifyInitDataStale() {
+  // auth_date 25 soat oldin — eskirgan, rad etilishi kerak
+  const user = { id: 1 };
+  const userJson = JSON.stringify(user);
+  const old = Math.floor(Date.now() / 1000) - 25 * 3600;
+
+  const pairs = [`auth_date=${old}`, `user=${userJson}`];
+  pairs.sort();
+  const dataCheckString = pairs.join('\n');
+
+  const secretKey = crypto.createHmac('sha256', 'WebAppData').update(BOT_TOKEN).digest();
+  const hash = crypto.createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
+  const initData = `auth_date=${old}&hash=${hash}&user=${encodeURIComponent(userJson)}`;
+
+  // Imzo TO'G'RI, lekin vaqti o'tgan — faqat auth_date sababli rad etilishi kerak
+  assert.strictEqual(verifyInitData(initData, BOT_TOKEN, 86400), null, 'eskirgan initData rad etilishi kerak');
+  // Bir xil ma'lumot, cheksiz muddat bilan — qabul qilinadi (ya'ni imzo haqiqatan to'g'ri edi)
+  assert.notStrictEqual(verifyInitData(initData, BOT_TOKEN, 0), null, 'maxAge=0 bo\'lsa imzo o\'tishi kerak');
+
+  console.log('✅ Test 3d: verifyInitData (eskirgan auth_date) — PASS');
+}
+
+// ============ TEST 4: ROUTE JADVALI (smoke test) ============
+// Har bir endpoint uchun OPTIONS so'rovi yuboriladi — router uni tanishi va
+// 204 qaytarishi kerak. 404 kelsa route yo'qolgan degani.
+//
+// Nega OPTIONS: CORS preflight auth va bazaga tegmaydi, shuning uchun bu
+// tekshiruv DB'siz va sirlarsiz ishlaydi — refaktoring paytida route
+// yo'qolib qolmaganini aniq ko'rsatadi.
+
+const ROUTES = [
+  '/api/version',
+  '/api/auth/telegram',
+  '/api/auth/web/start',
+  '/api/auth/web/poll',
+  '/api/auth/web/me',
+  '/api/auth/web/logout',
+  '/api/web/orders',
+  '/api/products',
+  '/api/admin/moderation',
+  '/api/admin/summary',
+  '/api/admin/action',
+  '/api/admin/disputes',
+  '/api/admin/dispute-photo',
+  '/api/disputes',
+  '/api/seller/dispute',
+  '/api/orders',
+  '/api/web-orders',
+  '/api/me',
+  '/api/seller/products',
+  '/api/seller/orders',
+  '/api/telegram-notify',
+  '/api/order-status',
+  '/api/telegram-contact',
+];
+
+function request(port, method, path) {
+  return new Promise((resolve, reject) => {
+    const req = http.request({ host: '127.0.0.1', port, method, path }, (res) => {
+      let body = '';
+      res.on('data', (c) => { body += c; });
+      res.on('end', () => resolve({ status: res.statusCode, headers: res.headers, body }));
+    });
+    req.on('error', reject);
+    req.end();
+  });
+}
+
+async function testRouteTable() {
+  // Server modulini yuklashdan OLDIN soxta sirlar — aks holda process.exit(1)
+  process.env.BOT_TOKEN = BOT_TOKEN;
+  process.env.ADMIN_CHAT_ID = '1';
+  process.env.DATABASE_URL = 'postgres://test:test@127.0.0.1:1/test';
+
+  // require.main !== module bo'lgani uchun server.js port tinglamaydi —
+  // faqat handleRequest'ni beradi
+  const { handleRequest } = require('./server.js');
+  const srv = http.createServer(handleRequest);
+  await new Promise((r) => srv.listen(0, '127.0.0.1', r));
+  const port = srv.address().port;
+
+  try {
+    for (const path of ROUTES) {
+      const res = await request(port, 'OPTIONS', path);
+      assert.strictEqual(res.status, 204, `${path} — OPTIONS 204 qaytarishi kerak (kelgan: ${res.status})`);
+      assert.strictEqual(
+        res.headers['access-control-allow-credentials'], 'true',
+        `${path} — CORS credentials sarlavhasi bo'lishi kerak`
+      );
+    }
+    console.log(`✅ Test 4: Route jadvali — PASS (${ROUTES.length} ta endpoint javob berdi)`);
+
+    // Nazorat: mavjud bo'lmagan yo'l 404 qaytarishi SHART. Bu tekshiruvsiz
+    // yuqoridagi test "hamma narsa 204" degan buzuq routerda ham yashil bo'lardi.
+    const missing = await request(port, 'OPTIONS', '/api/yoq-bunday-narsa');
+    assert.strictEqual(missing.status, 404, 'noma\'lum yo\'l 404 qaytarishi kerak');
+    console.log('✅ Test 4b: Noma\'lum yo\'l 404 — PASS');
+
+    // Webhook faqat POST qabul qiladi (OPTIONS shohbasi yo'q)
+    const wh = await request(port, 'POST', '/api/telegram-webhook');
+    assert.notStrictEqual(wh.status, 404, 'webhook route mavjud bo\'lishi kerak');
+    console.log('✅ Test 4c: Webhook route mavjud — PASS');
+
+    // GET /api/version haqiqiy javob beradi (bazaga tegmaydi)
+    const ver = await request(port, 'GET', '/api/version');
+    assert.strictEqual(ver.status, 200, '/api/version 200 qaytarishi kerak');
+    const parsed = JSON.parse(ver.body);
+    assert.strictEqual(parsed.ok, true, '/api/version { ok: true } qaytarishi kerak');
+    assert.ok(parsed.data && typeof parsed.data.version === 'string', 'version satr bo\'lishi kerak');
+    console.log(`✅ Test 4d: /api/version javobi — PASS (version=${parsed.data.version})`);
+  } finally {
+    await new Promise((r) => srv.close(r));
+  }
+}
+
 // ============ TEST RUNNER ============
-function runTests() {
+async function runTests() {
   console.log('\n🧪 LolaMarket Server Testlari\n');
 
   try {
@@ -126,8 +232,10 @@ function runTests() {
     testVerifyInitData();
     testVerifyInitDataInvalid();
     testVerifyInitDataMissingHash();
+    testVerifyInitDataStale();
+    await testRouteTable();
 
-    console.log('\n✅ Hammasi PASS — pul hisobi va imzo tekshiruvi xavfsiz\n');
+    console.log('\n✅ Hammasi PASS — pul hisobi, imzo tekshiruvi va route jadvali joyida\n');
     process.exit(0);
   } catch (err) {
     console.error('\n❌ TEST XATOSI:\n', err.message, '\n');
