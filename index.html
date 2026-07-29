@@ -25,7 +25,7 @@
   <!-- ===== HEADER ===== -->
   <header id="nav">
     <div class="container nav-inner">
-      <a class="nav-brand" href="/" onclick="location.reload(); return false;">
+      <a class="nav-brand" href="/" data-action="reloadHome">
         <img class="brand-mark" src="Photo/logo/lola-mark.png" width="38" height="38" alt="LolaMarket" />
         <span class="nav-title">LolaMarket</span>
       </a>
@@ -34,7 +34,7 @@
         <div class="search-box">
           <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M20 20l-3.5-3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
           <input id="search-inp" type="text" autocomplete="off" placeholder="Mato yoki ishlab chiqaruvchi" oninput="onSearch(this.value)" />
-          <button class="search-x" id="search-x" onclick="clearSearch()" aria-label="Tozalash" hidden>
+          <button class="search-x" id="search-x" data-action="clearSearch" aria-label="Tozalash" hidden>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
           </button>
         </div>
@@ -44,15 +44,15 @@
       </div>
 
       <div class="nav-actions">
-        <button class="login-btn" id="login-btn" onclick="onLogin()" aria-label="Kirish">
+        <button class="login-btn" id="login-btn" data-action="onLogin" aria-label="Kirish">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M4.8 19.6a7.4 7.4 0 0 1 14.4 0"/></svg>
           <span class="login-txt">Kirish</span>
         </button>
 
-        <button class="cart-btn fav-head-btn" id="fav-btn" onclick="openFav()" aria-label="Saralanganlar">
+        <button class="cart-btn fav-head-btn" id="fav-btn" data-action="openFav" aria-label="Saralanganlar">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 20.8s-6.9-4.3-9-8a5.2 5.2 0 0 1-.5-3.7A4.8 4.8 0 0 1 6.3 5.5c1.9 0 3.4 1 4.3 2.3.4.6 1 .6 1.4 0 .9-1.3 2.4-2.3 4.3-2.3a4.8 4.8 0 0 1 3.8 3.6 5.2 5.2 0 0 1-.5 3.7c-2.1 3.7-9 8-9 8z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
         </button>
-        <button class="cart-btn" id="cart-btn" onclick="openCart()" aria-label="Savat">
+        <button class="cart-btn" id="cart-btn" data-action="openCart" aria-label="Savat">
           <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12l-1 11.5H7z"/><path d="M9 8V6.2a3 3 0 0 1 6 0V8"/></svg>
           <span class="cart-count" id="cart-count" hidden>0</span>
         </button>
@@ -75,7 +75,7 @@
           <div class="ad-content">
             <h2 class="ad-title">Tasdiqlangan fabrikalardan to'g'ridan-to'g'ri</h2>
             <p class="ad-sub">Rulon formatida ulgurji xarid — vositachisiz, himoyalangan to'lov bilan.</p>
-            <button class="ad-cta" type="button" onclick="adGoCatalog()">
+            <button class="ad-cta" type="button" data-action="adGoCatalog">
               Katalogni ko'rish
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M13 6l6 6-6 6"/></svg>
             </button>
@@ -88,7 +88,7 @@
           <div class="ad-content">
             <h2 class="ad-title">Gulli naqsh — ipak kolleksiya</h2>
             <p class="ad-sub">Marg'ilon va Andijon ustaxonalaridan qo'lbola ipak matolar.</p>
-            <button class="ad-cta" type="button" onclick="adGoCat('silk')">
+            <button class="ad-cta" type="button" data-action="adGoCat" data-arg="silk">
               Ipak matolar
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M13 6l6 6-6 6"/></svg>
             </button>
@@ -111,9 +111,9 @@
       </div>
 
       <div class="ad-dots" id="ad-dots" role="tablist" aria-label="Bannerni tanlash">
-        <button class="ad-dot is-active" type="button" role="tab" aria-selected="true"  aria-label="1-banner" onclick="adGo(0)"><i></i></button>
-        <button class="ad-dot"           type="button" role="tab" aria-selected="false" aria-label="2-banner" onclick="adGo(1)"><i></i></button>
-        <button class="ad-dot"           type="button" role="tab" aria-selected="false" aria-label="3-banner" onclick="adGo(2)"><i></i></button>
+        <button class="ad-dot is-active" type="button" role="tab" aria-selected="true"  aria-label="1-banner" data-action="adGo" data-arg="0"><i></i></button>
+        <button class="ad-dot"           type="button" role="tab" aria-selected="false" aria-label="2-banner" data-action="adGo" data-arg="1"><i></i></button>
+        <button class="ad-dot"           type="button" role="tab" aria-selected="false" aria-label="3-banner" data-action="adGo" data-arg="2"><i></i></button>
       </div>
     </div>
 
@@ -138,7 +138,7 @@
         <div class="product-media">
           <img src="Photo/textile/186e363817f29c3d01029ef64db8aae6.jpg" alt="Marg'ilon ipak ikat" loading="lazy" />
           <span class="badge-pill tone-primary">Tavsiya</span>
-          <button class="fav-btn" id="fav-ik-1402" onclick="toggleFav('ik-1402')" aria-label="Saralanganlarga qo'shish" aria-pressed="false">
+          <button class="fav-btn" id="fav-ik-1402" data-action="toggleFav" data-arg="ik-1402" aria-label="Saralanganlarga qo'shish" aria-pressed="false">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 20.8s-6.9-4.3-9-8a5.2 5.2 0 0 1-.5-3.7A4.8 4.8 0 0 1 6.3 5.5c1.9 0 3.4 1 4.3 2.3.4.6 1 .6 1.4 0 .9-1.3 2.4-2.3 4.3-2.3a4.8 4.8 0 0 1 3.8 3.6 5.2 5.2 0 0 1-.5 3.7c-2.1 3.7-9 8-9 8z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
           </button>
         </div>
@@ -153,7 +153,7 @@
             <span class="price-value">850 000 so'm</span>
           </div>
           <div class="card-action" id="act-ik-1402">
-            <button class="add-btn" onclick="addToCart('ik-1402')">
+            <button class="add-btn" data-action="addToCart" data-arg="ik-1402">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
               Savatga
             </button>
@@ -165,7 +165,7 @@
         <div class="product-media">
           <img src="Photo/textile/2563ba9a9ee78e0305adc5ab277db180.jpg" alt="Qo'lbola adras" loading="lazy" />
           <span class="badge-pill tone-saffron">Kam qoldi</span>
-          <button class="fav-btn" id="fav-ad-0890" onclick="toggleFav('ad-0890')" aria-label="Saralanganlarga qo'shish" aria-pressed="false">
+          <button class="fav-btn" id="fav-ad-0890" data-action="toggleFav" data-arg="ad-0890" aria-label="Saralanganlarga qo'shish" aria-pressed="false">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 20.8s-6.9-4.3-9-8a5.2 5.2 0 0 1-.5-3.7A4.8 4.8 0 0 1 6.3 5.5c1.9 0 3.4 1 4.3 2.3.4.6 1 .6 1.4 0 .9-1.3 2.4-2.3 4.3-2.3a4.8 4.8 0 0 1 3.8 3.6 5.2 5.2 0 0 1-.5 3.7c-2.1 3.7-9 8-9 8z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
           </button>
         </div>
@@ -180,7 +180,7 @@
             <span class="price-value">730 000 so'm</span>
           </div>
           <div class="card-action" id="act-ad-0890">
-            <button class="add-btn" onclick="addToCart('ad-0890')">
+            <button class="add-btn" data-action="addToCart" data-arg="ad-0890">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
               Savatga
             </button>
@@ -192,7 +192,7 @@
         <div class="product-media">
           <img src="Photo/textile/3b60658c5d1d11daaa938e227d976395.jpg" alt="So'zana panel — anor" loading="lazy" />
           <span class="badge-pill tone-teal">Hunarmand</span>
-          <button class="fav-btn" id="fav-sz-3310" onclick="toggleFav('sz-3310')" aria-label="Saralanganlarga qo'shish" aria-pressed="false">
+          <button class="fav-btn" id="fav-sz-3310" data-action="toggleFav" data-arg="sz-3310" aria-label="Saralanganlarga qo'shish" aria-pressed="false">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 20.8s-6.9-4.3-9-8a5.2 5.2 0 0 1-.5-3.7A4.8 4.8 0 0 1 6.3 5.5c1.9 0 3.4 1 4.3 2.3.4.6 1 .6 1.4 0 .9-1.3 2.4-2.3 4.3-2.3a4.8 4.8 0 0 1 3.8 3.6 5.2 5.2 0 0 1-.5 3.7c-2.1 3.7-9 8-9 8z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
           </button>
         </div>
@@ -207,7 +207,7 @@
             <span class="price-value">890 000 so'm</span>
           </div>
           <div class="card-action" id="act-sz-3310">
-            <button class="add-btn" onclick="addToCart('sz-3310')">
+            <button class="add-btn" data-action="addToCart" data-arg="sz-3310">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
               Savatga
             </button>
@@ -218,7 +218,7 @@
       <article class="product-card fade-up" data-id="ck-2201" data-name="Paxta adras — indigo" data-price="700000" data-supplier="O'sh Textile" data-cat="cotton">
         <div class="product-media">
           <img src="Photo/textile/668f7de0e14d13ef96a6a44b2b4c51ba.jpg" alt="Paxta adras — indigo" loading="lazy" />
-          <button class="fav-btn" id="fav-ck-2201" onclick="toggleFav('ck-2201')" aria-label="Saralanganlarga qo'shish" aria-pressed="false">
+          <button class="fav-btn" id="fav-ck-2201" data-action="toggleFav" data-arg="ck-2201" aria-label="Saralanganlarga qo'shish" aria-pressed="false">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 20.8s-6.9-4.3-9-8a5.2 5.2 0 0 1-.5-3.7A4.8 4.8 0 0 1 6.3 5.5c1.9 0 3.4 1 4.3 2.3.4.6 1 .6 1.4 0 .9-1.3 2.4-2.3 4.3-2.3a4.8 4.8 0 0 1 3.8 3.6 5.2 5.2 0 0 1-.5 3.7c-2.1 3.7-9 8-9 8z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
           </button>
         </div>
@@ -233,7 +233,7 @@
             <span class="price-value">700 000 so'm</span>
           </div>
           <div class="card-action" id="act-ck-2201">
-            <button class="add-btn" onclick="addToCart('ck-2201')">
+            <button class="add-btn" data-action="addToCart" data-arg="ck-2201">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
               Savatga
             </button>
@@ -245,7 +245,7 @@
         <div class="product-media">
           <img src="Photo/textile/7a30c608f6f3c6c8d04c74769563733e.jpg" alt="Junli mato — yelkacha" loading="lazy" />
           <span class="badge-pill tone-teal">Yangi</span>
-          <button class="fav-btn" id="fav-hb-7740" onclick="toggleFav('hb-7740')" aria-label="Saralanganlarga qo'shish" aria-pressed="false">
+          <button class="fav-btn" id="fav-hb-7740" data-action="toggleFav" data-arg="hb-7740" aria-label="Saralanganlarga qo'shish" aria-pressed="false">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 20.8s-6.9-4.3-9-8a5.2 5.2 0 0 1-.5-3.7A4.8 4.8 0 0 1 6.3 5.5c1.9 0 3.4 1 4.3 2.3.4.6 1 .6 1.4 0 .9-1.3 2.4-2.3 4.3-2.3a4.8 4.8 0 0 1 3.8 3.6 5.2 5.2 0 0 1-.5 3.7c-2.1 3.7-9 8-9 8z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
           </button>
         </div>
@@ -260,7 +260,7 @@
             <span class="price-value">870 000 so'm</span>
           </div>
           <div class="card-action" id="act-hb-7740">
-            <button class="add-btn" onclick="addToCart('hb-7740')">
+            <button class="add-btn" data-action="addToCart" data-arg="hb-7740">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
               Savatga
             </button>
@@ -271,7 +271,7 @@
       <article class="product-card fade-up" data-id="lk-5512" data-name="Zig'ir mato — natural" data-price="750000" data-supplier="Shymkent Mills" data-cat="linen">
         <div class="product-media">
           <img src="Photo/textile/7ccb84b1de861ff78297268a4f524212.jpg" alt="Zig'ir mato — natural" loading="lazy" />
-          <button class="fav-btn" id="fav-lk-5512" onclick="toggleFav('lk-5512')" aria-label="Saralanganlarga qo'shish" aria-pressed="false">
+          <button class="fav-btn" id="fav-lk-5512" data-action="toggleFav" data-arg="lk-5512" aria-label="Saralanganlarga qo'shish" aria-pressed="false">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 20.8s-6.9-4.3-9-8a5.2 5.2 0 0 1-.5-3.7A4.8 4.8 0 0 1 6.3 5.5c1.9 0 3.4 1 4.3 2.3.4.6 1 .6 1.4 0 .9-1.3 2.4-2.3 4.3-2.3a4.8 4.8 0 0 1 3.8 3.6 5.2 5.2 0 0 1-.5 3.7c-2.1 3.7-9 8-9 8z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
           </button>
         </div>
@@ -286,7 +286,7 @@
             <span class="price-value">750 000 so'm</span>
           </div>
           <div class="card-action" id="act-lk-5512">
-            <button class="add-btn" onclick="addToCart('lk-5512')">
+            <button class="add-btn" data-action="addToCart" data-arg="lk-5512">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
               Savatga
             </button>
@@ -298,7 +298,7 @@
         <div class="product-media">
           <img src="Photo/textile/961c4a2920e63b71e8f864dafac1ce63.jpg" alt="Kelinlik ikat — za'faron" loading="lazy" />
           <span class="badge-pill tone-primary">Tavsiya</span>
-          <button class="fav-btn" id="fav-ik-9001" onclick="toggleFav('ik-9001')" aria-label="Saralanganlarga qo'shish" aria-pressed="false">
+          <button class="fav-btn" id="fav-ik-9001" data-action="toggleFav" data-arg="ik-9001" aria-label="Saralanganlarga qo'shish" aria-pressed="false">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 20.8s-6.9-4.3-9-8a5.2 5.2 0 0 1-.5-3.7A4.8 4.8 0 0 1 6.3 5.5c1.9 0 3.4 1 4.3 2.3.4.6 1 .6 1.4 0 .9-1.3 2.4-2.3 4.3-2.3a4.8 4.8 0 0 1 3.8 3.6 5.2 5.2 0 0 1-.5 3.7c-2.1 3.7-9 8-9 8z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
           </button>
         </div>
@@ -313,7 +313,7 @@
             <span class="price-value">900 000 so'm</span>
           </div>
           <div class="card-action" id="act-ik-9001">
-            <button class="add-btn" onclick="addToCart('ik-9001')">
+            <button class="add-btn" data-action="addToCart" data-arg="ik-9001">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
               Savatga
             </button>
@@ -324,7 +324,7 @@
       <article class="product-card fade-up" data-id="pl-3320" data-name="Sodda to'qima — marjon" data-price="700000" data-supplier="Farg'ona Fabric" data-cat="cotton">
         <div class="product-media">
           <img src="Photo/textile/9933cd587d27967384d036d3e711bf32.jpg" alt="Sodda to'qima — marjon" loading="lazy" />
-          <button class="fav-btn" id="fav-pl-3320" onclick="toggleFav('pl-3320')" aria-label="Saralanganlarga qo'shish" aria-pressed="false">
+          <button class="fav-btn" id="fav-pl-3320" data-action="toggleFav" data-arg="pl-3320" aria-label="Saralanganlarga qo'shish" aria-pressed="false">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 20.8s-6.9-4.3-9-8a5.2 5.2 0 0 1-.5-3.7A4.8 4.8 0 0 1 6.3 5.5c1.9 0 3.4 1 4.3 2.3.4.6 1 .6 1.4 0 .9-1.3 2.4-2.3 4.3-2.3a4.8 4.8 0 0 1 3.8 3.6 5.2 5.2 0 0 1-.5 3.7c-2.1 3.7-9 8-9 8z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
           </button>
         </div>
@@ -339,7 +339,7 @@
             <span class="price-value">700 000 so'm</span>
           </div>
           <div class="card-action" id="act-pl-3320">
-            <button class="add-btn" onclick="addToCart('pl-3320')">
+            <button class="add-btn" data-action="addToCart" data-arg="pl-3320">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
               Savatga
             </button>
@@ -351,7 +351,7 @@
         <div class="product-media">
           <img src="Photo/textile/c20cdf0e31d225c802bb8876d207ac3b.jpg" alt="Zar naqsh so'zana panel" loading="lazy" />
           <span class="badge-pill tone-teal">Yangi</span>
-          <button class="fav-btn" id="fav-tx-4401" onclick="toggleFav('tx-4401')" aria-label="Saralanganlarga qo'shish" aria-pressed="false">
+          <button class="fav-btn" id="fav-tx-4401" data-action="toggleFav" data-arg="tx-4401" aria-label="Saralanganlarga qo'shish" aria-pressed="false">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 20.8s-6.9-4.3-9-8a5.2 5.2 0 0 1-.5-3.7A4.8 4.8 0 0 1 6.3 5.5c1.9 0 3.4 1 4.3 2.3.4.6 1 .6 1.4 0 .9-1.3 2.4-2.3 4.3-2.3a4.8 4.8 0 0 1 3.8 3.6 5.2 5.2 0 0 1-.5 3.7c-2.1 3.7-9 8-9 8z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
           </button>
         </div>
@@ -366,7 +366,7 @@
             <span class="price-value">880 000 so'm</span>
           </div>
           <div class="card-action" id="act-tx-4401">
-            <button class="add-btn" onclick="addToCart('tx-4401')">
+            <button class="add-btn" data-action="addToCart" data-arg="tx-4401">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
               Savatga
             </button>
@@ -377,7 +377,7 @@
       <article class="product-card fade-up" data-id="tx-4402" data-name="Gulli ipak — lola" data-price="860000" data-supplier="Andijon Ipak Uyi" data-cat="silk">
         <div class="product-media">
           <img src="Photo/textile/d7928cec4d1373dfd77b18311ebdca10.jpg" alt="Gulli ipak — lola" loading="lazy" />
-          <button class="fav-btn" id="fav-tx-4402" onclick="toggleFav('tx-4402')" aria-label="Saralanganlarga qo'shish" aria-pressed="false">
+          <button class="fav-btn" id="fav-tx-4402" data-action="toggleFav" data-arg="tx-4402" aria-label="Saralanganlarga qo'shish" aria-pressed="false">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 20.8s-6.9-4.3-9-8a5.2 5.2 0 0 1-.5-3.7A4.8 4.8 0 0 1 6.3 5.5c1.9 0 3.4 1 4.3 2.3.4.6 1 .6 1.4 0 .9-1.3 2.4-2.3 4.3-2.3a4.8 4.8 0 0 1 3.8 3.6 5.2 5.2 0 0 1-.5 3.7c-2.1 3.7-9 8-9 8z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
           </button>
         </div>
@@ -392,7 +392,7 @@
             <span class="price-value">860 000 so'm</span>
           </div>
           <div class="card-action" id="act-tx-4402">
-            <button class="add-btn" onclick="addToCart('tx-4402')">
+            <button class="add-btn" data-action="addToCart" data-arg="tx-4402">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
               Savatga
             </button>
@@ -403,7 +403,7 @@
       <article class="product-card fade-up" data-id="tx-4403" data-name="Chit mato — sariq gul" data-price="710000" data-supplier="Namangan Chit" data-cat="cotton">
         <div class="product-media">
           <img src="Photo/textile/fca2f726729aef582747b447f6955e08.jpg" alt="Chit mato — sariq gul" loading="lazy" />
-          <button class="fav-btn" id="fav-tx-4403" onclick="toggleFav('tx-4403')" aria-label="Saralanganlarga qo'shish" aria-pressed="false">
+          <button class="fav-btn" id="fav-tx-4403" data-action="toggleFav" data-arg="tx-4403" aria-label="Saralanganlarga qo'shish" aria-pressed="false">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 20.8s-6.9-4.3-9-8a5.2 5.2 0 0 1-.5-3.7A4.8 4.8 0 0 1 6.3 5.5c1.9 0 3.4 1 4.3 2.3.4.6 1 .6 1.4 0 .9-1.3 2.4-2.3 4.3-2.3a4.8 4.8 0 0 1 3.8 3.6 5.2 5.2 0 0 1-.5 3.7c-2.1 3.7-9 8-9 8z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
           </button>
         </div>
@@ -418,7 +418,7 @@
             <span class="price-value">710 000 so'm</span>
           </div>
           <div class="card-action" id="act-tx-4403">
-            <button class="add-btn" onclick="addToCart('tx-4403')">
+            <button class="add-btn" data-action="addToCart" data-arg="tx-4403">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
               Savatga
             </button>
@@ -430,7 +430,7 @@
         <div class="product-media">
           <img src="Photo/textile/%D0%91%D0%B5%D0%B7%20%D0%BD%D0%B0%D0%B7%D0%B2%D0%B0%D0%BD%D0%B8%D1%8F%20%281%29.png" alt="Vintage chit — krem atirgul" loading="lazy" />
           <span class="badge-pill tone-saffron">Kam qoldi</span>
-          <button class="fav-btn" id="fav-tx-4404" onclick="toggleFav('tx-4404')" aria-label="Saralanganlarga qo'shish" aria-pressed="false">
+          <button class="fav-btn" id="fav-tx-4404" data-action="toggleFav" data-arg="tx-4404" aria-label="Saralanganlarga qo'shish" aria-pressed="false">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 20.8s-6.9-4.3-9-8a5.2 5.2 0 0 1-.5-3.7A4.8 4.8 0 0 1 6.3 5.5c1.9 0 3.4 1 4.3 2.3.4.6 1 .6 1.4 0 .9-1.3 2.4-2.3 4.3-2.3a4.8 4.8 0 0 1 3.8 3.6 5.2 5.2 0 0 1-.5 3.7c-2.1 3.7-9 8-9 8z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
           </button>
         </div>
@@ -445,7 +445,7 @@
             <span class="price-value">760 000 so'm</span>
           </div>
           <div class="card-action" id="act-tx-4404">
-            <button class="add-btn" onclick="addToCart('tx-4404')">
+            <button class="add-btn" data-action="addToCart" data-arg="tx-4404">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
               Savatga
             </button>
@@ -483,12 +483,12 @@
 
 
   <!-- ===== SAVAT / CHECKOUT ===== -->
-  <div class="drawer-scrim" id="scrim" onclick="closeCart()" hidden></div>
+  <div class="drawer-scrim" id="scrim" data-action="closeCart" hidden></div>
 
   <aside class="drawer" id="drawer" aria-hidden="true" aria-label="Savat">
     <header class="drawer-head">
       <h2 class="drawer-title" id="drawer-title">Savat</h2>
-      <button class="drawer-x" onclick="closeCart()" aria-label="Yopish">
+      <button class="drawer-x" data-action="closeCart" aria-label="Yopish">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
       </button>
     </header>
@@ -500,7 +500,7 @@
         <span>Jami</span>
         <span class="drawer-total-val" id="cart-total">0 so'm</span>
       </div>
-      <button class="btn-order" id="btn-order" onclick="goCheckout()">Buyurtma berish</button>
+      <button class="btn-order" id="btn-order" data-action="goCheckout">Buyurtma berish</button>
     </footer>
   </aside>
 
@@ -524,15 +524,15 @@
        sahifa tuzilmasi o'zgarmaydi. Desktop'da butunlay yashirin. -->
   <nav class="m-nav" id="m-nav" aria-label="Asosiy navigatsiya">
     <div class="m-nav-pill">
-      <button class="m-tab is-active" id="m-tab-catalog" onclick="mNav('catalog')">
+      <button class="m-tab is-active" id="m-tab-catalog" data-action="mNav" data-arg="catalog">
         <svg width="21" height="21" viewBox="0 0 24 24" fill="currentColor"><rect x="3.5" y="3.5" width="7.5" height="7.5" rx="2"/><rect x="13" y="3.5" width="7.5" height="7.5" rx="2"/><rect x="3.5" y="13" width="7.5" height="7.5" rx="2"/><rect x="13" y="13" width="7.5" height="7.5" rx="2"/></svg>
         <span class="m-tab-label">Katalog</span>
       </button>
-      <button class="m-tab" id="m-tab-fav" onclick="mNav('fav')">
+      <button class="m-tab" id="m-tab-fav" data-action="mNav" data-arg="fav">
         <svg width="21" height="21" viewBox="0 0 24 24" fill="none"><path d="M12 20.8s-6.9-4.3-9-8a5.2 5.2 0 0 1-.5-3.7A4.8 4.8 0 0 1 6.3 5.5c1.9 0 3.4 1 4.3 2.3.4.6 1 .6 1.4 0 .9-1.3 2.4-2.3 4.3-2.3a4.8 4.8 0 0 1 3.8 3.6 5.2 5.2 0 0 1-.5 3.7c-2.1 3.7-9 8-9 8z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
         <span class="m-tab-label">Saralangan</span>
       </button>
-      <button class="m-tab" id="m-tab-cart" onclick="mNav('cart')">
+      <button class="m-tab" id="m-tab-cart" data-action="mNav" data-arg="cart">
         <span class="m-icon-wrap">
           <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12l-1 11.5H7z"/><path d="M9 8V6.2a3 3 0 0 1 6 0V8"/></svg>
           <span class="m-badge" id="m-cart-count" hidden>0</span>
@@ -540,7 +540,7 @@
         <span class="m-tab-label">Savat</span>
       </button>
     </div>
-    <button class="m-profile-btn" id="m-tab-login" onclick="mNav('login')" aria-label="Kirish">
+    <button class="m-profile-btn" id="m-tab-login" data-action="mNav" data-arg="login" aria-label="Kirish">
       <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M4.8 19.6a7.4 7.4 0 0 1 14.4 0"/></svg>
     </button>
   </nav>

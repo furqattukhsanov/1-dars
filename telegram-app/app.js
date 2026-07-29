@@ -57,6 +57,7 @@ const STR = {
     tgVerified: "Telegram orqali tasdiqlangan", tgNotConnected: "Telegram orqali ochilganda profil avtomatik aniqlanadi", tgUserFallback: "Telegram foydalanuvchisi",
     shareContact: "Telefon raqamni ulashish", contactPending: "Raqam so'ralmoqda, biroz kuting…", contactDone: "Telefon raqami yangilandi",
     orderErr: "Buyurtma yuborilmadi", netErr: "Internet aloqasi yo'q — qayta urinib ko'ring",
+    pricesStale: "Narxlar yangilanmadi — internetni tekshiring va qayta urinib ko'ring",
     authErr: "Buyurtma berish uchun ilovani Telegram orqali oching",
     // — Sotuvchi kabineti —
     sellerMode: "Sotuvchi rejimi", buyerMode: "Xaridor rejimiga qaytish", toSeller: "Sotuvchi rejimi",
@@ -115,6 +116,7 @@ const STR = {
     tgVerified: "Подтверждено через Telegram", tgNotConnected: "При открытии через Telegram профиль определится автоматически", tgUserFallback: "Пользователь Telegram",
     shareContact: "Поделиться номером телефона", contactPending: "Запрашивается номер, подождите…", contactDone: "Номер телефона обновлён",
     orderErr: "Заказ не отправлен", netErr: "Нет соединения — попробуйте ещё раз",
+    pricesStale: "Цены не обновились — проверьте интернет и попробуйте снова",
     authErr: "Чтобы оформить заказ, откройте приложение через Telegram",
     // — Кабинет продавца —
     sellerMode: "Режим продавца", buyerMode: "Вернуться в режим покупателя", toSeller: "Режим продавца",
@@ -1653,10 +1655,19 @@ function apiData(d) {
 async function loadProductsFromServer() {
   try {
     const r = await fetch('/api/products');
-    if (!r.ok) return;
+    if (!r.ok) { showToast(STR[S.lang].pricesStale); return; }
     const data = apiData(await r.json());
-    if (Array.isArray(data) && data.length) PRODUCTS = data;
-  } catch (e) {}
+    if (Array.isArray(data) && data.length) {
+      PRODUCTS = data;
+    } else {
+      // Bazadan bo'sh/kutilmagan javob keldi — zaxira narxlar hali ko'rsatilmoqda,
+      // foydalanuvchi buni bilishi kerak (buyurtma yaratishda server real narxni
+      // qayta hisoblaydi, lekin ekrandagi narx eskirgan bo'lishi mumkin).
+      showToast(STR[S.lang].pricesStale);
+    }
+  } catch (e) {
+    showToast(STR[S.lang].pricesStale);
+  }
 }
 // Telegram imzolangan initData (auth uchun). Telegram tashqarisida bo'sh.
 function tgInitData() { return window.Telegram?.WebApp?.initData || ''; }

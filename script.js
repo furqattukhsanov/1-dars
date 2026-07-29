@@ -1,3 +1,26 @@
+/* ── data-action delegatsiyasi ──
+   HTML'dagi onclick="fn(...)" o'rniga data-action/data-arg ishlatiladi —
+   funksiyalar qachon e'lon qilinishidan qat'i nazar ishlaydi (delegatsiya
+   qo'shilgan payt emas, bosilgan payt chaqiriladi). */
+document.addEventListener('click', (e) => {
+  const el = e.target.closest('[data-action]');
+  if (!el) return;
+  const action = el.dataset.action;
+  const arg = el.dataset.arg;
+
+  if (action === 'reloadHome') {
+    e.preventDefault();
+    location.reload();
+    return;
+  }
+
+  const fn = window[action];
+  if (typeof fn !== 'function') return;
+  if (arg === undefined) { fn(); return; }
+  // Raqamli arg (masalan adGo'dagi banner indeksi) satr emas, son bo'lishi kerak
+  fn(/^-?\d+$/.test(arg) ? Number(arg) : arg);
+});
+
 /* ── Page loader ── */
 window.addEventListener('load', () => {
   setTimeout(() => {
