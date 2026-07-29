@@ -55,19 +55,25 @@ ssh root@65.21.180.44 "cp -r /opt/lolamarket-notify /opt/lolamarket-notify.bak-$
 # 2. Lokal tekshiruv — lint (yo'qolgan import) + testlar (route jadvali)
 cd server && npm test
 
-# 3. Ko'chirish — BUTUN papka (.env, node_modules va logs tegilmaydi)
+# 3. Versiya faylini yozish — MAJBURIY.
+#    Serverda git YO'Q, shuning uchun versiya shu faylga oldindan yoziladi.
+#    Bu qadam tashlab ketilsa /api/version "unknown" qaytaradi va deploy
+#    diagnozi ma'nosini yo'qotadi (2026-07-30 da aynan shu bo'ldi).
+npm run version:write
+
+# 4. Ko'chirish — BUTUN papka (.env, node_modules va logs tegilmaydi)
 rsync -av --delete \
   --exclude='.env' --exclude='node_modules' --exclude='contacts.json' \
   --exclude='*.bak-*' \
   server/ root@65.21.180.44:/opt/lolamarket-notify/
 
-# 4. Qayta ishga tushirish
+# 5. Qayta ishga tushirish
 ssh root@65.21.180.44 "systemctl restart lolamarket-notify && systemctl is-active lolamarket-notify"
 
-# 5. Serverda qaysi kod turganini tasdiqlash (git SHA)
+# 6. Serverda qaysi kod turganini tasdiqlash (git SHA)
 curl -s https://lolamarket.uz/api/version
 
-# 6. Log tekshiruvi
+# 7. Log tekshiruvi
 ssh root@65.21.180.44 "journalctl -u lolamarket-notify -n 20 --no-pager"
 ```
 

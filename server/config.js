@@ -1,3 +1,5 @@
+const fs = require('fs');
+const path = require('path');
 const { execSync } = require('child_process');
 
 // ============ SOZLAMALAR ============
@@ -14,13 +16,33 @@ const MINI_APP_URL = process.env.MINI_APP_URL || 'https://lolamarket.uz/mini-app
 const BOT_USERNAME = (process.env.BOT_USERNAME || 'lolamarketbot').replace(/^@/, '');
 const CONTACTS_FILE = __dirname + '/contacts.json';
 
-// Server versiyasi — git SHA (deploy diagnozida ishlatiladi)
-let GIT_SHA = 'unknown';
-try {
-  GIT_SHA = execSync('git rev-parse --short HEAD 2>/dev/null || echo "unknown"', { encoding: 'utf8' }).trim();
-} catch (_) {
-  GIT_SHA = 'unknown';
+// Server versiyasi — deploy diagnozida "serverda qaysi kod turibdi" savoliga javob.
+//
+// MUHIM: production'da git YO'Q — kod `git archive` bilan ko'chiriladi va
+// /opt/lolamarket-notify git repo emas. Shuning uchun `git rev-parse` u yerda
+// har doim muvaffaqiyatsiz bo'ladi va "unknown" qaytaradi (2026-07-30 da aynan
+// shu bo'ldi: endpoint ishladi, lekin foydasiz javob berdi).
+//
+// To'g'ri yo'l: versiya DEPLOY paytida version.txt ga yoziladi va shu yerdan
+// o'qiladi. Git faqat lokal ishlab chiqish uchun zaxira variant.
+function readVersion() {
+  try {
+    const v = fs.readFileSync(path.join(__dirname, 'version.txt'), 'utf8').trim();
+    if (v) return v;
+  } catch (_) { /* fayl yo'q — lokal ishlab chiqish bo'lishi mumkin */ }
+
+  try {
+    return execSync('git rev-parse --short HEAD', {
+      encoding: 'utf8',
+      cwd: __dirname,
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim() || 'unknown';
+  } catch (_) {
+    return 'unknown';
+  }
 }
+
+const GIT_SHA = readVersion();
 
 // admin/index.html panelidagi kirish kaliti — Telegram initData'ga bog'liq emas
 // (standalone sahifa uni ishlab chiqara olmaydi), shuning uchun alohida sir.

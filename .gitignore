@@ -13,3 +13,6 @@ future/
 .claude/launch.json
 .claude/skills/
 skills-lock.json
+
+# Deploy paytida yaratiladi (server/config.js shundan versiyani o'qiydi)
+server/version.txt

@@ -6,6 +6,7 @@
     "lint": "eslint .",
     "test": "eslint . && node test.js",
     "check:live": "node check-live.js",
+    "version:write": "git rev-parse --short HEAD > version.txt && cat version.txt",
     "start": "node server.js"
   },
   "keywords": [],
