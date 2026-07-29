@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=24" />
+  <link rel="stylesheet" href="style.css?v=32" />
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
@@ -62,6 +62,61 @@
 
   <!-- ===== KATALOG ===== -->
   <section class="section container section-first" id="katalog" tabindex="-1">
+
+    <!-- ===== REKLAMA BANNERI =====
+         Uchta slayd: har birining o'z rasmi va matni bor.
+         5 soniyada avtomatik almashadi. -->
+    <div class="ad-banner" id="ad-banner" role="region" aria-roledescription="karusel" aria-label="Reklama bannerlari">
+      <div class="ad-track">
+
+        <article class="ad-slide is-active" data-pos="left" aria-hidden="false">
+          <img src="Photo/Main/banner-mato.jpg" alt="Osilgan gulli naqshli matolar" width="2200" height="1228" fetchpriority="high" />
+          <div class="ad-shade"></div>
+          <div class="ad-content">
+            <h2 class="ad-title">Tasdiqlangan fabrikalardan to'g'ridan-to'g'ri</h2>
+            <p class="ad-sub">Rulon formatida ulgurji xarid — vositachisiz, himoyalangan to'lov bilan.</p>
+            <button class="ad-cta" type="button" onclick="adGoCatalog()">
+              Katalogni ko'rish
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M13 6l6 6-6 6"/></svg>
+            </button>
+          </div>
+        </article>
+
+        <article class="ad-slide" data-pos="center" aria-hidden="true">
+          <img src="Photo/Main/banner-mato-2.jpg" alt="Osilgan naqshli ipak matolar" width="900" height="500" loading="lazy" />
+          <div class="ad-shade"></div>
+          <div class="ad-content">
+            <h2 class="ad-title">Gulli naqsh — ipak kolleksiya</h2>
+            <p class="ad-sub">Marg'ilon va Andijon ustaxonalaridan qo'lbola ipak matolar.</p>
+            <button class="ad-cta" type="button" onclick="adGoCat('silk')">
+              Ipak matolar
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M13 6l6 6-6 6"/></svg>
+            </button>
+          </div>
+        </article>
+
+        <article class="ad-slide" data-pos="right" aria-hidden="true">
+          <img src="Photo/textile/d7928cec4d1373dfd77b18311ebdca10.jpg" alt="Gulli ipak — lola matosi" width="850" height="1360" loading="lazy" />
+          <div class="ad-shade"></div>
+          <div class="ad-content">
+            <h2 class="ad-title">Telegram orqali ham buyurtma bering</h2>
+            <p class="ad-sub">Katalog, savat va buyurtma holati — ilova o'rnatmasdan.</p>
+            <a class="ad-cta" href="https://t.me/lolamarketbot" target="_blank" rel="noopener">
+              Botni ochish
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M13 6l6 6-6 6"/></svg>
+            </a>
+          </div>
+        </article>
+
+      </div>
+
+      <div class="ad-dots" id="ad-dots" role="tablist" aria-label="Bannerni tanlash">
+        <button class="ad-dot is-active" type="button" role="tab" aria-selected="true"  aria-label="1-banner" onclick="adGo(0)"><i></i></button>
+        <button class="ad-dot"           type="button" role="tab" aria-selected="false" aria-label="2-banner" onclick="adGo(1)"><i></i></button>
+        <button class="ad-dot"           type="button" role="tab" aria-selected="false" aria-label="3-banner" onclick="adGo(2)"><i></i></button>
+      </div>
+    </div>
+
     <div class="chips fade-up" id="chips">
       <button class="chip active" data-cat="all">Barchasi</button>
       <button class="chip" data-cat="ikat">Ikat va adras</button>
@@ -490,6 +545,6 @@
     </button>
   </nav>
 
-  <script src="script.js?v=17"></script>
+  <script src="script.js?v=18"></script>
 </body>
 </html>

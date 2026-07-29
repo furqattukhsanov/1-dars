@@ -381,6 +381,149 @@ body {
 .section-first { padding-top: 14px; }
 .section-head { margin-bottom: 22px; }
 
+/* ===== REKLAMA BANNERI (karusel) =====
+   Uchta slayd, har birining o'z rasmi bor. Slaydlar bir-birining ustida
+   turadi (absolute) va opacity bilan almashadi. */
+.ad-banner {
+  position: relative;
+  margin-bottom: 18px;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: var(--pom-50);
+  border: 1px solid rgba(122, 20, 13, .08);
+  box-shadow: 0 16px 38px -24px rgba(23,26,48,.4);
+  isolation: isolate;
+}
+/* Balandlik ekran kengligiga qarab — aspect-ratio + max-height birga
+   ishlatilsa brauzer kenglikni ham qisqartirib yuboradi, shuning uchun
+   faqat height. */
+.ad-track {
+  position: relative;
+  height: clamp(220px, 26vw, 400px);
+}
+.ad-slide {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity var(--dur-slow) var(--ease-out), visibility var(--dur-slow);
+}
+.ad-slide.is-active {
+  opacity: 1;
+  visibility: visible;
+}
+/* Har slayd o'z rasmiga ega; faol slaydda sekin yaqinlashish (Ken Burns).
+   Zum kuchli bo'lmasin — rasm xiralashib qolmasligi kerak. */
+.ad-slide img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  transform: scale(1.03);
+  transition: transform 7s linear;
+}
+.ad-slide.is-active img { transform: scale(1.1); }
+.ad-slide[data-pos="right"] img { object-position: 50% 30%; }
+
+/* Matn o'qilishi uchun oq parda — banner yorug' va oq ko'rinsin */
+.ad-shade {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(255,253,251,.97) 0%, rgba(255,253,251,.93) 26%, rgba(255,253,251,.58) 46%, rgba(255,253,251,.14) 68%, transparent 86%),
+    linear-gradient(0deg, rgba(255,253,251,.3) 0%, transparent 36%);
+}
+.ad-content {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 8px;
+  padding: clamp(18px, 3.4vw, 44px);
+  max-width: 62%;
+}
+.ad-title {
+  font-family: var(--font-display);
+  font-size: clamp(19px, 2.9vw, 34px);
+  font-weight: 800;
+  letter-spacing: -.03em;
+  line-height: 1.14;
+  color: var(--ink-900);
+}
+.ad-sub {
+  font-size: clamp(12.5px, 1.35vw, 15px);
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+.ad-cta {
+  margin-top: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;          /* flex ichida 44px'dan pastga siqilmasin */
+  height: 44px;
+  padding: 0 20px;
+  border-radius: var(--radius-md);
+  /* Ranglar teskari: anor fon — och matn. Soyasi yumshoq qoladi,
+     tugma banner ustida bo'rtib turmasin. */
+  border: 1px solid rgba(122,20,13,.22);
+  background: var(--pom-700);
+  color: var(--pom-100);
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: 0 8px 22px -14px rgba(81,1,0,.45);
+  transition: transform var(--dur-fast), background var(--dur-fast);
+}
+.ad-cta:active { transform: scale(.98); }
+
+/* Nuqtalar — 44px tegish maydoni, ko'rinadigan qismi kichik.
+   O'ng pastda: chapdagi matn va tugma bilan to'qnashmasin. */
+.ad-dots {
+  position: absolute;
+  right: clamp(2px, 1.4vw, 20px);
+  bottom: clamp(2px, 1vw, 10px);
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+.ad-dot {
+  display: grid;
+  place-items: center;
+  /* 44x44 — 2026-07-29 sensorli tegish maydoni qarori */
+  width: 44px;
+  height: 44px;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+.ad-dot i {
+  display: block;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.9);
+  /* Har xil rangli rasm ustida ham ko'rinsin */
+  box-shadow: 0 1px 4px rgba(23,26,48,.55);
+  transition: width var(--dur-base) var(--ease-out), background var(--dur-base);
+}
+.ad-dot.is-active i {
+  width: 22px;
+  background: var(--pom-400);
+}
+
+@media (max-width: 640px) {
+  .ad-track { height: 250px; }
+  .ad-content { max-width: 100%; }
+  .ad-sub { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ad-slide, .ad-slide img { transition: none; }
+  .ad-slide img, .ad-slide.is-active img { transform: none; }
+}
+
 /* ===== KATEGORIYA CHIPLARI ===== */
 .chips {
   display: flex;
@@ -1245,6 +1388,8 @@ body {
   .cart-btn:hover { background: rgba(255,255,255,.9); }
   .add-btn:hover { filter: brightness(1.1); }
   .cta-bot-btn:hover { filter: brightness(1.05); }
+  .ad-cta:hover { background: var(--pom-600); }
+  .ad-dot:hover i { background: rgba(255,233,219,.75); }
   .drawer-x:hover { background: var(--glass-fill-strong); }
   .qty-btn:hover, .qty-circle:hover { filter: brightness(1.15); }
   .line-x:hover { color: var(--danger-500); }

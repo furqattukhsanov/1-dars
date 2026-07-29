@@ -333,6 +333,11 @@
     <div id="faoliyat-list">
       <div class="faoliyat-item">
         <span class="faoliyat-sana">2026-07-29</span>
+        <span class="faoliyat-text">Landing katalogining boshiga, kategoriya chiplaridan yuqoriga uch slaydli reklama banneri (karusel) qo'shildi. Har slaydning o'z rasmi, sarlavhasi va tugmasi bor: (1) "Tasdiqlangan fabrikalardan to'g'ridan-to'g'ri" — mahsulot to'riga skroll; (2) "Gulli naqsh — ipak kolleksiya" — Ipak kategoriya chipini bosib katalogni filtrlaydi; (3) "Telegram orqali ham buyurtma bering" — botga tashqi havola. Yangi ekran ham, yangi kategoriya ham yaratilmadi: banner faqat mavjud katalog holatini o'zgartiradi, shuning uchun sahifa tuzilmasi va SEO tegilmadi. Mexanika: slaydlar bir-birining ustida turadi va opacity bilan 5 soniyada almashadi, faol rasmda sekin Ken Burns zumi; aylanish sichqoncha ustida, klaviatura fokusida va tab ko'rinmay qolganda to'xtaydi (orqa fonda behuda ishlamasin), telefonda chapga/o'ngga surish ishlaydi; prefers-reduced-motion bo'lsa taymer umuman ishga tushmaydi. Dizayn founder fikri bilan sozlandi — banner ataylab YORUG': rasm ustiga oq parda tushadi va matn to'q rangda, klassik to'q fon + oq matn uslubi rad etildi (sahifaning qolgani krem/oq, to'q banner yopishtirilgan reklamadek ko'rinardi); tugma esa teskari — anor fon, och matn, saytdagi boshqa tugmalar bilan bir xil yumshoq soyada. "Reklama" yorlig'i ataylab qo'yilmadi: bu uchinchi tomon reklamasi emas, LolaMarket'ning o'z taklifi. Kirish imkoniyati: role=region + aria-roledescription, nofaol slaydlar aria-hidden, nuqtalar tablist/tab va aria-selected bilan, har nuqtaning bosish maydoni 44px balandlikda (27-iyuldagi 44px qoidasiga muvofiq). Mobilda (≤640px) balandlik 250px va izoh matni yashiriladi. Rasm yuklash: 1-slayd fetchpriority=high (LCP), qolgani lazy. Brauzerda 320 / 768 / 1280px da tekshirildi — uchala rasm yuklandi, nuqtalar slaydni to'g'ri almashtiradi, ipak tugmasi chipni faollashtirib 2 ta mahsulotni qoldiradi, 320px'da gorizontal toshib ketish yo'q, 0 konsol xatosi. Kesh-bust: style.css v31, script.js v18. Hali qilinmagani: production'ga deploy</span>
+        <span class="faoliyat-sprint">Sprint 0</span>
+      </div>
+      <div class="faoliyat-item">
+        <span class="faoliyat-sana">2026-07-29</span>
         <span class="faoliyat-text">Sprint 5 ning ikki bandi yopildi: responsive audit va sensorli ekran uchun 44px tegish maydoni auditi. Tekshiruv brauzerda o'lchov bilan o'tkazildi (har bir bosiladigan element getBoundingClientRect + ::after qoplamasi bo'yicha), kengliklar 320 / 375 / 740×360 (yotiq) / 768 / 1280. Landing'da 6 nuqson topilib tuzatildi: (1) savat qatoridagi narx tanlagich yoniga sig'masdan kartochkadan chiqib ketardi — 375px'da "2 550 000 so'm" qirqilardi; (2) toast pastki navigatsiya ustiga tushardi; (3) toast left:50%+translateX bilan yozilgani uchun eni ekranning yarmi bilan cheklanib qisqa xabar ham ikki qatorga bo'linardi; (4) kartochkadagi miqdor tanlagichda "dona" so'zi ikki qatorga tushardi; (5) viewport-fit=cover bo'lsa ham env(safe-area-inset-*) ishlatilmagan edi — yotiq holatda "tishli" telefonda kontent kesik ostiga kirardi; (6) yotiq telefonda qadalgan header + dock ekranning uchdan ikkisini yeb qo'yardi. Yana: langar ofseti mobil header balandligiga moslandi (80 → 132px), drawer eni 100vw → 100%, qidiruv inputi qutining butun bo'yini egallaydi. 44px maydon: kichik ikonka tugmalar VIZUAL kattalashtirilmadi — dizayn o'zgarmasin uchun ko'rinmas ::after qoplamasi bosish maydonini 44×44 ga yetkazadi; Mini App'da tugmalarning ko'pi app.js ichida inline uslub bilan yasalgani uchun qoida global (button::after + .tap44). Istisno: qidiruvni tozalash tugmasi haqiqiy o'lchamda kattaytirildi, chunki qoplama input ustiga tushib matn oxiriga bosishni to'sardi. Yon ta'sir topildi va yopildi: gorizontal chip lentalarida qoplama vertikal skroll hosil qilardi. Natija — landing va Mini App'ning 15 ta ekranida 44×44 dan kichik bosiladigan element qolmadi, gorizontal toshib ketish yo'q. Kesh-bust: style.css v24, styles.css v16, app.js v50, sw.js CACHE_VERSION v2. Auditga kirmagani: admin paneli (moderator uchun desktop vositasi). Sprintda ochiq qolgani: kameradan rasm yuklash va Mini App'ning Telegram ichida ochilishini tekshirish</span>
         <span class="faoliyat-sprint">Sprint 5</span>
       </div>
@@ -600,7 +605,7 @@
 
 <script>
   const sprintlar = [
-    { num: 0, nom: "Dizayn va ekranlar",        dars: "Dars 7",  holat: "tugadi",  sana: "2026-07-25" },
+    { num: 0, nom: "Dizayn va ekranlar",        dars: "Dars 7",  holat: "tugadi",  sana: "2026-07-29" },
     { num: 1, nom: "Telegram Mini App MVP",     dars: "Dars 8",  holat: "tugadi",  sana: "2026-07-25" },
     { num: 2, nom: "Ma'lumotlar bazasi / Backend", dars: "Dars 9",  holat: "tugadi", sana: "2026-07-23" },
     { num: 3, nom: "Foydalanuvchilar + rollar", dars: "Dars 10", holat: "tugadi", sana: "2026-07-23" },
@@ -630,7 +635,7 @@
   barEl.style.width = foiz + "%";
   percentEl.textContent = foiz + "%";
   countEl.textContent = tugaganlar + " / " + sprintlar.length + " sprint";
-  updatedEl.textContent = "Yangilanish: 2026-07-29 (Sprint 5 — landing va Mini App responsive auditi va 44px sensorli tegish maydoni auditi; topilgan 6 nuqson tuzatildi)";
+  updatedEl.textContent = "Yangilanish: 2026-07-29 (Sprint 0 — landing katalogining boshiga uch slaydli reklama banneri qo'shildi)";
 
   sprintlar.forEach(s => {
     const card = document.createElement("div");

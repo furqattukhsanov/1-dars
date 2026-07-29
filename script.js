@@ -29,6 +29,83 @@ const observer = new IntersectionObserver((entries) => {
 document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
 
 /* ====================================================
+   REKLAMA BANNERI — 3 slayd, avtomatik aylanadi
+   Sichqoncha ustida, fokusda yoki tab ko'rinmay qolganda to'xtaydi.
+   ==================================================== */
+
+const adBanner = document.getElementById('ad-banner');
+const adSlides = adBanner ? [...adBanner.querySelectorAll('.ad-slide')] : [];
+const adDots = adBanner ? [...adBanner.querySelectorAll('.ad-dot')] : [];
+const AD_DELAY = 5000;
+
+let adIndex = 0;
+let adTimer = null;
+let adPaused = false;
+
+function adRender() {
+  adSlides.forEach((s, i) => {
+    const on = i === adIndex;
+    s.classList.toggle('is-active', on);
+    s.setAttribute('aria-hidden', on ? 'false' : 'true');
+  });
+  adDots.forEach((d, i) => {
+    const on = i === adIndex;
+    d.classList.toggle('is-active', on);
+    d.setAttribute('aria-selected', on ? 'true' : 'false');
+  });
+}
+
+function adStart() {
+  if (!adSlides.length || adTimer) return;
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  adTimer = setInterval(() => {
+    if (adPaused || document.hidden) return;
+    adIndex = (adIndex + 1) % adSlides.length;
+    adRender();
+  }, AD_DELAY);
+}
+
+/* Nuqta bosilganda — o'sha slayd, keyin sanoq qaytadan boshlanadi */
+function adGo(i) {
+  if (!adSlides.length) return;
+  adIndex = (i + adSlides.length) % adSlides.length;
+  adRender();
+  clearInterval(adTimer);
+  adTimer = null;
+  adStart();
+}
+
+/* Banner tugmalari */
+function adGoCatalog() {
+  document.getElementById('product-grid')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function adGoCat(cat) {
+  const chip = document.querySelector('.chip[data-cat="' + cat + '"]');
+  if (chip) chip.click();
+  adGoCatalog();
+}
+
+if (adBanner) {
+  adBanner.addEventListener('mouseenter', () => { adPaused = true; });
+  adBanner.addEventListener('mouseleave', () => { adPaused = false; });
+  adBanner.addEventListener('focusin', () => { adPaused = true; });
+  adBanner.addEventListener('focusout', () => { adPaused = false; });
+
+  /* Telefonda chapga/o'ngga surish */
+  let adX0 = null;
+  adBanner.addEventListener('touchstart', (e) => { adX0 = e.changedTouches[0].clientX; }, { passive: true });
+  adBanner.addEventListener('touchend', (e) => {
+    if (adX0 === null) return;
+    const dx = e.changedTouches[0].clientX - adX0;
+    adX0 = null;
+    if (Math.abs(dx) > 45) adGo(adIndex + (dx < 0 ? 1 : -1));
+  }, { passive: true });
+
+  adStart();
+}
+
+/* ====================================================
    QIDIRUV VA FILTRLASH
    Kategoriya va qidiruv birgalikda qo'llanadi.
    ==================================================== */
