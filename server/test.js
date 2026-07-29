@@ -163,14 +163,20 @@ const ROUTES = [
   '/api/telegram-contact',
 ];
 
-function request(port, method, path) {
+function request(port, method, path, payload) {
   return new Promise((resolve, reject) => {
-    const req = http.request({ host: '127.0.0.1', port, method, path }, (res) => {
+    const headers = {};
+    if (payload !== undefined) {
+      headers['Content-Type'] = 'application/json';
+      headers['Content-Length'] = Buffer.byteLength(payload);
+    }
+    const req = http.request({ host: '127.0.0.1', port, method, path, headers }, (res) => {
       let body = '';
       res.on('data', (c) => { body += c; });
       res.on('end', () => resolve({ status: res.statusCode, headers: res.headers, body }));
     });
     req.on('error', reject);
+    if (payload !== undefined) req.write(payload);
     req.end();
   });
 }
@@ -217,9 +223,79 @@ async function testRouteTable() {
     assert.strictEqual(parsed.ok, true, '/api/version { ok: true } qaytarishi kerak');
     assert.ok(parsed.data && typeof parsed.data.version === 'string', 'version satr bo\'lishi kerak');
     console.log(`✅ Test 4d: /api/version javobi — PASS (version=${parsed.data.version})`);
+
+    await testNoBrokenReferences(port);
   } finally {
     await new Promise((r) => srv.close(r));
   }
+}
+
+// ============ TEST 5: BUZUQ HAVOLA YO'QLIGI ============
+// Har bir endpoint HAQIQATAN chaqiriladi. Baza yo'q — shuning uchun handlerlar
+// xato beradi va uni console.error bilan yozadi. BIZ shu xatolarni ushlaymiz:
+//
+//   "X is not defined"      → modulga import qilinmagan bog'liqlik
+//   "X is not a function"   → eksport qilinmagan yoki noto'g'ri nomlangan
+//
+// Bular refaktoringning ASOSIY xavfi: sintaksis to'g'ri, route javob beradi,
+// lekin handler ichida yo'qolgan nom bor — u faqat o'sha endpoint ishlatilganda
+// ko'rinadi (ya'ni production'da, foydalanuvchida). Baza xatolari (ECONNREFUSED)
+// esa kutilgan va e'tiborsiz qoldiriladi.
+
+const CALLS = [
+  ['GET',   '/api/products'],
+  ['POST',  '/api/products', '{}'],
+  ['GET',   '/api/admin/moderation'],
+  ['POST',  '/api/admin/moderation', '{}'],
+  ['GET',   '/api/admin/summary'],
+  ['POST',  '/api/admin/action', '{}'],
+  ['GET',   '/api/admin/action?id=1'],
+  ['GET',   '/api/admin/disputes'],
+  ['GET',   '/api/admin/dispute-photo?f=1&s=1'],
+  ['GET',   '/api/disputes'],
+  ['POST',  '/api/disputes', '{}'],
+  ['POST',  '/api/seller/dispute', '{}'],
+  ['GET',   '/api/orders'],
+  ['POST',  '/api/orders', '{}'],
+  ['POST',  '/api/web-orders', '{}'],
+  ['GET',   '/api/me'],
+  ['GET',   '/api/seller/products'],
+  ['PATCH', '/api/seller/products', '{}'],
+  ['GET',   '/api/seller/orders'],
+  ['POST',  '/api/seller/orders', '{}'],
+  ['POST',  '/api/telegram-notify', '{}'],
+  ['GET',   '/api/order-status?id=1'],
+  ['GET',   '/api/telegram-contact?uid=1'],
+  ['POST',  '/api/auth/telegram', '{}'],
+  ['POST',  '/api/auth/web/start', '{}'],
+  ['GET',   '/api/auth/web/poll?code=1&verifier=1'],
+  ['GET',   '/api/auth/web/me'],
+  ['POST',  '/api/auth/web/logout', '{}'],
+  ['GET',   '/api/web/orders'],
+  ['POST',  '/api/telegram-webhook', '{"message":{"chat":{"id":1},"from":{"id":1},"text":"/start"}}'],
+];
+
+async function testNoBrokenReferences(port) {
+  const logged = [];
+  const realError = console.error;
+  console.error = (...args) => { logged.push(args.map(String).join(' ')); };
+
+  try {
+    for (const [method, path, payload] of CALLS) {
+      await request(port, method, path, payload);
+    }
+  } finally {
+    console.error = realError;
+  }
+
+  const broken = logged.filter((l) => /is not defined|is not a function|Cannot read propert/.test(l));
+  if (broken.length) {
+    throw new Error(
+      `Modullarda yo'qolgan bog'liqlik topildi (${broken.length} ta):\n   ` + broken.join('\n   ')
+    );
+  }
+
+  console.log(`✅ Test 5: Buzuq havola yo'q — PASS (${CALLS.length} ta endpoint chaqirildi)`);
 }
 
 // ============ TEST RUNNER ============

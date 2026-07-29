@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "main": "server.js",
   "scripts": {
-    "test": "node test.js",
+    "lint": "eslint .",
+    "test": "eslint . && node test.js",
     "start": "node server.js"
   },
   "keywords": [],
@@ -12,5 +13,8 @@
   "description": "",
   "dependencies": {
     "pg": "^8.22.0"
+  },
+  "devDependencies": {
+    "eslint": "^10.8.0"
   }
 }

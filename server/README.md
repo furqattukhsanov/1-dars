@@ -9,30 +9,72 @@ auth (Telegram initData imzosi) va admin moderatsiya.
   `ADMIN_TG_IDS` — hammasi faqat serverdagi `/opt/lolamarket-notify/.env` faylida (600, git'ga kirmaydi).
 - Bu papka faqat **kod** — deploy paytida `.env` va `node_modules` tegilmaydi.
 
+## Kod tuzilmasi (2026-07-29 dan beri)
+
+Ilgari hammasi bitta `server.js` (2971 satr) edi. Endi:
+
+```
+server/
+├── server.js       — FAQAT router: qaysi yo'l qaysi modulga
+├── config.js       — env sirlari va biznes doimiylari
+├── db.js           — umumiy pg pool
+├── lib/            — domenga bog'liq bo'lmagan yordamchilar
+│   ├── auth.js         — kim bu so'rov egasi (initData, admin token, sotuvchi roli)
+│   ├── telegram-auth.js — initData imzosini tekshirish
+│   ├── telegram-api.js — bot API (bot tokeni FAQAT shu yerda)
+│   ├── http.js         — rate limit, cors, ok/fail, readBody
+│   ├── format.js       — escapeHtml, money, sha256 …
+│   ├── validate.js     — sxema validatori va ClientError
+│   └── contacts.js     — telefon raqamlari fayl bazasi
+└── routes/         — domen mantig'i
+    ├── catalog.js, orders.js, seller.js, admin.js,
+    ├── disputes.js, web-auth.js, seller-application.js
+    └── webhook.js
+```
+
+Qatlamlar bir tomonga qaraydi: `routes/ → lib/ → config/db`. Domen modullari
+bir-birini chaqirmaydi (`webhook.js` dan tashqari — u dispetcher).
+
 ## Server joylashuvi
 
 - Server: Hetzner VPS `65.21.180.44`
-- Yo'l: `/opt/lolamarket-notify/server.js`
+- Yo'l: `/opt/lolamarket-notify/`
 - Systemd servis: `lolamarket-notify`
 - Nginx: `/api/*` → `127.0.0.1:3001` proxy
 
 ## Deploy
 
+> ⚠️ **DIQQAT — 2026-07-29 dan keyin o'zgardi.** Kod endi bitta fayl emas.
+> Faqat `server.js` ni ko'chirsangiz servis `MODULE_NOT_FOUND` bilan qulaydi
+> va qayta ko'tarilmaydi. **Butun papkani** ko'chirish shart.
+
 ```bash
-# 1. Backup (serverda avtomatik ham bor, lekin qo'lda ham olamiz)
-ssh root@65.21.180.44 "cp /opt/lolamarket-notify/server.js /opt/lolamarket-notify/server.js.bak-$(date +%Y%m%d-%H%M%S)"
+# 1. Backup — endi butun papka
+ssh root@65.21.180.44 "cp -r /opt/lolamarket-notify /opt/lolamarket-notify.bak-$(date +%Y%m%d-%H%M%S)"
 
-# 2. Syntaksis tekshiruvi (lokal)
-node --check server/server.js
+# 2. Lokal tekshiruv — lint (yo'qolgan import) + testlar (route jadvali)
+cd server && npm test
 
-# 3. Ko'chirish
-scp server/server.js root@65.21.180.44:/opt/lolamarket-notify/server.js
+# 3. Ko'chirish — BUTUN papka (.env, node_modules va logs tegilmaydi)
+rsync -av --delete \
+  --exclude='.env' --exclude='node_modules' --exclude='contacts.json' \
+  --exclude='*.bak-*' \
+  server/ root@65.21.180.44:/opt/lolamarket-notify/
 
 # 4. Qayta ishga tushirish
 ssh root@65.21.180.44 "systemctl restart lolamarket-notify && systemctl is-active lolamarket-notify"
 
-# 5. Log tekshiruvi
+# 5. Serverda qaysi kod turganini tasdiqlash (git SHA)
+curl -s https://lolamarket.uz/api/version
+
+# 6. Log tekshiruvi
 ssh root@65.21.180.44 "journalctl -u lolamarket-notify -n 20 --no-pager"
+```
+
+**Orqaga qaytarish** (5-qadam kutilmagan SHA bersa yoki servis ko'tarilmasa):
+
+```bash
+ssh root@65.21.180.44 "rm -rf /opt/lolamarket-notify && mv /opt/lolamarket-notify.bak-<sana> /opt/lolamarket-notify && systemctl restart lolamarket-notify"
 ```
 
 ## Env o'zgaruvchilari (`.env` serverda)
