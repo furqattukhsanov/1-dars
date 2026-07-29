@@ -1,309 +1,23 @@
 const http = require('http');
 const https = require('https');
-const fs = require('fs');
 const crypto = require('crypto');
-const { execSync } = require('child_process');
-const { Pool } = require('pg');
+
+const {
+  PORT, BOT_TOKEN, ADMIN_CHAT_ID, WEBHOOK_SECRET, BOT_USERNAME, GIT_SHA,
+  ADMIN_PANEL_TOKEN, PREPAY_RATE, COMMISSION_RATE, ADMIN_TG_IDS,
+} = require('./config');
+
+const { pool } = require('./db');
 const { verifyInitData: verifyInitDataCore } = require('./lib/telegram-auth');
+const { escapeHtml, safeEqual, money, dateLabel, sha256, randHex } = require('./lib/format');
+const { validate, ClientError } = require('./lib/validate');
+const { rateLimited, clientIp, readBody, sendJson, ok, fail, cors, parseCookies } = require('./lib/http');
+const { loadContacts, saveContact } = require('./lib/contacts');
+const {
+  callTelegram, sendOrderNotifyMessage, sendBuyerConfirmMessage,
+  STATUS_COMMANDS, sendOpenAppMessage, callbackAnswer, notify, tgGetFile,
+} = require('./lib/telegram-api');
 
-const PORT = process.env.PORT || 3001;
-const BOT_TOKEN = process.env.BOT_TOKEN;
-const ADMIN_CHAT_ID = process.env.ADMIN_CHAT_ID;
-const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || 'https://lolamarket.uz';
-const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET;
-const MINI_APP_URL = process.env.MINI_APP_URL || 'https://lolamarket.uz/mini-app/';
-// Saytdagi "Telegram orqali kirish" tugmasi shu botga deep-link yasaydi.
-const BOT_USERNAME = (process.env.BOT_USERNAME || 'lolamarketbot').replace(/^@/, '');
-const CONTACTS_FILE = __dirname + '/contacts.json';
-
-// Server versiyasi — git SHA (deploy diagnozida ishlatiladi)
-let GIT_SHA = 'unknown';
-try {
-  GIT_SHA = execSync('git rev-parse --short HEAD 2>/dev/null || echo "unknown"', { encoding: 'utf8' }).trim();
-} catch (_) {
-  GIT_SHA = 'unknown';
-}
-
-// admin/index.html panelidagi kirish kaliti — Telegram initData'ga bog'liq emas
-// (standalone sahifa uni ishlab chiqara olmaydi), shuning uchun alohida sir.
-// Berilmasa — /api/admin/summary doim 401 qaytaradi (panel ishlamaydi, lekin xavfsiz).
-const ADMIN_PANEL_TOKEN = process.env.ADMIN_PANEL_TOKEN || '';
-// Oldindan to'lov ulushi. Mini App'dagi PREPAY_RATE bilan bir xil bo'lishi shart —
-// lekin haqiqiy manba shu yer: summa har doim server tomonda qayta hisoblanadi.
-const PREPAY_RATE = Number(process.env.PREPAY_RATE) || 0.5;
-// Platforma komissiyasi. Butun platformaga BITTA stavka (2026-07-27 founder
-// qarori) — sotuvchi bo'yicha alohida stavka emas. Buyurtma yaratilganda
-// o'sha paytdagi qiymat orders.commission_rate ga snapshot qilinadi, shuning
-// uchun stavka keyin o'zgarsa eski buyurtmalar hisoboti buzilmaydi.
-// PRD §4 diapazoni 10–12% — default 10%.
-const COMMISSION_RATE = (() => {
-  const v = Number(process.env.COMMISSION_RATE);
-  return Number.isFinite(v) && v >= 0 && v < 1 ? v : 0.10;
-})();
-
-// Moderatsiya ruxsati bor Telegram ID'lari (vergul bilan ajratilgan).
-// Berilmasa — ADMIN_CHAT_ID (admin shaxsiy chati = uning Telegram user id'si).
-const ADMIN_TG_IDS = new Set(
-  (process.env.ADMIN_TG_IDS || process.env.ADMIN_CHAT_ID || '')
-    .split(',').map((s) => s.trim()).filter(Boolean)
-);
-
-if (!BOT_TOKEN || !ADMIN_CHAT_ID) {
-  console.error('BOT_TOKEN yoki ADMIN_CHAT_ID .env da topilmadi');
-  process.exit(1);
-}
-if (!process.env.DATABASE_URL) {
-  console.error('DATABASE_URL .env da topilmadi');
-  process.exit(1);
-}
-
-// ============ POSTGRESQL ============
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-pool.on('error', (e) => console.error('pg pool xatosi:', e.message));
-
-const hits = new Map();
-function rateLimited(key, max = 10) {
-  const now = Date.now();
-  const windowMs = 60_000;
-  const arr = (hits.get(key) || []).filter((t) => now - t < windowMs);
-  arr.push(now);
-  hits.set(key, arr);
-  return arr.length > max;
-}
-
-// Rate limit Map tozalash — xotira oqishi uchun. Hali keladigan so'rovlar ham
-// filtrladi hisoblanadi (windowMs ichida), shuning uchun tozalash xavfsiz.
-setInterval(() => {
-  for (const [key, arr] of hits.entries()) {
-    if (arr.length === 0) hits.delete(key);
-  }
-}, 5 * 60 * 1000).unref();
-
-// Ogohlantirish faqat bir marta chiqsin — har so'rovda yozilsa, nginx noto'g'ri
-// sozlangan holatda log to'lib ketadi (nosozlikning o'zi esa doimiy).
-let warnedNoRealIp = false;
-
-function clientIp(req) {
-  // Nginx'dan X-Real-IP: server konfiguratsiyasida proxy_set_header X-Real-IP $remote_addr;
-  // bo'lishi kerak. Aks holda, Cloudflare orqasidagi hamma foydalanuvchi 127.0.0.1 bo'ladi
-  // va rate limit hammani birga bloklaydi — nosozlik jimgina keladi.
-  const fwd = req.headers['x-real-ip'] || (req.headers['x-forwarded-for'] || '').split(',')[0].trim();
-  const ip = fwd || req.socket.remoteAddress;
-  if (!fwd && !warnedNoRealIp && req.socket.remoteAddress === '127.0.0.1') {
-    warnedNoRealIp = true;
-    console.warn('⚠️  X-Real-IP header yo\'q — nginx proxy_set_header tekshirilsin (bu ogohlantirish bir marta chiqadi)');
-  }
-  return ip;
-}
-
-function escapeHtml(s) {
-  return String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-}
-
-// Doimiy vaqtli satr taqqoslash (admin panel token uchun — timing attack'dan himoya)
-function safeEqual(a, b) {
-  const ab = Buffer.from(String(a));
-  const bb = Buffer.from(String(b));
-  if (ab.length !== bb.length) return false;
-  return crypto.timingSafeEqual(ab, bb);
-}
-
-// So'm formatlash: 1720000 -> "1 720 000 so'm"
-function money(n) {
-  const v = Math.round(Number(n) || 0);
-  return String(v).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + " so'm";
-}
-
-const MONTHS = {
-  uz: ['yanvar','fevral','mart','aprel','may','iyun','iyul','avgust','sentabr','oktabr','noyabr','dekabr'],
-  ru: ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'],
-};
-function dateLabel(d) {
-  return { uz: `${d.getDate()}-${MONTHS.uz[d.getMonth()]}`, ru: `${d.getDate()} ${MONTHS.ru[d.getMonth()]}` };
-}
-
-// ============ VALIDATSIYA (PROMPT 1 / Dars 11) ============
-// Zod o'rnini bosuvchi minimal validator — tashqi dependency qo'shmasdan.
-// Muhim: server HECH QACHON client tekshiruviga ishonmaydi. Client validatsiyasi
-// (brauzerdagi forma) faqat UX uchun — DevTools orqali uni chetlab o'tish oson,
-// shu sabab har bir yozuv shu yerda, server tomonda, qaytadan tekshiriladi.
-//
-// Qoida obyekti maydon uchun: { type:'string'|'int', required, min, max, enum, default }
-//   string: min/max = belgilar soni
-//   int:    min/max = qiymat chegarasi
-function checkField(value, rule, field) {
-  const isEmpty = value == null || value === '';
-  if (isEmpty) {
-    if (rule.required) return { error: `${field}: majburiy maydon` };
-    return { value: rule.default !== undefined ? rule.default : null };
-  }
-  if (rule.type === 'int') {
-    const n = typeof value === 'number' ? value : parseInt(value, 10);
-    if (!Number.isInteger(n)) return { error: `${field}: butun son bo'lishi kerak` };
-    if (rule.min != null && n < rule.min) return { error: `${field}: kamida ${rule.min}` };
-    if (rule.max != null && n > rule.max) return { error: `${field}: ${rule.max} dan oshmasligi kerak` };
-    return { value: n };
-  }
-  if (typeof value !== 'string') return { error: `${field}: matn bo'lishi kerak` };
-  const s = value.trim();
-  if (rule.min != null && s.length < rule.min) return { error: `${field}: kamida ${rule.min} belgi` };
-  if (rule.max != null && s.length > rule.max) return { error: `${field}: ${rule.max} belgidan oshmasligi kerak` };
-  if (rule.enum && !rule.enum.includes(s)) return { error: `${field}: ruxsat etilmagan qiymat` };
-  return { value: s };
-}
-
-// Butun obyektni sxema bo'yicha tekshiradi.
-// { ok:true, data:{...tozalangan} } yoki { ok:false, error:'birinchi xato', errors:[...] }
-function validate(data, schema) {
-  const out = {};
-  const errors = [];
-  for (const field in schema) {
-    const res = checkField(data ? data[field] : undefined, schema[field], field);
-    if (res.error) errors.push(res.error);
-    else out[field] = res.value;
-  }
-  return errors.length ? { ok: false, error: errors[0], errors } : { ok: true, data: out };
-}
-
-// Foydalanuvchiga ko'rsatish mumkin bo'lgan xato (validatsiya / biznes qoidasi).
-// Server ICHKI xatolari (DB, tarmoq) bu belgiga ega bo'lmaydi — ular umumiy
-// "server error" bilan yashiriladi, shunda stack trace yoki DB detallari
-// hech qachon klientga chiqmaydi (Dars 11 — xato boshqaruvi).
-class ClientError extends Error {
-  constructor(message) {
-    super(message);
-    this.userFacing = true;
-  }
-}
-
-// ============ KONTAKTLAR (telefon ulashish) — fayl bazasi ============
-function loadContacts() {
-  try {
-    return JSON.parse(fs.readFileSync(CONTACTS_FILE, 'utf8'));
-  } catch (e) {
-    return {};
-  }
-}
-
-function saveContact(userId, phone) {
-  const data = loadContacts();
-  data[String(userId)] = { phone, savedAt: Date.now() };
-  try {
-    fs.writeFileSync(CONTACTS_FILE, JSON.stringify(data));
-  } catch (e) {
-    console.error('contacts.json yozishda xato:', e.message);
-  }
-}
-
-function callTelegram(method, payload) {
-  return new Promise((resolve, reject) => {
-    const body = JSON.stringify(payload);
-    const req = https.request(
-      {
-        hostname: 'api.telegram.org',
-        path: `/bot${BOT_TOKEN}/${method}`,
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) },
-      },
-      (res) => {
-        let data = '';
-        res.on('data', (d) => (data += d));
-        res.on('end', () => resolve({ status: res.statusCode, body: data }));
-      }
-    );
-    req.on('error', reject);
-    req.write(body);
-    req.end();
-  });
-}
-
-function sendOrderNotifyMessage(text) {
-  return callTelegram('sendMessage', { chat_id: ADMIN_CHAT_ID, text, parse_mode: 'HTML' });
-}
-
-function sendBuyerConfirmMessage(chatId, itemsText, total, prepay, rest) {
-  const text = [
-    '✅ <b>Buyurtmangiz qabul qilindi</b>',
-    '',
-    '<b>Tarkib:</b>',
-    itemsText,
-    '',
-    `<b>Jami:</b> ${escapeHtml(total || '-')}`,
-    prepay ? `<b>To'landi:</b> ${escapeHtml(prepay)}` : '',
-    // Xaridor qolgan to'lov shartini oldindan bilishi kerak — BTS to'lovsiz bermaydi
-    rest ? `<b>Qolgani:</b> ${escapeHtml(rest)} — mato BTS'ga yetib kelgach to'lanadi` : '',
-    '',
-    "Ishlab chiqaruvchi tasdiqlaydi — tez orada xabar beramiz.",
-  ].filter(Boolean).join('\n');
-  return callTelegram('sendMessage', { chat_id: chatId, text, parse_mode: 'HTML' });
-}
-
-const STATUS_COMMANDS = {
-  tasdiqla: {
-    status: 'confirmed',
-    buyerText: (orderId) =>
-      `✅ <b>Buyurtmangiz tasdiqlandi!</b>\n\nBuyurtma: <code>${escapeHtml(orderId)}</code>\nTez orada ishlab chiqarishga yuboriladi.`,
-    adminOkText: (orderId) => `✅ ${orderId} xaridorga tasdiqlandi deb xabar berildi.`,
-  },
-  yolga: {
-    status: 'shipped',
-    buyerText: (orderId) =>
-      `🚚 <b>Buyurtmangiz yo'lga chiqdi!</b>\n\nBuyurtma: <code>${escapeHtml(orderId)}</code>\nBTS Pochta orqali yetkazib berilmoqda.`,
-    adminOkText: (orderId) => `🚚 ${orderId} xaridorga yo'lga chiqdi deb xabar berildi.`,
-  },
-  yetdi: {
-    status: 'delivered',
-    buyerText: (orderId) =>
-      `📦 <b>Buyurtmangiz yetib keldi!</b>\n\nBuyurtma: <code>${escapeHtml(orderId)}</code>\nXaridingiz uchun rahmat!`,
-    adminOkText: (orderId) => `📦 ${orderId} xaridorga yetib keldi deb xabar berildi.`,
-  },
-};
-
-function sendOpenAppMessage(chatId, text) {
-  return callTelegram('sendMessage', {
-    chat_id: chatId,
-    text,
-    parse_mode: 'HTML',
-    reply_markup: {
-      inline_keyboard: [[{ text: "🌷 Do'konni ochish", web_app: { url: MINI_APP_URL } }]],
-    },
-  });
-}
-
-function readBody(req, maxBytes) {
-  return new Promise((resolve, reject) => {
-    let body = '';
-    let size = 0;
-    req.on('data', (chunk) => {
-      size += chunk.length;
-      if (size > maxBytes) {
-        req.destroy();
-        reject(new Error('payload too large'));
-        return;
-      }
-      body += chunk;
-    });
-    req.on('end', () => resolve(body));
-    req.on('error', reject);
-  });
-}
-
-function sendJson(res, code, obj) {
-  res.writeHead(code, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify(obj));
-}
-
-// ============ STANDART API JAVOBI (PROMPT 4 / Dars 11) ============
-// "lib/api-response" ekvivalenti: barcha API javoblari bitta shaklda —
-// muvaffaqiyat { ok:true, data }, xato { ok:false, error } — to'g'ri HTTP status bilan.
-// Status kodlar: 200 OK, 201 Created, 400 noto'g'ri kirish, 401 kirilmagan,
-// 403 ruxsat yo'q, 404 topilmadi, 429 juda ko'p so'rov, 500 server xatosi.
-function ok(res, data = null, code = 200) {
-  sendJson(res, code, { ok: true, data });
-}
-function fail(res, error = 'error', code = 400) {
-  sendJson(res, code, { ok: false, error });
-}
 
 // ============ TELEGRAM initData IMZOSINI TEKSHIRISH ============
 // Haqiqiy tekshiruv lib/telegram-auth.js da — server.js va test.js
@@ -365,26 +79,6 @@ async function handleAuthTelegram(req, res, ip) {
 const WEB_LOGIN_TTL_MS = 10 * 60 * 1000;      // kod 10 daqiqa yashaydi
 const WEB_SESSION_TTL_DAYS = 30;
 const SESSION_COOKIE = 'lm_session';
-
-function sha256(s) {
-  return crypto.createHash('sha256').update(String(s)).digest('hex');
-}
-
-function randHex(bytes) {
-  return crypto.randomBytes(bytes).toString('hex');
-}
-
-function parseCookies(req) {
-  const out = {};
-  const raw = req.headers.cookie;
-  if (!raw) return out;
-  for (const part of raw.split(';')) {
-    const i = part.indexOf('=');
-    if (i === -1) continue;
-    out[part.slice(0, i).trim()] = decodeURIComponent(part.slice(i + 1).trim());
-  }
-  return out;
-}
 
 // Sessiya tokeni faqat HttpOnly cookie'da yuradi — sahifadagi JS uni o'qiy
 // olmaydi, shuning uchun XSS bo'lsa ham token o'g'irlanmaydi (admin panel
@@ -984,10 +678,6 @@ async function handleAdminSummary(req, res, ip) {
 // So'rov 30 daqiqadan keyin eskiradi — kechagi tugmani bosib qo'yish xavfi yo'q.
 const ADMIN_ACTION_TTL_MS = 30 * 60 * 1000;
 
-function callbackAnswer(id, text) {
-  return callTelegram('answerCallbackQuery', { callback_query_id: id, text: text || '' }).catch(() => {});
-}
-
 // Buyurtmada qatnashgan sotuvchilarning Telegram ID'lari (xabar yuborish uchun).
 // Bitta buyurtmada bir nechta sotuvchi bo'lishi mumkin.
 async function sellerTgIdsForOrder(orderId) {
@@ -1001,11 +691,6 @@ async function sellerTgIdsForOrder(orderId) {
     [orderId]
   );
   return rows.map((r) => r.tg_user_id);
-}
-
-function notify(chatId, text) {
-  if (!chatId) return Promise.resolve();
-  return callTelegram('sendMessage', { chat_id: chatId, text, parse_mode: 'HTML' }).catch(() => {});
 }
 
 // Har amal turi uchun: kirishni tekshirish (check), tasdiq xabari matni
@@ -1554,12 +1239,6 @@ async function handleAdminDisputes(req, res, ip) {
 // ADMIN_PANEL_TOKEN bilan HMAC hosil qilamiz — imzo faqat shu faylga yaraydi.
 function photoSig(fileId) {
   return crypto.createHmac('sha256', ADMIN_PANEL_TOKEN || 'x').update(String(fileId)).digest('hex').slice(0, 32);
-}
-
-function tgGetFile(fileId) {
-  return callTelegram('getFile', { file_id: fileId }).then((r) => {
-    try { return JSON.parse(r.body).result.file_path; } catch (_) { return null; }
-  });
 }
 
 async function handleDisputePhoto(req, res, ip) {
@@ -2778,15 +2457,6 @@ async function handleTelegramWebhook(req, res) {
 }
 
 // ============ ROUTER ============
-function cors(res, methods) {
-  res.setHeader('Access-Control-Allow-Origin', ALLOWED_ORIGIN);
-  res.setHeader('Access-Control-Allow-Methods', methods);
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Telegram-Init-Data, X-Admin-Token');
-  // Sayt sessiyasi cookie'da yuradi. Origin aniq ko'rsatilgan (`*` emas),
-  // shuning uchun credentials ruxsati xavfsiz.
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-}
-
 function handleRequest(req, res) {
   const ip = clientIp(req);
   const path = req.url.split('?')[0];
