@@ -353,7 +353,10 @@ function orderRow(o) {
   return `
     <tr>
       <td class="order-id">${esc(o.id)}${o.hasDispute ? ' <span class="dispute-flag" title="Ochiq bahs">⚖️</span>' : ''}</td>
-      <td>${esc(o.buyerName || "Noma'lum")}</td>
+      <td>
+        ${esc(o.buyerName || "Noma'lum")}${o.source === 'web' ? ' <span class="src-web" title="lolamarket.uz saytidan berilgan — xaridor Telegram\'da emas">sayt</span>' : ''}
+        ${o.phone ? `<div class="order-phone">${esc(o.phone)}</div>` : ''}
+      </td>
       <td class="order-type">${o.itemsCount} ta</td>
       <td class="num">${o.total == null ? '—' : fmtSom(o.total)}</td>
       <td class="num">${o.commission == null ? '—' : fmtSom(o.commission)}</td>

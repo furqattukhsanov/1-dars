@@ -108,7 +108,6 @@ function showToast(msg) {
 
 const CART_KEY = 'lolamarket_web_cart';
 const FAV_KEY = 'lolamarket_web_favs';
-const SEQ_KEY = 'lolamarket_web_order_seq';
 
 /** cart: { [id]: qty } */
 let cart = loadCart();
@@ -554,14 +553,10 @@ function checkoutHtml() {
     </form>`;
 }
 
-function nextOrderId() {
-  let n = parseInt(localStorage.getItem(SEQ_KEY) || '0', 10);
-  if (!Number.isFinite(n) || n < 0) n = 0;
-  n += 1;
-  try { localStorage.setItem(SEQ_KEY, String(n)); } catch (e) {}
-  // veb buyurtmalari W bilan — Mini App'nikidan (LM-) ajratish uchun
-  return 'LM-W' + String(1000 + n).slice(-4);
-}
+// Ilgari shu yerda nextOrderId() bor edi — buyurtma raqamini brauzerda
+// localStorage sanog'idan yasardi. Endi raqam faqat serverdan (order_seq)
+// keladi: brauzerda yasalgan raqam bazada mavjud bo'lmagan buyurtmaga
+// ishora qilardi va admin panelda hech qachon topilmasdi.
 
 function submitOrder(e) {
   e.preventDefault();
@@ -581,36 +576,26 @@ function submitOrder(e) {
   if (!cartCount()) return showErr(err, "Savat bo'sh.");
   if (err) err.hidden = true;
 
-  const items = Object.keys(cart).map((id) => {
-    const p = product(id);
-    return { name: p.name, qty: cart[id] + ' dona', sum: money(p.price * cart[id]) };
-  });
-
-  const orderId = nextOrderId();
-  const total = money(cartTotal());
+  // Serverga faqat mahsulot ID va miqdor ketadi. Nom/narx/jami YUBORILMAYDI —
+  // ularni server bazadan oladi, aks holda narxni brauzer dikta qilardi.
+  const items = Object.keys(cart).map((id) => ({ id, qty: cart[id] }));
 
   btn.disabled = true;
   btn.textContent = 'Yuborilmoqda…';
 
-  fetch('/api/telegram-notify', {
+  fetch('/api/web-orders', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      orderId,
-      buyerName: company ? `${name} (${company})` : name,
-      address: address,
-      payment: 'Kelishilgan holda',
-      comment: [comment, 'Telefon: ' + phone].filter(Boolean).join(' · '),
-      items,
-      total,
-    }),
+    body: JSON.stringify({ items, buyerName: name, phone, company, address, comment }),
   })
-    .then((r) => {
-      if (!r.ok) throw new Error('server ' + r.status);
-      return r.json().catch(() => ({}));
-    })
-    .then(() => {
-      lastOrderId = orderId;
+    .then((r) => r.json().catch(() => null))
+    .then((d) => {
+      // Buyurtma raqami SERVERDAN keladi — u bazadagi haqiqiy yozuvning raqami.
+      // Ilgari raqam brauzerda o'ylab topilardi va bazada hech narsa qolmasdi:
+      // xaridor "qabul qilindi" ekranini ko'rar, admin panelda esa buyurtma
+      // umuman ko'rinmasdi (2026-07-29 dagi nosozlik).
+      if (!d || !d.ok || !d.orderId) throw new Error(d && d.error ? d.error : 'server');
+      lastOrderId = d.orderId;
       cart = {};
       saveCart();
       updateBadge();
@@ -618,10 +603,14 @@ function submitOrder(e) {
       drawerView = 'done';
       renderDrawer();
     })
-    .catch(() => {
+    .catch((e) => {
       btn.disabled = false;
       btn.textContent = 'Buyurtmani yuborish';
-      showErr(err, "Yuborib bo'lmadi. Internetni tekshiring yoki Telegram bot orqali buyurtma bering.");
+      // Server aniq sabab aytgan bo'lsa (MOQ, telefon, tugagan mahsulot) — o'shani
+      // ko'rsatamiz. Aks holda umumiy tarmoq xatosi.
+      showErr(err, e.message && e.message !== 'server'
+        ? e.message
+        : "Yuborib bo'lmadi. Internetni tekshiring yoki Telegram bot orqali buyurtma bering.");
     });
 }
 

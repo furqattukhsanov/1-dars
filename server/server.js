@@ -525,7 +525,8 @@ async function handleAdminSummary(req, res, ip) {
       pool.query(`SELECT count(*)::int AS n FROM orders WHERE created_at >= date_trunc('day', now())`),
       pool.query(`SELECT cat_key, count(*)::int AS n FROM products WHERE status='published' GROUP BY cat_key ORDER BY n DESC`),
       pool.query(`
-        SELECT o.id, o.buyer_name, o.status, o.total_amount, o.commission_amount,
+        SELECT o.id, o.buyer_name, o.buyer_phone, o.source, o.status,
+               o.total_amount, o.commission_amount,
                o.payout_amount, o.prepay_amount, o.created_at, o.paid_out_at,
                (SELECT count(*) FROM order_items oi WHERE oi.order_id = o.id)::int AS items_count,
                EXISTS (SELECT 1 FROM disputes d WHERE d.order_id = o.id AND d.status='open') AS has_dispute
@@ -651,6 +652,9 @@ async function handleAdminSummary(req, res, ip) {
       recentOrders: ordersRes.rows.map((r) => ({
         id: r.id,
         buyerName: r.buyer_name,
+        // Sayt buyurtmasida Telegram yo'q — telefon yagona bog'lanish yo'li
+        phone: r.buyer_phone,
+        source: r.source,
         status: r.status,
         total: r.total_amount === null ? null : Number(r.total_amount),
         commission: r.commission_amount === null ? null : Number(r.commission_amount),
@@ -1474,6 +1478,152 @@ async function handleCreateOrder(req, res, ip) {
     console.error('createOrder xatosi:', e.message);
     // Faqat foydalanuvchiga mo'ljallangan (validatsiya) xatolarnigina ko'rsatamiz;
     // DB/ichki xatolar umumiy "server error" bilan yashiriladi.
+    if (e.userFacing) fail(res, e.message, 400);
+    else fail(res, 'server error', 500);
+  } finally {
+    client.release();
+  }
+}
+
+// ============ /api/web-orders POST — SAYT buyurtmasi (bazaga) ============
+// lolamarket.uz savatidan keladi. Mini App'dan ikki farqi bor:
+//   1) Telegram imzosi YO'Q — sayt xaridorida Telegram hisobi bo'lmasligi mumkin.
+//      Shuning uchun kimligi telefon orqali aniqlanadi va u MAJBURIY.
+//   2) `source='web'` bilan yoziladi — panelda buyurtma qayerdan kelgani ko'rinadi.
+// Narx, MOQ, oldindan to'lov va komissiya — hammasi SERVER tomonda, xuddi
+// Mini App'dagidek. Klient yuborgan summaga hech qachon ishonilmaydi.
+//
+// MUHIM (2026-07-29): ilgari sayt buyurtmasi faqat `/api/telegram-notify` ga
+// borardi, u esa bazaga yozmaydi — buyurtma Telegram'ga tushib, admin panelda
+// umuman ko'rinmasdi. Shu endpoint o'sha teshikni yopadi.
+async function handleCreateWebOrder(req, res, ip) {
+  // Imzo yo'q — spamga ochiq. Shuning uchun limit Mini App'nikidan qattiqroq.
+  if (rateLimited(`weborder:${ip}`, 5)) return fail(res, 'too many requests', 429);
+  const client = await pool.connect();
+  try {
+    const body = await readBody(req, 20_000);
+    const data = JSON.parse(body);
+
+    const v = validate(data, {
+      buyerName: { type: 'string', required: true,  max: 200 },
+      phone:     { type: 'string', required: true,  max: 30 },
+      company:   { type: 'string', required: false, max: 200 },
+      address:   { type: 'string', required: true,  max: 500 },
+      comment:   { type: 'string', required: false, max: 1000 },
+    });
+    if (!v.ok) throw new ClientError(v.error);
+
+    // Telefon: faqat raqamlar sanaladi (format erkin — +998, probel, qavs mayli)
+    const digits = String(v.data.phone).replace(/\D/g, '');
+    if (digits.length < 9) throw new ClientError("Telefon raqami to'liq emas");
+
+    // Savat — Mini App bilan bir xil shakl: [{id, qty}]
+    const lines = Array.isArray(data.items) ? data.items : [];
+    if (!lines.length) throw new ClientError("Savat bo'sh");
+    if (lines.length > 50) throw new ClientError("Juda ko'p tur (maksimum 50)");
+    for (const l of lines) {
+      if (!l || typeof l.id !== 'string' || !l.id.trim()) throw new ClientError("Mahsulot ID noto'g'ri");
+      const q = parseInt(l.qty, 10);
+      if (!Number.isInteger(q) || q < 1 || q > 100000) throw new ClientError("Miqdor 1..100000 oralig'ida bo'lishi kerak");
+    }
+
+    const ids = lines.map((l) => String(l.id));
+    const qtyById = new Map(lines.map((l) => [String(l.id), Math.max(1, parseInt(l.qty, 10) || 1)]));
+    const { rows: prods } = await client.query(
+      `SELECT id, price, name_uz, unit, moq FROM products WHERE id = ANY($1)`,
+      [ids]
+    );
+    if (!prods.length) throw new ClientError('Mahsulot topilmadi');
+
+    for (const p of prods) {
+      const qty = qtyById.get(p.id) || 1;
+      const moq = Number(p.moq) || 1;
+      if (qty < moq) throw new ClientError(`"${p.name_uz}" uchun minimal buyurtma: ${moq} ${p.unit}`);
+    }
+
+    const items = prods.map((p) => ({
+      id: p.id,
+      qty: qtyById.get(p.id) || 1,
+      unitPrice: Number(p.price),
+      name: p.name_uz,
+      unit: p.unit,
+    }));
+    const total = items.reduce((s, it) => s + it.unitPrice * it.qty, 0);
+    const prepay = Math.round(total * PREPAY_RATE);
+    const rest = total - prepay;
+    const commissionAmount = Math.round(total * COMMISSION_RATE);
+    const payoutAmount = total - commissionAmount;
+
+    // ID Mini App bilan BIR XIL ketma-ketlikdan olinadi — shunda `/tasdiqla #LM-...`
+    // buyrug'i sayt buyurtmalarida ham ishlaydi (webhook regex faqat raqam kutadi).
+    await client.query('BEGIN');
+    const { rows: idRows } = await client.query(`SELECT '#LM-' || nextval('order_seq') AS id`);
+    const orderId = idRows[0].id;
+
+    const buyerName = v.data.company ? `${v.data.buyerName} (${v.data.company})` : v.data.buyerName;
+
+    await client.query(
+      `INSERT INTO orders (id, buyer_name, buyer_phone, address, payment, comment,
+                           total_amount, prepay_amount, rest_amount,
+                           commission_rate, commission_amount, payout_amount, status, source)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'pending','web')`,
+      [
+        orderId,
+        buyerName,
+        v.data.phone,
+        v.data.address,
+        'Kelishilgan holda',
+        v.data.comment || null,
+        total,
+        prepay,
+        rest,
+        COMMISSION_RATE,
+        commissionAmount,
+        payoutAmount,
+      ]
+    );
+    for (const it of items) {
+      await client.query(
+        `INSERT INTO order_items (order_id, product_id, name, qty, unit_price) VALUES ($1,$2,$3,$4,$5)`,
+        [orderId, it.id, it.name, it.qty, it.unitPrice]
+      );
+    }
+    await client.query('COMMIT');
+
+    const uShort = (u) => (u === 'rulon' ? 'rulon' : u || '');
+    const itemsText = items
+      .slice(0, 30)
+      .map((it) => `• ${escapeHtml(it.name || '?')} — ${escapeHtml(it.qty)} ${escapeHtml(uShort(it.unit))} x ${escapeHtml(money(it.unitPrice))}`)
+      .join('\n');
+    const adminText = [
+      '🌐 <b>Yangi buyurtma — SAYTDAN</b>',
+      '',
+      `<b>ID:</b> ${escapeHtml(orderId)}`,
+      `<b>Xaridor:</b> ${escapeHtml(buyerName)}`,
+      `<b>Telefon:</b> ${escapeHtml(v.data.phone)}`,
+      `<b>Manzil:</b> ${escapeHtml(v.data.address)}`,
+      v.data.comment ? `<b>Izoh:</b> ${escapeHtml(v.data.comment)}` : '',
+      '',
+      '<b>Tarkib:</b>',
+      itemsText,
+      '',
+      `<b>Jami:</b> ${escapeHtml(money(total))}`,
+      `💰 <b>Oldindan to'lov:</b> ${escapeHtml(money(prepay))}`,
+      `<b>Qolgani:</b> ${escapeHtml(money(rest))}`,
+      `📊 <b>Komissiya:</b> ${escapeHtml(money(commissionAmount))} · <b>Sotuvchiga:</b> ${escapeHtml(money(payoutAmount))}`,
+      // Sayt xaridorida Telegram yo'q — u bilan bog'lanish faqat qo'ng'iroq orqali
+      '\n☎️ Xaridor Telegram\'da emas — telefon qiling.',
+      `Tasdiqlash uchun: <code>/tasdiqla ${escapeHtml(orderId)}</code>`,
+    ]
+      .filter(Boolean)
+      .join('\n');
+
+    sendOrderNotifyMessage(adminText).catch((e) => console.error('web order notify:', e.message));
+
+    sendJson(res, 200, { ok: true, orderId, status: 'pending', total, prepay, rest });
+  } catch (e) {
+    try { await client.query('ROLLBACK'); } catch (_) {}
+    console.error('createWebOrder xatosi:', e.message);
     if (e.userFacing) fail(res, e.message, 400);
     else fail(res, 'server error', 500);
   } finally {
@@ -2393,6 +2543,14 @@ const server = http.createServer((req, res) => {
     if (req.method === 'POST') return handleCreateOrder(req, res, ip);
     if (req.method === 'GET') return handleGetOrders(req, res, ip);
     return fail(res, 'method not allowed', 405);
+  }
+
+  // Sayt (landing) savati — Telegram imzosisiz, telefon orqali
+  if (path === '/api/web-orders') {
+    cors(res, 'POST, OPTIONS');
+    if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
+    if (req.method !== 'POST') return fail(res, 'method not allowed', 405);
+    return handleCreateWebOrder(req, res, ip);
   }
 
   // ===== Sotuvchi kabineti =====

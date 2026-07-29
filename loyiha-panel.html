@@ -332,6 +332,11 @@
     <div style="font-size:0.68rem; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; color:#9C7B5A; margin-bottom:0.7rem;">So'nggi faoliyat</div>
     <div id="faoliyat-list">
       <div class="faoliyat-item">
+        <span class="faoliyat-sana">2026-07-29</span>
+        <span class="faoliyat-text">Nosozlik tuzatildi: lolamarket.uz saytidan berilgan buyurtma admin panelda umuman ko'rinmasdi. Saytdagi checkout faqat /api/telegram-notify ga yozardi, u endpoint esa ataylab bazaga yozmaydi, panel esa orders jadvalidan o'qiydi — shu sababdan 29-iyul 00:13 dagi haqiqiy buyurtma yo'qolgan. Ildiz sabab chuqurroq edi: saytda (p1…p12) va bazada (ik-1402, ad-0890…) ikkita alohida katalog bor edi, shuning uchun sayt buyurtmani bazadagi mahsulotga bog'lay olmasdi. Yangi migratsiya 006: orders.source ('miniapp'/'web', CHECK cheklovi, eski qatorlarga DEFAULT miniapp), orders.buyer_phone va idx_orders_source. Yangi POST /api/web-orders endpoint: Telegram imzosiz ishlaydi (sayt xaridorida Telegram hisobi yo'q), shuning uchun telefon majburiy va rate limit qattiqroq; narx, MOQ, oldindan to'lov va komissiya to'liq server tomonda bazadan hisoblanadi — klient faqat {id, qty} yuboradi; ID Mini App bilan bitta order_seq dan olinadi, shunda /tasdiqla #LM-… buyrug'i sayt buyurtmalarida ham ishlaydi. Saytdagi 12 mahsulotning ID'si bazadagi haqiqiy ID'ga o'tkazildi. Brauzerda raqam o'ylab topadigan nextOrderId() o'chirildi — buyurtma raqami endi faqat serverdan keladi va API xato bersa soxta "qabul qilindi" ekrani ko'rsatilmaydi. Admin panelda buyurtma qatorida "sayt" belgisi va xaridor telefoni ko'rinadi. Production'da uchidan uchigacha sinov buyurtmasi berildi (#LM-3008) — bazaga to'g'ri yozildi, summa bazadagi narxlardan hisoblandi, validatsiya bo'sh savat va kalta telefonni rad etdi; sinov buyurtmasi keyin o'chirildi. Bekor qilingan qaror: 2026-07-22 dagi "landing buyurtmasi uchun alohida backend qurilmaydi, Telegram relay yetarli" — endi bitta manba bor, u ham bo'lsa baza</span>
+        <span class="faoliyat-sprint">Sprint 4</span>
+      </div>
+      <div class="faoliyat-item">
         <span class="faoliyat-sana">2026-07-28</span>
         <span class="faoliyat-text">Mini App production'ga deploy qilindi (rsync → /var/www/lolamarket/mini-app/) va jonli tekshirildi: service worker activated (scope https://lolamarket.uz/mini-app/), manifest va uchala ikonka 200. Deploy paytida nuqson topildi — nginx sw.js ni Cache-Control: max-age=14400 bilan beradi va Cloudflare uni keshlaydi (cf-cache-status: HIT), ya'ni kelajakda service worker o'zgartirilsa foydalanuvchilarda eskisi soatlab qolib ketardi. Bu ayniqsa xavfli, chunki service worker keshlash siyosatini o'zi boshqaradi — eskisi qolib ketsa uni oddiy deploy bilan tuzatib bo'lmaydi. Brauzer tomoni yopildi: pwa.js da register('sw.js', { updateViaCache: 'none' }), index.html da pwa.js?v=5. OCHIQ ISH: nginx/Cloudflare tomonida sw.js uchun Cache-Control: no-cache kerak — nginx konfiguratsiyasi qo'lda boshqariladi (CLAUDE.md), shuning uchun bu commit'da tegilmadi, serverda alohida qilinishi kerak</span>
         <span class="faoliyat-sprint">Sprint 5</span>
@@ -594,7 +599,7 @@
     { num: 1, nom: "Telegram Mini App MVP",     dars: "Dars 8",  holat: "tugadi",  sana: "2026-07-25" },
     { num: 2, nom: "Ma'lumotlar bazasi / Backend", dars: "Dars 9",  holat: "tugadi", sana: "2026-07-23" },
     { num: 3, nom: "Foydalanuvchilar + rollar", dars: "Dars 10", holat: "tugadi", sana: "2026-07-23" },
-    { num: 4, nom: "Asosiy funksiya",           dars: "Dars 11", holat: "jarayonda",  sana: "2026-07-25" },
+    { num: 4, nom: "Asosiy funksiya",           dars: "Dars 11", holat: "jarayonda",  sana: "2026-07-29" },
     { num: 5, nom: "Mobil / PWA",               dars: "Dars 12", holat: "jarayonda",  sana: "2026-07-28" },
     { num: 6, nom: "Integratsiyalar",           dars: "Dars 13", holat: "jarayonda",  sana: "2026-07-22" },
     { num: 7, nom: "Admin panel",               dars: "Dars 14", holat: "tugadi",  sana: "2026-07-27" },
@@ -620,7 +625,7 @@
   barEl.style.width = foiz + "%";
   percentEl.textContent = foiz + "%";
   countEl.textContent = tugaganlar + " / " + sprintlar.length + " sprint";
-  updatedEl.textContent = "Yangilanish: 2026-07-28 (Sprint 5 — Mini App PWA'ga aylandi va production'ga deploy qilindi; sw.js keshlanishi uchun nginx tomoni ochiq)";
+  updatedEl.textContent = "Yangilanish: 2026-07-29 (Sprint 4 — sayt buyurtmalari endi bazaga yoziladi va admin panelda ko'rinadi; sayt bazadagi katalog ID'lariga o'tdi)";
 
   sprintlar.forEach(s => {
     const card = document.createElement("div");

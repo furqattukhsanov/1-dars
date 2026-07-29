@@ -1216,6 +1216,27 @@ body { min-height: 100vh; padding-bottom: 0; }
 
 .dispute-flag { font-size: 0.85em; }
 
+/* Buyurtma qayerdan kelgani. Sayt xaridorida Telegram hisobi yo'q —
+   u bilan faqat telefon orqali bog'lanish mumkin, shuning uchun raqam
+   ism ostida darhol ko'rinadi. */
+.src-web {
+  display: inline-block;
+  margin-left: 0.35rem;
+  padding: 0.05rem 0.4rem;
+  border: 1px solid var(--line, #e5e7eb);
+  border-radius: 999px;
+  font-size: 0.7rem;
+  color: var(--muted, #6b7280);
+  vertical-align: middle;
+}
+
+.order-phone {
+  margin-top: 0.15rem;
+  font-size: 0.78rem;
+  color: var(--muted, #6b7280);
+  font-variant-numeric: tabular-nums;
+}
+
 /* ─── Bahs kartochkalari ─── */
 
 .dispute-list { display: flex; flex-direction: column; gap: 1rem; }
