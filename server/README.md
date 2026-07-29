@@ -46,6 +46,7 @@ ssh root@65.21.180.44 "journalctl -u lolamarket-notify -n 20 --no-pager"
 | `WEBHOOK_SECRET` | Telegram webhook maxfiy tokeni |
 | `ALLOWED_ORIGIN` | CORS origin (default `https://lolamarket.uz`) |
 | `MINI_APP_URL` | Mini App URL |
+| `BOT_USERNAME` | Saytdagi "Telegram orqali kirish" deep-link'i uchun bot nomi, `@`siz (default `lolamarketbot`) |
 | `ADMIN_PANEL_TOKEN` | `admin/index.html` kirish kaliti (`X-Admin-Token` header) — Telegram initData'dan mustaqil, alohida sir. Dalil rasmlari havolasini imzolash uchun ham ishlatiladi |
 | `PREPAY_RATE` | Oldindan to'lov ulushi (default `0.5`) |
 | `COMMISSION_RATE` | Platforma komissiyasi, 0..1 oralig'ida (default `0.10`). Buyurtma yaratilganda `orders.commission_rate` ga snapshot qilinadi |
@@ -108,3 +109,49 @@ curl -s -o /dev/null -w '%{http_code}\n' https://lolamarket.uz/api/admin/dispute
 
 Keyin panelda bitta arizani tasdiqlashga urinib ko'ring — Telegram'da tugmali
 xabar kelishi va bosilgandan keyin panel "bajarildi" deb ko'rsatishi kerak.
+
+## Saytda Telegram orqali kirish deploy qadamlari (2026-07-29)
+
+**Tartib muhim:** avval migratsiya, keyin kod.
+
+```bash
+# 1. Baza migratsiyasi (idempotent)
+scp db/007_web_auth.sql root@65.21.180.44:/tmp/
+ssh root@65.21.180.44 "sudo -u postgres psql -d lolamarket -f /tmp/007_web_auth.sql"
+
+# 2. Jadval egaligi — yangi jadvallar `lola` user'ga tegishli bo'lsin
+ssh root@65.21.180.44 "sudo -u postgres psql -d lolamarket -c \
+  'ALTER TABLE web_login_codes OWNER TO lola; \
+   ALTER TABLE web_sessions OWNER TO lola;'"
+
+# 3. BOT_USERNAME ni .env ga qo'shish (yozilmasa default `lolamarketbot`)
+ssh root@65.21.180.44 "grep -q BOT_USERNAME /opt/lolamarket-notify/.env || \
+  echo 'BOT_USERNAME=lolamarketbot' >> /opt/lolamarket-notify/.env"
+
+# 4. Kodni ko'chirish va restart (yuqoridagi odatdagi Deploy bo'limi)
+```
+
+### Nginx — yangi proxy yo'llari
+
+- `/api/auth/web/start`, `/api/auth/web/poll`, `/api/auth/web/me`, `/api/auth/web/logout`
+  (`/api/auth/` prefiks bloki bo'lsa — avtomatik qamraladi)
+- `/api/web/orders` — **alohida kerak**, `/api/web-orders` bloki buni qamramaydi
+
+Proxy blokida `Set-Cookie` va `Cookie` header'lari o'tishi shart (nginx buni
+standart holatda o'zi qiladi — `proxy_hide_header Set-Cookie` YOZILMASIN).
+
+### Deploydan keyin tekshirish
+
+```bash
+# Kod yaratiladimi (JSON'da code, verifier, url bo'lishi kerak)
+curl -s -X POST https://lolamarket.uz/api/auth/web/start
+
+# Sessiyasiz "user": null qaytishi normal
+curl -s https://lolamarket.uz/api/auth/web/me
+
+# Sessiyasiz buyurtmalar 401 bo'lishi shart
+curl -s -o /dev/null -w '%{http_code}\n' https://lolamarket.uz/api/web/orders
+```
+
+Keyin saytda "Kirish" tugmasini bosing — Telegram ochilib "Boshlash" bosilgandan
+keyin sahifa o'zi profilingizga o'tishi kerak.

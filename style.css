@@ -1374,6 +1374,155 @@ body {
   padding: 0;
 }
 
+/* ===== KIRISH VA PROFIL =====
+   Alohida sahifa yaratilmaydi — savat drawer'ining yangi ko'rinishlari.
+   Shu sabab sayt tuzilmasi va SEO o'zgarmaydi. */
+.auth-wrap {
+  flex: 1;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 10px;
+  text-align: center;
+  padding: 26px 8px;
+}
+.auth-badge {
+  width: 58px; height: 58px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--grad-pom-soft);
+  color: #ffe5d2;
+  box-shadow: 0 10px 24px -12px rgba(81,1,0,.6), inset 0 1px 0 rgba(255,229,210,.22);
+  margin-bottom: 2px;
+}
+/* Telegram tugmasi — brend ko'k rangida, sayt tugmalari o'lchamida */
+.btn-tg {
+  margin-top: 6px;
+  min-height: 46px;
+  padding: 0 22px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: #229ED9;
+  color: #fff;
+  font-family: var(--font-sans);
+  font-size: 14.5px; font-weight: 700;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  text-decoration: none;
+  box-shadow: 0 10px 24px -12px rgba(34,158,217,.9);
+  transition: transform var(--dur-fast), filter var(--dur-fast);
+}
+.btn-tg:active { transform: scale(.98); }
+.auth-ghost {
+  margin-top: 4px;
+  min-height: 44px;
+  padding: 0 18px;
+  border: 1px solid var(--border-hair);
+  border-radius: var(--radius-md);
+  background: var(--glass-fill);
+  color: var(--text-muted);
+  font-family: var(--font-sans);
+  font-size: 13.5px; font-weight: 600;
+}
+.auth-spinner {
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  border: 3px solid var(--ink-100);
+  border-top-color: var(--pom-500);
+  animation: auth-spin .8s linear infinite;
+  margin-bottom: 4px;
+}
+@keyframes auth-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .auth-spinner { animation-duration: 2.4s; }
+}
+
+/* Header/nav tugmasi — kirilgan holat */
+.login-btn.is-in { border-color: rgba(122,20,13,.22); background: var(--tint-pom); color: var(--pom-800); }
+.m-profile-btn.is-in { color: var(--pom-700); }
+
+/* --- Profil --- */
+.profile-card {
+  display: flex; align-items: center; gap: 13px;
+  padding: 14px;
+  border: 1px solid var(--border-hair);
+  border-radius: var(--radius-md);
+  background: var(--glass-fill);
+}
+.profile-ava {
+  flex: none;
+  width: 46px; height: 46px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--grad-pom-soft);
+  color: #ffe5d2;
+  font-family: var(--font-display);
+  font-size: 16px; font-weight: 700;
+}
+.profile-main { min-width: 0; }
+.profile-name {
+  font-family: var(--font-display);
+  font-size: 16px; font-weight: 700;
+  color: var(--text-strong);
+}
+.profile-sub { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+.profile-sec-title {
+  margin: 22px 0 10px;
+  font-size: 10.5px; font-weight: 700;
+  letter-spacing: .08em; text-transform: uppercase;
+  color: var(--pom-700);
+}
+.order-row {
+  padding: 12px 14px;
+  border: 1px solid var(--border-hair);
+  border-radius: var(--radius-md);
+  background: var(--glass-fill-strong);
+}
+.order-row + .order-row { margin-top: 9px; }
+.order-row-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.order-row-id {
+  font-family: var(--font-mono);
+  font-size: 13.5px; font-weight: 600;
+  color: var(--text-strong);
+}
+.order-row-bot {
+  margin-top: 7px;
+  display: flex; justify-content: space-between; gap: 10px;
+  font-size: 12.5px; color: var(--text-muted);
+}
+.order-row-sum { font-weight: 600; color: var(--text-body); }
+.order-tag {
+  flex: none;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px; font-weight: 700;
+  white-space: nowrap;
+}
+.order-tag.wait { background: var(--ink-100); color: var(--ink-700); }
+.order-tag.ok   { background: var(--success-100); color: #0F7A4F; }
+.order-tag.warn { background: var(--danger-100); color: #A32126; }
+
+/* --- Checkout ustidagi kirish taklifi --- */
+.co-login {
+  margin-top: 14px;
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 13px;
+  border: 1px solid rgba(34,158,217,.24);
+  border-radius: var(--radius-md);
+  background: rgba(34,158,217,.07);
+}
+.co-login-txt { font-size: 12.5px; line-height: 1.45; color: var(--text-body); }
+.co-login-txt b { color: var(--text-strong); }
+.co-login-btn {
+  flex: none;
+  min-height: 44px;
+  padding: 0 16px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: #229ED9;
+  color: #fff;
+  font-family: var(--font-sans);
+  font-size: 13px; font-weight: 700;
+}
+
 /* ===== HOVER (Mini App'da yo'q — faqat desktop uchun) ===== */
 @media (hover: hover) {
   .product-card:hover {

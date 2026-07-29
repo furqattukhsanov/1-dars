@@ -1,6 +1,6 @@
 # Sprint 3 — Auth + backend biznes logikasi (Dars 10–11)
 
-**Holat:** tugadi
+**Holat:** tugadi (2026-07-29 da saytdagi — lolamarket.uz — kirish oqimi bilan kengaytirildi)
 
 > ⚠️ **Moslashtirish izohi:** dars matni asli Supabase + Next.js (email magic link, RLS)
 > uchun edi. Biz esa **Telegram Mini App + o'z serverdagi PostgreSQL** stackda ishlaymiz,
@@ -28,6 +28,9 @@ ma'lumotdan aniqlanadi. Har kim faqat o'z buyurtmalarini ko'radi.
       mijoz yuborgan `uid` EMAS — eski `?uid=` hujum yo'li yopildi (401)
 - [x] Frontend auth oqimi: ochilganda `loginTelegram()`, so'rovlarga imzolangan header
 - [x] Izolyatsiya sinovi: ikki foydalanuvchi bir-birining buyurtmasini ko'rmasligi isbotlandi
+- [x] Saytda (lolamarket.uz) Telegram orqali kirish — bir martalik kod (deep-link) +
+      HttpOnly cookie sessiya; sayt xaridorida imzolangan `initData` yo'q, shuning uchun
+      Mini App'nikidan alohida oqim (2026-07-29 qo'shimcha)
 - [ ] ~~Telefon + SMS OTP~~ → Telegram identifikatsiyasi bilan almashtirildi (SMS shart emas)
 - [ ] Murakkab rollar (menejer/buxgalter), sotuvchi kabineti → Sprint 7 (Admin panel)
 - [ ] Postgres RLS → bu arxitekturada (bitta DB user) ixtiyoriy, API himoyasi yetarli
@@ -92,6 +95,44 @@ ma'lumotdan aniqlanadi. Har kim faqat o'z buyurtmalarini ko'radi.
   moderatsiya end-to-end (pending yashirin katalog 12 → nashr → 13 → tozalash → 12);
   xatolar `{ok:false,error}` + to'g'ri status; products yalang'och massiv; konsol xatosiz
 
+### Saytda (lolamarket.uz) Telegram orqali kirish
+
+- [2026-07-29] **Sayt xaridori endi Telegram orqali kira oladi — bir martalik kod (deep-link)
+  + HttpOnly cookie sessiya.** Muammo: saytda Telegram imzolagan `initData` yo'q, shuning uchun
+  006 dagi sayt buyurtmasi faqat telefon bilan yozilardi, `orders.tg_user_id` NULL qolardi va
+  `/tasdiqla`, `/yolga`, `/yetdi` buyruqlari "Telegram ID topilmadi" derdi. Oqim: (1) brauzer
+  `POST /api/auth/web/start` — server `code` va `verifier` yasaydi; (2) brauzer
+  `t.me/<bot>?start=web_<code>` ni ochadi; (3) foydalanuvchi botda "Boshlash" bosadi —
+  Telegram webhook'ga ID'ni **o'zi** yuboradi, ya'ni kimlik brauzerdan kelmaydi va
+  soxtalashtirib bo'lmaydi; (4) brauzer `GET /api/auth/web/poll` bilan code+verifier ni
+  sessiyaga almashtiradi. Yangi migratsiya `db/007_web_auth.sql` (idempotent):
+  `web_login_codes` (`code` + `verifier_hash`, `pending`/`confirmed`/`used`, 10 daqiqada
+  eskiradi), `web_sessions` (30 kun), `users.tg_username`. Yangi endpointlar:
+  `/api/auth/web/start`, `/api/auth/web/poll`, `/api/auth/web/me`, `/api/auth/web/logout`,
+  `GET /api/web/orders` (sessiyasiz 401). Eskirgan kodlar `start` da yo'l-yo'lakay tozalanadi —
+  alohida cron kerak emas
+- [2026-07-29] **Sayt buyurtmasi endi xaridorga bog'lanadi.** `POST /api/web-orders` cookie
+  sessiyasini o'qiydi va `orders.buyer_id` / `tg_user_id` / `tg_username` ni to'ldiradi
+  (Telegram ID mijozdan SO'RALMAYDI). Natijada: xaridorga buyurtma tasdig'i botda keladi,
+  `/tasdiqla`, `/yolga`, `/yetdi` sayt buyurtmalarida ham xaridorga xabar yuboradi, admin
+  xabarida `@username` va "xaridor Telegram'da" belgisi ko'rinadi (ilgari doim "telefon qiling")
+- [2026-07-29] **Botga yuborilgan telefon `users.phone` ga ham yoziladi** (ilgari faqat
+  `contacts.json` da qolardi, ya'ni saytdagi profil uni ko'rmasdi). Kirgandan keyin telefon
+  yo'q bo'lsa bot uni bir marta so'raydi; checkout formasi kirgan foydalanuvchida ism va
+  telefon bilan o'zi to'ladi. Yon nuqson tuzatildi — bitta kontakt xabariga ikkita javob
+  ketardi: `handleSellerApplicationContact()` endi `true`/`false` qaytaradi va sotuvchi arizasi
+  oqimi ishlagan bo'lsa umumiy javob yuborilmaydi
+- [2026-07-29] **Landing drawer'ida ikkita yangi ko'rinish** — Kirish (Telegram tugmasi,
+  tasdiqni kutish holati, bekor qilish) va Profil (ism/username, mening buyurtmalarim,
+  chiqish). Yangi sahifa yaratilmadi, mavjud drawer qayta ishlatildi. Savatdan kirilsa
+  kirishdan keyin checkout'ga qaytariladi (`afterLoginView`). Kesh-bust: `style.css?v=33`,
+  `script.js?v=19`
+- [2026-07-29] **Deploy holati (yakunlanmagan):** `db/007_web_auth.sql` production bazasiga
+  qo'llanildi, `BOT_USERNAME` `.env` ga qo'shildi, `server.js` serverga ko'chirildi. **Qolgani —
+  foydalanuvchi qo'lda bajaradi:** `lolamarket-notify` servisini restart qilish va nginx'ga
+  `/api/web/orders` proxy blokini qo'shish (`/api/web-orders` bloki buni qamramaydi).
+  Qadamlar va tekshiruv buyruqlari `server/README.md` da yozib qo'yildi
+
 ---
 
 ## Qarorlar
@@ -116,3 +157,19 @@ ma'lumotdan aniqlanadi. Har kim faqat o'z buyurtmalarini ko'radi.
   Telegram initData imzosini talab qiladi (yagona xavfsiz yo'l)
 - [2026-07-23] Qaror: backend kodi endi git repoda (`server/`) — sirlar YO'Q, faqat serverdagi
   `.env`da; ilgari server.js butunlay git tashqarisida edi, endi kod versiyalanadi
+- [2026-07-29] Qaror: saytdagi kirish uchun **Telegram Login Widget EMAS**, deep-link + bir
+  martalik kod. Sabab: widget BotFather'da domen sozlashni talab qiladi va ba'zi ichki
+  brauzerlarda (Instagram, Telegram) umuman ochilmaydi; deep-link esa telefonda bir bosishda
+  ishlaydi va mavjud botning o'zidan foydalanadi (yangi integratsiya kerak emas)
+- [2026-07-29] Qaror: kirish kodi **ikkita sirdan** iborat — `code` deep-link'da (Telegram
+  xabarida ko'rinadi, guruhga ulashilishi yoki yelka ortidan o'qilishi mumkin), `verifier` esa
+  faqat brauzerda qoladi va bazada sha256 shaklida saqlanadi. Kodni bilgan begona odam
+  sessiyani o'g'irlay olmasin uchun almashtirishda ikkalasi ham talab qilinadi
+- [2026-07-29] Qaror: sayt sessiya tokeni **HttpOnly cookie**da yuradi va bazada faqat sha256
+  shaklida saqlanadi. Admin panel tokenidan (`sessionStorage`) farqi shu: XSS bo'lsa ham
+  sahifadagi JS uni o'qiy olmaydi, baza nusxasi sizib chiqsa ham tayyor token chiqmaydi
+- [2026-07-29] Qaror: kimlik saytda ham hech qachon mijozdan olinmaydi — Telegram ID kodni
+  tasdiqlash paytida **webhook orqali Telegram'ning o'zidan** keladi (2026-07-23 dagi "uid
+  mijozdan olinmaydi" qarorining sayt uchun davomi)
+- [2026-07-29] Qaror: mavjud kodni taxmin qilib bo'lmasin uchun `poll` javobi bir xil bo'ladi —
+  topilmagan, eskirgan va allaqachon ishlatilgan kodning uchalasi ham `expired` deb qaytadi

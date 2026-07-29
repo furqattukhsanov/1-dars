@@ -159,10 +159,301 @@ function clearSearch() {
   inp?.focus();
 }
 
-/** Filtr tugmasi — kategoriya chiplarini yig'adi/ochadi */
-/* ── Kirish — hozircha faqat dizayn ── */
+/* ====================================================
+   TELEGRAM ORQALI KIRISH
+
+   Nega deep-link (bir martalik kod), Login Widget emas:
+     * widget BotFather'da domen sozlashni talab qiladi va ba'zi ichki
+       brauzerlarda (Instagram, Telegram) ochilmaydi;
+     * deep-link telefonda bir bosishda ishlaydi — Telegram ochiladi,
+       "Boshlash" bosiladi, sayt esa tasdiqni kutib turadi.
+
+   Telegram ID brauzerda HECH QACHON yasalmaydi: uni Telegram to'g'ridan-to'g'ri
+   bot webhook'iga yuboradi. Sessiya HttpOnly cookie'da — bu yerdagi JS uni
+   o'qiy olmaydi, faqat so'rovlar bilan birga ketadi.
+   ==================================================== */
+
+/** Kirgan foydalanuvchi: { name, username, phone, role } yoki null */
+let me = null;
+/** 'idle' | 'waiting' | 'error' */
+let loginState = 'idle';
+let loginErr = '';
+let loginSession = null;   // { code, verifier, url }
+let loginTimer = null;
+let loginDeadline = 0;
+/** Kirishdan keyin qaytadigan ko'rinish — checkout'dan kirilganda kerak */
+let afterLoginView = null;
+/** null — hali yuklanmoqda, [] — buyurtma yo'q */
+let myOrders = null;
+
+function apiJson(path, opts) {
+  return fetch(path, Object.assign({ credentials: 'same-origin' }, opts || {}))
+    .then((r) => r.json().catch(() => null));
+}
+
 function onLogin() {
-  showToast('Telegram orqali kirish tez orada qo\'shiladi');
+  if (me) {
+    drawerView = 'profile';
+    loadMyOrders();
+  } else {
+    drawerView = 'login';
+    loginState = 'idle';
+    loginErr = '';
+  }
+  renderDrawer();
+  openDrawerEl();
+}
+
+function startLogin() {
+  // Oyna BOSILGAN ZAHOTI ochiladi — so'rovdan keyin ochilsa brauzer uni
+  // popup deb bloklaydi. Manzil javob kelgach qo'yiladi.
+  const win = window.open('', '_blank');
+  loginState = 'waiting';
+  loginErr = '';
+  loginSession = null;
+  renderDrawer();
+
+  apiJson('/api/auth/web/start', { method: 'POST' })
+    .then((d) => {
+      if (!d || !d.ok || !d.url) throw new Error('start');
+      loginSession = d;
+      loginDeadline = Date.now() + (d.expiresIn || 600) * 1000;
+      if (win && !win.closed) win.location.href = d.url;
+      renderDrawer();   // havola tugmasi ko'rinsin (oyna bloklangan bo'lsa ham)
+      pollLogin();
+    })
+    .catch(() => {
+      if (win && !win.closed) win.close();
+      loginState = 'error';
+      loginErr = "Ulanib bo'lmadi. Internetni tekshiring va qaytadan urinib ko'ring.";
+      renderDrawer();
+    });
+}
+
+/** Navbatdagi so'rovni 2 soniyadan keyin rejalashtiradi */
+function pollLogin() {
+  clearTimeout(loginTimer);
+  loginTimer = setTimeout(pollLoginNow, 2000);
+}
+
+function pollLoginNow() {
+  clearTimeout(loginTimer);
+  if (loginState !== 'waiting' || !loginSession) return;
+  if (Date.now() > loginDeadline) {
+    loginState = 'error';
+    loginErr = "Kod muddati tugadi — qaytadan urinib ko'ring.";
+    loginSession = null;
+    renderDrawer();
+    return;
+  }
+  const q = `code=${encodeURIComponent(loginSession.code)}&verifier=${encodeURIComponent(loginSession.verifier)}`;
+  apiJson('/api/auth/web/poll?' + q)
+    .then((d) => {
+      if (d && d.status === 'confirmed') return onLoggedIn(d.user);
+      if (d && d.status === 'expired') {
+        loginState = 'error';
+        loginErr = "Kod muddati tugadi — qaytadan urinib ko'ring.";
+        loginSession = null;
+        renderDrawer();
+        return;
+      }
+      pollLogin();
+    })
+    .catch(() => pollLogin());
+}
+
+function cancelLogin() {
+  clearTimeout(loginTimer);
+  loginState = 'idle';
+  loginSession = null;
+  renderDrawer();
+}
+
+function onLoggedIn(user) {
+  clearTimeout(loginTimer);
+  me = user || null;
+  loginState = 'idle';
+  loginSession = null;
+  refreshAuthUi();
+  showToast(me && me.name ? `Xush kelibsiz, ${firstName(me.name)}!` : 'Kirdingiz');
+  // Checkout'dan kirgan bo'lsa — formaga qaytamiz, savat yo'qolmaydi
+  if (afterLoginView === 'checkout' && cartCount()) {
+    afterLoginView = null;
+    drawerView = 'checkout';
+    renderDrawer();
+    return;
+  }
+  afterLoginView = null;
+  drawerView = 'profile';
+  renderDrawer();
+  // Telegram'dan qaytgan foydalanuvchi natijani darhol ko'rsin
+  if (!isOpen()) openDrawerEl();
+  loadMyOrders();
+}
+
+/* Telegram'dan sahifaga qaytilganda tasdiqni kutib o'tirmaymiz — darhol
+   so'raymiz (fon tab'da taymer sekinlashadi). */
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && loginState === 'waiting' && loginSession) pollLoginNow();
+});
+
+function logout() {
+  apiJson('/api/auth/web/logout', { method: 'POST' }).catch(() => {});
+  me = null;
+  myOrders = null;
+  refreshAuthUi();
+  drawerView = 'login';
+  loginState = 'idle';
+  renderDrawer();
+  showToast('Hisobdan chiqdingiz');
+}
+
+/** Kirishdan keyin buyurtma formasiga qaytish uchun */
+function loginFromCheckout() {
+  afterLoginView = 'checkout';
+  drawerView = 'login';
+  loginState = 'idle';
+  renderDrawer();
+}
+
+function loadMyOrders() {
+  myOrders = null;
+  apiJson('/api/web/orders')
+    .then((d) => {
+      myOrders = d && d.ok && Array.isArray(d.orders) ? d.orders : [];
+    })
+    .catch(() => { myOrders = []; })
+    .then(() => {
+      if (isOpen() && drawerView === 'profile') renderDrawer();
+    });
+}
+
+function firstName(name) {
+  return String(name || '').trim().split(/\s+/)[0] || '';
+}
+
+function initials(name) {
+  const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return '?';
+  return (parts[0][0] + (parts[1] ? parts[1][0] : '')).toUpperCase();
+}
+
+/** Header va mobil nav tugmasi — kirgan bo'lsa ism ko'rsatiladi */
+function refreshAuthUi() {
+  const txt = document.querySelector('.login-txt');
+  if (txt) txt.textContent = me ? (firstName(me.name) || 'Profil') : 'Kirish';
+  const btn = document.getElementById('login-btn');
+  if (btn) {
+    btn.classList.toggle('is-in', !!me);
+    btn.setAttribute('aria-label', me ? 'Profil' : 'Kirish');
+  }
+  const mBtn = document.getElementById('m-tab-login');
+  if (mBtn) {
+    mBtn.classList.toggle('is-in', !!me);
+    mBtn.setAttribute('aria-label', me ? 'Profil' : 'Kirish');
+  }
+}
+
+/* Sahifa ochilganda sessiyani tiklaymiz — cookie serverda tekshiriladi */
+apiJson('/api/auth/web/me')
+  .then((d) => {
+    if (d && d.ok && d.user) {
+      me = d.user;
+      refreshAuthUi();
+    }
+  })
+  .catch(() => { /* server yo'q — sayt kirishsiz ham to'liq ishlaydi */ });
+
+/* ── Kirish va profil ekranlari ── */
+function loginHtml() {
+  if (loginState === 'waiting') {
+    return `
+      <div class="auth-wrap">
+        <div class="auth-spinner" aria-hidden="true"></div>
+        <div class="drawer-empty-title">Telegram'da tasdiqlang</div>
+        <div class="drawer-empty-sub">
+          Ochilgan botda <b>«Boshlash»</b> (Start) tugmasini bosing — shundan keyin
+          bu sahifa o'zi profilingizga o'tadi.
+        </div>
+        ${loginSession
+          ? `<a class="btn-tg" href="${loginSession.url}" target="_blank" rel="noopener">Telegramni ochish</a>`
+          : ''}
+        <button class="auth-ghost" onclick="cancelLogin()">Bekor qilish</button>
+      </div>`;
+  }
+
+  return `
+    <div class="auth-wrap">
+      <div class="auth-badge" aria-hidden="true">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M21.7 4.2 2.9 11.4c-1 .4-1 1.2-.1 1.5l4.7 1.5 1.8 5.4c.2.6.4.8 1 .4l2.6-2.1 4.7 3.5c.9.5 1.4.2 1.6-.8l3-14c.2-1-.4-1.4-1.5-1.1zM8.7 14.1 17.3 8c.4-.3.8-.1.5.2l-7.1 6.5-.3 3z"/></svg>
+      </div>
+      <div class="drawer-empty-title">Telegram orqali kirish</div>
+      <div class="drawer-empty-sub">
+        Parol ham, SMS ham kerak emas. Kirsangiz — buyurtmalaringiz bir joyda turadi
+        va holat o'zgarishi haqidagi xabar Telegram'ga keladi.
+      </div>
+      ${loginErr ? `<div class="co-err" style="margin-top:2px">${esc(loginErr)}</div>` : ''}
+      <button class="btn-tg" onclick="startLogin()">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M21.7 4.2 2.9 11.4c-1 .4-1 1.2-.1 1.5l4.7 1.5 1.8 5.4c.2.6.4.8 1 .4l2.6-2.1 4.7 3.5c.9.5 1.4.2 1.6-.8l3-14c.2-1-.4-1.4-1.5-1.1zM8.7 14.1 17.3 8c.4-.3.8-.1.5.2l-7.1 6.5-.3 3z"/></svg>
+        Telegram orqali kirish
+      </button>
+      <div class="co-hint" style="text-align:center;max-width:290px">
+        Biz faqat ismingiz va Telegram'dagi nomingizni ko'ramiz. Yozishmalaringizga
+        kirish imkonimiz yo'q.
+      </div>
+    </div>`;
+}
+
+const ORDER_STATUS = {
+  pending:   { label: 'Kutilmoqda',     tone: 'wait' },
+  confirmed: { label: 'Tasdiqlandi',    tone: 'ok'   },
+  shipped:   { label: "Yo'lda",         tone: 'ok'   },
+  delivered: { label: 'Yetkazildi',     tone: 'ok'   },
+  completed: { label: 'Yakunlandi',     tone: 'ok'   },
+  disputed:  { label: 'Bahsli',         tone: 'warn' },
+  refunded:  { label: 'Qaytarildi',     tone: 'warn' },
+  cancelled: { label: 'Bekor qilindi',  tone: 'warn' },
+};
+
+function profileHtml() {
+  const u = me || {};
+  const orders = myOrders === null
+    ? `<div class="co-hint" style="text-align:center;padding:14px 0">Yuklanmoqda…</div>`
+    : !myOrders.length
+      ? `<div class="co-hint" style="text-align:center;padding:14px 0">
+           Hozircha buyurtma yo'q. Katalogdan mato tanlab birinchi buyurtmangizni bering.
+         </div>`
+      : myOrders.map(orderRowHtml).join('');
+
+  return `
+    <div class="profile-card">
+      <div class="profile-ava" aria-hidden="true">${esc(initials(u.name))}</div>
+      <div class="profile-main">
+        <div class="profile-name">${esc(u.name || 'Xaridor')}</div>
+        ${u.username ? `<div class="profile-sub">@${esc(u.username)}</div>` : ''}
+        ${u.phone ? `<div class="profile-sub">${esc(u.phone)}</div>` : ''}
+      </div>
+    </div>
+
+    <div class="profile-sec-title">Mening buyurtmalarim</div>
+    ${orders}
+
+    <button class="auth-ghost" style="margin-top:18px;width:100%" onclick="logout()">Hisobdan chiqish</button>`;
+}
+
+function orderRowHtml(o) {
+  const st = ORDER_STATUS[o.status] || { label: o.status, tone: 'wait' };
+  return `
+    <div class="order-row">
+      <div class="order-row-top">
+        <span class="order-row-id">${esc(o.id)}</span>
+        <span class="order-tag ${st.tone}">${esc(st.label)}</span>
+      </div>
+      <div class="order-row-bot">
+        <span>${esc(o.date || '')}</span>
+        <span class="order-row-sum">${o.total === null ? '' : money(o.total)}</span>
+      </div>
+    </div>`;
 }
 
 /* ── Toast ── */
@@ -470,6 +761,20 @@ function renderDrawer() {
     return;
   }
 
+  if (drawerView === 'login') {
+    title.textContent = 'Kirish';
+    body.innerHTML = loginHtml();
+    foot.hidden = true;
+    return;
+  }
+
+  if (drawerView === 'profile') {
+    title.textContent = 'Profil';
+    body.innerHTML = profileHtml();
+    foot.hidden = true;
+    return;
+  }
+
   if (drawerView === 'fav') {
     title.textContent = 'Saralanganlar';
     foot.hidden = true;
@@ -595,14 +900,23 @@ function checkoutHtml() {
       </div>
     </div>
 
+    ${me ? '' : `
+      <div class="co-login">
+        <div class="co-login-txt">
+          <b>Telegram orqali kiring</b> — ism va telefon o'zi to'ladi, buyurtma
+          holati esa botga xabar bo'lib keladi.
+        </div>
+        <button type="button" class="co-login-btn" onclick="loginFromCheckout()">Kirish</button>
+      </div>`}
+
     <form id="co-form" onsubmit="submitOrder(event)" style="margin-top:16px" novalidate>
       <div class="co-field">
         <label class="co-label" for="co-name">Ismingiz *</label>
-        <input class="co-input" id="co-name" type="text" autocomplete="name" placeholder="Ism familiya" required />
+        <input class="co-input" id="co-name" type="text" autocomplete="name" placeholder="Ism familiya" value="${me && me.name ? esc(me.name) : ''}" required />
       </div>
       <div class="co-field">
         <label class="co-label" for="co-phone">Telefon *</label>
-        <input class="co-input" id="co-phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="+998 90 123 45 67" required />
+        <input class="co-input" id="co-phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="+998 90 123 45 67" value="${me && me.phone ? esc(me.phone) : ''}" required />
         <div class="co-hint">Buyurtmani tasdiqlash uchun shu raqamga bog'lanamiz.</div>
       </div>
       <div class="co-field">
@@ -625,7 +939,9 @@ function checkoutHtml() {
         Buyurtmani yuborish
       </button>
       <div class="co-hint" style="text-align:center;margin-top:10px">
-        Buyurtma Telegram orqali bizga yetib boradi — to'lov hozir olinmaydi.
+        ${me
+          ? "Buyurtma holati Telegram'dagi hisobingizga xabar bo'lib keladi — to'lov hozir olinmaydi."
+          : "Buyurtma Telegram orqali bizga yetib boradi — to'lov hozir olinmaydi."}
       </div>
     </form>`;
 }
@@ -660,8 +976,11 @@ function submitOrder(e) {
   btn.disabled = true;
   btn.textContent = 'Yuborilmoqda…';
 
+  // credentials — sessiya cookie'si bilan ketsin: server shundan xaridorning
+  // Telegram ID'sini biladi va buyurtmani uning hisobiga bog'laydi.
   fetch('/api/web-orders', {
     method: 'POST',
+    credentials: 'same-origin',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ items, buyerName: name, phone, company, address, comment }),
   })
@@ -679,6 +998,8 @@ function submitOrder(e) {
       renderAllCardActions();
       drawerView = 'done';
       renderDrawer();
+      // Profil ro'yxati eskirmasin — kirgan bo'lsa qaytadan o'qiymiz
+      if (me) loadMyOrders();
     })
     .catch((e) => {
       btn.disabled = false;
@@ -698,12 +1019,17 @@ function doneHtml() {
       <div class="drawer-done-title">Buyurtmangiz qabul qilindi</div>
       <div class="order-id">${lastOrderId}</div>
       <div class="drawer-done-sub" style="margin-top:6px">
-        Tez orada ko'rsatilgan telefon raqamingizga bog'lanamiz.
-        Buyurtma holatini Telegram bot orqali ham kuzatishingiz mumkin.
+        ${me
+          ? "Tez orada ko'rsatilgan telefon raqamingizga bog'lanamiz. Holat o'zgarganda Telegram'ga xabar keladi."
+          : "Tez orada ko'rsatilgan telefon raqamingizga bog'lanamiz. Buyurtma holatini Telegram bot orqali ham kuzatishingiz mumkin."}
       </div>
-      <a class="cta-bot-btn" style="margin-top:16px;height:44px;font-size:14px;background:var(--grad-pom);color:var(--pom-100)" href="https://t.me/lolamarketbot" target="_blank" rel="noopener">
-        Botni ochish
-      </a>
+      ${me
+        ? `<button class="cta-bot-btn" style="margin-top:16px;height:44px;font-size:14px;background:var(--grad-pom);color:var(--pom-100)" onclick="onLogin()">
+             Buyurtmalarim
+           </button>`
+        : `<a class="cta-bot-btn" style="margin-top:16px;height:44px;font-size:14px;background:var(--grad-pom);color:var(--pom-100)" href="https://t.me/lolamarketbot" target="_blank" rel="noopener">
+             Botni ochish
+           </a>`}
     </div>`;
 }
 

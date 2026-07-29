@@ -333,6 +333,11 @@
     <div id="faoliyat-list">
       <div class="faoliyat-item">
         <span class="faoliyat-sana">2026-07-29</span>
+        <span class="faoliyat-text">Sayt xaridori endi lolamarket.uz'ga Telegram orqali kira oladi. Muammo shu edi: saytda Telegram imzolagan initData yo'q (u Mini App ichida emas), shuning uchun saytdan berilgan buyurtmada orders.tg_user_id bo'sh qolardi va /tasdiqla, /yolga, /yetdi buyruqlari xaridorga xabar yubora olmasdi — "Telegram ID topilmadi" derdi, admin esa telefon qilishga majbur edi. Yechim — bir martalik kod oqimi: sayt kod yaratadi, brauzer t.me/bot?start=web_KOD havolasini ochadi, foydalanuvchi botda "Boshlash" bosadi va Telegram ID webhook orqali TELEGRAM'NING O'ZIDAN keladi, brauzerdan emas — ya'ni soxtalashtirib bo'lmaydi. Xavfsizlik yechimlari: kod ikkita sirdan iborat (code deep-link'da ko'rinadi, verifier faqat brauzerda qoladi va bazada sha256 shaklida) — kodni ko'rgan begona odam sessiyani o'g'irlay olmasin; sessiya tokeni HttpOnly cookie'da yuradi (sahifadagi JS o'qiy olmaydi) va bazada faqat sha256 shaklida saqlanadi; poll javobi topilmagan, eskirgan va ishlatilgan kodning uchalasiga ham bir xil "expired" qaytaradi, shunda mavjud kodlarni taxmin qilib bo'lmaydi. Telegram Login Widget ATAYLAB olinmadi — u BotFather'da domen sozlashni talab qiladi va Instagram/Telegram ichki brauzerlarida ochilmaydi. Yangi migratsiya 007: web_login_codes (10 daqiqa), web_sessions (30 kun), users.tg_username. Yangi endpointlar: /api/auth/web/start, /poll, /me, /logout va /api/web/orders (sessiyasiz 401). Natija: kirgan xaridorning buyurtmasida buyer_id, tg_user_id va tg_username to'ladi — holat o'zgarishi endi unga botda avtomatik boradi, admin xabarida @username ko'rinadi; botga yuborilgan telefon users.phone ga ham yoziladi (ilgari faqat contacts.json'da qolardi), shuning uchun checkout formasi ism va telefon bilan o'zi to'ladi. Landing drawer'iga ikkita ko'rinish qo'shildi — Kirish va Profil (mening buyurtmalarim, chiqish); yangi sahifa yaratilmadi. Yon nuqson tuzatildi: bitta kontakt xabariga bot ikkita javob yuborardi. Kesh-bust: style.css v33, script.js v19. HALI QILINMAGANI: production'da servis restart qilinmagan va nginx'ga /api/web/orders proxy bloki qo'shilmagan — qadamlar server/README.md da</span>
+        <span class="faoliyat-sprint">Sprint 3</span>
+      </div>
+      <div class="faoliyat-item">
+        <span class="faoliyat-sana">2026-07-29</span>
         <span class="faoliyat-text">Landing katalogining boshiga, kategoriya chiplaridan yuqoriga uch slaydli reklama banneri (karusel) qo'shildi. Har slaydning o'z rasmi, sarlavhasi va tugmasi bor: (1) "Tasdiqlangan fabrikalardan to'g'ridan-to'g'ri" — mahsulot to'riga skroll; (2) "Gulli naqsh — ipak kolleksiya" — Ipak kategoriya chipini bosib katalogni filtrlaydi; (3) "Telegram orqali ham buyurtma bering" — botga tashqi havola. Yangi ekran ham, yangi kategoriya ham yaratilmadi: banner faqat mavjud katalog holatini o'zgartiradi, shuning uchun sahifa tuzilmasi va SEO tegilmadi. Mexanika: slaydlar bir-birining ustida turadi va opacity bilan 5 soniyada almashadi, faol rasmda sekin Ken Burns zumi; aylanish sichqoncha ustida, klaviatura fokusida va tab ko'rinmay qolganda to'xtaydi (orqa fonda behuda ishlamasin), telefonda chapga/o'ngga surish ishlaydi; prefers-reduced-motion bo'lsa taymer umuman ishga tushmaydi. Dizayn founder fikri bilan sozlandi — banner ataylab YORUG': rasm ustiga oq parda tushadi va matn to'q rangda, klassik to'q fon + oq matn uslubi rad etildi (sahifaning qolgani krem/oq, to'q banner yopishtirilgan reklamadek ko'rinardi); tugma esa teskari — anor fon, och matn, saytdagi boshqa tugmalar bilan bir xil yumshoq soyada. "Reklama" yorlig'i ataylab qo'yilmadi: bu uchinchi tomon reklamasi emas, LolaMarket'ning o'z taklifi. Kirish imkoniyati: role=region + aria-roledescription, nofaol slaydlar aria-hidden, nuqtalar tablist/tab va aria-selected bilan, har nuqtaning bosish maydoni 44px balandlikda (27-iyuldagi 44px qoidasiga muvofiq). Mobilda (≤640px) balandlik 250px va izoh matni yashiriladi. Rasm yuklash: 1-slayd fetchpriority=high (LCP), qolgani lazy. Brauzerda 320 / 768 / 1280px da tekshirildi — uchala rasm yuklandi, nuqtalar slaydni to'g'ri almashtiradi, ipak tugmasi chipni faollashtirib 2 ta mahsulotni qoldiradi, 320px'da gorizontal toshib ketish yo'q, 0 konsol xatosi. Kesh-bust: style.css v31, script.js v18. Hali qilinmagani: production'ga deploy</span>
         <span class="faoliyat-sprint">Sprint 0</span>
       </div>
@@ -608,7 +613,7 @@
     { num: 0, nom: "Dizayn va ekranlar",        dars: "Dars 7",  holat: "tugadi",  sana: "2026-07-29" },
     { num: 1, nom: "Telegram Mini App MVP",     dars: "Dars 8",  holat: "tugadi",  sana: "2026-07-25" },
     { num: 2, nom: "Ma'lumotlar bazasi / Backend", dars: "Dars 9",  holat: "tugadi", sana: "2026-07-23" },
-    { num: 3, nom: "Foydalanuvchilar + rollar", dars: "Dars 10", holat: "tugadi", sana: "2026-07-23" },
+    { num: 3, nom: "Foydalanuvchilar + rollar", dars: "Dars 10", holat: "tugadi", sana: "2026-07-29" },
     { num: 4, nom: "Asosiy funksiya",           dars: "Dars 11", holat: "jarayonda",  sana: "2026-07-29" },
     { num: 5, nom: "Mobil / PWA",               dars: "Dars 12", holat: "jarayonda",  sana: "2026-07-29" },
     { num: 6, nom: "Integratsiyalar",           dars: "Dars 13", holat: "jarayonda",  sana: "2026-07-22" },
@@ -635,7 +640,7 @@
   barEl.style.width = foiz + "%";
   percentEl.textContent = foiz + "%";
   countEl.textContent = tugaganlar + " / " + sprintlar.length + " sprint";
-  updatedEl.textContent = "Yangilanish: 2026-07-29 (Sprint 0 — landing katalogining boshiga uch slaydli reklama banneri qo'shildi)";
+  updatedEl.textContent = "Yangilanish: 2026-07-29 (Sprint 3 — saytga Telegram orqali kirish qo'shildi: deep-link kod + cookie sessiya)";
 
   sprintlar.forEach(s => {
     const card = document.createElement("div");
