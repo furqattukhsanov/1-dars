@@ -88,11 +88,16 @@ Ya'ni nosozlik "muvaffaqiyat" niqobi ostida keladi: brauzer xato ko'rsatmaydi,
 javob shunchaki JSON emas, HTML bo'ladi. `/api/version` bilan aynan shu bo'ldi —
 kod yozilgan, testdan o'tgan, deploy qilingan, lekin **ishlamagan**.
 
-**Yechim — bitta umumiy blok.** Alohida bloklar o'rniga:
+**Yechim (2026-07-30 da qo'llandi) — umumiy blok QO'SHILADI, eskilari
+o'chirilmaydi.** nginx eng uzun mos prefiksni tanlaydi, shuning uchun mavjud
+`location /api/orders` kabi aniq bloklar baribir ustun turadi — ularning
+xatti-harakati zarracha o'zgarmaydi. Yangi blok faqat hech qaysi blokka
+tushmagan yo'llarni ushlaydi:
 
 ```nginx
 # /etc/nginx/sites-available/lolamarket
-location /api/ {
+# Mavjud /api bloklaridan KEYIN, static (location /) blokidan OLDIN
+location ^~ /api/ {
     proxy_pass http://127.0.0.1:3001;
     proxy_http_version 1.1;
     proxy_set_header Host              $host;
@@ -107,11 +112,15 @@ Shundan keyin **yangi endpoint uchun nginx tahriri boshqa kerak bo'lmaydi**.
 
 > `X-Real-IP` qatorini tushirib qoldirmang — usiz barcha foydalanuvchi server
 > uchun `127.0.0.1` bo'lib ko'rinadi va rate limit hammani birga bloklaydi.
+>
+> `^~` — statik fayllar uchun regex `location` bo'lsa, u `/api/` yo'llarini
+> tortib olmasligi uchun.
 
 Qo'llash:
 
 ```bash
-sudo nano /etc/nginx/sites-available/lolamarket   # eski /api bloklarini bittaga almashtiring
+sudo cp /etc/nginx/sites-available/lolamarket /etc/nginx/sites-available/lolamarket.bak-$(date +%Y%m%d-%H%M%S)
+sudo nano /etc/nginx/sites-available/lolamarket   # yuqoridagi blokni QO'SHING (eskilarini o'chirmang)
 sudo nginx -t                                     # sintaksis tekshiruvi
 sudo systemctl reload nginx
 ```

@@ -42,10 +42,20 @@ async function main() {
 
   const results = await Promise.all(routes.map(async (p) => ({ path: p, ...(await head(p)) })));
 
+  // Uch xil natijani ajratamiz. Tarmoq uzilishini "nginx uzatmadi" deb
+  // ko'rsatish xato bo'lardi — u odamni bekorga nginx tahririga yuboradi.
   const reachable = results.filter((r) => /json/i.test(r.type));
-  const blocked = results.filter((r) => !/json/i.test(r.type));
+  const netError  = results.filter((r) => !/json/i.test(r.type) && r.status === 0);
+  const blocked   = results.filter((r) => !/json/i.test(r.type) && r.status !== 0);
 
   reachable.forEach((r) => console.log(`  ✅ ${r.path}  (${r.status})`));
+
+  if (netError.length) {
+    console.log('');
+    netError.forEach((r) => console.log(`  ⚠️  ${r.path}  — tarmoq javob bermadi (${r.type})`));
+    console.log('\n⚠️  Tarmoq nosozligi — bu nginx muammosi EMAS. Qayta yuguring.\n');
+    process.exit(2);
+  }
 
   if (blocked.length) {
     console.log('');
