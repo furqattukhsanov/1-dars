@@ -27,17 +27,25 @@ jobs:
       # order-status) o'chirib yuborardi va har push'da Telegram bildirishnomalarini
       # ishdan chiqarardi. Nginx konfiguratsiyasi endi faqat qo'lda boshqariladi —
       # kanonik nusxa: /etc/nginx/sites-available/lolamarket (serverda).
-      - name: Verify nginx /api proxies survived
+      # Tekshiruv FUNKSIONAL — konfiguratsiyadagi matnni sanamaydi.
+      # Sabab: ilgari bu yerda `grep -c 'location /api'` >= 4 sharti bor edi.
+      # U nginx qanday yozilganiga bog'liq edi: bloklar bitta umumiy
+      # `location /api/` ga birlashtirilsa, sanoq 1 ga tushib CI qulardi va
+      # butun deploy to'xtardi — nginx aslida TO'G'RI ishlayotgan bo'lsa ham.
+      # Endi haqiqiy so'rov yuboriladi: javob JSON bo'lsa proxy ishlayapti.
+      - name: Verify nginx /api proxy works
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SERVER_IP }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            COUNT=$(grep -c 'location /api' /etc/nginx/sites-available/lolamarket || echo 0)
-            echo "nginx /api bloklari: $COUNT (kutilgan: 4)"
-            if [ "$COUNT" -lt 4 ]; then
-              echo "::error::nginx /api proxy bloklari yo'qolgan — Telegram bildirishnomalari ishlamaydi!"
-              exit 1
-            fi
-            echo "✅ Deploy tugadi, nginx /api proxylari joyida"
+            CT=$(curl -s -o /dev/null -w '%{content_type}' -H 'Host: lolamarket.uz' http://127.0.0.1/api/products)
+            echo "nginx → /api/products javob turi: $CT"
+            case "$CT" in
+              application/json*)
+                echo "✅ nginx /api proxy ishlayapti" ;;
+              *)
+                echo "::error::/api/products JSON qaytarmadi ($CT) — nginx proxy yoki lolamarket-notify servisi ishlamayapti!"
+                exit 1 ;;
+            esac

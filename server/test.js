@@ -2,6 +2,7 @@ const crypto = require('crypto');
 const assert = require('assert');
 const http = require('http');
 const { verifyInitData } = require('./lib/telegram-auth');
+const { readRoutes } = require('./lib/routes-list');
 
 // ============ TESTLAR ============
 // Ishga tushirish: npm test
@@ -137,31 +138,10 @@ function testVerifyInitDataStale() {
 // tekshiruv DB'siz va sirlarsiz ishlaydi — refaktoring paytida route
 // yo'qolib qolmaganini aniq ko'rsatadi.
 
-const ROUTES = [
-  '/api/version',
-  '/api/auth/telegram',
-  '/api/auth/web/start',
-  '/api/auth/web/poll',
-  '/api/auth/web/me',
-  '/api/auth/web/logout',
-  '/api/web/orders',
-  '/api/products',
-  '/api/admin/moderation',
-  '/api/admin/summary',
-  '/api/admin/action',
-  '/api/admin/disputes',
-  '/api/admin/dispute-photo',
-  '/api/disputes',
-  '/api/seller/dispute',
-  '/api/orders',
-  '/api/web-orders',
-  '/api/me',
-  '/api/seller/products',
-  '/api/seller/orders',
-  '/api/telegram-notify',
-  '/api/order-status',
-  '/api/telegram-contact',
-];
+// Ro'yxat router'ning O'ZIDAN o'qiladi — qo'lda yozilgani eskiradi.
+// Webhook alohida: u faqat POST qabul qiladi, OPTIONS shohbasi yo'q.
+const WEBHOOK = '/api/telegram-webhook';
+const ROUTES = readRoutes().filter((p) => p !== WEBHOOK);
 
 function request(port, method, path, payload) {
   return new Promise((resolve, reject) => {

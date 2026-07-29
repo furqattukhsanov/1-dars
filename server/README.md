@@ -77,6 +77,54 @@ ssh root@65.21.180.44 "journalctl -u lolamarket-notify -n 20 --no-pager"
 ssh root@65.21.180.44 "rm -rf /opt/lolamarket-notify && mv /opt/lolamarket-notify.bak-<sana> /opt/lolamarket-notify && systemctl restart lolamarket-notify"
 ```
 
+## nginx: `/api` yo'llari (⚠️ 2026-07-29 da muammo topildi)
+
+**Muammo:** nginx'da har bir `/api/...` yo'li ALOHIDA `location` bloki bilan
+yozilgan. Router'ga yangi endpoint qo'shilsa-yu nginx'ga qo'shilmasa — so'rov
+serverga umuman yetib bormaydi. nginx o'rniga `index.html` ni qaytaradi va
+**HTTP 200** beradi.
+
+Ya'ni nosozlik "muvaffaqiyat" niqobi ostida keladi: brauzer xato ko'rsatmaydi,
+javob shunchaki JSON emas, HTML bo'ladi. `/api/version` bilan aynan shu bo'ldi —
+kod yozilgan, testdan o'tgan, deploy qilingan, lekin **ishlamagan**.
+
+**Yechim — bitta umumiy blok.** Alohida bloklar o'rniga:
+
+```nginx
+# /etc/nginx/sites-available/lolamarket
+location /api/ {
+    proxy_pass http://127.0.0.1:3001;
+    proxy_http_version 1.1;
+    proxy_set_header Host              $host;
+    proxy_set_header X-Real-IP         $remote_addr;   # rate limit shunga tayanadi
+    proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_read_timeout 30s;
+}
+```
+
+Shundan keyin **yangi endpoint uchun nginx tahriri boshqa kerak bo'lmaydi**.
+
+> `X-Real-IP` qatorini tushirib qoldirmang — usiz barcha foydalanuvchi server
+> uchun `127.0.0.1` bo'lib ko'rinadi va rate limit hammani birga bloklaydi.
+
+Qo'llash:
+
+```bash
+sudo nano /etc/nginx/sites-available/lolamarket   # eski /api bloklarini bittaga almashtiring
+sudo nginx -t                                     # sintaksis tekshiruvi
+sudo systemctl reload nginx
+```
+
+### Tekshirish
+
+```bash
+cd server && npm run check:live
+```
+
+Bu skript router'dagi **har bir** yo'lni production'da sinaydi va serverga
+yetib bormaganini ko'rsatadi. Yashil bo'lsa — nginx to'g'ri sozlangan.
+
 ## Env o'zgaruvchilari (`.env` serverda)
 
 | Nom | Tavsif |

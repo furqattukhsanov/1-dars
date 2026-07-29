@@ -5,6 +5,7 @@
   "scripts": {
     "lint": "eslint .",
     "test": "eslint . && node test.js",
+    "check:live": "node check-live.js",
     "start": "node server.js"
   },
   "keywords": [],
