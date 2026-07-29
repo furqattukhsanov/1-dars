@@ -1,6 +1,7 @@
 # Sprint 3 — Auth + backend biznes logikasi (Dars 10–11)
 
-**Holat:** tugadi (2026-07-29 da saytdagi — lolamarket.uz — kirish oqimi bilan kengaytirildi)
+**Holat:** tugadi — 2026-07-29 da saytdagi (lolamarket.uz) kirish oqimi qo'shildi, deploy
+yakunlandi va production'da uchidan-uchiga sinovdan o'tdi (ISHLADI)
 
 > ⚠️ **Moslashtirish izohi:** dars matni asli Supabase + Next.js (email magic link, RLS)
 > uchun edi. Biz esa **Telegram Mini App + o'z serverdagi PostgreSQL** stackda ishlaymiz,
@@ -127,11 +128,15 @@ ma'lumotdan aniqlanadi. Har kim faqat o'z buyurtmalarini ko'radi.
   chiqish). Yangi sahifa yaratilmadi, mavjud drawer qayta ishlatildi. Savatdan kirilsa
   kirishdan keyin checkout'ga qaytariladi (`afterLoginView`). Kesh-bust: `style.css?v=33`,
   `script.js?v=19`
-- [2026-07-29] **Deploy holati (yakunlanmagan):** `db/007_web_auth.sql` production bazasiga
-  qo'llanildi, `BOT_USERNAME` `.env` ga qo'shildi, `server.js` serverga ko'chirildi. **Qolgani —
-  foydalanuvchi qo'lda bajaradi:** `lolamarket-notify` servisini restart qilish va nginx'ga
-  `/api/web/orders` proxy blokini qo'shish (`/api/web-orders` bloki buni qamramaydi).
-  Qadamlar va tekshiruv buyruqlari `server/README.md` da yozib qo'yildi
+- [2026-07-29] **Deploy tugadi — production'da ishlayapti.** `db/007_web_auth.sql` production
+  bazasiga qo'llanildi, `BOT_USERNAME` `.env` ga qo'shildi, `server.js` serverga ko'chirildi,
+  `lolamarket-notify` servisi restart qilindi, nginx'ga `/api/web/orders` proxy bloki qo'shildi
+  (`/api/web-orders` bloki uni qamramasdi) va statik fayllar (`index.html`, `style.css?v=33`,
+  `script.js?v=19`) saytga chiqarildi. Qadamlar `server/README.md` da yozib qo'yilgan edi
+- [2026-07-29] **Production'da uchidan-uchiga sinaldi — ISHLADI.** Kirish oqimi haqiqiy
+  telefonda tekshirildi: lolamarket.uz → Kirish → botda "Boshlash" → sayt profilga o'tdi;
+  bazada 1 ta faol sessiya (`web_sessions`) bor, `users.tg_username` to'ldi. Ya'ni Sprint 3
+  ning saytdagi kirish qismi endi faqat kod emas, **production'da tasdiqlangan** holatda
 
 ---
 
@@ -173,3 +178,10 @@ ma'lumotdan aniqlanadi. Har kim faqat o'z buyurtmalarini ko'radi.
   mijozdan olinmaydi" qarorining sayt uchun davomi)
 - [2026-07-29] Qaror: mavjud kodni taxmin qilib bo'lmasin uchun `poll` javobi bir xil bo'ladi —
   topilmagan, eskirgan va allaqachon ishlatilgan kodning uchalasi ham `expired` deb qaytadi
+- [2026-07-29] Qaror: yuqoridagi kimlik qoidalari `CLAUDE.md` ning arxitektura bo'limiga
+  doimiy qoida sifatida yozildi — **foydalanuvchi kimligi hech qachon brauzerdan olinmaydi**
+  (Mini App'da imzolangan `initData`, saytda bir martalik kod orqali Telegram webhook'i),
+  klient yuborgan `tg_user_id` ga ishonadigan endpoint qo'shilmasin, sayt sessiyasi HttpOnly
+  cookie'da yuradi va bazada faqat `sha256` shaklida saqlanadi. Sabab: bu qaror bitta sprint
+  ichidagi tafsilot emas, keyingi barcha endpointlarga tegishli — sprint faylida qolsa
+  unutiladi

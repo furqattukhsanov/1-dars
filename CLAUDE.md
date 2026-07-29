@@ -18,6 +18,12 @@
   to'g'ridan-to'g'ri DB'ga yozadigan endpoint qo'shilmasin.
 - **Panelda o'ylab topilgan raqam ko'rsatilmasin.** Ma'lumot bazadan kelmasa,
   o'sha blok umuman ko'rsatilmaydi (mock raqam yoki soxta trend foizi emas).
+- **Foydalanuvchi kimligi hech qachon brauzerdan olinmaydi** (2026-07-29).
+  Mini App'da — imzolangan `initData`, saytda — bir martalik kod: Telegram ID
+  bot webhook'iga Telegram'ning O'ZI yuboradi. Klient yuborgan `tg_user_id` ga
+  ishonadigan endpoint qo'shilmasin. Sayt sessiyasi HttpOnly cookie'da yuradi
+  va bazada faqat `sha256` shaklida saqlanadi (panel tokenidan farqi shu —
+  u `sessionStorage`da yashaydi va XSS'da o'g'irlanishi mumkin).
 
 ## Loyiha haqida
 
