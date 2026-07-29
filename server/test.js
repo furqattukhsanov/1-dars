@@ -1,9 +1,15 @@
 const crypto = require('crypto');
 const assert = require('assert');
+const { verifyInitData } = require('./lib/telegram-auth');
 
 // ============ TESTLAR ============
 // npm test orqali ishga tushirish uchun: npm install && npm test
 // Hozir: node test.js (o'chirilmasin — keyingi xona test runner integratsiyalashadi)
+//
+// MUHIM: verifyInitData shu yerda qayta yozilmagan — lib/telegram-auth.js dan
+// import qilinadi, xuddi server.js import qilgani kabi. Shunday qilib testlar
+// production kodning bir xil nusxasini tekshiradi, alohida yozilgan
+// "o'xshash" versiyani emas.
 
 const BOT_TOKEN = 'test-bot-token-12345';
 
@@ -12,16 +18,24 @@ const BOT_TOKEN = 'test-bot-token-12345';
 // Kutiladi: prepay = 500 000, rest = 500 000
 function testPrepayCalculation() {
   const PREPAY_RATE = 0.5;
-  const total = 1_000_000;
 
-  const prepay = Math.round(total * PREPAY_RATE);
-  const rest = total - prepay;
+  const total1 = 1_000_000;
+  const prepay1 = Math.round(total1 * PREPAY_RATE);
+  const rest1 = total1 - prepay1;
+  assert.strictEqual(prepay1, 500_000, 'prepay 50% bo\'lishi kerak');
+  assert.strictEqual(rest1, 500_000, 'rest 50% bo\'lishi kerak');
 
-  assert.strictEqual(prepay, 500_000, 'prepay 50% bo\'lishi kerak');
-  assert.strictEqual(rest, 500_000, 'rest 50% bo\'lishi kerak');
-  assert.strictEqual(prepay + rest, total, 'prepay + rest jami summa bo\'lishi kerak');
+  // Toq summa — Math.round yaxlitlashi va rest hech qachon manfiy/noaniq
+  // bo'lmasligini tekshiradi (rest = total - prepay formulasi bilan emas,
+  // aniq kutilgan sonlar bilan)
+  const total2 = 333_333;
+  const prepay2 = Math.round(total2 * PREPAY_RATE);
+  const rest2 = total2 - prepay2;
+  assert.strictEqual(prepay2, 166_667, 'toq summada prepay to\'g\'ri yaxlitlanishi kerak');
+  assert.strictEqual(rest2, 166_666, 'toq summada rest to\'g\'ri qolishi kerak');
+  assert.strictEqual(prepay2 + rest2, total2, 'prepay + rest jami summaga teng bo\'lishi kerak');
 
-  console.log('✅ Test 1: Prepay hisobi — PASS (prepay=500k, rest=500k)');
+  console.log('✅ Test 1: Prepay hisobi — PASS (500k/500k va toq summa 333333)');
 }
 
 // ============ TEST 2: Komissiya hisobi ============
@@ -46,39 +60,8 @@ function testCommissionCalculation() {
 // 1. Barcha kalit=qiymatlarni alifbo tartibida \n bilan birlashtiramiz (hash olmang)
 // 2. Bot tokendan secretKey yaratamiz: HMAC-SHA256(BOT_TOKEN, "WebAppData")
 // 3. secretKey orqali dataCheckString'ni HMAC-SHA256 qilamiz → hash
-// 4. Imzo taqqoslanadi (timingsafeequal)
-
-function verifyInitData(initData, botToken, maxAgeSec = 86400) {
-  try {
-    if (!initData || typeof initData !== 'string') return null;
-    const params = new URLSearchParams(initData);
-    const hash = params.get('hash');
-    if (!hash) return null;
-    params.delete('hash');
-
-    const pairs = [];
-    for (const [k, v] of params) pairs.push(`${k}=${v}`);
-    pairs.sort();
-    const dataCheckString = pairs.join('\n');
-
-    const secretKey = crypto.createHmac('sha256', 'WebAppData').update(botToken).digest();
-    const computed = crypto.createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
-
-    const a = Buffer.from(computed, 'hex');
-    const b = Buffer.from(hash, 'hex');
-    if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return null;
-
-    // auth_date eskirganmi?
-    const authDate = parseInt(params.get('auth_date') || '0', 10);
-    if (maxAgeSec && authDate && Date.now() / 1000 - authDate > maxAgeSec) return null;
-
-    const userJson = params.get('user');
-    if (!userJson) return null;
-    return JSON.parse(userJson);
-  } catch (e) {
-    return null;
-  }
-}
+// 4. Imzo taqqoslanadi (timingSafeEqual)
+// (verifyInitData shu faylning yuqorisida lib/telegram-auth.js dan import qilinadi)
 
 function testVerifyInitData() {
   // To'g'ri imzo — qabul qilinishi kerak
@@ -111,8 +94,11 @@ function testVerifyInitData() {
 }
 
 function testVerifyInitDataInvalid() {
-  // Noto'g'ri imzo — rad etilishi kerak
-  const invalidInitData = 'user={"id":123}&hash=0000000000000000000000000000000000000000000000000000000000000000';
+  // Noto'g'ri imzo — rad etilishi kerak. Hash to'g'ri uzunlikda (64 hex belgi =
+  // 32 bayt) lekin noto'g'ri qiymat bilan — timingSafeEqual mos kelmasligi
+  // aniq sinaladi, uzunlik tekshiruvi orqali emas.
+  const fakeHash = '0'.repeat(64);
+  const invalidInitData = `user=${encodeURIComponent('{"id":123}')}&hash=${fakeHash}`;
   const verified = verifyInitData(invalidInitData, BOT_TOKEN);
 
   assert.strictEqual(verified, null, 'noto\'g\'ri imzo rad etilishi kerak');
