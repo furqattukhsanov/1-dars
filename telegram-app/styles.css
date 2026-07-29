@@ -397,8 +397,8 @@ body {
   100% { transform: scale(1); opacity: 1; }
 }
 @keyframes toastIn {
-  from { transform: translateX(-50%) translateY(12px); opacity: 0; }
-  to   { transform: translateX(-50%) translateY(0);    opacity: 1; }
+  from { transform: translateY(12px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
 }
 @keyframes fade {
   from { opacity: 0; }
@@ -412,19 +412,52 @@ body {
 /* ===== TOAST ===== */
 .toast {
   position: fixed;
-  bottom: 108px; left: 50%;
-  transform: translateX(-50%);
+  bottom: 108px;
+  /* nowrap + left:50% da uzun xabar ("Bahs ochildi — botga muammo rasmini
+     yuboring") ekran chekkasidan chiqib ketardi */
+  left: 14px; right: 14px;
+  width: fit-content;
+  max-width: calc(100% - 28px);
+  margin: 0 auto;
   z-index: 999;
-  height: 40px; padding: 0 20px;
+  min-height: 40px; padding: 10px 20px;
   border-radius: 999px;
   background: var(--ink-900);
   color: #fff;
   font-size: 13.5px; font-weight: 600;
-  display: flex; align-items: center;
-  white-space: nowrap;
+  line-height: 1.35;
+  text-align: center;
+  display: flex; align-items: center; justify-content: center;
   box-shadow: 0 8px 24px -8px rgba(23,26,48,.4);
   animation: toastIn var(--dur-base) var(--ease-spring);
 }
+
+/* ===== SENSORLI EKRAN — MINIMAL 44px TEGISH MAYDONI =====
+   Apple HIG / WCAG 2.5.5. Mini App'dagi tugmalarning ko'pi app.js ichida
+   inline uslub bilan yasaladi (yurakcha 32px, "+" 32px, header ikonkasi 38px),
+   shuning uchun qoida global: har bir tugmaga ko'rinmas ::after qoplamasi
+   qo'shiladi va bosiladigan maydon 44×44 gacha kengayadi. Tugmaning O'ZI
+   kattalashmaydi — dizayn o'zgarmaydi.
+
+   `position: relative` inline `position:absolute` ni bosib ketmaydi (inline
+   kuchliroq), demak absolut joylashgan yurakcha tugmalar ham to'g'ri ishlaydi:
+   ular baribir "positioned" — qoplama ularga nisbatan hisoblanadi. */
+button, .tap44 { position: relative; }
+button::after, .tap44::after {
+  content: '';
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 100%; height: 100%;
+  min-width: 44px; min-height: 44px;
+  /* Faqat maydon — ko'rinmaydi va hech narsani bo'yamaydi */
+  pointer-events: auto;
+}
+/* `.tap44` — tugma emas, lekin bosiladigan elementlar uchun (profildagi
+   bildirishnoma tumbleri, ijtimoiy tarmoq havolalari) */
+/* Yonma-yon tiqilgan boshqaruvlar — kenglikni oshirsak qo'shnisiga kirib
+   ketadi, ularda faqat bo'y kengaytiriladi */
+.nav-tab::after, .chip-btn::after, .seg-btn::after { min-width: 0; }
 
 /* ===== YORDAMCHI ===== */
 .hidden { display: none !important; }

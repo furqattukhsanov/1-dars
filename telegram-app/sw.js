@@ -7,7 +7,7 @@
    ==================================================== */
 
 // Har deploy'da bu raqamni oshiring — eski kesh butunlay tozalanadi.
-const CACHE_VERSION = 'v1';
+const CACHE_VERSION = 'v2';
 const CACHE_NAME = `lolamarket-mini-${CACHE_VERSION}`;
 
 // Faqat offline holat uchun kerak bo'lgan minimal to'plam.

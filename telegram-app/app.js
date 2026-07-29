@@ -633,7 +633,7 @@ function renderCatalog() {
       </button>
     </div>
 
-    <div style="display:flex;gap:9px;overflow-x:auto;margin:0 -16px;padding:2px 16px;scrollbar-width:none">
+    <div style="display:flex;gap:9px;overflow-x:auto;margin:0 -16px;padding:7px 16px;scrollbar-width:none">
       ${CATS.map(c => {
         const active = c.key === S.cat;
         return `<button onclick="selectCat('${c.key}')" style="flex:none;height:34px;padding:0 15px;border-radius:999px;font-size:13px;font-weight:600;white-space:nowrap;cursor:pointer;border:1px solid ${active ? 'transparent' : 'var(--border-hair)'};background:${active ? 'var(--ink-900)' : 'var(--glass-fill)'};color:${active ? '#fff' : 'var(--text-body)'}">${c.label[S.lang]}</button>`;
@@ -728,7 +728,7 @@ function renderSearch() {
   <div style="padding:16px 16px 28px;display:flex;flex-direction:column;gap:16px">
     <div style="display:flex;align-items:center;gap:10px;height:48px;padding:0 16px;border:1px solid #7a140d;border-radius:var(--radius-md);background:var(--glass-fill-strong);backdrop-filter:var(--blur-md);-webkit-backdrop-filter:var(--blur-md);box-shadow:0 0 0 4px rgba(122,20,13,.2),var(--glass-highlight)">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style="color:var(--text-subtle)"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M20 20l-3.5-3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-      <input id="search-inp" type="text" value="${S.search}" placeholder="${T.searchPh}" oninput="onSearch(this.value)" autocomplete="off" style="flex:1;border:none;outline:none;background:transparent;font-family:var(--font-sans);font-size:16px;color:var(--text-strong)">
+      <input id="search-inp" type="text" value="${S.search}" placeholder="${T.searchPh}" oninput="onSearch(this.value)" autocomplete="off" style="flex:1;align-self:stretch;border:none;outline:none;background:transparent;font-family:var(--font-sans);font-size:16px;color:var(--text-strong)">
       ${S.search ? `<button onclick="clearSearch()" style="color:var(--text-subtle);background:none;border:none;display:flex;align-items:center;cursor:pointer"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>` : ''}
     </div>
 
@@ -940,12 +940,12 @@ function renderBtsSheet() {
     <div style="width:38px;height:4px;border-radius:99px;background:var(--ink-200);margin:0 auto 12px;flex:none"></div>
     <div style="font-family:var(--font-display);font-size:17px;font-weight:800;color:var(--text-strong);letter-spacing:-.02em;margin-bottom:11px;flex:none">${T.pickSheetT}</div>
 
-    <div style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.8);border-radius:999px;padding:9px 14px;flex:none;box-shadow:var(--shadow-sm)">
+    <div style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.8);border-radius:999px;height:44px;padding:0 14px;flex:none;box-shadow:var(--shadow-sm)">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style="flex:none;color:var(--ink-400)"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M20 20l-3.5-3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-      <input id="bts-search" value="${S.btsQuery}" oninput="onBtsSearch(this.value)" placeholder="${T.pickSearchPh}" style="flex:1;border:none;background:none;outline:none;font-family:var(--font-sans);font-size:16px;color:var(--text-strong)">
+      <input id="bts-search" value="${S.btsQuery}" oninput="onBtsSearch(this.value)" placeholder="${T.pickSearchPh}" style="flex:1;align-self:stretch;border:none;background:none;outline:none;font-family:var(--font-sans);font-size:16px;color:var(--text-strong)">
     </div>
 
-    ${q ? '' : `<div style="display:flex;gap:7px;margin:11px 0 9px;overflow-x:auto;flex:none;scrollbar-width:none">
+    ${q ? '' : `<div style="display:flex;gap:7px;margin:5px 0 3px;padding:6px 0;overflow-x:auto;flex:none;scrollbar-width:none">
       ${BTS_REGIONS.map(r => {
         const on = S.btsRegion === r.key;
         return `<button onclick="setBtsRegion('${r.key}')" style="flex:none;cursor:pointer;font-size:12.5px;font-weight:600;padding:7px 13px;border-radius:999px;background:${on ? 'var(--ink-900)' : 'rgba(255,255,255,.66)'};color:${on ? '#fff' : 'var(--ink-700)'};border:1px solid ${on ? 'var(--ink-900)' : 'rgba(255,255,255,.8)'}">${r.name[S.lang]}</button>`;
@@ -1299,7 +1299,7 @@ function renderProfile() {
       <div style="display:flex;align-items:center;gap:12px;padding:13px 14px;border-bottom:1px solid var(--border-hair)">
         <svg width="19" height="19" viewBox="0 0 24 24" fill="none" style="flex:none;color:var(--text-muted)"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M10 21a2 2 0 0 0 4 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
         <span style="flex:1;font-size:14px;font-weight:600;color:var(--text-strong)">${T.notifications}</span>
-        <span onclick="toggleNotif()" style="cursor:pointer;width:44px;height:26px;border-radius:999px;background:${S.notif?'#7a140d':'var(--ink-200)'};position:relative;flex:none;transition:background var(--dur-base) var(--ease-out)"><span style="position:absolute;top:3px;${S.notif?'right':'left'}:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:var(--shadow-sm);transition:left var(--dur-base) var(--ease-out),right var(--dur-base) var(--ease-out)"></span></span>
+        <span class="tap44" onclick="toggleNotif()" style="cursor:pointer;width:44px;height:26px;border-radius:999px;background:${S.notif?'#7a140d':'var(--ink-200)'};position:relative;flex:none;transition:background var(--dur-base) var(--ease-out)"><span style="position:absolute;top:3px;${S.notif?'right':'left'}:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:var(--shadow-sm);transition:left var(--dur-base) var(--ease-out),right var(--dur-base) var(--ease-out)"></span></span>
       </div>
       <div style="display:flex;align-items:center;gap:12px;padding:13px 14px;border-bottom:1px solid var(--border-hair)">
         <svg width="19" height="19" viewBox="0 0 24 24" fill="none" style="flex:none;color:var(--text-muted)"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M9.5 9a2.5 2.5 0 0 1 4.5 1.5c0 1.7-2.5 2-2.5 2M12 17h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
@@ -1309,10 +1309,10 @@ function renderProfile() {
       <div style="display:flex;align-items:center;gap:12px;padding:13px 14px">
         <svg width="19" height="19" viewBox="0 0 24 24" fill="none" style="flex:none;color:var(--text-muted)"><circle cx="18" cy="5" r="2.4" stroke="currentColor" stroke-width="2"/><circle cx="6" cy="12" r="2.4" stroke="currentColor" stroke-width="2"/><circle cx="18" cy="19" r="2.4" stroke="currentColor" stroke-width="2"/><path d="M8.1 10.7l7.6-4.4M8.1 13.3l7.6 4.4" stroke="currentColor" stroke-width="2"/></svg>
         <span style="flex:1;font-size:14px;font-weight:600;color:var(--text-strong)">${T.social}</span>
-        <a href="https://t.me/lolamarket_uz" target="_blank" rel="noopener" style="flex:none;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--text-strong);background:var(--glass-fill-strong);border:1px solid var(--glass-border);text-decoration:none">
+        <a class="tap44" href="https://t.me/lolamarket_uz" target="_blank" rel="noopener" style="flex:none;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--text-strong);background:var(--glass-fill-strong);border:1px solid var(--glass-border);text-decoration:none">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M22 2L11 13M22 2L15 22l-4-9-9-4 20-7z" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></svg>
         </a>
-        <a href="https://instagram.com/lolamarket.uz" target="_blank" rel="noopener" style="flex:none;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--text-strong);background:var(--glass-fill-strong);border:1px solid var(--glass-border);text-decoration:none">
+        <a class="tap44" href="https://instagram.com/lolamarket.uz" target="_blank" rel="noopener" style="flex:none;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--text-strong);background:var(--glass-fill-strong);border:1px solid var(--glass-border);text-decoration:none">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="5" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="2"/><circle cx="17.3" cy="6.7" r="1.1" fill="currentColor"/></svg>
         </a>
       </div>

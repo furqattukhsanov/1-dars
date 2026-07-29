@@ -149,12 +149,14 @@ body {
 }
 
 /* ===== KONTEYNER ===== */
+/* viewport-fit=cover tufayli gorizontal holatda "tishli" telefonlarda kontent
+   kesik ostiga kirib ketishi mumkin — env() bilan chekka himoyalanadi */
 .container {
   width: 100%;
   max-width: var(--container);
   margin: 0 auto;
-  padding-left: var(--container-pad);
-  padding-right: var(--container-pad);
+  padding-left: max(var(--container-pad), env(safe-area-inset-left, 0px));
+  padding-right: max(var(--container-pad), env(safe-area-inset-right, 0px));
 }
 
 /* ===== QAYTA ISHLATILUVCHI KOMPONENTLAR ===== */
@@ -619,7 +621,7 @@ body {
   display: flex;
   align-items: center;
   gap: 9px;
-  height: 42px;
+  height: 44px;
   padding: 0 14px;
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-md);
@@ -638,6 +640,9 @@ body {
 .search-box input {
   flex: 1;
   min-width: 0;
+  /* Qutining butun bo'yini egallaydi — chekkasiga bosilganda ham fokus oladi
+     (ilgari input 21px edi, quti 44px: yuqori/quyi chekka "o'lik zona") */
+  align-self: stretch;
   border: none;
   outline: none;
   background: transparent;
@@ -647,19 +652,27 @@ body {
 }
 .search-box input::placeholder { color: var(--text-subtle); }
 .search-box input::-webkit-search-cancel-button { display: none; }
+/* Tozalash tugmasi — 44×44 haqiqiy maydon. Manfiy margin qutining o'ng
+   ichki bo'shlig'ini qoplaydi, shuning uchun ikonka ko'rinishi joyida qoladi.
+   Bu yerda ::after qoplama ISHLATILMAYDI — u input ustiga tushib, matn
+   oxiriga bosishni to'sib qo'yardi. */
 .search-x {
   flex: none;
+  width: 44px; height: 44px;
+  margin-right: -10px;
   display: flex;
+  align-items: center;
+  justify-content: center;
   border: none;
   background: none;
   color: var(--text-subtle);
-  padding: 2px;
+  padding: 0;
   transition: color var(--dur-fast);
 }
 
 .filter-btn {
   flex: none;
-  width: 42px; height: 42px;
+  width: 44px; height: 44px;
   border-radius: var(--radius-md);
   border: 1px solid rgba(255,229,210,.25);
   background: var(--grad-pom-soft);
@@ -676,7 +689,7 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  height: 42px;
+  height: 44px;
   padding: 0 15px;
   border-radius: var(--radius-md);
   border: 1px solid var(--glass-border);
@@ -708,25 +721,35 @@ body {
 }
 .no-result-sub { font-size: 13.5px; color: var(--text-muted); }
 
-/* ===== TOAST ===== */
+/* ===== TOAST =====
+   Telefonda pastki nav ustiga tushmasin — dock balandligidan yuqorida turadi
+   (desktopda nav yo'q, shuning uchun 880px'dan keyin odatdagi 28px). */
 .toast {
   position: fixed;
-  bottom: 28px; left: 50%;
-  transform: translateX(-50%);
+  bottom: calc(var(--dock-h) + 10px);
+  /* `left:50% + translateX(-50%)` emas: unda qutining eni ekranning yarmi
+     bilan cheklanardi va qisqa xabar ham ikki qatorga bo'linardi.
+     left/right + margin:auto — to'liq enda markazlashtiradi. */
+  left: 16px; right: 16px;
+  width: fit-content;
+  max-width: calc(100% - 32px);
+  margin: 0 auto;
   z-index: 200;
-  height: 42px;
-  padding: 0 22px;
+  min-height: 42px;
+  padding: 11px 22px;
   border-radius: 999px;
   background: var(--ink-900);
   color: #fff;
   font-size: 13.5px; font-weight: 600;
-  display: flex; align-items: center;
+  line-height: 1.35;
+  text-align: center;
+  display: flex; align-items: center; justify-content: center;
   box-shadow: 0 10px 30px -10px rgba(23,26,48,.5);
   animation: toastIn var(--dur-base) var(--ease-spring);
 }
 @keyframes toastIn {
-  from { transform: translateX(-50%) translateY(14px); opacity: 0; }
-  to   { transform: translateX(-50%) translateY(0);    opacity: 1; }
+  from { transform: translateY(14px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
 }
 
 /* ===== HEADER MOBILDA =====
@@ -754,7 +777,7 @@ body {
 .cart-btn {
   position: relative;
   flex: none;
-  width: 42px; height: 42px;
+  width: 44px; height: 44px;
   border-radius: 50%;
   border: 1px solid var(--glass-border);
   background: var(--glass-fill-strong);
@@ -878,6 +901,17 @@ body {
   font-weight: 600;
   color: var(--pom-900);
   letter-spacing: -.01em;
+  /* Ikki ustunli mobil gridda kartochka ~166px — "7 dona" ikki qatorga
+     bo'linib ketardi */
+  white-space: nowrap;
+}
+
+/* Tor ekranda tanlagich ixchamlashadi; bosish maydoni ::after tufayli
+   baribir 44px bo'lib qoladi */
+@media (max-width: 639px) {
+  .qty-row { gap: 4px; }
+  .qty-circle { width: 31px; height: 31px; }
+  .qty-num { font-size: 13px; }
 }
 
 /* ===== CTA BOT TUGMASI ===== */
@@ -910,7 +944,9 @@ body {
   position: fixed;
   top: 0; right: 0; bottom: 0;
   z-index: 100;
-  width: min(430px, 100vw);
+  /* 100vw emas: skrollbar bor brauzerda 100vw ekrandan kengroq bo'lardi */
+  width: min(430px, 100%);
+  padding-right: env(safe-area-inset-right, 0px);
   display: flex; flex-direction: column;
   background: #FFFDFB;
   box-shadow: -20px 0 60px -20px rgba(23,26,48,.4);
@@ -952,6 +988,9 @@ body {
   flex: 1;
   overflow-y: auto;
   padding: 16px 18px 20px;
+  /* Checkout ko'rinishida pastki qism (yuborish tugmasi) shu yerda skroll
+     qiladi — uy indikatori ostida qolib ketmasin */
+  padding-bottom: max(20px, env(safe-area-inset-bottom, 0px));
   display: flex; flex-direction: column; gap: 12px;
 }
 
@@ -1022,9 +1061,11 @@ body {
   transition: color var(--dur-fast);
 }
 .cart-line-sup { font-size: 11.5px; color: var(--text-muted); }
+/* Tor ekranda (≤375px) uzun narx — "2 550 000 so'm" — tanlagich yoniga
+   sig'masdi va kartochkadan chiqib ketardi. Endi o'z qatoriga tushadi. */
 .cart-line-bot {
   margin-top: 4px;
-  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  display: flex; align-items: center; flex-wrap: wrap; gap: 6px 8px;
 }
 /* Savat panelidagi tanlagich — kartadagi bilan bir xil ko'rinish */
 .qty {
@@ -1053,6 +1094,7 @@ body {
   color: var(--pom-900);
 }
 .cart-line-price {
+  margin-left: auto;
   font-family: var(--font-mono);
   font-size: 14px; font-weight: 600;
   color: var(--text-strong);
@@ -1240,6 +1282,8 @@ body {
   align-items: stretch;
   gap: 9px;
   padding: 10px 14px;
+  padding-left: max(14px, env(safe-area-inset-left, 0px));
+  padding-right: max(14px, env(safe-area-inset-right, 0px));
   padding-bottom: max(18px, env(safe-area-inset-bottom, 12px));
   /* O'ram bosishni ushlab qolmasin — tugmalar orasidan skroll qilinsin */
   pointer-events: none;
@@ -1321,4 +1365,54 @@ body { padding-bottom: calc(var(--dock-h) + env(safe-area-inset-bottom, 0px)); }
 @media (min-width: 880px) {
   .m-nav { display: none; }
   body { padding-bottom: 0; }
+  .toast { bottom: 28px; }
+}
+
+/* ===== SENSORLI EKRAN — MINIMAL 44px TEGISH MAYDONI =====
+   Apple HIG va WCAG 2.5.5 talabi. Kichik ikonka tugmalarni KATTALASHTIRMAYMIZ —
+   dizayn o'zgarmasin uchun ko'rinmas ::after qoplamasi bosiladigan maydonni
+   44×44 gacha kengaytiradi. Qoplama tugmaning O'Z ichida yotadi, shuning uchun
+   unga bosish baribir shu tugmani ishga tushiradi.
+
+   Istisnolar:
+   * .search-x — haqiqiy o'lchamda kattalashtirildi (yuqoriga qarang), chunki
+     qoplama input ustiga tushib matn oxiriga bosishni to'sardi;
+   * .fav-btn allaqachon `position:absolute` — qayta e'lon qilinmaydi. */
+.chip, .nav-brand, .drawer-x, .line-x,
+.qty-circle, .qty-btn, .social-btn, .co-back, .fav-add {
+  position: relative;
+}
+.chip::after, .nav-brand::after, .fav-btn::after, .drawer-x::after,
+.line-x::after, .qty-circle::after, .qty-btn::after,
+.social-btn::after, .co-back::after, .fav-add::after {
+  content: '';
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 100%; height: 100%;
+  min-width: 44px; min-height: 44px;
+}
+/* Chiplar va yurakcha yonma-yon/yaqin turadi — kenglikni oshirsak qo'shni
+   element maydoniga kirib ketadi, shuning uchun faqat bo'y kengaytiriladi */
+.chip::after, .fav-add::after, .co-back::after { min-width: 0; }
+
+/* Chiplar qatorining balandligi ::after tufayli o'zgarmaydi (qoplama oqimdan
+   tashqarida), lekin yuqori/quyi 5px konteyner ichida qolsin */
+.chips { padding-top: 7px; padding-bottom: 11px; }
+
+/* ===== MOBIL LANGAR (#katalog) =====
+   Telefonda header ikki qatorli (~115px), desktopdagi 64px emas. Ilgari
+   scroll-padding 80px edi va "Katalog" tugmasi bosilganda kategoriya chiplari
+   header ostida qolib ketardi. */
+@media (max-width: 879px) {
+  html { scroll-padding-top: 132px; }
+}
+
+/* ===== YOTIQ HOLATDAGI TELEFON =====
+   360px bo'yda qadalgan header (115px) + pastki dock (86px) ekranning uchdan
+   ikkisini yeb qo'yardi. Bunday past ekranda header sahifa bilan birga
+   yuqoriga chiqib ketadi. */
+@media (max-height: 430px) and (orientation: landscape) {
+  #nav { position: static; }
+  html { scroll-padding-top: 16px; }
 }

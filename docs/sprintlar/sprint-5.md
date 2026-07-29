@@ -12,12 +12,12 @@ Platformani mobil qurilmalarda ham qulay ishlashini ta'minlash. Ilovani telefong
 
 ## Bajariladigan vazifalar
 
-- [ ] Barcha sahifalarni mobil ekran uchun moslashtirish (responsive)
+- [x] Barcha sahifalarni mobil ekran uchun moslashtirish (responsive) — landing va Mini App 320/375/740×360(yotiq)/768/1280 da audit qilindi, topilgan 6 nuqson tuzatildi. Admin panel (`admin/`) auditga kirmadi — u moderator uchun desktop vositasi
 - [x] PWA sozlash: `manifest.json`, service worker, offline sahifa — `telegram-app/` (Mini App) uchun
 - [x] "Uy ekraniga qo'shish" (Add to Home Screen) qo'llab-quvvatlash — `telegram-app/pwa.js`
-- [ ] Mobil navigatsiya: pastki tab bar (katalog, buyurtmalarim, profil)
-- [ ] Rasm yuklash mobil dan ishlashi (kamera orqali)
-- [ ] Sensorli ekran uchun tugmalar o'lchami (min 44px)
+- [x] Mobil navigatsiya: pastki tab bar (katalog, buyurtmalarim, profil) — Mini App'da `#nav`, landing'da `.m-nav` (880px dan tor ekranda)
+- [ ] Rasm yuklash mobil dan ishlashi (kamera orqali) — sotuvchi formasida rasm yuklash umuman yo'q (Sprint 4 quyrug'i)
+- [x] Sensorli ekran uchun tugmalar o'lchami (min 44px) — landing va Mini App'ning 15 ta ekrani tekshirildi, hammasi 44×44
 - [ ] Telegram Mini App sifatida ochilish imkoniyatini tekshirish
 
 ---
@@ -28,10 +28,22 @@ Platformani mobil qurilmalarda ham qulay ishlashini ta'minlash. Ilovani telefong
 
 - [2026-07-28] **Production'ga deploy qilindi va deploy paytida `sw.js` keshlanishi nuqsoni topildi — brauzer tomoni yopildi, server tomoni ochiq qoldi.** `telegram-app/` rsync orqali `/var/www/lolamarket/mini-app/` ga ko'chirildi; jonli tekshiruv: service worker `activated` (scope `https://lolamarket.uz/mini-app/`), `manifest.json` va uchala ikonka 200. **Topilgan nuqson:** serverdagi nginx `sw.js` ni `Cache-Control: max-age=14400` bilan beradi va Cloudflare uni keshlaydi (`cf-cache-status: HIT`) — ya'ni kelajakda `sw.js` o'zgartirilsa foydalanuvchilarda eski service worker soatlab qolib ketishi mumkin edi. Bu ayniqsa xavfli, chunki service worker o'zi keshlash siyosatini boshqaradi: eskisi qolib ketsa uni oddiy deploy bilan tuzatib ham bo'lmaydi. **Tuzatildi (brauzer tomoni):** `pwa.js` da ro'yxatga olish `navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' })` ga o'tkazildi — brauzer SW faylini yangilash tekshiruvida HTTP keshdan olmaydi; `index.html` da kesh-bust `pwa.js?v=4` → `?v=5`. Ikkala fayl serverga ham yuklandi. **Hali qilinmagan (ochiq ish):** nginx/Cloudflare tomoni — `sw.js` uchun `Cache-Control: no-cache` (yoki `max-age=0, must-revalidate`) kerak, hozircha `max-age=14400` qolyapti. Nginx konfiguratsiyasi CLAUDE.md qoidasiga ko'ra qo'lda boshqariladi va CI/CD tegmaydi, shuning uchun bu commit'da o'zgartirilmadi — serverda alohida qilinishi kerak. `updateViaCache` faqat brauzer tomonini yopadi, CDN'dagi eski nusxani emas
 
+- [2026-07-29] **Responsive audit va 44px sensorli maydon auditi — landing va Mini App.** Tekshiruv brauzerda o'lchov bilan o'tkazildi (har bir bosiladigan element `getBoundingClientRect` + `::after` qoplamasi bo'yicha; gorizontal toshib ketish ota-element chegarasiga nisbatan), kengliklar: 320, 375, 740×360 (yotiq), 768, 1280.
+
+  **Landing — topilgan va tuzatilgan nuqsonlar (`style.css`):** (1) savat qatoridagi narx tanlagich yoniga sig'masdi va kartochkadan chiqib ketardi — 375px'da "2 550 000 so'm" qirqilgan holda ko'rinardi; `.cart-line-bot` endi o'raladi, narx o'z qatoriga tushadi. (2) Toast pastki navigatsiya ustiga tushardi (toast 756–798, nav 736–794) — endi `bottom: calc(var(--dock-h) + 10px)`, 880px'dan keyin eski 28px. (3) Toast `left:50% + translateX(-50%)` bilan yozilgani uchun qutining eni ekranning yarmi bilan cheklanardi va qisqa xabar ham ikki qatorga bo'linardi (uzunroq xabarda 42px fondan chiqib ketardi) — `left/right + margin:auto + min-height` ga o'tkazildi. (4) Kartochkadagi miqdor tanlagichda "7 dona" ikki qatorga bo'linardi (2 ustunli gridda kartochka ~166px) — `white-space:nowrap` + 640px'gacha ixchamroq tanlagich. (5) `viewport-fit=cover` bo'lsa ham `env(safe-area-inset-*)` ishlatilmagan edi — yotiq holatda "tishli" telefonda kontent kesik ostiga kirardi; `.container`, `.m-nav`, `.drawer`, `.drawer-body` ga qo'shildi. (6) Yotiq telefonda (≤430px bo'y) qadalgan header 115px + dock 86px ekranning uchdan ikkisini yeb qo'yardi — bunday ekranda header endi qadalmaydi. Yana: langar ofseti mobil header balandligiga moslandi (80px → 132px), `.drawer` eni `100vw` → `100%` (skrollbar bor brauzerda toshib ketardi), qidiruv inputi qutining butun bo'yini egallaydi (ilgari 21px edi, quti 42px — chekkasi "o'lik zona").
+
+  **44px maydon (landing):** header boshqaruvlari 42 → 44px. Kichik ikonka tugmalar (kategoriya chipi 34, yurakcha 34, savat qatoridagi ×19, miqdor tugmalari 28–34, ijtimoiy tarmoq 36, "Savatga qaytish" 20) KATTALASHTIRILMADI — dizayn o'zgarmasin uchun ko'rinmas `::after` qoplamasi maydonni 44×44 ga yetkazadi. Istisno: qidiruvni tozalash tugmasi haqiqiy o'lchamda kattaytirildi, chunki qoplama input ustiga tushib matn oxiriga bosishni to'sardi.
+
+  **Mini App:** tugmalarning ko'pi `app.js` ichida inline uslub bilan yasalgani uchun qoida global (`button::after` + `.tap44`). Tuzatildi: header ikonkasi 38, katalog yurakchasi 32, "+" 32, til tugmalari 26, "Barchasi ›" 17px, profildagi bildirishnoma tumbleri va ikkita ijtimoiy havola 32px, BTS qidiruv qutisi 41 → 44px. Yon ta'sir topildi va yopildi: gorizontal chip lentalarida 44px qoplama vertikal skroll hosil qilardi — lentalarga bo'y bo'shlig'i berildi. Mini App toasti ham landing'dagi kabi tuzatildi (`nowrap` + `left:50%` da uzun xabar ekrandan chiqardi).
+
+  **Natija:** landing (katalog / savat / checkout / saralanganlar) va Mini App'ning 15 ta ekranida 44×44 dan kichik bosiladigan element qolmadi; gorizontal toshib ketish yo'q. Ataylab qoldirilgani: qidiruv inputining o'zi 42px (uni o'rab turgan quti 44px va input butun ichki maydonni egallaydi).
+
 ---
 
 ## Qarorlar
 
+- [2026-07-29] Qaror: kichik ikonka tugmalar VIZUAL kattalashtirilmaydi — bosish maydoni ko'rinmas `::after` qoplamasi bilan 44×44 ga yetkaziladi. Sabab: dizayn tizimi (34px yurakcha, 32px "+") Mini App va landing'da bir xil, ularni kattalashtirish ikkala mahsulotning ko'rinishini buzardi. Qoplama tugmaning O'Z ichida yotadi, shuning uchun unga bosish baribir shu tugmani ishga tushiradi. Yonma-yon tiqilgan boshqaruvlarda (chip lentalari) faqat bo'y kengaytiriladi — kenglik oshsa qo'shni elementning maydoniga kirib ketardi
+- [2026-07-29] Qaror: matn kiritish maydoni ustiga qoplama qo'yilmaydi. Sabab: qidiruvni tozalash tugmasining 44px qoplamasi input ustiga tushib, matn oxiriga kursor qo'yishni to'sardi — bunday joyda tugma haqiqiy o'lchamda kattaytiriladi va manfiy `margin` bilan ko'rinishi joyida qoldiriladi
 - [2026-07-28] Qaror: service worker sahifa ochilishini (navigation) HECH QACHON keshdan bermaydi — faqat tarmoqdan, tarmoq yo'q bo'lsa `offline.html`. Sabab: `app.js` ichida qattiq yozilgan namuna katalog bor (narxlari bilan), keshlangan HTML qaytarilsa internetsiz foydalanuvchi soxta narxlarni haqiqiy deb ko'rardi — bu CLAUDE.md dagi "panelda/ilovada o'ylab topilgan raqam ko'rsatilmasin" qoidasiga zid. Shu sababdan offline holatda ilova "yarim ishlaydigan" ko'rinishda emas, ochiq-oydin "internet yo'q" sahifasi bilan to'xtaydi
 - [2026-07-28] Qaror: JS va CSS ham network-first (kesh faqat tarmoq uzilganda zaxira) — deploy'dan keyin foydalanuvchida eski `app.js` keshda qolib ketmasin. `/api/` esa umuman keshlanmaydi: narx, zaxira va buyurtma holati eskirgan bo'lishi mumkin emas. Faqat rasm va shriftlar cache-first
 - [2026-07-28] Qaror: manifestda `start_url`/`scope` nisbiy yo'l (`./`) bilan yoziladi, ildizdan boshlanadigan `/` emas. Sabab: repo'dagi `telegram-app/` papkasi serverda `mini-app/` deb ataladi — qattiq yozilgan ildiz yo'li ikkala muhitda ham noto'g'ri bo'lardi

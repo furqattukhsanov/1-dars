@@ -333,6 +333,11 @@
     <div id="faoliyat-list">
       <div class="faoliyat-item">
         <span class="faoliyat-sana">2026-07-29</span>
+        <span class="faoliyat-text">Sprint 5 ning ikki bandi yopildi: responsive audit va sensorli ekran uchun 44px tegish maydoni auditi. Tekshiruv brauzerda o'lchov bilan o'tkazildi (har bir bosiladigan element getBoundingClientRect + ::after qoplamasi bo'yicha), kengliklar 320 / 375 / 740×360 (yotiq) / 768 / 1280. Landing'da 6 nuqson topilib tuzatildi: (1) savat qatoridagi narx tanlagich yoniga sig'masdan kartochkadan chiqib ketardi — 375px'da "2 550 000 so'm" qirqilardi; (2) toast pastki navigatsiya ustiga tushardi; (3) toast left:50%+translateX bilan yozilgani uchun eni ekranning yarmi bilan cheklanib qisqa xabar ham ikki qatorga bo'linardi; (4) kartochkadagi miqdor tanlagichda "dona" so'zi ikki qatorga tushardi; (5) viewport-fit=cover bo'lsa ham env(safe-area-inset-*) ishlatilmagan edi — yotiq holatda "tishli" telefonda kontent kesik ostiga kirardi; (6) yotiq telefonda qadalgan header + dock ekranning uchdan ikkisini yeb qo'yardi. Yana: langar ofseti mobil header balandligiga moslandi (80 → 132px), drawer eni 100vw → 100%, qidiruv inputi qutining butun bo'yini egallaydi. 44px maydon: kichik ikonka tugmalar VIZUAL kattalashtirilmadi — dizayn o'zgarmasin uchun ko'rinmas ::after qoplamasi bosish maydonini 44×44 ga yetkazadi; Mini App'da tugmalarning ko'pi app.js ichida inline uslub bilan yasalgani uchun qoida global (button::after + .tap44). Istisno: qidiruvni tozalash tugmasi haqiqiy o'lchamda kattaytirildi, chunki qoplama input ustiga tushib matn oxiriga bosishni to'sardi. Yon ta'sir topildi va yopildi: gorizontal chip lentalarida qoplama vertikal skroll hosil qilardi. Natija — landing va Mini App'ning 15 ta ekranida 44×44 dan kichik bosiladigan element qolmadi, gorizontal toshib ketish yo'q. Kesh-bust: style.css v24, styles.css v16, app.js v50, sw.js CACHE_VERSION v2. Auditga kirmagani: admin paneli (moderator uchun desktop vositasi). Sprintda ochiq qolgani: kameradan rasm yuklash va Mini App'ning Telegram ichida ochilishini tekshirish</span>
+        <span class="faoliyat-sprint">Sprint 5</span>
+      </div>
+      <div class="faoliyat-item">
+        <span class="faoliyat-sana">2026-07-29</span>
         <span class="faoliyat-text">Nosozlik tuzatildi: lolamarket.uz saytidan berilgan buyurtma admin panelda umuman ko'rinmasdi. Saytdagi checkout faqat /api/telegram-notify ga yozardi, u endpoint esa ataylab bazaga yozmaydi, panel esa orders jadvalidan o'qiydi — shu sababdan 29-iyul 00:13 dagi haqiqiy buyurtma yo'qolgan. Ildiz sabab chuqurroq edi: saytda (p1…p12) va bazada (ik-1402, ad-0890…) ikkita alohida katalog bor edi, shuning uchun sayt buyurtmani bazadagi mahsulotga bog'lay olmasdi. Yangi migratsiya 006: orders.source ('miniapp'/'web', CHECK cheklovi, eski qatorlarga DEFAULT miniapp), orders.buyer_phone va idx_orders_source. Yangi POST /api/web-orders endpoint: Telegram imzosiz ishlaydi (sayt xaridorida Telegram hisobi yo'q), shuning uchun telefon majburiy va rate limit qattiqroq; narx, MOQ, oldindan to'lov va komissiya to'liq server tomonda bazadan hisoblanadi — klient faqat {id, qty} yuboradi; ID Mini App bilan bitta order_seq dan olinadi, shunda /tasdiqla #LM-… buyrug'i sayt buyurtmalarida ham ishlaydi. Saytdagi 12 mahsulotning ID'si bazadagi haqiqiy ID'ga o'tkazildi. Brauzerda raqam o'ylab topadigan nextOrderId() o'chirildi — buyurtma raqami endi faqat serverdan keladi va API xato bersa soxta "qabul qilindi" ekrani ko'rsatilmaydi. Admin panelda buyurtma qatorida "sayt" belgisi va xaridor telefoni ko'rinadi. Production'da uchidan uchigacha sinov buyurtmasi berildi (#LM-3008) — bazaga to'g'ri yozildi, summa bazadagi narxlardan hisoblandi, validatsiya bo'sh savat va kalta telefonni rad etdi; sinov buyurtmasi keyin o'chirildi. Bekor qilingan qaror: 2026-07-22 dagi "landing buyurtmasi uchun alohida backend qurilmaydi, Telegram relay yetarli" — endi bitta manba bor, u ham bo'lsa baza</span>
         <span class="faoliyat-sprint">Sprint 4</span>
       </div>
@@ -600,7 +605,7 @@
     { num: 2, nom: "Ma'lumotlar bazasi / Backend", dars: "Dars 9",  holat: "tugadi", sana: "2026-07-23" },
     { num: 3, nom: "Foydalanuvchilar + rollar", dars: "Dars 10", holat: "tugadi", sana: "2026-07-23" },
     { num: 4, nom: "Asosiy funksiya",           dars: "Dars 11", holat: "jarayonda",  sana: "2026-07-29" },
-    { num: 5, nom: "Mobil / PWA",               dars: "Dars 12", holat: "jarayonda",  sana: "2026-07-28" },
+    { num: 5, nom: "Mobil / PWA",               dars: "Dars 12", holat: "jarayonda",  sana: "2026-07-29" },
     { num: 6, nom: "Integratsiyalar",           dars: "Dars 13", holat: "jarayonda",  sana: "2026-07-22" },
     { num: 7, nom: "Admin panel",               dars: "Dars 14", holat: "tugadi",  sana: "2026-07-27" },
     { num: 8, nom: "Sifat tekshiruvi",          dars: "Dars 15", holat: "kutilmoqda", sana: "" },
@@ -625,7 +630,7 @@
   barEl.style.width = foiz + "%";
   percentEl.textContent = foiz + "%";
   countEl.textContent = tugaganlar + " / " + sprintlar.length + " sprint";
-  updatedEl.textContent = "Yangilanish: 2026-07-29 (Sprint 4 — sayt buyurtmalari endi bazaga yoziladi va admin panelda ko'rinadi; sayt bazadagi katalog ID'lariga o'tdi)";
+  updatedEl.textContent = "Yangilanish: 2026-07-29 (Sprint 5 — landing va Mini App responsive auditi va 44px sensorli tegish maydoni auditi; topilgan 6 nuqson tuzatildi)";
 
   sprintlar.forEach(s => {
     const card = document.createElement("div");
