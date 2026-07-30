@@ -60,6 +60,13 @@ Dizayn manbasi: pure HTML/CSS/JS, glassmorphism dizayn tizimi, ikki tillilik (uz
 
 ## Qilingan ishlar
 
+- [2026-07-30] **Deploy ko'rsatmasidagi `rsync --delete` serverdagi fayllarni o'chirib yuborardi —
+  `server/README.md` tuzatildi.** `--delete` repoda YO'Q hamma narsani o'chiradi, `pg-backup.sh` va
+  `.mcp-db-url` esa exclude ro'yxatida yo'q edi. Bugungi deploy paytida aynan shu bo'ldi: ikkala fayl
+  o'chdi — zaxiradan darhol tiklandi va kunlik backup cron'i zarar ko'rmadi, lekin uni ishdan
+  chiqarishga bir qadam qolgandi. Endi ikkalasi exclude ro'yxatida va sabab buyruq ustida izoh sifatida
+  yozilgan: **serverda yashaydigan, repoda bo'lmagan HAR BIR fayl shu ro'yxatda bo'lishi shart**
+
 - [2026-06-30] MVP Telegram Mini App ekranlar ro'yxati tuzildi — 8 ta ekran aniqlandi, minimal MVP uchun 5 ta ekran belgilandi
 - [2026-06-30] `telegram-app/index.html`, `styles.css`, `app.js` yaratildi — 8 ekran to'liq implement qilindi (Bosh sahifa, Katalog, Mahsulot detail, Qidiruv, Savat, Buyurtma berish, Muvaffaqiyat, Buyurtmalarim, Profil)
 - [2026-06-30] 8 ta haqiqiy mahsulot (ik-1402, ad-0890, sz-3310, ck-2201, hb-7740, lk-5512, ik-9001, pl-3320), CSS textile pattern (adras, ikat, suzani, herringbone, weave), USD narxlar, Dilnoza Tekstil MChJ kompaniya ma'lumotlari

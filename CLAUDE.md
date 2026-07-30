@@ -24,6 +24,14 @@
   ishonadigan endpoint qo'shilmasin. Sayt sessiyasi HttpOnly cookie'da yuradi
   va bazada faqat `sha256` shaklida saqlanadi (panel tokenidan farqi shu —
   u `sessionStorage`da yashaydi va XSS'da o'g'irlanishi mumkin).
+- **Zaxira (`products.stock`) har doim ATOMIK kamaytiriladi** (2026-07-30).
+  Tekshiruv va kamaytirish bitta `UPDATE ... WHERE stock >= qty` da bo'ladi
+  (`routes/orders.js` → `decrementStock`), hech qachon alohida `SELECT` +
+  `UPDATE` ga bo'linmasin: ikki xaridor bir vaqtda oxirgi rulonni olsa,
+  ikkalasi ham "bor" deb o'qib o'tib ketardi. Qatorlar `id` bo'yicha
+  tartiblangan holda qulflanadi (deadlock). `stock IS NULL` = CHEKSIZ —
+  `made` mahsulotlar va son kiritilmagan e'lonlar. Bekor qilinganda zaxira
+  qaytariladi, `refunded`da esa ATAYLAB qaytarilmaydi (mato xaridorda qoladi).
 
 ## Loyiha haqida
 

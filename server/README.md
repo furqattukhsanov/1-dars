@@ -62,8 +62,15 @@ cd server && npm test
 npm run version:write
 
 # 4. Ko'chirish — BUTUN papka (.env, node_modules va logs tegilmaydi)
+#
+#    ⚠️ `--delete` repoda YO'Q hamma narsani o'chiradi. 2026-07-30 da shu
+#    buyruq serverdagi `pg-backup.sh` va `.mcp-db-url` fayllarini o'chirib
+#    yubordi (ular exclude ro'yxatida yo'q edi) — kunlik zaxira cron'i
+#    ishlamay qolishiga bir qadam qolgandi. Serverda yashaydigan, repoda
+#    bo'lmagan HAR BIR fayl shu ro'yxatda bo'lishi shart.
 rsync -av --delete \
   --exclude='.env' --exclude='node_modules' --exclude='contacts.json' \
+  --exclude='.mcp-db-url' --exclude='pg-backup.sh' \
   --exclude='*.bak-*' \
   server/ root@65.21.180.44:/opt/lolamarket-notify/
 
