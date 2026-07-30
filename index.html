@@ -20,7 +20,13 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css?v=33" />
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <!-- DIQQAT: uchala skript ham `defer` — TARTIB shu sababli saqlanadi
+       (telegram → script.js → pwa.js). Bittasidan `defer` olib tashlansa,
+       u tananing ichida parse paytida ishlaydi va DEFER'liklardan OLDIN
+       tugaydi: `script.js` `window.Telegram`ni topa olmay qoladi.
+       Ilgari bu skript `<head>`da defer'siz turardi — 114 KB ni uchinchi
+       domendan kutib, HTML tahlilini ~600 ms to'xtatib turardi. -->
+  <script defer src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
   <!-- ===== LOADER ===== -->
@@ -436,7 +442,7 @@
 
       <article class="product-card fade-up" data-id="tx-4404" data-name="Vintage chit — krem atirgul" data-price="760000" data-supplier="Xiva Tekstil" data-cat="linen">
         <div class="product-media">
-          <img src="Photo/textile/%D0%91%D0%B5%D0%B7%20%D0%BD%D0%B0%D0%B7%D0%B2%D0%B0%D0%BD%D0%B8%D1%8F%20%281%29.png" alt="Vintage chit — krem atirgul" loading="lazy" />
+          <img src="Photo/textile/vintage-chit-krem-atirgul.jpg" alt="Vintage chit — krem atirgul" loading="lazy" />
           <span class="badge-pill tone-saffron">Kam qoldi</span>
           <button class="fav-btn" id="fav-tx-4404" data-action="toggleFav" data-arg="tx-4404" aria-label="Saralanganlarga qo'shish" aria-pressed="false">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 20.8s-6.9-4.3-9-8a5.2 5.2 0 0 1-.5-3.7A4.8 4.8 0 0 1 6.3 5.5c1.9 0 3.4 1 4.3 2.3.4.6 1 .6 1.4 0 .9-1.3 2.4-2.3 4.3-2.3a4.8 4.8 0 0 1 3.8 3.6 5.2 5.2 0 0 1-.5 3.7c-2.1 3.7-9 8-9 8z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
@@ -553,7 +559,7 @@
     </button>
   </nav>
 
-  <script src="script.js?v=20"></script>
-  <script src="pwa.js?v=2"></script>
+  <script defer src="script.js?v=21"></script>
+  <script defer src="pwa.js?v=2"></script>
 </body>
 </html>

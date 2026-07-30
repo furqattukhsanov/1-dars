@@ -19,7 +19,13 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="LolaMarket">
 
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <!-- DIQQAT: uchala skript ham `defer` — TARTIB shu sababli saqlanadi
+       (telegram → app.js → pwa.js). Bittasidan `defer` olib tashlansa,
+       u tananing ichida parse paytida ishlaydi va DEFER'liklardan OLDIN
+       tugaydi: `app.js` `window.Telegram`ni topa olmay qoladi.
+       Ilgari bu skript defer'siz turardi va 114 KB ni uchinchi domendan
+       kutib, HTML tahlilini ~600 ms to'xtatib turardi. -->
+  <script defer src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
   <div id="root">
@@ -126,7 +132,7 @@
   <!-- Toast -->
   <div id="toast" class="toast hidden"></div>
 
-  <script src="app.js?v=52"></script>
-  <script src="pwa.js?v=6"></script>
+  <script defer src="app.js?v=53"></script>
+  <script defer src="pwa.js?v=6"></script>
 </body>
 </html>

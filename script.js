@@ -21,15 +21,26 @@ document.addEventListener('click', (e) => {
   fn(/^-?\d+$/.test(arg) ? Number(arg) : arg);
 });
 
-/* ── Page loader ── */
-window.addEventListener('load', () => {
-  setTimeout(() => {
-    const loader = document.getElementById('page-loader');
-    if (!loader) return;
-    loader.classList.add('hide');
-    loader.addEventListener('transitionend', () => loader.remove(), { once: true });
-  }, 120);
-});
+/* ── Page loader ──
+   DIQQAT: bu yerda ilgari `window.addEventListener('load', ...)` turardi.
+   `load` hodisasi BARCHA rasm/shrift yuklanib bo'lgandan keyin otiladi, loader
+   esa `position: fixed; inset: 0` bilan butun sahifani yopib turadi — ya'ni
+   foydalanuvchi hero rasmi (300 KB) va uchinchi domendagi skript tugagunicha
+   faqat spinner ko'rardi. Sekin mobil internetda bu 3 soniyadan oshib ketardi.
+   Endi DOM tayyor bo'lishi kifoya: tarkib chizilgan, rasmlar o'z navbatida
+   kelaveradi. (Xuddi shu tuzoq `pwa.js`da ham bor edi — commit 5ffe1f0.) */
+function hidePageLoader() {
+  const loader = document.getElementById('page-loader');
+  if (!loader) return;
+  loader.classList.add('hide');
+  loader.addEventListener('transitionend', () => loader.remove(), { once: true });
+}
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', hidePageLoader, { once: true });
+} else {
+  // `defer` skript shu holatda ishga tushadi (readyState === 'interactive')
+  hidePageLoader();
+}
 
 /* ── Telegram Mini App init ── */
 if (window.Telegram?.WebApp) {
