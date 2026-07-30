@@ -19,8 +19,31 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           # sayt-eski/ — demo/ va admin/ shu papkadagi eski style.css'ga bog'liq, tushirib qoldirilmasin
-          source: "index.html,style.css,script.js,Photo/,sayt-eski/,demo/,admin/"
+          #
+          # ⚠️ Bu ro'yxat AYNAN sanab o'tadi — repoda yangi ildiz fayli paydo
+          # bo'lsa, uni shu yerga QO'LDA qo'shish kerak. 2026-07-30 da landing
+          # PWA fayllari (manifest.json, sw.js, pwa.js, offline.html, assets/)
+          # ro'yxatga qo'shilmagani uchun serverga umuman chiqmadi: nginx yo'q
+          # faylga `try_files ... /index.html` bilan HTML qaytardi, Cloudflare
+          # esa o'sha HTML'ni sw.js sifatida 4 soatga keshladi.
+          source: "index.html,style.css,script.js,manifest.json,sw.js,pwa.js,offline.html,assets/,Photo/,sayt-eski/,demo/,admin/"
           target: /var/www/lolamarket
+
+      # Mini App ALOHIDA qadam: repoda `telegram-app/`, serverda esa `mini-app/`
+      # deb ataladi. Yuqoridagi ro'yxatga qo'shib bo'lmaydi — u papkani o'z nomi
+      # bilan yotqizadi va `/mini-app/` bo'sh qolardi. `strip_components: 1`
+      # papka nomini olib tashlaydi, target esa to'g'ri joyni ko'rsatadi.
+      # 2026-07-30 gacha bu qadam umuman yo'q edi va Mini App 27-iyuldan beri
+      # eskirgan holda turgandi (app.js?v=47, jonli kod esa v52 bo'lishi kerak edi).
+      - name: Upload Mini App (telegram-app/ → mini-app/)
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "telegram-app/*"
+          target: /var/www/lolamarket/mini-app
+          strip_components: 1
 
       # DIQQAT: bu yerda ilgari nginx konfiguratsiyasini qayta yozadigan qadam bor edi.
       # U /api/ proxy bloklarini (telegram-notify, telegram-webhook, telegram-contact,
@@ -49,3 +72,31 @@ jobs:
                 echo "::error::/api/products JSON qaytarmadi ($CT) — nginx proxy yoki lolamarket-notify servisi ishlamayapti!"
                 exit 1 ;;
             esac
+
+      # Statik fayllar HAQIQATAN yetib bordimi.
+      # Nega HTTP kodiga qaramaymiz: nginx yo'q faylga ham `try_files ... /index.html`
+      # bilan 200 qaytaradi. 2026-07-30 da aynan shu chalg'itdi — `curl -o /dev/null
+      # -w %{http_code}` hamma joyda 200 ko'rsatdi, holbuki fayllar serverda yo'q edi.
+      # Shuning uchun javob TURI tekshiriladi: HTML kelsa fayl yetib bormagan.
+      - name: Verify static files actually deployed
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            FAIL=0
+            check() {
+              CT=$(curl -s -o /dev/null -w '%{content_type}' -H 'Host: lolamarket.uz' "http://127.0.0.1$1")
+              case "$CT" in
+                $2*) echo "  ✅ $1 → $CT" ;;
+                *)   echo "::error::$1 → $CT (kutilgan: $2). Fayl serverga yetib bormagan — deploy.yml dagi source ro'yxatini tekshiring."
+                     FAIL=1 ;;
+              esac
+            }
+            check /manifest.json      application/json
+            check /sw.js              application/javascript
+            check /pwa.js             application/javascript
+            check /script.js          application/javascript
+            check /mini-app/app.js    application/javascript
+            exit $FAIL
