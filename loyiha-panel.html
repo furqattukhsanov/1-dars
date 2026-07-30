@@ -333,6 +333,11 @@
     <div id="faoliyat-list">
       <div class="faoliyat-item">
         <span class="faoliyat-sana">2026-07-30</span>
+        <span class="faoliyat-text">Sprint 4 quyrug'idagi ikkita bo'shliq yopildi. (1) Mahsulotga rasm yuklash — sotuvchi mahsulot qo'shganda forma rasmsiz edi, endi disputes.js'dagi Telegram file_id + HMAC-proksi naqshi takrorlanadi: fayl serverga yuklanmaydi, faqat file_id saqlanadi (db/009_product_image.sql), mahsulot yaratilgach bot sotuvchidan rasm so'raydi, kelgan rasm avval bahs dalili sifatida tekshiriladi, mos kelmasa mahsulot rasmi sifatida biriktiriladi, ko'rsatishda /api/product-photo imzolangan havola orqali proksi qilinadi (bot tokeni chiqmaydi); sotuvchi kabinetida rasmsiz mahsulotga qayta rasm so'rash uchun request_image amali qo'shildi. (2) Buyurtma xulosasida logistika narxi — BTS API hali ulanmagani uchun COMMISSION_RATE bilan bir xil naqsh: bitta taxminiy summa (DELIVERY_FEE_ESTIMATE, config'dan, default 25 000 so'm), buyurtma yaratilganda orders.delivery_fee_estimate ga snapshot qilinadi (db/010_delivery_fee.sql), Mini App va landing checkout xulosasida alohida qator sifatida ko'rsatiladi va "BTS nuqtasida to'lanadi, jamiga kirmaydi" izohi bor — mahsulot summasiga QO'SHILMAYDI (PRD talabi). Ikkala o'zgarish uchun ham server/test.js'ga yangi testlar qo'shildi (rasm imzosi, config sanity), npm test 0 xato bilan o'tadi. Lokal serverda brauzerda faqat logistika narxi vizual tekshirildi (screenshot) — rasm yuklash haqiqiy Telegram bot/DB talab qilgani uchun sinalmadi. Production'ga hali deploy/migratsiya qilinmagan</span>
+        <span class="faoliyat-sprint">Sprint 4</span>
+      </div>
+      <div class="faoliyat-item">
+        <span class="faoliyat-sana">2026-07-30</span>
         <span class="faoliyat-text">Landing (lolamarket.uz) ham PWA'ga aylantirildi — ilgari faqat Mini App uchun bo'lgan naqsh (manifest.json, sw.js, offline.html, pwa.js, assets/pwa/ ikonkalari) endi root darajasida ham qo'llandi, "uy ekraniga qo'shish" banneri mobil pastki navigatsiya ustida to'g'ri joylashadi. Lokal serverda tekshirildi: manifest o'qiladi, SW ro'yxatdan o'tadi va keshlaydi, offline sahifa to'g'ri ko'rsatiladi. Yo'l-yo'lakay bir nechta og'ir rasm siqildi/qayta o'lchamlandi (hero rasm 7.8MB PNG → 413KB JPEG, banner 692K→300K va boshqalar) — Sprint 8'dagi sahifa yuklanish tezligi bandiga tegishli tayyorgarlik, lekin haqiqiy vaqt hali o'lchanmagan. Production'ga hali deploy qilinmagan</span>
         <span class="faoliyat-sprint">Sprint 5</span>
       </div>
@@ -624,7 +629,7 @@
     { num: 1, nom: "Telegram Mini App MVP",     dars: "Dars 8",  holat: "tugadi",  sana: "2026-07-25" },
     { num: 2, nom: "Ma'lumotlar bazasi / Backend", dars: "Dars 9",  holat: "tugadi", sana: "2026-07-23" },
     { num: 3, nom: "Foydalanuvchilar + rollar", dars: "Dars 10", holat: "tugadi", sana: "2026-07-29" },
-    { num: 4, nom: "Asosiy funksiya",           dars: "Dars 11", holat: "jarayonda",  sana: "2026-07-29" },
+    { num: 4, nom: "Asosiy funksiya",           dars: "Dars 11", holat: "jarayonda",  sana: "2026-07-30" },
     { num: 5, nom: "Mobil / PWA",               dars: "Dars 12", holat: "jarayonda",  sana: "2026-07-30" },
     { num: 6, nom: "Integratsiyalar",           dars: "Dars 13", holat: "jarayonda",  sana: "2026-07-22" },
     { num: 7, nom: "Admin panel",               dars: "Dars 14", holat: "tugadi",  sana: "2026-07-30" },
@@ -650,7 +655,7 @@
   barEl.style.width = foiz + "%";
   percentEl.textContent = foiz + "%";
   countEl.textContent = tugaganlar + " / " + sprintlar.length + " sprint";
-  updatedEl.textContent = "Yangilanish: 2026-07-30 (Sprint 7 — commission_amount backfill migratsiyasi production'da tasdiqlandi; Sprint 5 — landing PWA'ga aylandi va rasmlar siqildi)";
+  updatedEl.textContent = "Yangilanish: 2026-07-30 (Sprint 4 — mahsulot rasmi yuklash va buyurtma xulosasida logistika narxi qo'shildi; Sprint 7 — commission_amount backfill migratsiyasi production'da tasdiqlandi; Sprint 5 — landing PWA'ga aylandi va rasmlar siqildi)";
 
   sprintlar.forEach(s => {
     const card = document.createElement("div");
