@@ -40,10 +40,34 @@ Platformani mobil qurilmalarda ham qulay ishlashini ta'minlash. Ilovani telefong
 
 - [2026-07-30] **Landing (lolamarket.uz) ham PWA'ga aylantirildi** — 2026-07-28'dagi naqsh (ilgari faqat `telegram-app/`/Mini App uchun edi) endi root darajasida ham qo'llandi: yangi `manifest.json`, `sw.js`, `offline.html`, `pwa.js`, `assets/pwa/{icon-192,icon-512,icon-maskable-512}.png` (Mini App'dan ko'chirilgan, bir xil brend belgisi). `index.html`ga manifest/meta teglar va `pwa.js` skripti ulandi; "uy ekraniga qo'shish" banneri `.m-nav` (mobil pastki navigatsiya) ustida to'g'ri joylashadigan qilib moslashtirildi. Lokal serverda brauzerda tekshirildi: manifest to'g'ri o'qiladi, SW ro'yxatdan o'tadi va keshlaydi, offline.html to'g'ri ko'rsatiladi, banner mobil ekranda joyida. **Yo'l-yo'lakay** bir nechta og'ir landing rasmi siqildi/qayta o'lchamlandi (`Photo/Main/hero-fabrics.jpg` — eski 7.8MB PNG endi 413KB JPEG'ga almashtirildi, `banner-mato.jpg` 692K→300K, `IMG_0147.JPG` 161K→23K, `IMG_0408.JPG` 28K→3K, ikkita textile rasm ~150–100K kamaydi) — Sprint 8'dagi "Sahifalar yuklanish tezligi" bandiga tegishli tayyorgarlik, lekin haqiqiy yuklanish vaqti hali o'lchanmagan. **Hali qilinmagan:** production'ga deploy, kameradan rasm yuklash, Mini App'ning Telegram ichida ochilishini tekshirish
 
+- [2026-07-30] **Service worker jonli saytda ro'yxatdan o'tmayotgan ekan — `load` hodisasiga
+  bog'liqlik olib tashlandi** (commit `5ffe1f0`). CI va Cloudflare tuzatilib fayllar serverga yetib
+  borgandan keyin ham (`sprint-1.md`ga qarang) landing PWA ishlamadi: fayllar joyida, konsolda xato
+  yo'q, lekin SW ro'yxatdan o'tmagan. **Sabab:** `pwa.js` da ro'yxatdan o'tkazish faqat
+  `window.addEventListener('load', ...)` ichida edi. Agar skript `load` hodisasidan KEYIN ijro etilsa
+  (bfcache'dan tiklanish, skriptning kech ijro etilishi), listener hech qachon otilmaydi va SW jimgina
+  ro'yxatdan o'tmay qoladi — **hech qanday xato chiqmaydi**, aynan shuning uchun uzoq vaqt sezilmagan.
+  **Tuzatish:** `whenReady()` yordamchisi — `document.readyState === 'complete'` bo'lsa funksiya darhol
+  chaqiriladi, aks holda odatdagidek `load` kutiladi. Bir xil mo'rtlik `telegram-app/pwa.js` da ham bor
+  edi (u tasodifan ishlab turgandi) — ikkalasida ham, SW bloki bilan birga iOS "uy ekraniga qo'shish"
+  banneri bloki ham `whenReady()` ga o'tkazildi. Kesh-bust: landing `pwa.js?v=1` → `?v=2`, Mini App
+  `pwa.js?v=5` → `?v=6`. **Tasdiqlash:** `pwa.js` ataylab `load` dan KEYIN ishga tushirilib sinaldi —
+  eski kodda SW ro'yxatdan o'tmaydi, yangisida o'tadi; oddiy sahifa yuklanishida ham alohida
+  tasdiqlandi. Jonli saytdagi yakuniy natija: `scope: https://lolamarket.uz/`, `active: true`, kesh
+  `lolamarket-web-v1` yaratildi. **Yopilgan ochiq ish:** 2026-07-28 dagi "nginx/Cloudflare tomonida
+  `sw.js` uchun `Cache-Control: no-cache` kerak" bandini founder qo'lda bajardi — nginx'ga `/sw.js` va
+  `/manifest.json` uchun no-cache qoidalari qo'shildi (kanonik nusxa serverda:
+  `/etc/nginx/sites-available/lolamarket`) va Cloudflare keshi tozalandi
+
 ---
 
 ## Qarorlar
 
+- [2026-07-30] Qaror: **sahifa hayot sikliga bog'liq har qanday kod `load` hodisasiga BEVOSITA
+  bog'lanmaydi** — avval `document.readyState` tekshiriladi (`whenReady()` naqshi). Sabab: `load`
+  allaqachon o'tgan bo'lsa listener hech qachon otilmaydi va kod JIMGINA bajarilmay qoladi — xato ham,
+  ogohlantirish ham chiqmaydi. Service worker'da bu ayniqsa yomon: PWA butunlay ishlamay turadi, lekin
+  tashqaridan hammasi joyidagidek ko'rinadi
 - [2026-07-29] Qaror: kichik ikonka tugmalar VIZUAL kattalashtirilmaydi — bosish maydoni ko'rinmas `::after` qoplamasi bilan 44×44 ga yetkaziladi. Sabab: dizayn tizimi (34px yurakcha, 32px "+") Mini App va landing'da bir xil, ularni kattalashtirish ikkala mahsulotning ko'rinishini buzardi. Qoplama tugmaning O'Z ichida yotadi, shuning uchun unga bosish baribir shu tugmani ishga tushiradi. Yonma-yon tiqilgan boshqaruvlarda (chip lentalari) faqat bo'y kengaytiriladi — kenglik oshsa qo'shni elementning maydoniga kirib ketardi
 - [2026-07-29] Qaror: matn kiritish maydoni ustiga qoplama qo'yilmaydi. Sabab: qidiruvni tozalash tugmasining 44px qoplamasi input ustiga tushib, matn oxiriga kursor qo'yishni to'sardi — bunday joyda tugma haqiqiy o'lchamda kattaytiriladi va manfiy `margin` bilan ko'rinishi joyida qoldiriladi
 - [2026-07-28] Qaror: service worker sahifa ochilishini (navigation) HECH QACHON keshdan bermaydi — faqat tarmoqdan, tarmoq yo'q bo'lsa `offline.html`. Sabab: `app.js` ichida qattiq yozilgan namuna katalog bor (narxlari bilan), keshlangan HTML qaytarilsa internetsiz foydalanuvchi soxta narxlarni haqiqiy deb ko'rardi — bu CLAUDE.md dagi "panelda/ilovada o'ylab topilgan raqam ko'rsatilmasin" qoidasiga zid. Shu sababdan offline holatda ilova "yarim ishlaydigan" ko'rinishda emas, ochiq-oydin "internet yo'q" sahifasi bilan to'xtaydi

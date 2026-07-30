@@ -60,6 +60,32 @@ Dizayn manbasi: pure HTML/CSS/JS, glassmorphism dizayn tizimi, ikki tillilik (uz
 
 ## Qilingan ishlar
 
+- [2026-07-30] **CI landing PWA fayllarini va Mini App'ni umuman deploy qilmasdi — ikkala teshik
+  yopildi va CI ga haqiqiy tekshiruv qadami qo'shildi** (`.github/workflows/deploy.yml`, commit
+  `c6350a1`). Ikkala nuqson Sprint 8 ning end-to-end sinovida qo'lga tushdi (`sprint-8.md`).
+
+  **Teshik 1 — landing PWA fayllari.** `deploy.yml` dagi `source` ro'yxati fayllarni AYNAN sanab
+  o'tadi. 2026-07-30 da yaratilgan landing PWA fayllari (`manifest.json`, `sw.js`, `pwa.js`,
+  `offline.html`, `assets/`) unga qo'shilmagandi — ular serverga umuman chiqmadi. Eng yomoni, buni
+  sezish qiyin edi: nginx yo'q faylga `try_files ... /index.html` bilan **HTML qaytardi va HTTP 200
+  ko'rsatdi**, Cloudflare esa o'sha HTML'ni `sw.js` sifatida 4 soatga keshladi. Ya'ni landing PWA
+  "deploy qilingan" ko'rinib turib, aslida umuman ishlamayotgan edi. Endi bu fayllar ro'yxatda va
+  ro'yxat ustiga ogohlantirish izohi yozildi: **repoda yangi ildiz fayli paydo bo'lsa, uni shu yerga
+  QO'LDA qo'shish shart.**
+
+  **Teshik 2 — Mini App uchun deploy qadami umuman yo'q edi.** Repoda papka `telegram-app/`, serverda
+  `mini-app/`. Nomlar mos kelmagani uchun uni birinchi ro'yxatga qo'shib bo'lmaydi — papka serverga o'z
+  nomi bilan yotardi va `/mini-app/` bo'sh qolardi. Natijada Mini App **27-iyuldan beri** eskirgan
+  turgan: production'da `app.js?v=47`, holbuki jonli kod `v52` bo'lishi kerak edi. Ya'ni oxirgi uch
+  sessiyaning BUTUN Mini App ishi (PWA, mahsulot rasmi UI, logistika narxi qatori, zaxira ko'rsatkichi)
+  foydalanuvchilarga yetib bormagan. Endi Mini App uchun `strip_components: 1` bilan **alohida scp
+  qadami** bor — u papka nomini olib tashlaydi va target to'g'ri joyni ko'rsatadi.
+
+  **Yangi tekshiruv qadami — "Verify static files actually deployed".** Statik fayllar HAQIQATAN yetib
+  borganini tekshiradi: `/manifest.json`, `/sw.js`, `/pwa.js`, `/script.js`, `/mini-app/app.js` — har
+  biri kutilgan `Content-Type` bilan javob berishi shart, aks holda deploy xato bilan to'xtaydi va
+  xabarda `source` ro'yxatini tekshirish tavsiya qilinadi
+
 - [2026-07-30] **Deploy ko'rsatmasidagi `rsync --delete` serverdagi fayllarni o'chirib yuborardi —
   `server/README.md` tuzatildi.** `--delete` repoda YO'Q hamma narsani o'chiradi, `pg-backup.sh` va
   `.mcp-db-url` esa exclude ro'yxatida yo'q edi. Bugungi deploy paytida aynan shu bo'ldi: ikkala fayl
@@ -86,6 +112,17 @@ Dizayn manbasi: pure HTML/CSS/JS, glassmorphism dizayn tizimi, ikki tillilik (uz
 
 ## Qarorlar
 
+- [2026-07-30] Qaror: **statik fayl deploy'i HTTP kodiga emas, javob TURIga (`Content-Type`) qarab
+  tekshiriladi.** Sabab: nginx `try_files ... /index.html` bilan sozlangan — yo'q faylga ham **200**
+  qaytaradi, faqat tanasi HTML bo'ladi. Shu sabab `curl -o /dev/null -w '%{http_code}'` hamma joyda
+  200 ko'rsatdi va bizni chalg'itdi, holbuki fayllar serverda umuman yo'q edi. Endi CI `%{content_type}`
+  ni o'qiydi: `/sw.js` `application/javascript` qaytarmasa — fayl yetib bormagan, deploy xato bilan
+  to'xtaydi
+- [2026-07-30] Qaror: **Mini App alohida deploy qadami bilan ko'chiriladi** (`strip_components: 1`),
+  asosiy `source` ro'yxatiga qo'shilmaydi. Sabab: repoda `telegram-app/`, serverda `mini-app/` — ro'yxatga
+  qo'shilsa papka serverga o'z nomi bilan yotadi va `/mini-app/` bo'sh qoladi. Papka nomlarini
+  tenglashtirish (repo yoki serverni qayta nomlash) qilinmadi: server yo'li bot menu URL'iga,
+  manifest `id`iga va foydalanuvchilarda o'rnatilgan PWA'larga bog'lanib ketgan
 - [2026-06-30] Qaror: Telegram Mini App uchun pure HTML/CSS/JS tanlandi (Next.js emas) — tezroq deploy, Telegram SDK bilan to'g'ridan-to'g'ri integratsiya, server kerak emas
 - [2026-06-30] Qaror: Glassmorphism dizayn tizimi — Telegram dark theme bilan uyg'un, zamonaviy ko'rinish uchun
 - [2026-06-30] Qaror: Dark pomegranate pill nav (sliding lens) — Telegram Mini App uchun native ko'rinishli navigatsiya
