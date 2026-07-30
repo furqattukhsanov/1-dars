@@ -332,6 +332,16 @@
     <div style="font-size:0.68rem; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; color:#9C7B5A; margin-bottom:0.7rem;">So'nggi faoliyat</div>
     <div id="faoliyat-list">
       <div class="faoliyat-item">
+        <span class="faoliyat-sana">2026-07-30</span>
+        <span class="faoliyat-text">Landing (lolamarket.uz) ham PWA'ga aylantirildi — ilgari faqat Mini App uchun bo'lgan naqsh (manifest.json, sw.js, offline.html, pwa.js, assets/pwa/ ikonkalari) endi root darajasida ham qo'llandi, "uy ekraniga qo'shish" banneri mobil pastki navigatsiya ustida to'g'ri joylashadi. Lokal serverda tekshirildi: manifest o'qiladi, SW ro'yxatdan o'tadi va keshlaydi, offline sahifa to'g'ri ko'rsatiladi. Yo'l-yo'lakay bir nechta og'ir rasm siqildi/qayta o'lchamlandi (hero rasm 7.8MB PNG → 413KB JPEG, banner 692K→300K va boshqalar) — Sprint 8'dagi sahifa yuklanish tezligi bandiga tegishli tayyorgarlik, lekin haqiqiy vaqt hali o'lchanmagan. Production'ga hali deploy qilinmagan</span>
+        <span class="faoliyat-sprint">Sprint 5</span>
+      </div>
+      <div class="faoliyat-item">
+        <span class="faoliyat-sana">2026-07-30</span>
+        <span class="faoliyat-text">2026-07-27 dagi "eski buyurtmalarda commission_amount NULL" bo'shlig'ini yopuvchi migratsiya yozildi — db/008_backfill_commission.sql. 005 migratsiyasidan oldingi buyurtmalarda commission_rate/commission_amount/payout_amount keyin qo'shilgan ustun bo'lgani uchun NULL qolgan, komissiya hisobotida ular 0 bo'lib ko'rinardi. O'sha paytdagi haqiqiy stavka noma'lum bo'lgani uchun default (COMMISSION_RATE, 0.10) ishlatiladi, migratsiya idempotent. Hali qilinmagan: production bazada ishga tushirish — hozircha faqat SQL fayl</span>
+        <span class="faoliyat-sprint">Sprint 7</span>
+      </div>
+      <div class="faoliyat-item">
         <span class="faoliyat-sana">2026-07-29</span>
         <span class="faoliyat-text">Sayt xaridori endi lolamarket.uz'ga Telegram orqali kira oladi. Muammo shu edi: saytda Telegram imzolagan initData yo'q (u Mini App ichida emas), shuning uchun saytdan berilgan buyurtmada orders.tg_user_id bo'sh qolardi va /tasdiqla, /yolga, /yetdi buyruqlari xaridorga xabar yubora olmasdi — "Telegram ID topilmadi" derdi, admin esa telefon qilishga majbur edi. Yechim — bir martalik kod oqimi: sayt kod yaratadi, brauzer t.me/bot?start=web_KOD havolasini ochadi, foydalanuvchi botda "Boshlash" bosadi va Telegram ID webhook orqali TELEGRAM'NING O'ZIDAN keladi, brauzerdan emas — ya'ni soxtalashtirib bo'lmaydi. Xavfsizlik yechimlari: kod ikkita sirdan iborat (code deep-link'da ko'rinadi, verifier faqat brauzerda qoladi va bazada sha256 shaklida) — kodni ko'rgan begona odam sessiyani o'g'irlay olmasin; sessiya tokeni HttpOnly cookie'da yuradi (sahifadagi JS o'qiy olmaydi) va bazada faqat sha256 shaklida saqlanadi; poll javobi topilmagan, eskirgan va ishlatilgan kodning uchalasiga ham bir xil "expired" qaytaradi, shunda mavjud kodlarni taxmin qilib bo'lmaydi. Telegram Login Widget ATAYLAB olinmadi — u BotFather'da domen sozlashni talab qiladi va Instagram/Telegram ichki brauzerlarida ochilmaydi. Yangi migratsiya 007: web_login_codes (10 daqiqa), web_sessions (30 kun), users.tg_username. Yangi endpointlar: /api/auth/web/start, /poll, /me, /logout va /api/web/orders (sessiyasiz 401). Natija: kirgan xaridorning buyurtmasida buyer_id, tg_user_id va tg_username to'ladi — holat o'zgarishi endi unga botda avtomatik boradi, admin xabarida @username ko'rinadi; botga yuborilgan telefon users.phone ga ham yoziladi (ilgari faqat contacts.json'da qolardi), shuning uchun checkout formasi ism va telefon bilan o'zi to'ladi. Landing drawer'iga ikkita ko'rinish qo'shildi — Kirish va Profil (mening buyurtmalarim, chiqish); yangi sahifa yaratilmadi. Yon nuqson tuzatildi: bitta kontakt xabariga bot ikkita javob yuborardi. Kesh-bust: style.css v33, script.js v19. Deploy YAKUNLANDI va production'da tasdiqlandi: migratsiya 007 bazaga qo'llandi, BOT_USERNAME .env ga qo'shildi, lolamarket-notify servisi restart qilindi, nginx'ga /api/web/orders proxy bloki qo'shildi (eski /api/web-orders bloki uni qamramasdi) va statik fayllar saytga chiqarildi. Kirish oqimi haqiqiy telefonda uchidan-uchigacha sinaldi — sayt → Kirish → botda "Boshlash" → profil ochildi; bazada 1 ta faol sessiya bor. Qaror CLAUDE.md ga doimiy arxitektura qoidasi sifatida yozildi: foydalanuvchi kimligi hech qachon brauzerdan olinmaydi</span>
         <span class="faoliyat-sprint">Sprint 3</span>
@@ -615,9 +625,9 @@
     { num: 2, nom: "Ma'lumotlar bazasi / Backend", dars: "Dars 9",  holat: "tugadi", sana: "2026-07-23" },
     { num: 3, nom: "Foydalanuvchilar + rollar", dars: "Dars 10", holat: "tugadi", sana: "2026-07-29" },
     { num: 4, nom: "Asosiy funksiya",           dars: "Dars 11", holat: "jarayonda",  sana: "2026-07-29" },
-    { num: 5, nom: "Mobil / PWA",               dars: "Dars 12", holat: "jarayonda",  sana: "2026-07-29" },
+    { num: 5, nom: "Mobil / PWA",               dars: "Dars 12", holat: "jarayonda",  sana: "2026-07-30" },
     { num: 6, nom: "Integratsiyalar",           dars: "Dars 13", holat: "jarayonda",  sana: "2026-07-22" },
-    { num: 7, nom: "Admin panel",               dars: "Dars 14", holat: "tugadi",  sana: "2026-07-27" },
+    { num: 7, nom: "Admin panel",               dars: "Dars 14", holat: "tugadi",  sana: "2026-07-30" },
     { num: 8, nom: "Sifat tekshiruvi",          dars: "Dars 15", holat: "kutilmoqda", sana: "" },
     { num: 9, nom: "Production + launch",       dars: "Dars 16", holat: "kutilmoqda", sana: "" },
   ];
@@ -640,7 +650,7 @@
   barEl.style.width = foiz + "%";
   percentEl.textContent = foiz + "%";
   countEl.textContent = tugaganlar + " / " + sprintlar.length + " sprint";
-  updatedEl.textContent = "Yangilanish: 2026-07-29 (Sprint 3 — saytga Telegram orqali kirish production'da ishladi; qoida CLAUDE.md ga yozildi)";
+  updatedEl.textContent = "Yangilanish: 2026-07-30 (Sprint 7 — commission_amount backfill migratsiyasi; Sprint 5 — landing PWA'ga aylandi va rasmlar siqildi)";
 
   sprintlar.forEach(s => {
     const card = document.createElement("div");

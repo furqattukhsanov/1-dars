@@ -38,6 +38,8 @@ Platformani mobil qurilmalarda ham qulay ishlashini ta'minlash. Ilovani telefong
 
   **Natija:** landing (katalog / savat / checkout / saralanganlar) va Mini App'ning 15 ta ekranida 44×44 dan kichik bosiladigan element qolmadi; gorizontal toshib ketish yo'q. Ataylab qoldirilgani: qidiruv inputining o'zi 42px (uni o'rab turgan quti 44px va input butun ichki maydonni egallaydi).
 
+- [2026-07-30] **Landing (lolamarket.uz) ham PWA'ga aylantirildi** — 2026-07-28'dagi naqsh (ilgari faqat `telegram-app/`/Mini App uchun edi) endi root darajasida ham qo'llandi: yangi `manifest.json`, `sw.js`, `offline.html`, `pwa.js`, `assets/pwa/{icon-192,icon-512,icon-maskable-512}.png` (Mini App'dan ko'chirilgan, bir xil brend belgisi). `index.html`ga manifest/meta teglar va `pwa.js` skripti ulandi; "uy ekraniga qo'shish" banneri `.m-nav` (mobil pastki navigatsiya) ustida to'g'ri joylashadigan qilib moslashtirildi. Lokal serverda brauzerda tekshirildi: manifest to'g'ri o'qiladi, SW ro'yxatdan o'tadi va keshlaydi, offline.html to'g'ri ko'rsatiladi, banner mobil ekranda joyida. **Yo'l-yo'lakay** bir nechta og'ir landing rasmi siqildi/qayta o'lchamlandi (`Photo/Main/hero-fabrics.jpg` — eski 7.8MB PNG endi 413KB JPEG'ga almashtirildi, `banner-mato.jpg` 692K→300K, `IMG_0147.JPG` 161K→23K, `IMG_0408.JPG` 28K→3K, ikkita textile rasm ~150–100K kamaydi) — Sprint 8'dagi "Sahifalar yuklanish tezligi" bandiga tegishli tayyorgarlik, lekin haqiqiy yuklanish vaqti hali o'lchanmagan. **Hali qilinmagan:** production'ga deploy, kameradan rasm yuklash, Mini App'ning Telegram ichida ochilishini tekshirish
+
 ---
 
 ## Qarorlar
