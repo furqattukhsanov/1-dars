@@ -20,8 +20,17 @@
     && !/crios|fxios/i.test(navigator.userAgent);
 
   /* ===== 1. Service worker ===== */
+  // `load` hodisasi ALLAQACHON o'tgan bo'lishi mumkin (bfcache'dan tiklanish,
+  // skriptning kech ijro etilishi). Unda listener hech qachon otilmaydi va
+  // service worker umuman ro'yxatdan o'tmaydi — 2026-07-30 da landing saytida
+  // aynan shu bo'ldi. Bu yerda ham xuddi shu naqsh bor edi, oldini olamiz.
+  function whenReady(fn) {
+    if (document.readyState === 'complete') fn();
+    else window.addEventListener('load', fn);
+  }
+
   if ('serviceWorker' in navigator) {
-    window.addEventListener('load', function () {
+    whenReady(function () {
       // updateViaCache:'none' — sw.js brauzer keshidan olinmasin, aks holda
       // yangilangan service worker soatlab eskisi bilan qolib ketadi.
       navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).catch(function (err) {
@@ -164,7 +173,7 @@
 
   // iOS Safari'da bunday hodisa yo'q — qo'lda qilish yo'lini aytamiz.
   if (isIos && !recentlyDismissed()) {
-    window.addEventListener('load', function () {
+    whenReady(function () {
       setTimeout(function () {
         if (banner) return;
         showBanner('Ulashish tugmasi → «Uy ekraniga qo\'shish».', null, null);
