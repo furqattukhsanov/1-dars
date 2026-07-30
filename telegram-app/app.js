@@ -68,6 +68,9 @@ const STR = {
     sNoProducts: "Hali mahsulot yo'q", sNoProductsSub: "Birinchi matongizni qo'shing",
     sNoOrders: "Bu bo'limda buyurtma yo'q",
     sAdd: "Mahsulot qo'shish", sEdit: "Tahrirlash", sHide: "Yashirish", sShow: "Qayta ko'rsatish",
+    soldOut: "Zaxirada tugadi", soldOutSub: "Sotuvchi yangi rulon qo'shishini kuting",
+    sStock: "Zaxira (rulon soni)", sStockPh: "Bo'sh qoldirilsa — cheksiz",
+    sStockLabel: "Zaxira", sStockUnlimited: "cheksiz",
     sImgWaiting: "Rasm kutilmoqda — botga rasm yuboring", sImgAdd: "Rasm yuklash",
     sImgRequested: "So'raldi — botga rasm yuboring", sPhotoHint: "Saqlangach botga rasm yuboring — u katalogda ko'rinadi.",
     sDispute: "Xaridor shikoyati", sDisputeReplyPh: "Javobingiz — moderator va xaridor ko'radi",
@@ -130,6 +133,9 @@ const STR = {
     sNoProducts: "Товаров пока нет", sNoProductsSub: "Добавьте первую ткань",
     sNoOrders: "В этом разделе заказов нет",
     sAdd: "Добавить товар", sEdit: "Изменить", sHide: "Скрыть", sShow: "Показать снова",
+    soldOut: "Нет в наличии", soldOutSub: "Дождитесь новых рулонов от продавца",
+    sStock: "Запас (кол-во рулонов)", sStockPh: "Пусто — без ограничений",
+    sStockLabel: "Запас", sStockUnlimited: "без ограничений",
     sImgWaiting: "Ожидается фото — отправьте его боту", sImgAdd: "Загрузить фото",
     sImgRequested: "Запрошено — отправьте фото боту", sPhotoHint: "После сохранения отправьте фото боту — оно появится в каталоге.",
     sDispute: "Жалоба покупателя", sDisputeReplyPh: "Ваш ответ — увидят модератор и покупатель",
@@ -346,8 +352,29 @@ const BADGE_COLORS = {
   saffron: ['var(--saffron-50)','var(--saffron-700)'],
   neutral: ['var(--ink-100)','var(--ink-700)'],
 };
-const STOCK_COLOR = { in:'var(--success-500)', low:'var(--saffron-500)', made:'var(--teal-500)' };
-const STOCK_TXT   = { in:{ uz:'Sotuvda', ru:'В наличии' }, low:{ uz:'Kam qoldi', ru:'Мало осталось' }, made:{ uz:'Buyurtmaga', ru:'Под заказ' } };
+const STOCK_COLOR = { in:'var(--success-500)', low:'var(--saffron-500)', made:'var(--teal-500)', out:'var(--danger-500)' };
+const STOCK_TXT   = { in:{ uz:'Sotuvda', ru:'В наличии' }, low:{ uz:'Kam qoldi', ru:'Мало осталось' }, made:{ uz:'Buyurtmaga', ru:'Под заказ' }, out:{ uz:'Tugadi', ru:'Нет в наличии' } };
+
+// "Kam qoldi" chegarasi — shundan past bo'lsa xaridorga sariq belgi ko'rsatiladi.
+const LOW_STOCK = 5;
+
+// Zaxira ko'rinishi HAQIQIY songa asoslanadi (011 migratsiyasi).
+// `stock === null` — cheksiz: `made` mahsulotlar va sotuvchi hali son
+// kiritmagan e'lonlar; ular uchun eski `stock_key` yorlig'i ishlatiladi.
+// `stock === undefined` — eski/keshlangan API javobi, xuddi shu yo'l.
+function stockView(p) {
+  const L = S.lang;
+  const n = p.stock;
+  if (n === null || n === undefined) {
+    const k = STOCK_TXT[p.stockKey] ? p.stockKey : 'made';
+    return { txt: STOCK_TXT[k][L], col: STOCK_COLOR[k], soldOut: false };
+  }
+  if (n <= 0) return { txt: STOCK_TXT.out[L], col: STOCK_COLOR.out, soldOut: true };
+  if (n <= LOW_STOCK) {
+    return { txt: `${STOCK_TXT.low[L]} · ${n}`, col: STOCK_COLOR.low, soldOut: false };
+  }
+  return { txt: STOCK_TXT.in[L], col: STOCK_COLOR.in, soldOut: false };
+}
 const STATUS_TXT  = {
   production:{ uz:'Ishlab chiqarilmoqda', ru:'В производстве' },
   shipped:   { uz:"Yo'lda",              ru:'В пути' },
@@ -388,8 +415,9 @@ function vm(p) {
     perUnitLabel: STR[L].perUnit,
     moqLabel: num(p.moq) + ' ' + uShort(p.unit),
     leadLabel: p.lead + ' ' + STR[L].day,
-    stockTxt: STOCK_TXT[p.stockKey][L],
-    stockCol: STOCK_COLOR[p.stockKey],
+    stockTxt: stockView(p).txt,
+    stockCol: stockView(p).col,
+    soldOut: stockView(p).soldOut,
     badgeShow: !!p.badge,
     badgeBg: bbg, badgeFg: bfg,
     liked: !!S.liked[p.id],
@@ -583,9 +611,13 @@ function updateNav() {
     const p = byId(S.selectedId);
     const btn = document.getElementById('main-btn');
     if (sc === 'detail' && p) {
-      document.getElementById('main-btn-label').textContent = T.addCart;
-      document.getElementById('main-btn-sub').textContent   = money(p.price * S.qty);
-      if (btn) btn.classList.remove('disabled');
+      // Zaxira tugagan bo'lsa savatga qo'shib bo'lmaydi — sabab tugmaning
+      // o'zida yoziladi (server baribir rad etardi, lekin xaridor buni
+      // checkout'ga yetgandan keyin emas, shu yerda bilishi kerak).
+      const out = stockView(p).soldOut;
+      document.getElementById('main-btn-label').textContent = out ? T.soldOut : T.addCart;
+      document.getElementById('main-btn-sub').textContent   = out ? T.soldOutSub : money(p.price * S.qty);
+      if (btn) btn.classList.toggle('disabled', out);
     } else if (sc === 'checkout') {
       // Nuqta tanlanmagunicha tugma o'chirilgan bo'ladi va sababi tugmaning
       // o'zida yoziladi — foydalanuvchi nima yetishmayotganini izlab yurmaydi.
@@ -1762,6 +1794,7 @@ function renderSellerProducts() {
           <div style="flex:1;min-width:0">
             <div style="font-size:14px;font-weight:700;color:var(--text-strong);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.name[S.lang]}</div>
             <div style="font-family:var(--font-mono);font-size:12px;color:var(--text-muted);margin-top:2px">${money(p.price)} · ${T.minOrder}: ${num(p.moq)}</div>
+            <div style="font-size:11.5px;color:${p.stock === 0 ? 'var(--danger-500)' : 'var(--text-muted)'};margin-top:2px">${T.sStockLabel}: ${p.stock == null ? T.sStockUnlimited : num(p.stock)}</div>
             <div style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:${st.fg};margin-top:4px">
               <span style="width:6px;height:6px;border-radius:50%;background:${st.dot}"></span>${T[st.key]}
             </div>
@@ -1810,6 +1843,9 @@ function renderProductForm() {
     <div><label style="${lbl}">${T.sMoq}</label>
       <input id="pf-moq" type="number" inputmode="numeric" value="${p ? p.moq : 1}" style="${inp};font-family:var(--font-mono)"></div>
 
+    <div><label style="${lbl}">${T.sStock}</label>
+      <input id="pf-stock" type="number" inputmode="numeric" min="0" placeholder="${T.sStockPh}" value="${p && p.stock != null ? p.stock : ''}" style="${inp};font-family:var(--font-mono)"></div>
+
     ${p ? '' : `<div><label style="${lbl}">${T.sCat}</label>
       <div style="display:flex;flex-wrap:wrap;gap:7px">
         ${P_CATS.map((c,i) => `<button onclick="pickPfCat('${c.k}')" id="pf-cat-${c.k}" data-cat="${c.k}" style="cursor:pointer;font-size:12.5px;font-weight:600;padding:8px 14px;border-radius:999px;background:${i===0?'var(--ink-900)':'rgba(255,255,255,.66)'};color:${i===0?'#fff':'var(--ink-700)'};border:1px solid ${i===0?'var(--ink-900)':'rgba(255,255,255,.8)'}">${c[S.lang]}</button>`).join('')}
@@ -1849,19 +1885,23 @@ async function saveProduct() {
   const price = parseInt(document.getElementById('pf-price')?.value, 10);
   const moq = parseInt(document.getElementById('pf-moq')?.value, 10) || 1;
   const comp = document.getElementById('pf-comp')?.value.trim() || '';
+  // Bo'sh qoldirilsa — cheksiz (null). 0 esa haqiqiy qiymat: "tugadi".
+  const stockRaw = document.getElementById('pf-stock')?.value.trim() ?? '';
+  const stock = stockRaw === '' ? null : parseInt(stockRaw, 10);
   if (name.length < 2) return showToast(T.sName);
   if (!Number.isInteger(price) || price < 1) return showToast(T.sPrice);
+  if (stock !== null && (!Number.isInteger(stock) || stock < 0)) return showToast(T.sStock);
 
   try {
     if (S.sEditId) {
       await sellerFetch('/api/seller/products', {
         method: 'PATCH',
-        body: JSON.stringify({ id: S.sEditId, name_uz: name, price, moq, comp_uz: comp }),
+        body: JSON.stringify({ id: S.sEditId, name_uz: name, price, moq, comp_uz: comp, stock }),
       });
     } else {
       await sellerFetch('/api/products', {
         method: 'POST',
-        body: JSON.stringify({ name_uz: name, price, moq, comp_uz: comp, cat_key: S.pfCat || 'silk' }),
+        body: JSON.stringify({ name_uz: name, price, moq, comp_uz: comp, stock, cat_key: S.pfCat || 'silk' }),
       });
     }
     showToast(T.sSaved);

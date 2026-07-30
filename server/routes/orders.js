@@ -7,6 +7,69 @@ const { rateLimited, readBody, sendJson, fail } = require('../lib/http');
 const { sendOrderNotifyMessage, sendBuyerConfirmMessage } = require('../lib/telegram-api');
 const { webSessionUser } = require('./web-auth');
 
+// ============ ZAXIRANI KAMAYTIRISH ============
+// Buyurtma tranzaksiyasi ICHIDA chaqiriladi (BEGIN ... COMMIT orasida).
+//
+// Nega oddiy "avval o'qib, keyin yozish" emas: ikki xaridor bir vaqtda oxirgi
+// rulonni olsa, ikkalasi ham "1 ta bor" deb o'qiydi va ikkalasi ham o'tib
+// ketadi (race condition). Shuning uchun tekshiruv va kamaytirish BITTA
+// atomik `UPDATE ... WHERE stock >= qty` da bo'ladi — Postgres qatorni
+// qulflaydi, ikkinchi tranzaksiya kutadi va yangilangan sonni ko'radi.
+// Agar shart bajarilmasa UPDATE 0 qator qaytaradi — bu "zaxira yetmadi" degani.
+//
+// `stock IS NULL` = CHEKSIZ (011 migratsiyasi): `made` ("buyurtmaga
+// tayyorlanadi") mahsulotlar va sotuvchi hali son kiritmagan eski e'lonlar.
+// NULL - qty = NULL, ya'ni ular hech qachon tugamaydi.
+//
+// Qatorlar ID bo'yicha TARTIBLANADI: ikki buyurtma bir xil ikki mahsulotni
+// teskari tartibda qulflasa Postgres deadlock beradi. Bir xil tartib buni
+// butunlay yo'q qiladi.
+async function decrementStock(client, items) {
+  for (const it of [...items].sort((a, b) => String(a.id).localeCompare(String(b.id)))) {
+    const { rows } = await client.query(
+      `UPDATE products SET stock = stock - $2
+        WHERE id = $1 AND (stock IS NULL OR stock >= $2)
+        RETURNING stock`,
+      [it.id, it.qty]
+    );
+    if (rows.length) continue;
+
+    // Yetmadi. Qolgan sonni xabar uchun o'qiymiz — tranzaksiya baribir
+    // ROLLBACK bo'ladi, shuning uchun bu qo'shimcha o'qish zararsiz.
+    const { rows: cur } = await client.query(
+      `SELECT stock, name_uz, unit FROM products WHERE id = $1`, [it.id]);
+    const left = cur.length && cur[0].stock !== null ? Number(cur[0].stock) : 0;
+    const name = cur.length ? cur[0].name_uz : it.name;
+    const unit = (cur.length ? cur[0].unit : it.unit) || 'dona';
+    throw new ClientError(
+      left > 0
+        ? `"${name}" — zaxirada faqat ${left} ${unit} qoldi`
+        : `"${name}" — zaxirada tugadi`
+    );
+  }
+}
+
+// Bekor qilingan buyurtmaning zaxirasini QAYTARISH.
+//
+// Faqat `cancelled` uchun: sotuvchi yangi buyurtmani rad etganda mato hali
+// jo'natilmagan — rulonlar omborda turibdi va yana sotilishi kerak.
+//
+// `refunded` uchun ATAYLAB chaqirilmaydi: pul qaytarish bahs qarori bilan
+// bo'ladi, mato esa odatda xaridorda qoladi yoki shikastlangan. U yerda
+// zaxirani avtomatik qaytarish omborda YO'Q matoni "bor" deb ko'rsatardi.
+// Kerak bo'lsa sotuvchi kabinetdan qo'lda tiklaydi (2026-07-30 qarori).
+//
+// NULL (cheksiz) zaxiraga tegilmaydi: NULL + qty = NULL bo'lgani uchun
+// SQL o'zi to'g'ri ishlaydi, alohida shart kerak emas.
+async function restoreStock(client, orderId) {
+  await client.query(
+    `UPDATE products p SET stock = p.stock + oi.qty
+       FROM order_items oi
+      WHERE oi.order_id = $1 AND oi.product_id = p.id`,
+    [orderId]
+  );
+}
+
 // ============ /api/orders POST — buyurtma yaratish (bazaga) ============
 async function handleCreateOrder(req, res, ip) {
   if (rateLimited(`createorder:${ip}`)) return fail(res, 'too many requests', 429);
@@ -78,6 +141,11 @@ async function handleCreateOrder(req, res, ip) {
     const payoutAmount = total - commissionAmount;
 
     await client.query('BEGIN');
+    // Zaxira ID olishdan OLDIN kamaytiriladi: ketma-ketlik (`nextval`)
+    // ROLLBACK'da qaytmaydi, shuning uchun zaxira yetmagan urinish
+    // buyurtma raqamini behuda yoqib yubormasin.
+    await decrementStock(client, items);
+
     const { rows: idRows } = await client.query(`SELECT '#LM-' || nextval('order_seq') AS id`);
     const orderId = idRows[0].id;
 
@@ -237,6 +305,9 @@ async function handleCreateWebOrder(req, res, ip) {
     // ID Mini App bilan BIR XIL ketma-ketlikdan olinadi — shunda `/tasdiqla #LM-...`
     // buyrug'i sayt buyurtmalarida ham ishlaydi (webhook regex faqat raqam kutadi).
     await client.query('BEGIN');
+    // Mini App yo'lidagi kabi — zaxira ID olishdan oldin kamaytiriladi
+    await decrementStock(client, items);
+
     const { rows: idRows } = await client.query(`SELECT '#LM-' || nextval('order_seq') AS id`);
     const orderId = idRows[0].id;
 
@@ -432,4 +503,7 @@ async function handleOrderStatus(req, res, ip) {
   }
 }
 
-module.exports = { handleCreateOrder, handleCreateWebOrder, handleGetOrders, handleOrderNotify, handleOrderStatus };
+module.exports = {
+  handleCreateOrder, handleCreateWebOrder, handleGetOrders, handleOrderNotify, handleOrderStatus,
+  decrementStock, restoreStock,
+};

@@ -110,7 +110,7 @@ async function handleAdminSummary(req, res, ip) {
          ORDER BY s.created_at DESC LIMIT 100`),
 
       pool.query(`
-        SELECT p.id, p.name_uz, p.price, p.unit, p.cat_key, p.img, p.img_file_id, p.created_at,
+        SELECT p.id, p.name_uz, p.price, p.unit, p.cat_key, p.img, p.img_file_id, p.stock, p.created_at,
                s.business_name_uz AS seller_name
           FROM products p
           LEFT JOIN sellers s ON s.id = p.seller_id
@@ -197,6 +197,7 @@ async function handleAdminSummary(req, res, ip) {
         unit: r.unit,
         catKey: r.cat_key,
         img: r.img_file_id ? productPhotoUrl(r.img_file_id) : r.img,
+        stock: r.stock === null ? null : Number(r.stock),
         sellerName: r.seller_name,
         date: dateLabel(new Date(r.created_at)),
       })),

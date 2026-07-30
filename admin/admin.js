@@ -785,6 +785,7 @@ function renderModQueue() {
         <div class="mod-name">${esc(m.name)}</div>
         <div class="mod-meta">${esc(m.sellerName || "Sotuvchi noma'lum")} · ${esc(m.date ? m.date.uz : '')}</div>
         <div class="mod-price">${fmtSom(m.price)}/${esc(m.unit || 'rulon')}</div>
+        <div class="mod-meta">Zaxira: ${m.stock == null ? 'cheksiz' : esc(m.stock)}</div>
         <div class="mod-actions">
           <button class="btn-approve" data-prod="${esc(m.id)}" data-act="publish">Nashr</button>
           <button class="btn-reject"  data-prod="${esc(m.id)}" data-act="reject">Rad</button>

@@ -122,6 +122,8 @@ function productRowToVM(r) {
     reviews: Number(r.reviews || 0),
     verified: !!r.is_verified,
     stockKey: r.stock_key,
+    // null = cheksiz (`made` va sotuvchi son kiritmagan e'lonlar)
+    stock: r.stock === null || r.stock === undefined ? null : Number(r.stock),
     badgeTone: r.badge_tone,
     width: r.width,
     weight: r.weight,
@@ -138,7 +140,7 @@ async function handleGetProducts(req, res, ip) {
   try {
     const { rows } = await pool.query(`
       SELECT p.id, p.cat_key, p.pattern, p.img, p.img_file_id, p.price, p.unit, p.moq, p.lead_days,
-             p.rating, p.reviews, p.stock_key, p.badge_tone, p.width, p.weight,
+             p.rating, p.reviews, p.stock_key, p.stock, p.badge_tone, p.width, p.weight,
              p.name_uz, p.name_ru, p.comp_uz, p.comp_ru, p.badge_uz, p.badge_ru,
              s.business_name_uz, s.business_name_ru, s.city_uz, s.city_ru, s.is_verified
       FROM products p
@@ -172,6 +174,9 @@ async function handleSubmitProduct(req, res, ip) {
       unit:    { type: 'string', required: false, max: 20, default: 'rulon' },
       moq:     { type: 'int', required: false, min: 1, max: 100000, default: 1 },
       comp_uz: { type: 'string', required: false, max: 500 },
+      // Bo'sh qoldirilsa null = CHEKSIZ (011 migratsiyasi). 0 esa haqiqiy
+      // qiymat — "zaxirada tugadi".
+      stock:   { type: 'int', required: false, min: 0, max: 1000000 },
     });
     if (!v.ok) return fail(res, v.error, 400);
     const d = v.data;
@@ -181,9 +186,9 @@ async function handleSubmitProduct(req, res, ip) {
     const me = await currentSeller(u);
     const sellerId = me && me.role === 'seller' ? me.seller_id : null;
     await pool.query(
-      `INSERT INTO products (id, seller_id, cat_key, price, unit, moq, name_uz, name_ru, comp_uz, status, submitted_by_tg, awaiting_image)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'pending',$10,true)`,
-      [id, sellerId, d.cat_key, d.price, d.unit || 'rulon', d.moq || 1, d.name_uz, d.name_ru, d.comp_uz, String(u.id)]
+      `INSERT INTO products (id, seller_id, cat_key, price, unit, moq, name_uz, name_ru, comp_uz, stock, status, submitted_by_tg, awaiting_image)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'pending',$11,true)`,
+      [id, sellerId, d.cat_key, d.price, d.unit || 'rulon', d.moq || 1, d.name_uz, d.name_ru, d.comp_uz, d.stock, String(u.id)]
     );
     sendOrderNotifyMessage(
       `🆕 <b>Yangi e'lon moderatsiyaga</b>\n\n<b>${escapeHtml(d.name_uz)}</b>\nNarx: ${escapeHtml(money(d.price))}\nID: <code>${escapeHtml(id)}</code>\n\nRo'yxat: <code>/moderatsiya</code>`

@@ -6,6 +6,7 @@ const { validate } = require('../lib/validate');
 const { rateLimited, readBody, ok, fail } = require('../lib/http');
 const { callTelegram, notify } = require('../lib/telegram-api');
 const { productPhotoUrl } = require('./catalog');
+const { restoreStock } = require('./orders');
 
 // ============ SOTUVCHI KABINETI ============
 // Rol tekshiruvi (currentSeller / requireSeller) lib/auth.js da.
@@ -39,7 +40,7 @@ async function handleSellerProducts(req, res, ip) {
   if (!me) return;
   try {
     const { rows } = await pool.query(
-      `SELECT id, name_uz, name_ru, price, unit, moq, cat_key, img, img_file_id, awaiting_image, status, reject_reason, created_at
+      `SELECT id, name_uz, name_ru, price, unit, moq, cat_key, img, img_file_id, awaiting_image, stock, status, reject_reason, created_at
          FROM products WHERE seller_id = $1 ORDER BY created_at DESC LIMIT 200`,
       [me.seller_id]
     );
@@ -52,6 +53,7 @@ async function handleSellerProducts(req, res, ip) {
       catKey: r.cat_key,
       img: r.img_file_id ? productPhotoUrl(r.img_file_id) : r.img,
       awaitingImage: r.awaiting_image,
+      stock: r.stock === null ? null : Number(r.stock),
       status: r.status,
       rejectReason: r.reject_reason,
     })));
@@ -108,14 +110,21 @@ async function handleSellerProductUpdate(req, res, ip) {
       price:   { type: 'int', required: true, min: 1, max: 100000000000 },
       moq:     { type: 'int', required: false, min: 1, max: 100000, default: 1 },
       comp_uz: { type: 'string', required: false, max: 500 },
+      stock:   { type: 'int', required: false, min: 0, max: 1000000 },
     });
     if (!v.ok) return fail(res, v.error, 400);
     const d = v.data;
+    // `stock` faqat so'rovda AYNAN yuborilgan bo'lsa yangilanadi. Sabab: eski
+    // keshlangan klient bu maydonni umuman yubormaydi — `d.stock` esa null
+    // (= cheksiz) bo'lib chiqadi va tahrirlash jimgina zaxira cheklovini
+    // o'chirib yuborardi. Yangi klient bo'sh maydonni ataylab null yuboradi.
+    const stockSent = Object.prototype.hasOwnProperty.call(data, 'stock');
     const { rows } = await pool.query(
       `UPDATE products SET name_uz=$1, name_ru=$2, price=$3, moq=$4, comp_uz=$5,
+              stock = CASE WHEN $7::boolean THEN $8::int ELSE stock END,
               status='pending', reject_reason=NULL
          WHERE id=$6 RETURNING id, status`,
-      [d.name_uz, d.name_ru || null, d.price, d.moq, d.comp_uz || null, id]
+      [d.name_uz, d.name_ru || null, d.price, d.moq, d.comp_uz || null, id, stockSent, d.stock]
     );
     ok(res, rows[0]);
   } catch (e) {
@@ -193,6 +202,8 @@ const SELLER_ORDER_ACTIONS = {
   },
   reject: {
     from: ['pending'], to: 'cancelled',
+    // Mato hali jo'natilmagan — zaxira omborga qaytariladi
+    restoresStock: true,
     buyerText: (id) => `❌ <b>Buyurtma bekor qilindi</b>\n\nBuyurtma: <code>${escapeHtml(id)}</code>\nIshlab chiqaruvchi qabul qila olmadi. Oldindan to'lov qaytariladi — savdo bo'limi bog'lanadi.`,
   },
   ship: {
@@ -225,15 +236,34 @@ async function handleSellerOrderAction(req, res, ip) {
     );
     if (!mine.length) return fail(res, 'buyurtma topilmadi', 404);
 
-    const { rows } = await pool.query(
-      `UPDATE orders SET status = $1, tracking_code = COALESCE($2, tracking_code)
-        WHERE id = $3 AND status = ANY($4)
-        RETURNING id, status, tg_user_id`,
-      [cmd.to, tracking, orderId, cmd.from]
-    );
-    if (!rows.length) return fail(res, "buyurtma holati mos emas (allaqachon o'zgargan)", 409);
-
-    const row = rows[0];
+    // Holat o'zgarishi va zaxira qaytishi BITTA tranzaksiyada: rad etish
+    // yozilib, zaxira qaytmay qolsa rulonlar butunlay yo'qolardi.
+    // `WHERE status = ANY(...)` qatorni qulflaydi — ikki marta bosilsa
+    // ikkinchisi 0 qator qaytaradi va zaxira ikki marta qaytmaydi.
+    let row;
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      const { rows } = await client.query(
+        `UPDATE orders SET status = $1, tracking_code = COALESCE($2, tracking_code)
+          WHERE id = $3 AND status = ANY($4)
+          RETURNING id, status, tg_user_id`,
+        [cmd.to, tracking, orderId, cmd.from]
+      );
+      if (!rows.length) {
+        await client.query('ROLLBACK');
+        return fail(res, "buyurtma holati mos emas (allaqachon o'zgargan)", 409);
+      }
+      // Rad etildi — mato jo'natilmagan, rulonlar omborga qaytadi
+      if (cmd.restoresStock) await restoreStock(client, orderId);
+      await client.query('COMMIT');
+      row = rows[0];
+    } catch (e) {
+      try { await client.query('ROLLBACK'); } catch (_) {}
+      throw e;
+    } finally {
+      client.release();
+    }
     if (row.tg_user_id) {
       callTelegram('sendMessage', {
         chat_id: row.tg_user_id,

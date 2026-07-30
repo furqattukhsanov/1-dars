@@ -315,6 +315,90 @@ async function testProductPhotoSignature(port) {
   console.log('✅ Test 6: Mahsulot rasmi imzosi — PASS');
 }
 
+// ============ TEST 7: Rulon zaxirasi (decrementStock) ============
+// Lokal Postgres yo'q, shuning uchun soxta klient ishlatiladi. U HAQIQIY
+// SQL'ni oladi va Postgres'ning `WHERE stock >= qty` shartini taqlid qiladi —
+// ya'ni test kamaytirish mantiqini emas, kamaytirish SHARTINI sinaydi.
+//
+// Nega bu mazmunli: zaxira bug'ining o'zagi — "avval o'qib, keyin yozish"
+// naqshi. Agar kimdir kelajakda uni SELECT + UPDATE ga bo'lib yuborsa,
+// quyidagi "atomik shart" tekshiruvi qulaydi.
+function fakeStockClient(stockById) {
+  const queries = [];
+  return {
+    queries,
+    async query(sql, params) {
+      queries.push({ sql, params });
+      if (/UPDATE products SET stock = stock - /.test(sql)) {
+        const [id, qty] = params;
+        const cur = stockById[id];
+        if (cur === null) return { rows: [{ stock: null }] };   // cheksiz
+        if (cur >= qty) {
+          stockById[id] = cur - qty;
+          return { rows: [{ stock: stockById[id] }] };
+        }
+        return { rows: [] };                                     // shart bajarilmadi
+      }
+      if (/SELECT stock, name_uz, unit FROM products/.test(sql)) {
+        const id = params[0];
+        return { rows: [{ stock: stockById[id], name_uz: 'Test mato', unit: 'rulon' }] };
+      }
+      return { rows: [] };
+    },
+  };
+}
+
+async function testDecrementStock() {
+  const { decrementStock } = require('./routes/orders.js');
+
+  // 1) Yetarli zaxira — kamayadi
+  const a = { 'p-1': 10 };
+  const ca = fakeStockClient(a);
+  await decrementStock(ca, [{ id: 'p-1', qty: 3 }]);
+  assert.strictEqual(a['p-1'], 7, 'zaxira buyurtma miqdoricha kamayishi kerak');
+
+  // Kamaytirish ATOMIK bo'lishi shart: shart UPDATE'ning WHERE'ida bo'lsin,
+  // alohida SELECT bilan emas (aks holda race condition qaytadi).
+  const upd = ca.queries.find((q) => /UPDATE products SET stock/.test(q.sql));
+  assert.ok(/WHERE[\s\S]*stock IS NULL OR stock >= \$2/.test(upd.sql),
+    'kamaytirish sharti UPDATE ning WHERE qismida bo\'lishi kerak (atomik)');
+
+  // 2) NULL = cheksiz — hech qachon tugamaydi
+  const b = { 'p-made': null };
+  await decrementStock(fakeStockClient(b), [{ id: 'p-made', qty: 9999 }]);
+  assert.strictEqual(b['p-made'], null, 'NULL zaxira (made) o\'zgarmasligi kerak');
+
+  // 3) Yetmaydi — buyurtma rad etiladi va xato foydalanuvchiga ko'rsatiladi
+  const c = { 'p-2': 2 };
+  await assert.rejects(
+    () => decrementStock(fakeStockClient(c), [{ id: 'p-2', qty: 5 }]),
+    (e) => e.userFacing === true && /faqat 2 rulon qoldi/.test(e.message),
+    'zaxira yetmasa ClientError va qolgan son bilan xato berilishi kerak'
+  );
+  assert.strictEqual(c['p-2'], 2, 'rad etilgan urinish zaxiraga tegmasligi kerak');
+
+  // 4) Zaxira 0 — boshqacha xabar
+  await assert.rejects(
+    () => decrementStock(fakeStockClient({ 'p-3': 0 }), [{ id: 'p-3', qty: 1 }]),
+    (e) => /tugadi/.test(e.message),
+    'zaxira 0 bo\'lsa "tugadi" deyilishi kerak'
+  );
+
+  // 5) Deadlock himoyasi: qatorlar HAR DOIM id bo'yicha bir tartibda
+  // qulflanadi. Ikki buyurtma teskari tartibda kelsa ham SQL ketma-ketligi
+  // bir xil bo'lishi kerak.
+  const d = { 'p-a': 5, 'p-b': 5 };
+  const cd = fakeStockClient(d);
+  await decrementStock(cd, [{ id: 'p-b', qty: 1 }, { id: 'p-a', qty: 1 }]);
+  const order = cd.queries
+    .filter((q) => /UPDATE products SET stock/.test(q.sql))
+    .map((q) => q.params[0]);
+  assert.deepStrictEqual(order, ['p-a', 'p-b'],
+    'mahsulotlar id bo\'yicha tartiblangan holda qulflanishi kerak (deadlock oldini olish)');
+
+  console.log('✅ Test 7: Rulon zaxirasi (atomik kamaytirish) — PASS');
+}
+
 // ============ TEST RUNNER ============
 async function runTests() {
   console.log('\n🧪 LolaMarket Server Testlari\n');
@@ -331,6 +415,7 @@ async function runTests() {
     // uchun uni talab qiladigan testlar testRouteTable'dan KEYIN, u soxta
     // sirlarni process.env'ga yozgandan keyin ishga tushirilishi kerak.
     testDeliveryFeeConfig();
+    await testDecrementStock();
 
     console.log('\n✅ Hammasi PASS — pul hisobi, imzo tekshiruvi va route jadvali joyida\n');
     process.exit(0);
