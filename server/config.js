@@ -63,6 +63,19 @@ const COMMISSION_RATE = (() => {
   return Number.isFinite(v) && v >= 0 && v < 1 ? v : 0.10;
 })();
 
+// Logistika (BTS Pochta) taxminiy narxi. BTS API ulanmagan (Sprint 6),
+// shuning uchun manzilga qarab dinamik hisoblanmaydi — butun platformaga
+// BITTA taxminiy summa, xuddi COMMISSION_RATE kabi. PRD: logistikani
+// xaridor to'laydi — bu summa BTS nuqtasida TO'G'RIDAN-TO'G'RI BTS'ga
+// to'lanadi, platforma escrow'iga (prepay/rest) kirmaydi, faqat xulosada
+// ko'rsatish va buyurtmada saqlash uchun. Buyurtma yaratilganda
+// orders.delivery_fee_estimate ga snapshot qilinadi — keyin bu qiymat
+// o'zgarsa eski buyurtmalar ko'rsatkichi buzilmasin.
+const DELIVERY_FEE_ESTIMATE = (() => {
+  const v = Number(process.env.DELIVERY_FEE_ESTIMATE);
+  return Number.isFinite(v) && v >= 0 ? v : 25000;
+})();
+
 // Moderatsiya ruxsati bor Telegram ID'lari (vergul bilan ajratilgan).
 // Berilmasa — ADMIN_CHAT_ID (admin shaxsiy chati = uning Telegram user id'si).
 const ADMIN_TG_IDS = new Set(
@@ -82,5 +95,5 @@ if (!process.env.DATABASE_URL) {
 module.exports = {
   PORT, BOT_TOKEN, ADMIN_CHAT_ID, ALLOWED_ORIGIN, WEBHOOK_SECRET,
   MINI_APP_URL, BOT_USERNAME, CONTACTS_FILE, GIT_SHA,
-  ADMIN_PANEL_TOKEN, PREPAY_RATE, COMMISSION_RATE, ADMIN_TG_IDS,
+  ADMIN_PANEL_TOKEN, PREPAY_RATE, COMMISSION_RATE, ADMIN_TG_IDS, DELIVERY_FEE_ESTIMATE,
 };

@@ -31,7 +31,7 @@ function sendOrderNotifyMessage(text) {
   return callTelegram('sendMessage', { chat_id: ADMIN_CHAT_ID, text, parse_mode: 'HTML' });
 }
 
-function sendBuyerConfirmMessage(chatId, itemsText, total, prepay, rest) {
+function sendBuyerConfirmMessage(chatId, itemsText, total, prepay, rest, deliveryFee) {
   const text = [
     '✅ <b>Buyurtmangiz qabul qilindi</b>',
     '',
@@ -42,6 +42,8 @@ function sendBuyerConfirmMessage(chatId, itemsText, total, prepay, rest) {
     prepay ? `<b>To'landi:</b> ${escapeHtml(prepay)}` : '',
     // Xaridor qolgan to'lov shartini oldindan bilishi kerak — BTS to'lovsiz bermaydi
     rest ? `<b>Qolgani:</b> ${escapeHtml(rest)} — mato BTS'ga yetib kelgach to'lanadi` : '',
+    // Logistika mahsulot summasiga KIRMAYDI — BTS nuqtasida alohida to'lanadi
+    deliveryFee ? `<b>Yetkazish (taxminiy):</b> ${escapeHtml(deliveryFee)} — BTS nuqtasida to'lanadi` : '',
     '',
     "Ishlab chiqaruvchi tasdiqlaydi — tez orada xabar beramiz.",
   ].filter(Boolean).join('\n');

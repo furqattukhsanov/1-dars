@@ -4,7 +4,8 @@ const { authUser, isAdmin, currentSeller, requireSeller } = require('../lib/auth
 const { escapeHtml, dateLabel } = require('../lib/format');
 const { validate } = require('../lib/validate');
 const { rateLimited, readBody, ok, fail } = require('../lib/http');
-const { callTelegram } = require('../lib/telegram-api');
+const { callTelegram, notify } = require('../lib/telegram-api');
+const { productPhotoUrl } = require('./catalog');
 
 // ============ SOTUVCHI KABINETI ============
 // Rol tekshiruvi (currentSeller / requireSeller) lib/auth.js da.
@@ -38,7 +39,7 @@ async function handleSellerProducts(req, res, ip) {
   if (!me) return;
   try {
     const { rows } = await pool.query(
-      `SELECT id, name_uz, name_ru, price, unit, moq, cat_key, img, status, reject_reason, created_at
+      `SELECT id, name_uz, name_ru, price, unit, moq, cat_key, img, img_file_id, awaiting_image, status, reject_reason, created_at
          FROM products WHERE seller_id = $1 ORDER BY created_at DESC LIMIT 200`,
       [me.seller_id]
     );
@@ -49,7 +50,8 @@ async function handleSellerProducts(req, res, ip) {
       unit: r.unit,
       moq: Number(r.moq),
       catKey: r.cat_key,
-      img: r.img,
+      img: r.img_file_id ? productPhotoUrl(r.img_file_id) : r.img,
+      awaitingImage: r.awaiting_image,
       status: r.status,
       rejectReason: r.reject_reason,
     })));
@@ -73,10 +75,20 @@ async function handleSellerProductUpdate(req, res, ip) {
 
     // Mahsulot shu sotuvchiniki ekanini tasdiqlaymiz (boshqaniki tahrirlanmasin)
     const { rows: own } = await pool.query(
-      `SELECT id, status FROM products WHERE id = $1 AND seller_id = $2`,
+      `SELECT id, status, name_uz FROM products WHERE id = $1 AND seller_id = $2`,
       [id, me.seller_id]
     );
     if (!own.length) return fail(res, 'mahsulot topilmadi', 404);
+
+    // Rasm yo'q yoki almashtirish kerak — bot yana rasm so'raydi (yangi
+    // e'lon oqimi bilan bir xil: submitted_by_tg orqali topiladi).
+    if (data.action === 'request_image') {
+      await pool.query(
+        `UPDATE products SET awaiting_image=true WHERE id=$1`, [id]);
+      notify(me.tg.id,
+        `🖼 <b>${escapeHtml(own[0].name_uz || '')}</b> uchun rasm yuboring.`);
+      return ok(res, { id, awaitingImage: true });
+    }
 
     if (data.action === 'hide') {
       const { rows } = await pool.query(

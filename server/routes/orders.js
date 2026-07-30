@@ -1,4 +1,4 @@
-const { PREPAY_RATE, COMMISSION_RATE } = require('../config');
+const { PREPAY_RATE, COMMISSION_RATE, DELIVERY_FEE_ESTIMATE } = require('../config');
 const { pool } = require('../db');
 const { authUser } = require('../lib/auth');
 const { escapeHtml, money, dateLabel } = require('../lib/format');
@@ -84,8 +84,8 @@ async function handleCreateOrder(req, res, ip) {
     await client.query(
       `INSERT INTO orders (id, buyer_name, tg_user_id, tg_username, address, payment, comment,
                            total_amount, prepay_amount, rest_amount,
-                           commission_rate, commission_amount, payout_amount, status)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,'pending')`,
+                           commission_rate, commission_amount, payout_amount, delivery_fee_estimate, status)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,'pending')`,
       [
         orderId,
         data.buyerName || null,
@@ -100,6 +100,7 @@ async function handleCreateOrder(req, res, ip) {
         COMMISSION_RATE,
         commissionAmount,
         payoutAmount,
+        DELIVERY_FEE_ESTIMATE,
       ]
     );
     for (const it of items) {
@@ -133,6 +134,7 @@ async function handleCreateOrder(req, res, ip) {
       // Sotuvchi jo'natishdan oldin puli kelganini ko'rishi shart — modelning asosi shu
       `💰 <b>Oldindan to'landi:</b> ${escapeHtml(money(prepay))}`,
       `<b>Qolgani (BTS'da olishda):</b> ${escapeHtml(money(rest))}`,
+      `🚚 <b>Yetkazish (taxminiy, BTS'ga to'lanadi):</b> ${escapeHtml(money(DELIVERY_FEE_ESTIMATE))}`,
       // Faqat ADMIN chatida — sotuvchi va xaridor komissiyani ko'rmaydi
       `📊 <b>Komissiya:</b> ${escapeHtml(money(commissionAmount))} · <b>Sotuvchiga:</b> ${escapeHtml(money(payoutAmount))}`,
       `\nTasdiqlash uchun: <code>/tasdiqla ${escapeHtml(orderId)}</code>`,
@@ -141,9 +143,9 @@ async function handleCreateOrder(req, res, ip) {
       .join('\n');
 
     sendOrderNotifyMessage(adminText).catch((e) => console.error('admin notify:', e.message));
-    sendBuyerConfirmMessage(u.id, itemsText, money(total), money(prepay), money(rest)).catch(() => {});
+    sendBuyerConfirmMessage(u.id, itemsText, money(total), money(prepay), money(rest), money(DELIVERY_FEE_ESTIMATE)).catch(() => {});
 
-    sendJson(res, 200, { ok: true, orderId, status: 'pending', total, prepay, rest });
+    sendJson(res, 200, { ok: true, orderId, status: 'pending', total, prepay, rest, deliveryFeeEstimate: DELIVERY_FEE_ESTIMATE });
   } catch (e) {
     try { if (client) await client.query('ROLLBACK'); } catch (_) {}
     console.error('createOrder xatosi:', e.message);
@@ -244,8 +246,8 @@ async function handleCreateWebOrder(req, res, ip) {
       `INSERT INTO orders (id, buyer_id, buyer_name, buyer_phone, tg_user_id, tg_username,
                            address, payment, comment,
                            total_amount, prepay_amount, rest_amount,
-                           commission_rate, commission_amount, payout_amount, status, source)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,'pending','web')`,
+                           commission_rate, commission_amount, payout_amount, delivery_fee_estimate, status, source)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,'pending','web')`,
       [
         orderId,
         session ? session.id : null,
@@ -262,6 +264,7 @@ async function handleCreateWebOrder(req, res, ip) {
         COMMISSION_RATE,
         commissionAmount,
         payoutAmount,
+        DELIVERY_FEE_ESTIMATE,
       ]
     );
     for (const it of items) {
@@ -293,6 +296,7 @@ async function handleCreateWebOrder(req, res, ip) {
       `<b>Jami:</b> ${escapeHtml(money(total))}`,
       `💰 <b>Oldindan to'lov:</b> ${escapeHtml(money(prepay))}`,
       `<b>Qolgani:</b> ${escapeHtml(money(rest))}`,
+      `🚚 <b>Yetkazish (taxminiy, BTS'ga to'lanadi):</b> ${escapeHtml(money(DELIVERY_FEE_ESTIMATE))}`,
       `📊 <b>Komissiya:</b> ${escapeHtml(money(commissionAmount))} · <b>Sotuvchiga:</b> ${escapeHtml(money(payoutAmount))}`,
       // Telegram orqali kirmagan xaridor bilan bog'lanish faqat qo'ng'iroq orqali
       session
@@ -307,14 +311,14 @@ async function handleCreateWebOrder(req, res, ip) {
 
     // Telegram orqali kirgan xaridorga tasdiq xabari — endi uning ID'si bor
     if (session) {
-      sendBuyerConfirmMessage(session.tgUserId, itemsText, money(total), money(prepay), money(rest))
+      sendBuyerConfirmMessage(session.tgUserId, itemsText, money(total), money(prepay), money(rest), money(DELIVERY_FEE_ESTIMATE))
         .catch((e) => console.error('web order buyer confirm:', e.message));
       // Telefon profilda yo'q bo'lsa — keyingi buyurtmada forma o'zi to'lsin
       pool.query(`UPDATE users SET phone = COALESCE(phone, $2) WHERE id = $1`, [session.id, v.data.phone])
         .catch((e) => console.error('users.phone yangilashda xato:', e.message));
     }
 
-    sendJson(res, 200, { ok: true, orderId, status: 'pending', total, prepay, rest });
+    sendJson(res, 200, { ok: true, orderId, status: 'pending', total, prepay, rest, deliveryFeeEstimate: DELIVERY_FEE_ESTIMATE });
   } catch (e) {
     try { if (client) await client.query('ROLLBACK'); } catch (_) {}
     console.error('createWebOrder xatosi:', e.message);
@@ -335,7 +339,7 @@ async function handleGetOrders(req, res, ip) {
   const uid = String(u.id);
   try {
     const { rows: orders } = await pool.query(
-      `SELECT id, status, created_at, total_amount, prepay_amount, rest_amount
+      `SELECT id, status, created_at, total_amount, prepay_amount, rest_amount, delivery_fee_estimate
          FROM orders WHERE tg_user_id = $1 ORDER BY created_at DESC LIMIT 50`,
       [uid]
     );
@@ -358,6 +362,7 @@ async function handleGetOrders(req, res, ip) {
       // Eski buyurtmalarda (migratsiyagacha) bu ustunlar bo'sh — null qaytadi
       prepay: o.prepay_amount === null ? null : Number(o.prepay_amount),
       rest: o.rest_amount === null ? null : Number(o.rest_amount),
+      deliveryFeeEstimate: o.delivery_fee_estimate === null ? null : Number(o.delivery_fee_estimate),
       items: itemsByOrder.get(o.id) || [],
     }));
     sendJson(res, 200, out); // orqaga moslik: yalang'och massiv

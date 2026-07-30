@@ -9,6 +9,7 @@ const {
 const { confirmWebLoginCode } = require('./web-auth');
 const { handleAdminActionCallback } = require('./admin');
 const { handleDisputeEvidence, handleDisputeEvidenceDone } = require('./disputes');
+const { handleProductImage } = require('./catalog');
 const {
   startSellerApplication, handleSellerApplicationStep,
   handleSellerApplicationContact, handleSellerApplicationReview,
@@ -41,9 +42,14 @@ async function handleTelegramWebhook(req, res) {
     if (!msg || !msg.chat || msg.chat.type !== 'private') return;
     if (rateLimited(`webhook:${msg.chat.id}`, 20)) return;
 
-    // Bahs dalili (rasm/video) — ochiq bahs bo'lsa qabul qilinadi
+    // Bahs dalili (rasm/video) — ochiq bahs bo'lsa qabul qilinadi.
+    // Bahs kutmasa — kutilayotgan mahsulot rasmi bo'lishi mumkin (faqat rasm).
     if (msg.photo || msg.video) {
-      await handleDisputeEvidence(msg).catch((e) => console.error('dispute evidence xatosi:', e.message));
+      const usedByDispute = await handleDisputeEvidence(msg)
+        .catch((e) => { console.error('dispute evidence xatosi:', e.message); return false; });
+      if (usedByDispute) return;
+      await handleProductImage(msg)
+        .catch((e) => console.error('product image xatosi:', e.message));
       return;
     }
 

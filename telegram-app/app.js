@@ -30,13 +30,14 @@ const STR = {
     comp: "Tarkibi", leadTime: "Yetkazish muddati", minOrder: "Minimal buyurtma (MOQ)", supplierL: "Yetkazib beruvchi",
     verified: "Tasdiqlangan", reviews: "sharh", message: "Xabar yuborish", qty: "Miqdor", cart: "Savat", cartEmpty: "Savat bo'sh",
     cartEmptySub: "Katalogdan mato tanlang", browse: "Katalogga o'tish", subtotal: "Oraliq jami", delivery: "Yetkazish",
-    deliveryCalc: "Alohida hisoblanadi", total: "Jami", checkout: "Rasmiylashtirish", checkoutT: "Buyurtma berish",
+    deliveryCalc: "Taxminan", deliveryNote: "BTS nuqtasida to'g'ridan-to'g'ri to'lanadi, buyurtma summasiga kirmaydi",
+    total: "Jami", checkout: "Rasmiylashtirish", checkoutT: "Buyurtma berish",
     address: "Yetkazib berish manzili", changeAddr: "O'zgartirish", payment: "To'lov", commentL: "Izoh",
     orderItems: "Buyurtma tarkibi", pickupL: "Olish nuqtasi (BTS)", pickPoint: "Olish nuqtasini tanlang",
     pickSheetT: "Olish nuqtasini tanlang", pickSearchPh: "Nuqta yoki manzil qidiring",
     pointsFound: "nuqta topildi", pointsNone: "Bu viloyatda nuqta topilmadi", pickSelect: "Tanlash",
     changePoint: "O'zgartirish", workHours: "Ish vaqti",
-    deliveryBts: "Yetkazish (BTS)", deliveryAtPickup: "BTS'da to'lanadi",
+    deliveryBts: "Yetkazish (BTS)",
     payNow: "Hozir to'lanadi", payLater: "Olishda to'lanadi", payNowBtn: "Hozir to'lash",
     needPoint: "Avval olish nuqtasini tanlang",
     commentPh: "Buyurtma uchun izoh (ixtiyoriy)", summary: "Buyurtma tarkibi", placeOrder: "Buyurtmani tasdiqlash",
@@ -67,6 +68,8 @@ const STR = {
     sNoProducts: "Hali mahsulot yo'q", sNoProductsSub: "Birinchi matongizni qo'shing",
     sNoOrders: "Bu bo'limda buyurtma yo'q",
     sAdd: "Mahsulot qo'shish", sEdit: "Tahrirlash", sHide: "Yashirish", sShow: "Qayta ko'rsatish",
+    sImgWaiting: "Rasm kutilmoqda — botga rasm yuboring", sImgAdd: "Rasm yuklash",
+    sImgRequested: "So'raldi — botga rasm yuboring", sPhotoHint: "Saqlangach botga rasm yuboring — u katalogda ko'rinadi.",
     sDispute: "Xaridor shikoyati", sDisputeReplyPh: "Javobingiz — moderator va xaridor ko'radi",
     sDisputeSend: "Javob yuborish", sDisputeSent: "Javob yuborildi",
     sDisputeYours: "Sizning javobingiz", sDisputeNeed: "Javob matnini yozing",
@@ -89,13 +92,14 @@ const STR = {
     comp: "Состав", leadTime: "Срок поставки", minOrder: "Мин. заказ (MOQ)", supplierL: "Поставщик",
     verified: "Проверен", reviews: "отзыв.", message: "Написать", qty: "Количество", cart: "Корзина", cartEmpty: "Корзина пуста",
     cartEmptySub: "Выберите ткань в каталоге", browse: "В каталог", subtotal: "Подытог", delivery: "Доставка",
-    deliveryCalc: "Рассчитывается отдельно", total: "Итого", checkout: "Оформить", checkoutT: "Оформление заказа",
+    deliveryCalc: "Примерно", deliveryNote: "Оплачивается напрямую в пункте BTS, не входит в сумму заказа",
+    total: "Итого", checkout: "Оформить", checkoutT: "Оформление заказа",
     address: "Адрес доставки", changeAddr: "Изменить", payment: "Оплата", commentL: "Комментарий",
     orderItems: "Состав заказа", pickupL: "Пункт выдачи (BTS)", pickPoint: "Выберите пункт выдачи",
     pickSheetT: "Выберите пункт выдачи", pickSearchPh: "Поиск пункта или адреса",
     pointsFound: "пунктов найдено", pointsNone: "В этой области пунктов не найдено", pickSelect: "Выбрать",
     changePoint: "Изменить", workHours: "Часы работы",
-    deliveryBts: "Доставка (BTS)", deliveryAtPickup: "Оплата в пункте выдачи",
+    deliveryBts: "Доставка (BTS)",
     payNow: "К оплате сейчас", payLater: "Оплата при получении", payNowBtn: "Оплатить сейчас",
     needPoint: "Сначала выберите пункт выдачи",
     commentPh: "Комментарий к заказу (необязательно)", summary: "Состав заказа", placeOrder: "Подтвердить заказ",
@@ -126,6 +130,8 @@ const STR = {
     sNoProducts: "Товаров пока нет", sNoProductsSub: "Добавьте первую ткань",
     sNoOrders: "В этом разделе заказов нет",
     sAdd: "Добавить товар", sEdit: "Изменить", sHide: "Скрыть", sShow: "Показать снова",
+    sImgWaiting: "Ожидается фото — отправьте его боту", sImgAdd: "Загрузить фото",
+    sImgRequested: "Запрошено — отправьте фото боту", sPhotoHint: "После сохранения отправьте фото боту — оно появится в каталоге.",
     sDispute: "Жалоба покупателя", sDisputeReplyPh: "Ваш ответ — увидят модератор и покупатель",
     sDisputeSend: "Отправить ответ", sDisputeSent: "Ответ отправлен",
     sDisputeYours: "Ваш ответ", sDisputeNeed: "Напишите текст ответа",
@@ -228,6 +234,13 @@ const PAY = [
 const PREPAY_RATE = 0.5;
 function prepayAmount(total) { return Math.round(total * PREPAY_RATE); }
 function restAmount(total) { return total - prepayAmount(total); }
+
+// Logistika (BTS Pochta) taxminiy narxi — server bilan bir xil qiymat
+// (config.js DELIVERY_FEE_ESTIMATE). Mahsulot summasiga KIRMAYDI: xaridor
+// buni BTS nuqtasida to'g'ridan-to'g'ri BTS'ga to'laydi, platforma
+// escrow'iga (prepay/rest) qo'shilmaydi — shuning uchun "Jami"/"To'lanadi
+// hozir" hisobiga qo'shilmaydi, faqat alohida qator sifatida ko'rsatiladi.
+const DELIVERY_FEE_ESTIMATE = 25000;
 
 // BTS olish nuqtalari. Vaqtinchalik ro'yxat — BTS integratsiyasi ulangach
 // bu ma'lumot serverdan (/api/bts-points) keladi.
@@ -823,7 +836,7 @@ function renderCart() {
 
     <div style="padding:16px;border-radius:var(--radius-lg);background:var(--glass-fill-strong);backdrop-filter:var(--blur-md);-webkit-backdrop-filter:var(--blur-md);border:1px solid var(--glass-border);box-shadow:var(--glass-shadow)">
       <div style="display:flex;justify-content:space-between;font-size:13.5px;color:var(--text-muted);margin-bottom:8px"><span>${T.subtotal}</span><span style="font-family:var(--font-mono);font-weight:600;color:var(--text-body)">${money(cartTotal())}</span></div>
-      <div style="display:flex;justify-content:space-between;font-size:13.5px;color:var(--text-muted);margin-bottom:10px"><span>${T.delivery}</span><span style="font-size:12.5px">${T.deliveryCalc}</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:13.5px;color:var(--text-muted);margin-bottom:10px"><span>${T.delivery}</span><span style="font-family:var(--font-mono)">${T.deliveryCalc} ${money(DELIVERY_FEE_ESTIMATE)}</span></div>
       <div style="display:flex;justify-content:space-between;align-items:baseline;padding-top:10px;border-top:1px solid var(--border-hair)">
         <span style="font-size:15px;font-weight:700;color:var(--text-strong)">${T.total}</span>
         <span style="font-family:var(--font-mono);font-size:21px;font-weight:600;color:var(--text-strong)">${money(cartTotal())}</span>
@@ -911,8 +924,9 @@ function renderCheckout() {
         <span>${T.subtotal}</span><span style="font-family:var(--font-mono)">${money(total)}</span>
       </div>
       <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--text-muted);padding:5px 2px">
-        <span>${T.deliveryBts}</span><span style="font-family:var(--font-mono)">${T.deliveryAtPickup}</span>
+        <span>${T.deliveryBts}</span><span style="font-family:var(--font-mono)">${T.deliveryCalc} ${money(DELIVERY_FEE_ESTIMATE)}</span>
       </div>
+      <div style="font-size:11px;color:var(--text-subtle);padding:0 2px 5px;line-height:1.4">${T.deliveryNote}</div>
       <div style="height:1px;background:var(--border-hair);margin:8px 2px"></div>
       <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 2px">
         <span style="font-size:15px;font-weight:700;color:var(--text-strong)">${T.payNow}
@@ -1754,6 +1768,10 @@ function renderSellerProducts() {
           </div>
         </div>
         ${p.status === 'rejected' && p.rejectReason ? `<div style="margin-top:9px;padding:9px 11px;border-radius:var(--radius-sm);background:var(--danger-100);font-size:12px;color:#a3181c;line-height:1.45">${p.rejectReason}</div>` : ''}
+        ${!p.img ? `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:9px;padding:8px 11px;border-radius:var(--radius-sm);background:var(--saffron-50);font-size:12px;color:var(--saffron-700)">
+          <span>${p.awaitingImage ? T.sImgWaiting : ''}</span>
+          ${p.awaitingImage ? '' : `<button onclick="requestProductImage('${p.id}')" style="flex:none;cursor:pointer;padding:6px 11px;border-radius:999px;border:none;background:var(--saffron-500);font-family:var(--font-sans);font-size:11.5px;font-weight:700;color:#fff">${T.sImgAdd}</button>`}
+        </div>` : ''}
         <div style="display:flex;gap:8px;margin-top:11px">
           <button onclick="openProductForm('${p.id}')" style="flex:1;cursor:pointer;padding:9px;border-radius:var(--radius-sm);border:1px solid var(--border-hair);background:rgba(255,255,255,.7);font-family:var(--font-sans);font-size:13px;font-weight:600;color:var(--text-strong)">${T.sEdit}</button>
           <button onclick="toggleProduct('${p.id}','${p.status === 'draft' ? 'show' : 'hide'}')" style="flex:1;cursor:pointer;padding:9px;border-radius:var(--radius-sm);border:1px solid var(--border-hair);background:rgba(255,255,255,.7);font-family:var(--font-sans);font-size:13px;font-weight:600;color:var(--text-muted)">${p.status === 'draft' ? T.sShow : T.sHide}</button>
@@ -1802,6 +1820,7 @@ function renderProductForm() {
 
     <div style="font-size:12px;color:var(--text-muted);line-height:1.5;padding:11px 12px;border-radius:var(--radius-md);background:var(--saffron-50);border:1px solid rgba(217,142,12,.22)">
       ${S.lang === 'ru' ? 'После сохранения объявление отправится на модерацию и появится в каталоге после проверки.' : "Saqlangach e'lon moderatsiyaga yuboriladi va tekshiruvdan keyin katalogda ko'rinadi."}
+      <br>${T.sPhotoHint}
     </div>
   </div>`;
 }
@@ -1857,6 +1876,15 @@ async function toggleProduct(id, action) {
   try {
     await sellerFetch('/api/seller/products', { method: 'PATCH', body: JSON.stringify({ id, action }) });
     showToast(action === 'hide' ? STR[S.lang].sHidden2 : STR[S.lang].sShown);
+    await loadSellerData();
+    render();
+  } catch (e) { showToast(e.message); }
+}
+
+async function requestProductImage(id) {
+  try {
+    await sellerFetch('/api/seller/products', { method: 'PATCH', body: JSON.stringify({ id, action: 'request_image' }) });
+    showToast(STR[S.lang].sImgRequested);
     await loadSellerData();
     render();
   } catch (e) { showToast(e.message); }

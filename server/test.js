@@ -56,6 +56,16 @@ function testCommissionCalculation() {
   console.log('✅ Test 2: Komissiya hisobi — PASS (commission=100k, payout=900k)');
 }
 
+// ============ TEST 2b: Logistika taxminiy narxi config'dan keladi ============
+// DELIVERY_FEE_ESTIMATE — COMMISSION_RATE bilan bir xil naqsh: son, manfiy
+// emas, mahsulot summasidan MUSTAQIL (total'ga bog'liq emas — qat'iy qiymat).
+function testDeliveryFeeConfig() {
+  const { DELIVERY_FEE_ESTIMATE } = require('./config');
+  assert.strictEqual(typeof DELIVERY_FEE_ESTIMATE, 'number', 'DELIVERY_FEE_ESTIMATE son bo\'lishi kerak');
+  assert.ok(Number.isFinite(DELIVERY_FEE_ESTIMATE) && DELIVERY_FEE_ESTIMATE >= 0, 'DELIVERY_FEE_ESTIMATE manfiy/NaN bo\'lmasligi kerak');
+  console.log(`✅ Test 2b: DELIVERY_FEE_ESTIMATE config — PASS (${DELIVERY_FEE_ESTIMATE})`);
+}
+
 // ============ TEST 3: Telegram initData imzosi ============
 // Telegram imzo algoritmi:
 // 1. Barcha kalit=qiymatlarni alifbo tartibida \n bilan birlashtiramiz (hash'siz)
@@ -205,6 +215,7 @@ async function testRouteTable() {
     console.log(`✅ Test 4d: /api/version javobi — PASS (version=${parsed.data.version})`);
 
     await testNoBrokenReferences(port);
+    await testProductPhotoSignature(port);
   } finally {
     await new Promise((r) => srv.close(r));
   }
@@ -241,6 +252,8 @@ const CALLS = [
   ['GET',   '/api/me'],
   ['GET',   '/api/seller/products'],
   ['PATCH', '/api/seller/products', '{}'],
+  ['PATCH', '/api/seller/products', '{"id":"p-x","action":"request_image"}'],
+  ['GET',   '/api/product-photo?f=1&s=1'],
   ['GET',   '/api/seller/orders'],
   ['POST',  '/api/seller/orders', '{}'],
   ['POST',  '/api/telegram-notify', '{}'],
@@ -278,6 +291,30 @@ async function testNoBrokenReferences(port) {
   console.log(`✅ Test 5: Buzuq havola yo'q — PASS (${CALLS.length} ta endpoint chaqirildi)`);
 }
 
+// ============ TEST 6: Mahsulot rasmi — imzo tekshiruvi ============
+// disputes.js dagi HMAC naqshi mahsulot rasmiga ham qo'llanildi (009 migratsiya).
+// Farqi: bu yerda maxfiylik emas, faqat begona Telegram faylini proksi
+// qilishga majburlab bo'lmasin degan himoya tekshiriladi.
+async function testProductPhotoSignature(port) {
+  const { productPhotoUrl } = require('./routes/catalog.js');
+
+  const url = productPhotoUrl('smoke-test-file-id');
+  assert.strictEqual(url, productPhotoUrl('smoke-test-file-id'), 'bir xil file_id uchun imzo barqaror bo\'lishi kerak');
+  assert.notStrictEqual(url, productPhotoUrl('boshqa-file-id'), 'boshqa file_id uchun imzo boshqacha bo\'lishi kerak');
+  assert.strictEqual(productPhotoUrl(null), null, 'file_id yo\'q bo\'lsa null qaytishi kerak');
+
+  const validRes = await request(port, 'GET', url);
+  assert.notStrictEqual(validRes.status, 401, 'to\'g\'ri imzoli havola 401 qaytarmasligi kerak');
+
+  const badRes = await request(port, 'GET', '/api/product-photo?f=smoke-test-file-id&s=' + '0'.repeat(32));
+  assert.strictEqual(badRes.status, 401, 'noto\'g\'ri imzo 401 qaytarishi kerak');
+
+  const emptyRes = await request(port, 'GET', '/api/product-photo');
+  assert.strictEqual(emptyRes.status, 401, 'parametrsiz so\'rov 401 qaytarishi kerak');
+
+  console.log('✅ Test 6: Mahsulot rasmi imzosi — PASS');
+}
+
 // ============ TEST RUNNER ============
 async function runTests() {
   console.log('\n🧪 LolaMarket Server Testlari\n');
@@ -290,6 +327,10 @@ async function runTests() {
     testVerifyInitDataMissingHash();
     testVerifyInitDataStale();
     await testRouteTable();
+    // config.js .env sirlarini talab qiladi (process.exit qiladi) — shuning
+    // uchun uni talab qiladigan testlar testRouteTable'dan KEYIN, u soxta
+    // sirlarni process.env'ga yozgandan keyin ishga tushirilishi kerak.
+    testDeliveryFeeConfig();
 
     console.log('\n✅ Hammasi PASS — pul hisobi, imzo tekshiruvi va route jadvali joyida\n');
     process.exit(0);

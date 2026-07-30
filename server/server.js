@@ -29,7 +29,7 @@ const {
 } = require('./routes/orders');
 const {
   handleAuthTelegram, handleGetProducts, handleSubmitProduct,
-  handleModerationList, handleModerationAction, handleGetContact,
+  handleModerationList, handleModerationAction, handleGetContact, handleProductPhoto,
 } = require('./routes/catalog');
 const { handleTelegramWebhook } = require('./routes/webhook');
 
@@ -203,6 +203,14 @@ function handleRequest(req, res) {
     if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
     if (req.method !== 'GET') return fail(res, 'method not allowed', 405);
     return handleOrderStatus(req, res, ip);
+  }
+
+  // Mahsulot rasmi — ommaviy, imzolangan havola bilan (bot tokeni chiqmaydi)
+  if (path === '/api/product-photo') {
+    cors(res, 'GET, OPTIONS');
+    if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
+    if (req.method !== 'GET') return fail(res, 'method not allowed', 405);
+    return handleProductPhoto(req, res, ip);
   }
 
   if (path === '/api/telegram-contact') {

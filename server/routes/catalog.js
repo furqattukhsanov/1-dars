@@ -1,10 +1,13 @@
+const https = require('https');
+const crypto = require('crypto');
 const { pool } = require('../db');
+const { BOT_TOKEN, ADMIN_PANEL_TOKEN } = require('../config');
 const { verifyInitData, authUser, isAdmin, currentSeller } = require('../lib/auth');
-const { escapeHtml, money } = require('../lib/format');
+const { escapeHtml, money, safeEqual } = require('../lib/format');
 const { validate } = require('../lib/validate');
 const { rateLimited, readBody, sendJson, ok, fail } = require('../lib/http');
 const { loadContacts } = require('../lib/contacts');
-const { sendOrderNotifyMessage } = require('../lib/telegram-api');
+const { sendOrderNotifyMessage, callTelegram, notify, tgGetFile } = require('../lib/telegram-api');
 
 // ============ /api/auth/telegram — Telegram orqali kirish ============
 // initData'ni tekshiradi, foydalanuvchini users jadvaliga yozadi (yoki topadi).
@@ -34,13 +37,83 @@ async function handleAuthTelegram(req, res, ip) {
 }
 
 
+// ============ Mahsulot rasmi — Telegram file_id proksi ============
+// Dalil rasmi (disputes.js) bilan bir xil naqsh: fayl serverimizda
+// saqlanmaydi, faqat file_id. Bu yerdagi farq — mahsulot rasmi OMMAVIY
+// (admin tokeni shart emas), shuning uchun imzo faqat "bizning serverni
+// begona Telegram fayllarini proksi qilishga majburlab bo'lmasin" degan
+// maqsadda ishlatiladi, maxfiylik uchun emas.
+function productPhotoSig(fileId) {
+  return crypto.createHmac('sha256', ADMIN_PANEL_TOKEN || 'x').update(String(fileId)).digest('hex').slice(0, 32);
+}
+
+function productPhotoUrl(fileId) {
+  if (!fileId) return null;
+  return `/api/product-photo?f=${encodeURIComponent(fileId)}&s=${productPhotoSig(fileId)}`;
+}
+
+async function handleProductPhoto(req, res, ip) {
+  if (rateLimited(`productphoto:${ip}`, 300)) return fail(res, 'too many requests', 429);
+  let f, s;
+  try {
+    const q = new URL(req.url, 'http://x').searchParams;
+    f = q.get('f'); s = q.get('s');
+  } catch (_) { return fail(res, 'invalid', 400); }
+  if (!f || !s || !safeEqual(s, productPhotoSig(f))) return fail(res, 'unauthorized', 401);
+  try {
+    const filePath = await tgGetFile(f);
+    if (!filePath) return fail(res, 'not found', 404);
+    https.get(`https://api.telegram.org/file/bot${BOT_TOKEN}/${filePath}`, (tgRes) => {
+      if (tgRes.statusCode !== 200) { tgRes.resume(); return fail(res, 'not found', 404); }
+      res.writeHead(200, {
+        'Content-Type': tgRes.headers['content-type'] || 'application/octet-stream',
+        // Ommaviy katalog rasmi — brauzer/CDN uzoqroq keshlashi mumkin
+        // (dalil rasmidan farqi: bu yerda maxfiylik yo'q).
+        'Cache-Control': 'public, max-age=86400',
+      });
+      tgRes.pipe(res);
+    }).on('error', () => fail(res, 'server error', 500));
+  } catch (e) {
+    console.error('productPhoto xatosi:', e.message);
+    fail(res, 'server error', 500);
+  }
+}
+
+// ---- Bot suhbati: mahsulot qo'shilgach yuborilgan rasm ----
+async function openAwaitingProductImage(tgUserId) {
+  const { rows } = await pool.query(
+    `SELECT id, name_uz FROM products
+      WHERE submitted_by_tg = $1 AND awaiting_image = true
+      ORDER BY created_at DESC LIMIT 1`,
+    [String(tgUserId)]);
+  return rows[0] || null;
+}
+
+async function handleProductImage(msg) {
+  const fileId = msg.photo ? msg.photo[msg.photo.length - 1].file_id : null;
+  if (!fileId) return false;
+
+  const p = await openAwaitingProductImage(msg.from.id);
+  if (!p) return false;
+
+  await pool.query(
+    `UPDATE products SET img_file_id=$1, awaiting_image=false WHERE id=$2`,
+    [fileId, p.id]);
+  await callTelegram('sendMessage', {
+    chat_id: msg.chat.id,
+    parse_mode: 'HTML',
+    text: `✅ Rasm qabul qilindi: <b>${escapeHtml(p.name_uz)}</b>`,
+  });
+  return true;
+}
+
 // ============ /api/products — katalog (bazadan) ============
 function productRowToVM(r) {
   return {
     id: r.id,
     catKey: r.cat_key,
     pattern: r.pattern,
-    img: r.img,
+    img: r.img_file_id ? productPhotoUrl(r.img_file_id) : r.img,
     price: Number(r.price),
     unit: r.unit,
     moq: Number(r.moq),
@@ -64,7 +137,7 @@ async function handleGetProducts(req, res, ip) {
   if (rateLimited(`products:${ip}`, 60)) return fail(res, 'too many requests', 429);
   try {
     const { rows } = await pool.query(`
-      SELECT p.id, p.cat_key, p.pattern, p.img, p.price, p.unit, p.moq, p.lead_days,
+      SELECT p.id, p.cat_key, p.pattern, p.img, p.img_file_id, p.price, p.unit, p.moq, p.lead_days,
              p.rating, p.reviews, p.stock_key, p.badge_tone, p.width, p.weight,
              p.name_uz, p.name_ru, p.comp_uz, p.comp_ru, p.badge_uz, p.badge_ru,
              s.business_name_uz, s.business_name_ru, s.city_uz, s.city_ru, s.is_verified
@@ -108,13 +181,17 @@ async function handleSubmitProduct(req, res, ip) {
     const me = await currentSeller(u);
     const sellerId = me && me.role === 'seller' ? me.seller_id : null;
     await pool.query(
-      `INSERT INTO products (id, seller_id, cat_key, price, unit, moq, name_uz, name_ru, comp_uz, status, submitted_by_tg)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'pending',$10)`,
+      `INSERT INTO products (id, seller_id, cat_key, price, unit, moq, name_uz, name_ru, comp_uz, status, submitted_by_tg, awaiting_image)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'pending',$10,true)`,
       [id, sellerId, d.cat_key, d.price, d.unit || 'rulon', d.moq || 1, d.name_uz, d.name_ru, d.comp_uz, String(u.id)]
     );
     sendOrderNotifyMessage(
       `🆕 <b>Yangi e'lon moderatsiyaga</b>\n\n<b>${escapeHtml(d.name_uz)}</b>\nNarx: ${escapeHtml(money(d.price))}\nID: <code>${escapeHtml(id)}</code>\n\nRo'yxat: <code>/moderatsiya</code>`
     ).catch(() => {});
+    // Rasm formada emas — bot orqali so'raymiz (Telegram file_id naqshi, disputes'dagi kabi)
+    notify(u.id,
+      `🖼 <b>${escapeHtml(d.name_uz)}</b> qo'shildi.\n\nEndi shu mahsulot uchun <b>rasm yuboring</b> — u katalogda ko'rsatiladi. Rasmsiz ham moderatsiyadan o'tishi mumkin, lekin xaridorlar uni ko'rmaydi.`
+    );
     ok(res, { id, status: 'pending' }, 201);
   } catch (e) {
     console.error('submitProduct xatosi:', e.message);
@@ -193,4 +270,7 @@ function handleGetContact(req, res, ip) {
 
 
 
-module.exports = { handleAuthTelegram, handleGetProducts, handleSubmitProduct, handleModerationList, handleModerationAction, handleGetContact };
+module.exports = {
+  handleAuthTelegram, handleGetProducts, handleSubmitProduct, handleModerationList, handleModerationAction, handleGetContact,
+  handleProductPhoto, handleProductImage, productPhotoUrl,
+};

@@ -565,6 +565,11 @@ function money(n) {
   return n.toLocaleString('ru-RU').replace(/ /g, ' ') + " so'm";
 }
 
+// Logistika (BTS Pochta) taxminiy narxi — server bilan bir xil qiymat
+// (server/config.js DELIVERY_FEE_ESTIMATE). Mahsulot summasiga kirmaydi:
+// xaridor buni BTS nuqtasida to'g'ridan-to'g'ri BTS'ga to'laydi.
+const DELIVERY_FEE_ESTIMATE = 25000;
+
 function cartCount() {
   return Object.values(cart).reduce((s, q) => s + q, 0);
 }
@@ -918,10 +923,14 @@ function checkoutHtml() {
 
     <div class="co-sum" style="margin-top:12px">
       ${lines}
-      <div class="co-sum-row" style="margin-top:9px;padding-top:9px;border-top:1px solid var(--border-hair);font-weight:700;color:var(--text-strong)">
+      <div class="co-sum-row" style="margin-top:9px;padding-top:9px;border-top:1px solid var(--border-hair);color:var(--text-muted);font-size:13px">
+        <span>Yetkazish (taxminiy)</span><span>${money(DELIVERY_FEE_ESTIMATE)}</span>
+      </div>
+      <div class="co-sum-row" style="font-weight:700;color:var(--text-strong)">
         <span>Jami</span><span>${money(cartTotal())}</span>
       </div>
     </div>
+    <div style="font-size:11px;color:var(--text-subtle);line-height:1.4;margin-top:-4px">BTS nuqtasida to'g'ridan-to'g'ri to'lanadi, yuqoridagi jamiga kirmaydi.</div>
 
     ${me ? '' : `
       <div class="co-login">
