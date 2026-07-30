@@ -13,10 +13,27 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
 ## Bajariladigan vazifalar
 
 ### Katalog (Xaridor)
-- [ ] Mahsulotlar ro'yxati sahifasi (`/katalog`)
+
+> **Bu bo'lim 2026-07-31 da qayta o'qildi.** Bandlar Next.js rejasi uchun yozilgan
+> (`/katalog`, `/mahsulot/[slug]` marshrutlari), mahsulot esa statik landing + Telegram
+> Mini App bo'lib chiqdi. Quyida marshrut nomi emas, FUNKSIYA bor-yo'qligi belgilangan —
+> har biri brauzerda tekshirildi.
+
+- [x] Mahsulotlar ro'yxati — **alohida `/katalog` marshruti kerak emas va qurilmaydi.**
+  Landing'da `#product-grid` bo'limi (12 mahsulot), Mini App'da "Katalog" tabi
 - [ ] Filtr: kategoriya (chit / atlas / gilam / sitsa) + narx oralig'i
-- [ ] Mahsulot kartochkasi: rasm, kategoriya, narx/rulon, rulon soni, ishlab chiqaruvchi reytingi
-- [ ] Mahsulot detail sahifasi (`/mahsulot/[slug]`): to'liq ma'lumot + "Buyurtma berish" tugmasi
+  — **QISMAN (2026-07-31):** kategoriya chipi ikkala klientda ham ishlaydi (landing'da
+  brauzerda tekshirildi: "Ikat va adras" bosilganda 12 tadan 2 tasi qoldi, chip `is-active`
+  bo'ldi), landing'da qidiruv ham bor. **Narx oralig'i filtri hech qayerda yo'q** —
+  `script.js`da ham, `telegram-app/app.js`da ham. Band shu sabab OCHIQ qoladi
+- [x] Mahsulot kartochkasi: rasm, kategoriya, narx/rulon, rulon soni, ishlab chiqaruvchi
+  reytingi — hammasi bor (zaxira soni 2026-07-30 da qo'shilgan `stockView(p)` bilan).
+  ⚠️ **Lekin reyting soxta** — pastdagi ochiq savolga qarang
+- [x] Mahsulot detail sahifasi: to'liq ma'lumot + "Buyurtma berish" tugmasi
+  — **Mini App'da bor** (`telegram-app/app.js:477` — `openProduct(id)` → `S.screen='detail'`).
+  **Landing'da detal ko'rinishi umuman yo'q** (na sahifa, na modal — `grep openProduct|detail`
+  → 0 natija): kartochkadagi ma'lumot bilan to'g'ridan-to'g'ri savatga qo'shiladi. Bu
+  ATAYLAB emas, shunchaki qurilmagan — landing uchun kerakmi yo'qmi, founder qarori
 
 ### Buyurtma oqimi
 - [x] Rulon soni tanlash (minimum 1)
@@ -44,7 +61,33 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
 
 ---
 
+## Ochiq savollar (founder qaroriga muhtoj)
+
+- [2026-07-31] **Katalogdagi reyting va sharhlar soni O'YLAB TOPILGAN raqam.** Mini App'ning
+  mahsulot detalida yulduzcha bilan `4.9`, `4.7`, `5.0` … ko'rsatiladi (`app.js:715`) va API
+  ularni haqiqatan bazadan qaytaradi (`catalog.js:121` — jonli `/api/products` javobida
+  `"rating":4.9,"reviews":42`). Lekin bu raqamlar bazaga `db/002_seed.sql` orqali tushgan, u
+  esa `app.js`dagi soxta massivdan generatsiya qilingan. **Loyihada sharh (review) tizimi
+  umuman yo'q** — `reviews` faqat `products` jadvalidagi INT ustun, alohida sharhlar jadvali
+  qurilmagan (`grep "create table.*review" db/*.sql` → 0). Ya'ni xaridor "42 kishi baholagan"
+  degan yozuvni ko'radi, aslida hech kim baholamagan.
+
+  Bu CLAUDE.md dagi **"o'ylab topilgan raqam ko'rsatilmasin"** qoidasining aynan o'zi — qoida
+  panel uchun yozilgan edi, bu yerda esa raqam XARIDORGA ko'rsatilyapti, ya'ni zarari kattaroq.
+  Uch yo'l bor: (a) reytingni UI'dan olib tashlash — eng tez va halol; (b) sharh tizimini
+  qurish (yetkazilgan buyurtmadan keyin baho so'rash) — Sprint 5/6 hajmidagi ish; (c) atayin
+  qoldirish. **Qaror qabul qilinmaguncha band ochiq.**
+
+---
+
 ## Qilingan ishlar
+
+- [2026-07-31] **Sprint 4 katalog bo'limi haqiqatga moslandi (TOZALASH).** Bandlar Next.js
+  marshrutlari (`/katalog`, `/mahsulot/[slug]`) uchun yozilgani sababli hammasi `[ ]` bo'lib
+  turardi, aslida funksiyalarning ko'pi landing va Mini App'da allaqachon bor edi. Har band
+  taxmin bilan emas, tekshirib belgilandi. Shu jarayonda ikkita haqiqiy bo'shliq ochildi:
+  **narx oralig'i filtri hech qayerda yo'q** va **landing'da mahsulot detali umuman yo'q**;
+  bitta jiddiyroq muammo esa yuqoridagi "Ochiq savollar"ga yozildi (soxta reyting)
 
 - [2026-07-30] **Rulon zaxirasi endi haqiqatan kamayadi — Sprint 4 ning eng uzoq ochiq turgan quyrug'i
   (2026-07-27 dan beri) yopildi.** Muammo: `products` da faqat `stock_key TEXT` (in / low / made) bor edi —

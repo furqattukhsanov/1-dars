@@ -32,6 +32,20 @@
   tartiblangan holda qulflanadi (deadlock). `stock IS NULL` = CHEKSIZ —
   `made` mahsulotlar va son kiritilmagan e'lonlar. Bekor qilinganda zaxira
   qaytariladi, `refunded`da esa ATAYLAB qaytarilmaydi (mato xaridorda qoladi).
+- **Frontendda `window.addEventListener('load', ...)` ishlatilmasin** (2026-07-31,
+  ikki marta kuyganimizdan keyin). `load` BARCHA rasm va shrift yuklanib bo'lgandan
+  keyin otiladi — sekin tarmoqda bu soniyalar. Ikki marta zarar keltirdi:
+  `pwa.js` service worker'ni ro'yxatdan o'tkazmadi (`5ffe1f0`), `script.js` esa
+  butun ekranni yopib turgan `#page-loader`ni ochmay turdi. **O'rniga:**
+  DOM kifoya bo'lsa — `DOMContentLoaded` (yoki skript `defer` bo'lsa to'g'ridan-
+  to'g'ri chaqir). Haqiqatan `load` kerak bo'lsa — hodisa ALLAQACHON o'tgan
+  bo'lishi mumkinligini hisobga ol: avval `document.readyState` tekshirilsin,
+  aks holda listener hech qachon otilmaydi (`pwa.js` → `whenReady()` namunasi).
+- **Tashqi skript hech qachon `<head>`da `defer`siz turmasin.** `telegram.org`dan
+  keladigan `telegram-web-app.js` 114 KB va HTML tahlilini ~613 ms to'xtatardi.
+  Sahifadagi skriptlar `defer` bo'lsa — **HAMMASI birdan** `defer` bo'lsin:
+  bittasi `defer`siz qolsa u parse paytida, ya'ni defer'liklardan OLDIN ishlaydi
+  va tartib buziladi (`app.js` `window.Telegram`ni topa olmaydi).
 
 ## Loyiha haqida
 

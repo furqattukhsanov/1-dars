@@ -332,6 +332,16 @@
     <div style="font-size:0.68rem; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; color:#9C7B5A; margin-bottom:0.7rem;">So'nggi faoliyat</div>
     <div id="faoliyat-list">
       <div class="faoliyat-item">
+        <span class="faoliyat-sana">2026-07-31</span>
+        <span class="faoliyat-text">Sahifa yuklanish tezligi birinchi marta HAQIQATAN o'lchandi — sekinlashtirgan uchta sabab topildi va tuzatildi. Ilgari bu band "rasmlar siqilgan" degan taxminga tayanardi; o'lchanganda asosiy muammo rasm hajmi emas, TO'SIB TURUVCHI KOD ekani ma'lum bo'ldi. (1) Butun ekranni yopib turuvchi #page-loader (position:fixed; inset:0) window.load ga bog'langan edi — load hodisasi esa barcha rasm va shrift yuklanib bo'lgandan keyin otiladi, ya'ni tarkib ~240 ms da tayyor bo'lsa ham foydalanuvchi hero rasmi va uchinchi domendagi skript tugagunicha faqat spinner ko'rardi; endi DOMContentLoaded kifoya. Bu 2026-07-30 dagi service worker nosozligining (5ffe1f0) AYNAN O'ZI — load hodisasiga bog'lanish, ikkinchi marta kuydirdi, shuning uchun CLAUDE.md ga qoida yozildi. (2) telegram-web-app.js landing va Mini App'da ham head'da defer'siz turardi — 114 KB ni telegram.org dan kutib HTML tahlilini ~613 ms to'xtatib turardi (jonli o'lchov); uchala skript ham defer qilindi. Diqqat: uchalasi BIRDAN — bittasi defer'siz qolsa u parse paytida, ya'ni defer'liklardan oldin ishlaydi va script.js/app.js window.Telegram ni topa olmay qoladi; bu ham CLAUDE.md ga qoida bo'lib tushdi. (3) Katalogda 2.1 MB lik PNG turgan ekan (kirill harfli, bo'sh joyli nom bilan) — yolg'iz o'zi jonli tarmoqdan 5.6 soniyada kelardi, 2026-07-30 dagi rasm siqish sessiyasi uni o'tkazib yuborgan; 220 KB JPEG ga aylantirildi (−89%, vizual farq ko'rinmaydi). Eski PNG ataylab o'chirilmadi — sayt-eski/index.html unga bog'liq. Natija: umumiy og'irlik 4.93 MB → 3.13 MB (−37%), birinchi chizishni to'sib turadigan narsa qolmadi. Landing va Mini App brauzerda tekshirildi: loader yo'qoladi, window.Telegram hali ham object, kategoriya filtri ishlaydi (12 tadan 2 tasi), konsolda 0 xato. Kesh-bust: script.js v20→21, app.js v52→53. Band OCHIQ qoldi — o'lchov lokal va Wi-Fi bo'yicha, sekin mobil internetda (O'zbekistondagi haqiqiy 3G/4G) hali sinalmagan</span>
+        <span class="faoliyat-sprint">Sprint 8</span>
+      </div>
+      <div class="faoliyat-item">
+        <span class="faoliyat-sana">2026-07-31</span>
+        <span class="faoliyat-text">Sprint 4 va Sprint 9 fayllari haqiqatga moslandi va tekshiruvning o'zi uchta yangi teshik ochdi. Sprint 4 katalog bo'limi Next.js rejasi uchun yozilgan edi (/katalog, /mahsulot/[slug] marshrutlari), mahsulot esa statik landing + Telegram Mini App bo'lib chiqqan — shuning uchun bandlar hammasi bo'sh turardi, aslida funksiyalarning ko'pi allaqachon qurilgan edi. Har band taxmin bilan emas, brauzerda tekshirib belgilandi. Topilgani: narx oralig'i filtri hech qayerda yo'q (na script.js, na app.js) va landing'da mahsulot detali umuman yo'q — Mini App'da bor, landing'da kartochkadan to'g'ridan-to'g'ri savatga qo'shiladi. Eng jiddiysi ochiq savolga chiqarildi: katalogdagi reyting va sharhlar soni O'YLAB TOPILGAN raqam — API ularni bazadan qaytaradi, lekin bazaga seed orqali soxta massivdan tushgan va loyihada sharh tizimi umuman yo'q (reviews faqat products jadvalidagi INT ustun). Ya'ni xaridor "42 kishi baholagan" degan yozuvni ko'radi, aslida hech kim baholamagan — bu CLAUDE.md dagi "o'ylab topilgan raqam ko'rsatilmasin" qoidasining aynan buzilishi, ustiga panel emas, XARIDOR ko'radigan joyda. Founder qarori kerak. Sprint 9 "Production tayyorgarligi" esa jonli tekshirildi: SSL sertifikati joyida (Google Trust Services, 2026-09-15 gacha) va sessiya cookie'si HttpOnly+Secure+SameSite, lekin http://lolamarket.uz HTTPS'ga yo'naltirilmaydi va HSTS sarlavhasi yo'q — ikkalasi ham Cloudflare sozlamasi, founder bajaradi. Zaxira 2026-07-23 da sozlangan, ammo ishlayotgani bir marta ham ko'z bilan ko'rilmagan va restore umuman sinalmagan. Shu sababli qaror yozildi: sprint bandi "sozlandi" degani uchun [x] qilinmaydi — dalil ko'rsatilishi kerak (Sprint 8 dagi "CI yashil edi, fayllar esa serverga chiqmagandi" darsining takrori)</span>
+        <span class="faoliyat-sprint">Sprint 4 · 9</span>
+      </div>
+      <div class="faoliyat-item">
         <span class="faoliyat-sana">2026-07-30</span>
         <span class="faoliyat-text">Sprint 8 boshlandi — zaxira oqimi production'da end-to-end sinaldi va sinov ikkita jiddiy deploy teshigini ochib berdi. Sinalgani: haqiqiy sayt buyurtmasi #LM-3011 zaxirani to'g'ri kamaytirgani tasdiqlandi (ik-1402 50→48 va boshqalar); zaxiradan ortiq buyurtma aniq son bilan rad etiladi ("faqat 5 rulon qoldi"); race condition — 2 buyurtma ayni paytda oxirgi 1 rulonga yuborildi, birinchisi oldi, ikkinchisiga "tugadi" qaytdi, zaxira 0 bo'ldi (−1 emas, ya'ni atomik UPDATE ... WHERE stock >= qty haqiqatan himoya qilyapti); made mahsulot (stock IS NULL = cheksiz) 500 ta buyurtmada ham tugamadi; restoreStock SQL tranzaksiyada sinaldi (0→1, ROLLBACK bilan qaytarildi). Sinov buyurtmalari (#LM-3012, #LM-3013) o'chirildi va zaxira baseline'ga qaytarildi — production bazasida sinov chiqindisi qolmadi. Ruxsat darvozalari alohida tekshirildi: 6 ta himoyalangan endpoint tokensiz 401 qaytaradi. Sprintning asosiy qiymati esa rejalashtirilmagan joydan chiqdi — sinov paytida CI landing PWA fayllarini serverga umuman chiqarmayotgani va Mini App uchun deploy qadami butunlay yo'qligi qo'lga tushdi (Sprint 1 yozuviga qarang). Hali qilinmagan (founder qo'lda bajarishi kerak): sotuvchining botga mahsulot rasmini yuborishi, admin panel moderatsiyasida rasm + zaxira ko'rinishi, Mini App'dan (Telegram imzosi bilan) buyurtma berish — shu sabab uch oqim sinovi bandlari QISMAN, ochiq qoldi</span>
         <span class="faoliyat-sprint">Sprint 8</span>
@@ -654,12 +664,12 @@
     { num: 1, nom: "Telegram Mini App MVP",     dars: "Dars 8",  holat: "tugadi",  sana: "2026-07-25" },
     { num: 2, nom: "Ma'lumotlar bazasi / Backend", dars: "Dars 9",  holat: "tugadi", sana: "2026-07-23" },
     { num: 3, nom: "Foydalanuvchilar + rollar", dars: "Dars 10", holat: "tugadi", sana: "2026-07-29" },
-    { num: 4, nom: "Asosiy funksiya",           dars: "Dars 11", holat: "jarayonda",  sana: "2026-07-30" },
+    { num: 4, nom: "Asosiy funksiya",           dars: "Dars 11", holat: "jarayonda",  sana: "2026-07-31" },
     { num: 5, nom: "Mobil / PWA",               dars: "Dars 12", holat: "jarayonda",  sana: "2026-07-30" },
     { num: 6, nom: "Integratsiyalar",           dars: "Dars 13", holat: "jarayonda",  sana: "2026-07-22" },
     { num: 7, nom: "Admin panel",               dars: "Dars 14", holat: "tugadi",  sana: "2026-07-30" },
-    { num: 8, nom: "Sifat tekshiruvi",          dars: "Dars 15", holat: "jarayonda", sana: "2026-07-30" },
-    { num: 9, nom: "Production + launch",       dars: "Dars 16", holat: "kutilmoqda", sana: "" },
+    { num: 8, nom: "Sifat tekshiruvi",          dars: "Dars 15", holat: "jarayonda", sana: "2026-07-31" },
+    { num: 9, nom: "Production + launch",       dars: "Dars 16", holat: "jarayonda", sana: "2026-07-31" },
   ];
 
   const badgeLabels = {
@@ -680,7 +690,8 @@
   barEl.style.width = foiz + "%";
   percentEl.textContent = foiz + "%";
   countEl.textContent = tugaganlar + " / " + sprintlar.length + " sprint";
-  updatedEl.textContent = "Yangilanish: 2026-07-30 (Sprint 8 boshlandi — zaxira oqimi production'da end-to-end sinaldi, race condition va cheksiz zaxira tekshirildi; sinov paytida Sprint 1 — CI landing PWA fayllarini va Mini App'ni umuman deploy qilmayotgani topildi va tuzatildi, Mini App 27-iyuldan beri eskirgan turgan ekan; Sprint 5 — service worker load hodisasiga bog'liqligi sabab jonli saytda jimgina ro'yxatdan o'tmayotgan ekan, tuzatildi va PWA endi haqiqatan ishlaydi)";
+  updatedEl.textContent = "Yangilanish: 2026-07-31 (Sprint 8 — sahifa yuklanish tezligi BIRINCHI MARTA o'lchandi: sekinlashtirgan uchta sabab rasm hajmi emas, to'sib turuvchi kod ekan — butun ekranni yopgan loader window.load ga bog'langan edi, telegram-web-app.js <head>da defer'siz turib HTML tahlilini ~613 ms to'xtatardi, katalogda esa e'tibordan chetda qolgan 2.1 MB PNG bor edi; umumiy og'irlik 4.93 MB → 3.13 MB. Sprint 4 va 9 — sprint fayllari haqiqatga moslandi va tekshiruv uchta yangi teshik ochdi: katalogdagi reyting/sharhlar soni SOXTA, http:// HTTPS'ga yo'naltirilmaydi, zaxira sozlangan-u ishlayotgani hech qachon ko'rilmagan)";
+
 
   sprintlar.forEach(s => {
     const card = document.createElement("div");
