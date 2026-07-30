@@ -60,6 +60,20 @@ Dizayn manbasi: pure HTML/CSS/JS, glassmorphism dizayn tizimi, ikki tillilik (uz
 
 ## Qilingan ishlar
 
+- [2026-07-31] **`loyiha-panel.html` CI `source` ro'yxatida yo'q edi — panel serverda eskirib
+  qolgandi; ro'yxatga qo'shildi va HTML uchun TARKIB tekshiruvi joriy qilindi**
+  (`.github/workflows/deploy.yml`). Bu yuqoridagi 2026-07-30 tuzog'ining aynan takrori: panel
+  serverda ALLAQACHON bor edi (qachondir qo'lda rsync qilingan), lekin ro'yxatda bo'lmagani uchun
+  hech qachon yangilanmasdi — repoda 31-iyul versiyasi turgan payt serverdagi nusxa hali 30-iyulni
+  ko'rsatib turardi. Endi har push'da CI o'zi yangilaydi.
+
+  **Nega eski tekshiruv buni ushlay olmasdi.** Mavjud `check()` javobning `Content-Type` iga qaraydi
+  — bu JS/JSON uchun ishlaydi, HTML uchun esa YARAMAYDI: nginx yo'q faylga ham
+  `try_files ... /index.html` bilan `text/html` qaytaradi. Ya'ni panel serverdan butunlay yo'qolsa
+  ham tekshiruv yashil bo'lardi. Shuning uchun yangi `check_html()` funksiyasi javob TARKIBini
+  tekshiradi: `/loyiha-panel.html` ichida `LolaMarket — Loyiha Panel` satri bor-yo'qligi (bu satr
+  `index.html` da yo'q — tekshirildi, ya'ni fallback HTML kelsa tekshiruv qizaradi)
+
 - [2026-07-30] **CI landing PWA fayllarini va Mini App'ni umuman deploy qilmasdi — ikkala teshik
   yopildi va CI ga haqiqiy tekshiruv qadami qo'shildi** (`.github/workflows/deploy.yml`, commit
   `c6350a1`). Ikkala nuqson Sprint 8 ning end-to-end sinovida qo'lga tushdi (`sprint-8.md`).
@@ -112,6 +126,12 @@ Dizayn manbasi: pure HTML/CSS/JS, glassmorphism dizayn tizimi, ikki tillilik (uz
 
 ## Qarorlar
 
+- [2026-07-31] Qaror: **HTML fayllarning deploy'i `Content-Type` bilan emas, TARKIB bilan
+  tekshiriladi.** 2026-07-30 dagi "javob TURIga qara" qarori HTML uchun kuchsiz: nginx yo'q faylga
+  `try_files ... /index.html` bilan HTML qaytargani uchun tur baribir `text/html` bo'ladi va
+  tekshiruv yashil qoladi. Shuning uchun har bir HTML fayl uchun FAQAT o'shanda uchraydigan satr
+  tanlanadi va `check_html()` shuni qidiradi. **Yangi HTML fayl `source` ro'yxatiga qo'shilsa, unga
+  shunday tekshiruv ham qo'shilsin** — aks holda uning yo'qolganini hech narsa sezmaydi
 - [2026-07-30] Qaror: **statik fayl deploy'i HTTP kodiga emas, javob TURIga (`Content-Type`) qarab
   tekshiriladi.** Sabab: nginx `try_files ... /index.html` bilan sozlangan — yo'q faylga ham **200**
   qaytaradi, faqat tanasi HTML bo'ladi. Shu sabab `curl -o /dev/null -w '%{http_code}'` hamma joyda

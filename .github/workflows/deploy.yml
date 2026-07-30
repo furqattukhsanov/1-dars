@@ -26,7 +26,12 @@ jobs:
           # ro'yxatga qo'shilmagani uchun serverga umuman chiqmadi: nginx yo'q
           # faylga `try_files ... /index.html` bilan HTML qaytardi, Cloudflare
           # esa o'sha HTML'ni sw.js sifatida 4 soatga keshladi.
-          source: "index.html,style.css,script.js,manifest.json,sw.js,pwa.js,offline.html,assets/,Photo/,sayt-eski/,demo/,admin/"
+          #
+          # loyiha-panel.html — 2026-07-31 da qo'shildi. Serverda ALLAQACHON bor edi
+          # (qachondir qo'lda rsync qilingan), lekin ro'yxatda bo'lmagani uchun
+          # yangilanmay qolgandi: repoda 31-iyul versiyasi, serverda 30-iyulniki.
+          # Aynan yuqorida yozilgan tuzoqning takrori — endi CI o'zi yangilaydi.
+          source: "index.html,style.css,script.js,manifest.json,sw.js,pwa.js,offline.html,loyiha-panel.html,assets/,Photo/,sayt-eski/,demo/,admin/"
           target: /var/www/lolamarket
 
       # Mini App ALOHIDA qadam: repoda `telegram-app/`, serverda esa `mini-app/`
@@ -99,4 +104,17 @@ jobs:
             check /pwa.js             application/javascript
             check /script.js          application/javascript
             check /mini-app/app.js    application/javascript
+
+            # HTML fayllar uchun Content-Type YARAMAYDI: nginx yo'q faylga ham
+            # `try_files ... /index.html` bilan text/html qaytaradi. Shuning uchun
+            # bu yerda TARKIB tekshiriladi — faqat o'sha faylda uchraydigan satr.
+            check_html() {
+              if curl -s -H 'Host: lolamarket.uz' "http://127.0.0.1$1" | grep -q "$2"; then
+                echo "  ✅ $1 → tarkib to'g'ri ('$2' topildi)"
+              else
+                echo "::error::$1 ichida '$2' yo'q — fayl yetib bormagan yoki index.html fallback qaytyapti."
+                FAIL=1
+              fi
+            }
+            check_html /loyiha-panel.html 'LolaMarket — Loyiha Panel'
             exit $FAIL

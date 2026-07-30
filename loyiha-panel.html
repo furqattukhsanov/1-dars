@@ -333,6 +333,11 @@
     <div id="faoliyat-list">
       <div class="faoliyat-item">
         <span class="faoliyat-sana">2026-07-31</span>
+        <span class="faoliyat-text">Shu panelning o'zi serverda eskirib qolayotgani topildi va CI darajasida yopildi. loyiha-panel.html serverda ALLAQACHON bor edi — qachondir qo'lda rsync qilingan — lekin deploy.yml dagi source ro'yxatiga hech qachon qo'shilmagan, ya'ni har push'da eski nusxa joyida qolaverardi: repoda 31-iyul versiyasi turgan payt serverdagi panel hali 30-iyulni ko'rsatib turgandi. Bu 2026-07-30 dagi landing PWA fayllari tuzog'ining aynan takrori (Sprint 1 yozuvi). Endi fayl ro'yxatda va CI o'zi yangilaydi. Ikkinchi qismi muhimroq: mavjud tekshiruv buni ushlay olmasdi. check() javobning Content-Type iga qaraydi — JS va JSON uchun ishlaydi, HTML uchun esa foydasiz, chunki nginx yo'q faylga ham try_files ... /index.html bilan text/html qaytaradi; ya'ni panel serverdan butunlay yo'qolsa ham tekshiruv yashil bo'lardi. Shuning uchun check_html() qo'shildi — u javob TARKIBini o'qiydi va faqat o'sha faylda uchraydigan satrni ("LolaMarket — Loyiha Panel") qidiradi; bu satr index.html da yo'qligi tekshirildi, ya'ni fallback HTML kelsa deploy qizaradi. Qaror sifatida yozildi: bundan keyin source ro'yxatiga HTML fayl qo'shilsa, unga tarkib tekshiruvi ham qo'shilsin</span>
+        <span class="faoliyat-sprint">Sprint 1</span>
+      </div>
+      <div class="faoliyat-item">
+        <span class="faoliyat-sana">2026-07-31</span>
         <span class="faoliyat-text">Sahifa yuklanish tezligi birinchi marta HAQIQATAN o'lchandi — sekinlashtirgan uchta sabab topildi va tuzatildi. Ilgari bu band "rasmlar siqilgan" degan taxminga tayanardi; o'lchanganda asosiy muammo rasm hajmi emas, TO'SIB TURUVCHI KOD ekani ma'lum bo'ldi. (1) Butun ekranni yopib turuvchi #page-loader (position:fixed; inset:0) window.load ga bog'langan edi — load hodisasi esa barcha rasm va shrift yuklanib bo'lgandan keyin otiladi, ya'ni tarkib ~240 ms da tayyor bo'lsa ham foydalanuvchi hero rasmi va uchinchi domendagi skript tugagunicha faqat spinner ko'rardi; endi DOMContentLoaded kifoya. Bu 2026-07-30 dagi service worker nosozligining (5ffe1f0) AYNAN O'ZI — load hodisasiga bog'lanish, ikkinchi marta kuydirdi, shuning uchun CLAUDE.md ga qoida yozildi. (2) telegram-web-app.js landing va Mini App'da ham head'da defer'siz turardi — 114 KB ni telegram.org dan kutib HTML tahlilini ~613 ms to'xtatib turardi (jonli o'lchov); uchala skript ham defer qilindi. Diqqat: uchalasi BIRDAN — bittasi defer'siz qolsa u parse paytida, ya'ni defer'liklardan oldin ishlaydi va script.js/app.js window.Telegram ni topa olmay qoladi; bu ham CLAUDE.md ga qoida bo'lib tushdi. (3) Katalogda 2.1 MB lik PNG turgan ekan (kirill harfli, bo'sh joyli nom bilan) — yolg'iz o'zi jonli tarmoqdan 5.6 soniyada kelardi, 2026-07-30 dagi rasm siqish sessiyasi uni o'tkazib yuborgan; 220 KB JPEG ga aylantirildi (−89%, vizual farq ko'rinmaydi). Eski PNG ataylab o'chirilmadi — sayt-eski/index.html unga bog'liq. Natija: umumiy og'irlik 4.93 MB → 3.13 MB (−37%), birinchi chizishni to'sib turadigan narsa qolmadi. Landing va Mini App brauzerda tekshirildi: loader yo'qoladi, window.Telegram hali ham object, kategoriya filtri ishlaydi (12 tadan 2 tasi), konsolda 0 xato. Kesh-bust: script.js v20→21, app.js v52→53. Band OCHIQ qoldi — o'lchov lokal va Wi-Fi bo'yicha, sekin mobil internetda (O'zbekistondagi haqiqiy 3G/4G) hali sinalmagan</span>
         <span class="faoliyat-sprint">Sprint 8</span>
       </div>
@@ -661,7 +666,7 @@
 <script>
   const sprintlar = [
     { num: 0, nom: "Dizayn va ekranlar",        dars: "Dars 7",  holat: "tugadi",  sana: "2026-07-29" },
-    { num: 1, nom: "Telegram Mini App MVP",     dars: "Dars 8",  holat: "tugadi",  sana: "2026-07-25" },
+    { num: 1, nom: "Telegram Mini App MVP",     dars: "Dars 8",  holat: "tugadi",  sana: "2026-07-31" },
     { num: 2, nom: "Ma'lumotlar bazasi / Backend", dars: "Dars 9",  holat: "tugadi", sana: "2026-07-23" },
     { num: 3, nom: "Foydalanuvchilar + rollar", dars: "Dars 10", holat: "tugadi", sana: "2026-07-29" },
     { num: 4, nom: "Asosiy funksiya",           dars: "Dars 11", holat: "jarayonda",  sana: "2026-07-31" },
@@ -690,7 +695,7 @@
   barEl.style.width = foiz + "%";
   percentEl.textContent = foiz + "%";
   countEl.textContent = tugaganlar + " / " + sprintlar.length + " sprint";
-  updatedEl.textContent = "Yangilanish: 2026-07-31 (Sprint 8 — sahifa yuklanish tezligi BIRINCHI MARTA o'lchandi: sekinlashtirgan uchta sabab rasm hajmi emas, to'sib turuvchi kod ekan — butun ekranni yopgan loader window.load ga bog'langan edi, telegram-web-app.js <head>da defer'siz turib HTML tahlilini ~613 ms to'xtatardi, katalogda esa e'tibordan chetda qolgan 2.1 MB PNG bor edi; umumiy og'irlik 4.93 MB → 3.13 MB. Sprint 4 va 9 — sprint fayllari haqiqatga moslandi va tekshiruv uchta yangi teshik ochdi: katalogdagi reyting/sharhlar soni SOXTA, http:// HTTPS'ga yo'naltirilmaydi, zaxira sozlangan-u ishlayotgani hech qachon ko'rilmagan)";
+  updatedEl.textContent = "Yangilanish: 2026-07-31 (Sprint 8 — sahifa yuklanish tezligi BIRINCHI MARTA o'lchandi: sekinlashtirgan uchta sabab rasm hajmi emas, to'sib turuvchi kod ekan — butun ekranni yopgan loader window.load ga bog'langan edi, telegram-web-app.js <head>da defer'siz turib HTML tahlilini ~613 ms to'xtatardi, katalogda esa e'tibordan chetda qolgan 2.1 MB PNG bor edi; umumiy og'irlik 4.93 MB → 3.13 MB. Sprint 4 va 9 — sprint fayllari haqiqatga moslandi va tekshiruv uchta yangi teshik ochdi: katalogdagi reyting/sharhlar soni SOXTA, http:// HTTPS'ga yo'naltirilmaydi, zaxira sozlangan-u ishlayotgani hech qachon ko'rilmagan. Sprint 1 — shu panelning O'ZI serverda eskirib qolayotgani topildi: loyiha-panel.html CI source ro'yxatida yo'q edi, endi qo'shildi; HTML uchun Content-Type tekshiruvi foydasiz bo'lgani sababli (nginx yo'q faylga ham text/html qaytaradi) tarkib tekshiruvi joriy qilindi)";
 
 
   sprintlar.forEach(s => {
