@@ -19,7 +19,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=33" />
+  <link rel="stylesheet" href="style.css?v=34" />
   <!-- DIQQAT: uchala skript ham `defer` — TARTIB shu sababli saqlanadi
        (telegram → script.js → pwa.js). Bittasidan `defer` olib tashlansa,
        u tananing ichida parse paytida ishlaydi va DEFER'liklardan OLDIN
@@ -52,7 +52,7 @@
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
           </button>
         </div>
-        <button class="filter-btn" id="filter-btn" type="button" tabindex="-1" aria-hidden="true">
+        <button class="filter-btn" id="filter-btn" type="button" onclick="focusPriceFilter()" aria-label="Narx bo'yicha filtr">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M4 6h16M7 12h10M10 18h4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
         </button>
       </div>
@@ -139,6 +139,27 @@
       <button class="chip" data-cat="cotton">Paxta</button>
       <button class="chip" data-cat="wool">Jun</button>
       <button class="chip" data-cat="linen">Zig'ir</button>
+    </div>
+
+    <div class="price-filter fade-up">
+      <span class="price-filter-label">Narx, so'm / rulon</span>
+      <div class="price-filter-row">
+        <input id="price-min" class="price-inp" type="text" inputmode="numeric" autocomplete="off"
+               placeholder="Eng kam" aria-label="Eng kam narx"
+               onkeydown="if(event.key==='Enter')applyPrice()" />
+        <span class="price-dash">–</span>
+        <input id="price-max" class="price-inp" type="text" inputmode="numeric" autocomplete="off"
+               placeholder="Eng ko'p" aria-label="Eng ko'p narx"
+               onkeydown="if(event.key==='Enter')applyPrice()" />
+        <button class="price-apply" type="button" onclick="applyPrice()">Qo'llash</button>
+      </div>
+      <div id="price-err" class="price-err" role="alert"></div>
+      <div id="price-chip" class="price-chip" hidden>
+        <span id="price-chip-label"></span>
+        <button class="price-chip-x" type="button" onclick="clearPrice()" aria-label="Narx filtrini olib tashlash">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+        </button>
+      </div>
     </div>
 
     <p class="verified-legend fade-up">
@@ -559,7 +580,7 @@
     </button>
   </nav>
 
-  <script defer src="script.js?v=21"></script>
+  <script defer src="script.js?v=22"></script>
   <script defer src="pwa.js?v=2"></script>
 </body>
 </html>

@@ -149,6 +149,10 @@ const grid = document.getElementById('product-grid');
 
 let activeCat = 'all';
 let searchQ = '';
+// Narx oralig'i filtri — null = o'sha tomon cheklanmagan (Mini App'dagi
+// `inPriceRange` bilan bir xil qoida)
+let priceMin = null;
+let priceMax = null;
 
 function applyFilter() {
   if (!grid) return;
@@ -160,13 +164,100 @@ function applyFilter() {
     const okQ = !q
       || (card.dataset.name || '').toLowerCase().indexOf(q) !== -1
       || (card.dataset.supplier || '').toLowerCase().indexOf(q) !== -1;
-    const ok = okCat && okQ;
+    const ok = okCat && okQ && okPrice(card);
     card.classList.toggle('is-hidden', !ok);
     if (ok) shown++;
   });
 
   const empty = document.getElementById('no-result');
   if (empty) empty.hidden = shown > 0;
+}
+
+/* ====================================================
+   NARX ORALIG'I FILTRI
+
+   Narx kartochkaning `data-price` atributidan o'qiladi — JS'da mahsulotlar
+   ro'yxati takrorlanmaydi (index.html bitta manba).
+   ==================================================== */
+
+function okPrice(card) {
+  if (priceMin === null && priceMax === null) return true;
+  const v = Number(card.dataset.price);
+  // Narxi noma'lum mahsulot filtr yoqilganda ko'rsatilmaydi — uni "arzon"
+  // deb ko'rsatish xaridorni chalg'itadi
+  if (!Number.isFinite(v)) return false;
+  if (priceMin !== null && v < priceMin) return false;
+  if (priceMax !== null && v > priceMax) return false;
+  return true;
+}
+
+// "700 000" ham, "700000" ham qabul qilinadi; bo'sh = chegara yo'q
+function parsePriceInput(v) {
+  const digits = String(v).replace(/\D/g, '');
+  if (!digits) return null;
+  const n = Number(digits);
+  return Number.isFinite(n) ? n : null;
+}
+
+function somGroup(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ' '); }
+
+function applyPrice() {
+  const lo = parsePriceInput(document.getElementById('price-min')?.value ?? '');
+  const hi = parsePriceInput(document.getElementById('price-max')?.value ?? '');
+  const err = document.getElementById('price-err');
+
+  if (lo !== null && hi !== null && lo > hi) {
+    if (err) err.textContent = "Eng kam narx eng ko'pdan katta bo'lmasin";
+    return;
+  }
+  if (err) err.textContent = '';
+
+  priceMin = lo;
+  priceMax = hi;
+  applyFilter();
+  paintPriceState();
+}
+
+function clearPrice() {
+  priceMin = null;
+  priceMax = null;
+  const lo = document.getElementById('price-min');
+  const hi = document.getElementById('price-max');
+  if (lo) lo.value = '';
+  if (hi) hi.value = '';
+  const err = document.getElementById('price-err');
+  if (err) err.textContent = '';
+  applyFilter();
+  paintPriceState();
+}
+
+// Header'dagi filtr ikonkasi — narx maydoniga olib boradi.
+// Qadalgan header balandligi hisobga olinadi, aks holda maydon uning ostida qoladi
+function focusPriceFilter() {
+  const inp = document.getElementById('price-min');
+  if (!inp) return;
+  const head = document.getElementById('nav');
+  const top = inp.getBoundingClientRect().top + window.scrollY - (head?.offsetHeight || 0) - 20;
+  window.scrollTo({ top, behavior: 'smooth' });
+  inp.focus({ preventScroll: true });
+}
+
+// Yoqilgan filtrni ko'rsatuvchi chip — yoqilmagan bo'lsa umuman ko'rinmaydi
+function paintPriceState() {
+  const chip = document.getElementById('price-chip');
+  const label = document.getElementById('price-chip-label');
+  if (!chip || !label) return;
+
+  if (priceMin === null && priceMax === null) { chip.hidden = true; return; }
+
+  if (priceMin !== null && priceMax !== null) {
+    label.textContent = `${somGroup(priceMin)} – ${somGroup(priceMax)} so'm`;
+  } else if (priceMin !== null) {
+    label.textContent = `${somGroup(priceMin)} so'mdan yuqori`;
+  } else {
+    label.textContent = `${somGroup(priceMax)} so'mgacha`;
+  }
+  chip.hidden = false;
 }
 
 if (chipsWrap) {

@@ -26,6 +26,10 @@ const STR = {
   uz: { brand: "LolaMarket", brandSub: "Ulgurji matolar bozori", miniApp: "mini ilova", greetSub: "Bugun qanday matolar kerak?",
     searchPh: "Mato yoki kategoriya qidiring", cats: "Kategoriyalar", all: "Barchasi", featured: "Tavsiya etiladi",
     verifiedMills: "28 tasdiqlangan fabrika · xavfsiz to'lov", catalog: "Katalog", filter: "Filtr", sort: "Saralash",
+    priceT: "Narx oralig'i", priceMinPh: "Eng kam", priceMaxPh: "Eng ko'p", priceUnit: "so'm / rulon",
+    priceApply: "Qo'llash", priceClear: "Tozalash", priceRangeHint: "Katalogdagi narxlar",
+    priceBad: "Eng kam narx eng ko'pdan katta bo'lmasin", noProductsPrice: "Bu narx oralig'ida mato yo'q",
+    somU: "so'm", priceFrom: "dan yuqori", priceTo: "gacha", priceRemove: "Narx filtrini olib tashlash",
     day: "kun", addCart: "Savatga qo'shish", order: "Buyurtma berish", specs: "Tafsilotlar", width: "Eni", weight: "Zichlik",
     comp: "Tarkibi", leadTime: "Yetkazish muddati", minOrder: "Minimal buyurtma (MOQ)", supplierL: "Yetkazib beruvchi",
     verified: "Tasdiqlangan", reviews: "sharh", message: "Xabar yuborish", qty: "Miqdor", cart: "Savat", cartEmpty: "Savat bo'sh",
@@ -91,6 +95,10 @@ const STR = {
   ru: { brand: "LolaMarket", brandSub: "Оптовый рынок тканей", miniApp: "мини-приложение", greetSub: "Какие ткани нужны сегодня?",
     searchPh: "Поиск ткани или категории", cats: "Категории", all: "Все", featured: "Рекомендуем",
     verifiedMills: "28 проверенных фабрик · безопасная оплата", catalog: "Каталог", filter: "Фильтр", sort: "Сортировка",
+    priceT: "Диапазон цены", priceMinPh: "Минимум", priceMaxPh: "Максимум", priceUnit: "сум / рулон",
+    priceApply: "Применить", priceClear: "Сбросить", priceRangeHint: "Цены в каталоге",
+    priceBad: "Минимум не может быть больше максимума", noProductsPrice: "В этом диапазоне тканей нет",
+    somU: "сум", priceFrom: "и выше", priceTo: "и ниже", priceRemove: "Убрать фильтр по цене",
     day: "дн.", addCart: "В корзину", order: "Оформить заказ", specs: "Характеристики", width: "Ширина", weight: "Плотность",
     comp: "Состав", leadTime: "Срок поставки", minOrder: "Мин. заказ (MOQ)", supplierL: "Поставщик",
     verified: "Проверен", reviews: "отзыв.", message: "Написать", qty: "Количество", cart: "Корзина", cartEmpty: "Корзина пуста",
@@ -303,6 +311,16 @@ const S = {
   qty: 300,
   search: '',
   cat: 'all',
+  // — Narx oralig'i filtri —
+  // null = chegara yo'q. Qo'llangan qiymat (priceMin/Max) sheet ichida
+  // yozilayotgan qora nusxadan (priceDraft*) ATAYLAB ajratilgan: foydalanuvchi
+  // yozayotganda katalog har harfda sakramaydi, faqat "Qo'llash" bosilganda o'zgaradi.
+  priceMin: null,
+  priceMax: null,
+  priceSheet: false,
+  priceDraftMin: '',
+  priceDraftMax: '',
+  priceErr: '',
   pay: 'payme',
   btsPoint: loadBtsPoint(),   // oxirgi tanlangan nuqta eslab qolinadi
   btsRegion: 'tas',
@@ -668,17 +686,27 @@ function renderHome() {
 // ============ EKRAN: KATALOG ============
 function renderCatalog() {
   const T = STR[S.lang];
-  const prods = (S.cat === 'all' ? PRODUCTS : PRODUCTS.filter(p => p.catKey === S.cat)).map(vm);
+  const byCat = S.cat === 'all' ? PRODUCTS : PRODUCTS.filter(p => p.catKey === S.cat);
+  const prods = byCat.filter(inPriceRange).map(vm);
+  const priceOn = S.priceMin !== null || S.priceMax !== null;
   return `
   <div style="padding:14px 16px 28px;display:flex;flex-direction:column;gap:14px">
     <div style="display:flex;gap:9px">
-      <button style="flex:1;display:flex;align-items:center;justify-content:center;gap:7px;height:40px;border-radius:var(--radius-md);border:1px solid rgba(255,255,255,.7);background:rgba(255,255,255,.55);backdrop-filter:blur(20px) saturate(170%);-webkit-backdrop-filter:blur(20px) saturate(170%);font-size:13.5px;font-weight:600;color:var(--text-body);box-shadow:0 8px 22px -10px rgba(81,1,0,.18),inset 0 1px 0 rgba(255,255,255,.9)">
+      <button onclick="openPriceSheet()" style="flex:1;display:flex;align-items:center;justify-content:center;gap:7px;height:40px;border-radius:var(--radius-md);cursor:pointer;border:1px solid ${priceOn ? '#7a140d' : 'rgba(255,255,255,.7)'};background:${priceOn ? 'var(--pom-100)' : 'rgba(255,255,255,.55)'};backdrop-filter:blur(20px) saturate(170%);-webkit-backdrop-filter:blur(20px) saturate(170%);font-size:13.5px;font-weight:600;font-family:var(--font-sans);color:${priceOn ? '#7a140d' : 'var(--text-body)'};box-shadow:0 8px 22px -10px rgba(81,1,0,.18),inset 0 1px 0 rgba(255,255,255,.9)">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M4 6h16M7 12h10M10 18h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>${T.filter}
+        ${priceOn ? `<span style="width:7px;height:7px;border-radius:50%;background:#7a140d;flex:none"></span>` : ''}
       </button>
       <button style="flex:1;display:flex;align-items:center;justify-content:center;gap:7px;height:40px;border-radius:var(--radius-md);border:1px solid rgba(255,255,255,.7);background:rgba(255,255,255,.55);backdrop-filter:blur(20px) saturate(170%);-webkit-backdrop-filter:blur(20px) saturate(170%);font-size:13.5px;font-weight:600;color:var(--text-body);box-shadow:0 8px 22px -10px rgba(81,1,0,.18),inset 0 1px 0 rgba(255,255,255,.9)">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M8 4v16m0 0l-3-3m3 3l3-3M16 20V4m0 0l-3 3m3-3l3 3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>${T.sort}
       </button>
     </div>
+
+    ${priceOn ? `<div style="display:flex;align-items:center;gap:8px;align-self:flex-start;max-width:100%;height:34px;padding:0 6px 0 13px;border-radius:999px;background:var(--pom-100);border:1px solid rgba(122,20,13,.25)">
+      <span style="font-size:12.5px;font-weight:600;color:#7a140d;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${priceFilterLabel()}</span>
+      <button onclick="clearPriceFilter()" aria-label="${T.priceRemove}" style="flex:none;width:24px;height:24px;border-radius:50%;border:none;background:rgba(122,20,13,.12);color:#7a140d;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+      </button>
+    </div>` : ''}
 
     <div style="display:flex;gap:9px;overflow-x:auto;margin:0 -16px;padding:7px 16px;scrollbar-width:none">
       ${CATS.map(c => {
@@ -688,9 +716,92 @@ function renderCatalog() {
     </div>
 
     ${prods.length === 0
-      ? `<div style="text-align:center;padding:40px;color:var(--text-muted)">${T.noProducts}</div>`
+      ? `<div style="text-align:center;padding:40px;color:var(--text-muted)">${priceOn ? T.noProductsPrice : T.noProducts}
+          ${priceOn ? `<div><button onclick="clearPriceFilter()" style="margin-top:14px;cursor:pointer;height:40px;padding:0 18px;border-radius:var(--radius-md);border:1px solid #7a140d;background:none;color:#7a140d;font-family:var(--font-sans);font-size:13.5px;font-weight:600">${T.priceClear}</button></div>` : ''}
+         </div>`
       : `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">${prods.map(p => productCard(p)).join('')}</div>`}
   </div>`;
+}
+
+// ============ NARX ORALIG'I FILTRI ============
+// Chegara `null` bo'lsa o'sha tomon cheklanmaydi (BTS/zaxira'dagi `null = cheksiz`
+// naqshi bilan bir xil). Narxi yo'q mahsulot filtr yoqilganda yashiriladi —
+// "narxi noma'lum" ni "arzon" deb ko'rsatish xaridorni chalg'itadi.
+function inPriceRange(p) {
+  if (S.priceMin === null && S.priceMax === null) return true;
+  const v = Number(p.price);
+  if (!Number.isFinite(v)) return false;
+  if (S.priceMin !== null && v < S.priceMin) return false;
+  if (S.priceMax !== null && v > S.priceMax) return false;
+  return true;
+}
+
+// Narx uchun raqam formati — ilovadagi money() bilan bir xil (bo'sh joy bilan),
+// lekin "so'm" qo'shimchasisiz. num() bu yerda yaramaydi: u vergul qo'yadi va
+// u miqdor (dona) uchun ishlatiladi
+function priceNum(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ' '); }
+
+// Yoqilgan filtrni to'liq yozuv bilan ko'rsatish: "850 000 – 890 000 so'm"
+function priceFilterLabel() {
+  const T = STR[S.lang], lo = S.priceMin, hi = S.priceMax;
+  if (lo !== null && hi !== null) return `${priceNum(lo)} – ${priceNum(hi)} ${T.somU}`;
+  if (lo !== null) return `${priceNum(lo)} ${T.somU} ${T.priceFrom}`;
+  return `${priceNum(hi)} ${T.somU} ${T.priceTo}`;
+}
+
+// Faqat raqam qoldiradi (foydalanuvchi "700 000" yoki "700000" yozishi mumkin);
+// bo'sh bo'lsa null = chegara yo'q
+function parsePrice(v) {
+  const digits = String(v).replace(/\D/g, '');
+  if (!digits) return null;
+  const n = Number(digits);
+  return Number.isFinite(n) ? n : null;
+}
+
+function openPriceSheet() {
+  S.priceDraftMin = S.priceMin === null ? '' : String(S.priceMin);
+  S.priceDraftMax = S.priceMax === null ? '' : String(S.priceMax);
+  S.priceErr = '';
+  S.priceSheet = true;
+  paintSheet();
+}
+function closePriceSheet() {
+  S.priceSheet = false;
+  paintSheet();
+}
+function onPriceDraft(which, v) {
+  if (which === 'min') S.priceDraftMin = v; else S.priceDraftMax = v;
+  // Xato yozuvi yo'qoladi, lekin sheet QAYTA CHIZILMAYDI — paintSheet() bu yerda
+  // chaqirilsa input DOM'dan yo'qolib fokus uchadi va klaviatura yopiladi
+  if (S.priceErr) {
+    S.priceErr = '';
+    const el = document.getElementById('price-err');
+    if (el) el.textContent = '';
+  }
+}
+function applyPriceFilter() {
+  const lo = parsePrice(S.priceDraftMin);
+  const hi = parsePrice(S.priceDraftMax);
+  if (lo !== null && hi !== null && lo > hi) {
+    S.priceErr = STR[S.lang].priceBad;
+    paintSheet();
+    return;
+  }
+  S.priceMin = lo;
+  S.priceMax = hi;
+  S.priceSheet = false;
+  paintSheet();
+  document.getElementById('screen-wrap').innerHTML = renderCatalog();
+}
+function clearPriceFilter() {
+  S.priceMin = null;
+  S.priceMax = null;
+  S.priceDraftMin = '';
+  S.priceDraftMax = '';
+  S.priceErr = '';
+  S.priceSheet = false;
+  paintSheet();
+  document.getElementById('screen-wrap').innerHTML = renderCatalog();
 }
 
 // ============ EKRAN: DETAIL ============
@@ -1021,11 +1132,57 @@ function renderBtsSheet() {
   </div>`;
 }
 
+// ============ NARX ORALIG'I (bottom-sheet) ============
+function renderPriceSheet() {
+  const T = STR[S.lang];
+  // Yo'l-yo'riq raqami KATALOGDAN olinadi, o'ylab topilmaydi — mahsulot bo'lmasa
+  // qator umuman ko'rsatilmaydi (CLAUDE.md: "o'ylab topilgan raqam ko'rsatilmasin")
+  const prices = PRODUCTS.map(p => Number(p.price)).filter(Number.isFinite);
+  const lo = prices.length ? Math.min(...prices) : null;
+  const hi = prices.length ? Math.max(...prices) : null;
+
+  const inputBox = 'flex:1;min-width:0;display:flex;flex-direction:column;gap:5px';
+  const inputSt = "width:100%;height:48px;padding:0 14px;border-radius:var(--radius-md);border:1px solid rgba(255,255,255,.8);background:rgba(255,255,255,.7);outline:none;font-family:var(--font-sans);font-size:16px;font-weight:600;color:var(--text-strong);box-shadow:var(--shadow-sm)";
+  const lblSt = 'font-size:11.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--text-muted);padding-left:2px';
+
+  return `
+  <div onclick="closePriceSheet()" style="position:absolute;inset:0;background:rgba(23,26,48,.34);z-index:60;animation:fade var(--dur-base) var(--ease-out)"></div>
+  <div style="position:absolute;left:0;right:0;bottom:0;z-index:61;display:flex;flex-direction:column;border-radius:var(--radius-xl) var(--radius-xl) 0 0;padding:10px 14px calc(18px + env(safe-area-inset-bottom));backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);background:var(--glass-tint);box-shadow:var(--glass-spec),0 -12px 40px -8px rgba(81,1,0,.28);animation:sheetUp var(--dur-base) var(--ease-out)">
+    <div style="width:38px;height:4px;border-radius:99px;background:var(--ink-200);margin:0 auto 12px;flex:none"></div>
+    <div style="font-family:var(--font-display);font-size:17px;font-weight:800;color:var(--text-strong);letter-spacing:-.02em;margin-bottom:4px">${T.priceT}</div>
+    <div style="font-size:12px;color:var(--text-muted);margin-bottom:13px">${T.priceUnit}</div>
+
+    <div style="display:flex;gap:10px;align-items:flex-end">
+      <label style="${inputBox}">
+        <span style="${lblSt}">${T.priceMinPh}</span>
+        <input id="price-min" type="text" inputmode="numeric" value="${S.priceDraftMin}" oninput="onPriceDraft('min', this.value)" placeholder="${lo === null ? '' : priceNum(lo)}" style="${inputSt}">
+      </label>
+      <div style="flex:none;height:48px;display:flex;align-items:center;color:var(--text-muted);font-weight:700">–</div>
+      <label style="${inputBox}">
+        <span style="${lblSt}">${T.priceMaxPh}</span>
+        <input id="price-max" type="text" inputmode="numeric" value="${S.priceDraftMax}" oninput="onPriceDraft('max', this.value)" placeholder="${hi === null ? '' : priceNum(hi)}" style="${inputSt}">
+      </label>
+    </div>
+
+    <div id="price-err" style="min-height:17px;margin-top:7px;font-size:12px;font-weight:600;color:var(--danger-500)">${S.priceErr}</div>
+
+    ${lo === null ? '' : `<div style="font-size:12px;color:var(--text-muted);margin-bottom:14px">${T.priceRangeHint}: ${priceNum(lo)} – ${priceNum(hi)} ${T.somU}</div>`}
+
+    <div style="display:flex;gap:10px">
+      <button onclick="clearPriceFilter()" style="flex:none;padding:0 18px;height:50px;border-radius:var(--radius-md);border:1px solid rgba(122,20,13,.3);background:none;color:#7a140d;font-family:var(--font-sans);font-size:15px;font-weight:600;cursor:pointer">${T.priceClear}</button>
+      <button onclick="applyPriceFilter()" style="flex:1;height:50px;border:none;border-radius:var(--radius-md);background:linear-gradient(135deg,#8f1a10,#510100);color:#ffe9db;font-family:var(--font-sans);font-size:15px;font-weight:600;cursor:pointer;box-shadow:var(--shadow-sm)">${T.priceApply}</button>
+    </div>
+  </div>`;
+}
+
 // Sheet #screen-wrap dan tashqarida chiziladi — aks holda skroll konteyneri uni kesadi
 function paintSheet() {
   const wrap = document.getElementById('sheet-wrap');
   if (!wrap) return;
-  wrap.innerHTML = S.btsSheet ? renderBtsSheet() : S.dispSheet ? renderDisputeSheet() : '';
+  wrap.innerHTML = S.btsSheet ? renderBtsSheet()
+    : S.dispSheet ? renderDisputeSheet()
+    : S.priceSheet ? renderPriceSheet()
+    : '';
 }
 function openBtsSheet() {
   S.btsSheet = true;
@@ -1645,6 +1802,7 @@ function render() {
   if (fn) document.getElementById('screen-wrap').innerHTML = fn();
   // Ekran almashsa ochiq sheet qolib ketmasin
   if (S.screen !== 'checkout') S.btsSheet = false;
+  if (S.screen !== 'catalog') S.priceSheet = false;
   paintSheet();
 }
 

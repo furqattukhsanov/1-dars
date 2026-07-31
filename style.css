@@ -535,6 +535,129 @@ body {
 }
 .chips::-webkit-scrollbar { display: none; }
 
+/* ===== NARX ORALIG'I FILTRI ===== */
+.price-filter {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.price-filter-label {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.price-filter-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.price-inp {
+  flex: 1 1 110px;
+  min-width: 0;
+  max-width: 170px;
+  height: 44px;
+  padding: 0 13px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-hair);
+  background: var(--glass-fill);
+  backdrop-filter: var(--blur-sm);
+  -webkit-backdrop-filter: var(--blur-sm);
+  font-family: var(--font-sans);
+  /* 16px — iOS Safari kichikroq maydonga fokusda sahifani zoom qiladi */
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-strong);
+  outline: none;
+  transition: border-color var(--dur-fast), box-shadow var(--dur-fast);
+}
+.price-inp::placeholder { font-weight: 500; color: var(--ink-400); }
+.price-inp:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(232, 75, 64, .16);
+}
+.price-dash { flex: none; color: var(--text-muted); font-weight: 700; }
+.price-apply {
+  flex: none;
+  height: 44px;
+  padding: 0 18px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-hair);
+  background: var(--glass-fill);
+  backdrop-filter: var(--blur-sm);
+  -webkit-backdrop-filter: var(--blur-sm);
+  font-family: var(--font-sans);
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-body);
+  cursor: pointer;
+  transition: background var(--dur-fast), border-color var(--dur-fast), color var(--dur-fast);
+}
+.price-apply:hover {
+  border-color: rgba(122, 20, 13, .3);
+  background: var(--pom-100);
+  color: #7a140d;
+}
+.price-err {
+  min-height: 16px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--danger-500);
+}
+.price-chip {
+  align-self: flex-start;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  height: 34px;
+  padding: 0 6px 0 13px;
+  border-radius: 999px;
+  background: var(--pom-100);
+  border: 1px solid rgba(122, 20, 13, .25);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #7a140d;
+}
+.price-chip[hidden] { display: none; }
+.price-chip > span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.price-chip-x {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: none;
+  padding: 0;
+  background: rgba(122, 20, 13, .12);
+  color: #7a140d;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+/* Ko'rinmas 44×44 bosish maydoni — dizayn o'lchami o'zgarmaydi
+   (2026-07-29 qarori: kichik ikonka tugmalar vizual kattalashtirilmaydi) */
+.price-chip-x::after {
+  content: '';
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 44px; height: 44px;
+}
+.price-chip-x { position: relative; }
+
+@media (max-width: 420px) {
+  .price-inp { max-width: none; flex: 1 1 0; }
+  .price-apply { width: 100%; }
+}
+
 /* Tasdiqlangan belgisining izohi */
 .verified-legend {
   margin-top: 10px;
