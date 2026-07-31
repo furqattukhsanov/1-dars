@@ -176,9 +176,22 @@ async function handleWebMyOrders(req, res, ip) {
   try {
     const u = await webSessionUser(req);
     if (!u) return fail(res, 'unauthorized', 401);
+    // Tarkib ham qaytariladi — saytdagi profil yetkazilgan buyurtmadagi HAR
+    // MAHSULOTGA alohida "Baholash" tugmasi ko'rsatadi (sharh mahsulotga
+    // yoziladi, buyurtmaga emas). `FILTER` kerak: tarkibsiz buyurtmada
+    // `json_agg` bitta `null` elementli massiv qaytarardi.
     const { rows } = await pool.query(
-      `SELECT id, status, created_at, total_amount FROM orders
-        WHERE tg_user_id = $1 ORDER BY created_at DESC LIMIT 30`,
+      `SELECT o.id, o.status, o.created_at, o.total_amount,
+              COALESCE(
+                json_agg(json_build_object('id', oi.product_id, 'name', oi.name))
+                  FILTER (WHERE oi.product_id IS NOT NULL),
+                '[]'
+              ) AS items
+         FROM orders o
+         LEFT JOIN order_items oi ON oi.order_id = o.id
+        WHERE o.tg_user_id = $1
+        GROUP BY o.id
+        ORDER BY o.created_at DESC LIMIT 30`,
       [u.tgUserId]
     );
     sendJson(res, 200, {
@@ -188,6 +201,7 @@ async function handleWebMyOrders(req, res, ip) {
         status: o.status,
         date: dateLabel(new Date(o.created_at)).uz,
         total: o.total_amount === null ? null : Number(o.total_amount),
+        items: o.items || [],
       })),
     });
   } catch (e) {

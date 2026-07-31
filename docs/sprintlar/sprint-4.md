@@ -31,12 +31,13 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
   kirmaydi, alohida ish sifatida ochiq qoladi
 - [x] Mahsulot kartochkasi: rasm, kategoriya, narx/rulon, rulon soni, ishlab chiqaruvchi
   reytingi — hammasi bor (zaxira soni 2026-07-30 da qo'shilgan `stockView(p)` bilan).
-  ⚠️ **Lekin reyting soxta** — pastdagi ochiq savolga qarang
+  Reyting 2026-07-31 da HAQIQIYga aylantirildi — soxta seed sonlari o'chirildi,
+  reyting endi faqat sharhlardan hisoblanadi (pastdagi yozuvga qarang)
 - [x] Mahsulot detail sahifasi: to'liq ma'lumot + "Buyurtma berish" tugmasi
-  — **Mini App'da bor** (`telegram-app/app.js:477` — `openProduct(id)` → `S.screen='detail'`).
-  **Landing'da detal ko'rinishi umuman yo'q** (na sahifa, na modal — `grep openProduct|detail`
-  → 0 natija): kartochkadagi ma'lumot bilan to'g'ridan-to'g'ri savatga qo'shiladi. Bu
-  ATAYLAB emas, shunchaki qurilmagan — landing uchun kerakmi yo'qmi, founder qarori
+  — **Mini App'da bor** (`openProduct(id)` → `S.screen='detail'`), **landing'da ham
+  bor** (2026-07-31 da qurildi — founder "albatta kerak" dedi): `openDetail(id)`,
+  drawer'ning yangi ko'rinishi. Alohida sahifa ATAYLAB qurilmadi — marshrutlash,
+  yangi HTML fayl va CI `source` ro'yxati tuzog'i kerak bo'lmasin
 
 ### Buyurtma oqimi
 - [x] Rulon soni tanlash (minimum 1)
@@ -62,28 +63,110 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
 - [x] Mahsulot tahrirlash va yashirish — `PATCH /api/seller/products`; tahrirlangan e'lon qayta moderatsiyaga (`pending`) tushadi, "yashirish" `draft` ga o'tkazadi (haqiqiy o'chirish yo'q)
 - [x] Rulon soni avtomatik kamayishi (buyurtma berilganda) — `products.stock` soni, buyurtma tranzaksiyasi ichida atomik `UPDATE ... WHERE stock >= qty`
 
----
-
-## Ochiq savollar (founder qaroriga muhtoj)
-
-- [2026-07-31] **Katalogdagi reyting va sharhlar soni O'YLAB TOPILGAN raqam.** Mini App'ning
-  mahsulot detalida yulduzcha bilan `4.9`, `4.7`, `5.0` … ko'rsatiladi (`app.js:715`) va API
-  ularni haqiqatan bazadan qaytaradi (`catalog.js:121` — jonli `/api/products` javobida
-  `"rating":4.9,"reviews":42`). Lekin bu raqamlar bazaga `db/002_seed.sql` orqali tushgan, u
-  esa `app.js`dagi soxta massivdan generatsiya qilingan. **Loyihada sharh (review) tizimi
-  umuman yo'q** — `reviews` faqat `products` jadvalidagi INT ustun, alohida sharhlar jadvali
-  qurilmagan (`grep "create table.*review" db/*.sql` → 0). Ya'ni xaridor "42 kishi baholagan"
-  degan yozuvni ko'radi, aslida hech kim baholamagan.
-
-  Bu CLAUDE.md dagi **"o'ylab topilgan raqam ko'rsatilmasin"** qoidasining aynan o'zi — qoida
-  panel uchun yozilgan edi, bu yerda esa raqam XARIDORGA ko'rsatilyapti, ya'ni zarari kattaroq.
-  Uch yo'l bor: (a) reytingni UI'dan olib tashlash — eng tez va halol; (b) sharh tizimini
-  qurish (yetkazilgan buyurtmadan keyin baho so'rash) — Sprint 5/6 hajmidagi ish; (c) atayin
-  qoldirish. **Qaror qabul qilinmaguncha band ochiq.**
+### Sharhlar va reyting (PRD story №2, №15)
+- [x] `reviews` jadvali — sharh buyurtmaga bog'lanadi (`db/012_reviews.sql`)
+- [x] Xaridor yetkazilgan buyurtmadagi matoga 5 yulduz + matn qoldiradi (`POST /api/reviews`)
+- [x] Mahsulot va sotuvchi reytingi sharhlardan HISOBLANADI (`recalcRating`)
+- [x] Sotuvchi o'z reytingi va sharhlarini kabinetda ko'radi (`GET /api/seller/reviews`)
+- [x] Admin sharhni yashira oladi (`/sharhlar`, `/sharh_yashir N sabab` + panel `review_hide`)
+- [x] Saytdagi (landing) katalogda sharhlar — mahsulot detali drawer ko'rinishi sifatida
+  qurildi (`openDetail`), sharh yozish profildagi yetkazilgan buyurtmadan
 
 ---
 
 ## Qilingan ishlar
+
+- [2026-07-31] **Sharh tizimi qurildi — katalogdagi soxta reyting yolg'oni yopildi.**
+  Shu kuni ochilgan "reyting o'ylab topilgan raqam" savoli (b) yo'li bilan hal qilindi:
+  reytingni UI'dan olib tashlash o'rniga uni HAQIQIY qilish. Sabab — reyting PRD'ning
+  ikkita user story'si (№2 xaridor sotuvchi reytingini ko'radi, №15 sotuvchi o'zinikini
+  ko'radi), ya'ni uni olib tashlash muammoni yashirardi, yopmasdi.
+
+  **Model:** sharh BUYURTMAGA bog'lanadi (`db/012_reviews.sql`). Xaridor faqat o'zi
+  olgan matoga baho qo'yadi — buyurtma yetkazilgan bo'lishi shart. Shu sababli
+  **moderatsiya darvozasi qurilmadi**: soxta sharh yozish uchun avval haqiqiy buyurtma
+  berib, uni yetkazib olish kerak bo'ladi. Bitta buyurtmadagi bitta mahsulotga bitta
+  sharh — bu qoida BAZADA, unikal indeksda turadi (ilova darajasida tekshirilsa, ikki
+  bir vaqtdagi so'rov ikkita sharh yozib yuborardi — zaxira bug'ining aynan o'zi).
+
+  **Reyting hosila:** `products.rating` / `products.reviews` va `sellers.rating`
+  ustunlari saqlandi, lekin ularning yagona yozuvchisi endi `recalcRating()` —
+  `avg(stars)` va `count(*)` dan hisoblaydi. Qo'lda `reviews = reviews + 1` qilish
+  ATAYLAB taqiqlandi va test bilan qamaldi: sharh yashirilganda son kamaymay qolardi.
+  Sharh yo'q bo'lsa reyting `0` emas, `NULL` — "baholanmagan" va "yomon baholangan"
+  bir xil narsa emas; `NULL` bo'lsa UI reyting blokini UMUMAN ko'rsatmaydi.
+
+  **Soxta sonlar tozalandi** ikki joyda: bazada (`012` migratsiyasi, faqat ortida
+  haqiqiy sharh turmagan qatorlarga tegadi — shuning uchun qayta ishga tushirsa ham
+  xavfsiz) va `telegram-app/app.js` dagi zaxira massivda (12 ta mahsulotda
+  `rating:4.9, reviews:42` → `null, 0`). Ikkinchisisiz tarmoq uzilganda xaridor
+  yana o'sha yolg'onni ko'rardi.
+
+  **Admin nazorati:** sharh o'chirilmaydi, `status='hidden'` qilinadi (kim, qachon,
+  nega — hammasi qoladi) va shu zahoti reytingdan chiqariladi. Ikki yo'l bor:
+  Telegram'da `/sharhlar` → `/sharh_yashir N sabab`, yoki paneldan `review_hide`
+  (Telegram'da tasdiqlanadi — CLAUDE.md arxitektura qoidasi).
+
+  **Tekshirildi:** `npm test` — 26 ta route, 2 ta yangi test (`recalcRating` agregatdan
+  hisoblashi va `shipped` holatida sharh yozib bo'lmasligi). Brauzerda (375×812, 0 konsol
+  xatosi): reyting `null` bo'lganda yulduz bloki chiqmaydi; "sharh yo'q" holati; sharhli
+  ro'yxat; buyurtma kartochkasida bir mahsulotga "Baholash" tugmasi, ikkinchisiga
+  "★★★★☆ Baholandi"; `shipped` buyurtmada tugma umuman yo'q; sotuvchi kabinetida
+  reyting kartasi. **XSS alohida sinaldi** — sharh matni foydalanuvchidan keladi va
+  `innerHTML` ga tushadi: `<img src=x onerror=alert(1)>` yuborilganda element
+  YARATILMADI, matn bo'lib ko'rindi (`esc()`).
+
+  **Bitta nuqson sinov paytida topildi va tuzatildi:** sotuvchi kartasida `4.5` reyting
+  `Math.round` sababli BESHTA to'la yulduz bo'lib ko'rinardi — ya'ni ko'rsatkich
+  haqiqiy bahodan yuqori edi. `Math.floor` ga o'tkazildi: yulduz hech qachon
+  reytingdan oshib ketmaydi.
+
+  ⚠️ **Serverga chiqmagan.** CI faqat statik fayl va Mini App'ni deploy qiladi;
+  `server/` va `db/` qo'lda. Founder bajarishi kerak: `012_reviews.sql` migratsiyasi,
+  server fayllarini ko'chirish va `systemctl restart lolamarket-notify`
+
+- [2026-07-31] **Landing'ga mahsulot detali qurildi — sharhlar endi saytda ham ko'rinadi.**
+  Yuqoridagi ishdan keyin ochiq qolgan yagona band edi: sharh tizimi tayyor, lekin
+  saytda uni KO'RSATADIGAN joy yo'q edi (kartochkadan to'g'ridan-to'g'ri savatga
+  qo'shilardi). Founder "albatta kerak" dedi.
+
+  **Detal alohida sahifa emas, mavjud drawer'ning yangi ko'rinishi** (`drawerView =
+  'detail'`). Sabab: yangi HTML fayl marshrutlash talab qiladi va **CI `source`
+  ro'yxatiga qo'lda qo'shilishi kerak bo'lardi** — o'sha tuzoq uch sessiya davomida
+  fayllarni serverga chiqarmay turgan edi (CLAUDE.md). Drawer'da esa scrim, Escape
+  va scroll-lock allaqachon ishlaydi, qayta yozilmadi.
+
+  **Ma'lumot ikki manbadan:** kartochkaning `data-*` atributlari (nom, narx, sotuvchi,
+  rasm — doim bor, tarmoqqa bog'liq emas) va `/api/products` (reyting, eni, zichlik,
+  tarkib, muddat). API kelmasa detal baribir ochiladi, faqat qo'shimcha qatorlarsiz —
+  tafsilot qatori qiymatsiz bo'lsa UMUMAN chizilmaydi ("Eni: —" ma'lumot emas, shovqin).
+
+  **Sharh yozish** profildagi buyurtma qatoridan: yetkazilgan buyurtmadagi har
+  mahsulotga alohida "Baholash" tugmasi, baholangani "★★★★☆ Baholandi" bo'lib
+  qoladi. Buning uchun `/api/web/orders` endi buyurtma TARKIBINI ham qaytaradi
+  (`json_agg` + `FILTER` — tarkibsiz buyurtmada bitta `null` elementli massiv
+  qaytmasin). Kimlik cookie sessiyasidan, brauzer hech qanday ID yubormaydi.
+
+  **Kartochka endi bosiladi:** delegatsiyaga `data-action` topilmagan holat uchun
+  shoxcha qo'shildi — kartochkaning bo'sh joyi detalni ochadi, ichidagi tugmalar
+  (savat, yurakcha) esa `closest('[data-action]')` da ushlanib avvalgidek ishlayveradi.
+  Klaviatura uchun `tabindex`/`role`/`aria-label` HTML'da 12 marta takrorlanmaydi —
+  init paytida bir joyda beriladi (yangi kartochka qo'shilganda unutilmasin).
+
+  **Brauzerda tekshirildi, 0 konsol xatosi.** 375×812 va 1280×800: detal kartochka
+  nomiga bosilganda ochiladi; reyting `4.5` → ★★★★☆ (floor, oshirib ko'rsatmaydi);
+  reyting `null` bo'lsa blok chiqmaydi; 5 ta tafsilot qatori; API yo'q bo'lsa detal
+  data-* bilan ochiladi; sharhlar yuklanmaguncha "sharh yo'q" YOZILMAYDI; savat
+  tugmasi va yurakcha detalni OCHMAYDI, kartochka tanasi ochadi; Enter bilan ham
+  ochiladi; uzun nom bilan ham gorizontal toshish yo'q. **Sharh yozish oqimi
+  uchidan-uchiga:** tugma → forma → 3 yulduz + matn → POST tarkibi tekshirildi
+  (`{orderId, productId, stars:3, body}`) → toast → profilga qaytish → keshlar
+  bekor qilinadi (aks holda xaridor o'z sharhini yozib eski reytingni ko'rib
+  turardi). **Xato yo'li ham:** server 409 qaytarganda sabab toast'da ko'rinadi
+  va tugma qayta yoqiladi. **XSS:** `<img src=x onerror=…>` element YARATMADI,
+  matn bo'lib ko'rindi.
+
+  **Versiyalar:** `script.js?v=22→23`, `style.css?v=34→35`
 
 - [2026-07-31] **Narx oralig'i filtri ikkala klientga qo'shildi — "Filtr: kategoriya + narx
   oralig'i" bandining ochiq qolgan yarmi yopildi.** Shu kuni ertalab TOZALASH paytida
@@ -218,6 +301,22 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
 
 ## Qarorlar
 
+- [2026-07-31] Qaror: **sharh BUYURTMAGA bog'lanadi va moderatsiyadan o'tmaydi.** Xaridor
+  faqat o'zi olgan (yetkazilgan yoki yakunlangan buyurtmadagi) matoga baho qo'yadi.
+  Sabab: soxta sharh yozish uchun avval haqiqiy buyurtma berib, uni yetkazib olish kerak —
+  bu darvoza moderatsiyadan kuchliroq va founder ustiga qo'lda ish qo'ymaydi. Nazorat
+  keyingi bosqichda: har sharh admin chatiga tushadi va `/sharh_yashir` bilan
+  reytingdan chiqariladi
+- [2026-07-31] Qaror: **reyting hech qachon qo'lda yozilmaydi — faqat `recalcRating()`
+  orqali, `avg(stars)` dan hisoblanadi.** `products.rating` / `products.reviews` va
+  `sellers.rating` — hosila ustunlar. Sabab: `reviews = reviews + 1` ko'rinishidagi
+  "tezroq" yo'l sharh yashirilganda sonni kamaytirmaydi va reyting jimgina yolg'onga
+  aylanadi. Test shu farqni ushlaydi (`test.js` → Test 8)
+- [2026-07-31] Qaror: **sharhi yo'q mahsulotning reytingi `0` emas, `NULL`** va UI
+  reyting blokini umuman ko'rsatmaydi. Sabab: "hali baholanmagan" bilan "yomon
+  baholangan" ni bir xil ko'rsatish yangi sotuvchini asossiz jazolaydi. Shu sababli
+  zaxira massivdagi (`app.js`) soxta sonlar ham `null` ga o'tkazildi — aks holda
+  tarmoq uzilganda yolg'on qaytib kelardi
 - [2026-07-22] Qaror: Demo katalog (`demo/`) butunlay olib tashlanadi, landing'ning o'zi haqiqiy do'kon bo'ladi — ikkita parallel katalog (demo + haqiqiy) tutish chalkash, sayt endi to'g'ridan-to'g'ri buyurtma qabul qiladi
 - [2026-07-22] Qaror: Landing buyurtmasi uchun alohida backend/baza qurilmaydi — buyurtma to'g'ridan-to'g'ri mavjud Telegram relay (`/api/telegram-notify`) orqali admin chatga boradi, savat esa `localStorage`da saqlanadi. Sabab: MVP bosqichida buyurtma oqimini tez ishga tushirish muhim, haqiqiy `orders` jadvali Sprint 2/4 backend ishi bilan birga keladi
 - [2026-07-22] Qaror: Landing'da (sayt) xaridorga Telegram tasdiq xabari yuborilmaydi, faqat adminga xabar ketadi — chunki oddiy brauzerda Telegram identifikatsiyasi yo'q, xaridorning chat ID'si noma'lum. Mini App'da esa ikkala xabar ham ishlaydi. Xaridor bilan aloqa hozircha formadagi telefon raqami orqali qo'lda bo'ladi

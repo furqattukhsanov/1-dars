@@ -32,6 +32,15 @@
   tartiblangan holda qulflanadi (deadlock). `stock IS NULL` = CHEKSIZ —
   `made` mahsulotlar va son kiritilmagan e'lonlar. Bekor qilinganda zaxira
   qaytariladi, `refunded`da esa ATAYLAB qaytarilmaydi (mato xaridorda qoladi).
+- **Reyting hosila — qo'lda yozilmasin** (2026-07-31). `products.rating`,
+  `products.reviews` va `sellers.rating` ustunlarining YAGONA yozuvchisi —
+  `routes/reviews.js` → `recalcRating()`, u qiymatni `reviews` jadvali ustidan
+  `avg(stars)` / `count(*)` bilan hisoblaydi. `reviews = reviews + 1` kabi qo'lda
+  oshirish TAQIQLANADI: sharh yashirilganda son kamaymay qoladi va reyting jimgina
+  yolg'onga aylanadi. Sharh yo'q bo'lsa reyting `0` emas, **`NULL`** — UI `null`
+  bo'lganda reyting blokini umuman ko'rsatmaydi ("baholanmagan" ≠ "yomon
+  baholangan"). Xuddi shu sabab `telegram-app/app.js` dagi zaxira massivda ham
+  reyting yo'q — u yerda haqiqiy sharh bo'lishi mumkin emas.
 - **Frontendda `window.addEventListener('load', ...)` ishlatilmasin** (2026-07-31,
   ikki marta kuyganimizdan keyin). `load` BARCHA rasm va shrift yuklanib bo'lgandan
   keyin otiladi — sekin tarmoqda bu soniyalar. Ikki marta zarar keltirdi:

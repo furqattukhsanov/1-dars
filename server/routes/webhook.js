@@ -10,6 +10,7 @@ const { confirmWebLoginCode } = require('./web-auth');
 const { handleAdminActionCallback } = require('./admin');
 const { handleDisputeEvidence, handleDisputeEvidenceDone } = require('./disputes');
 const { handleProductImage } = require('./catalog');
+const { hideReview } = require('./reviews');
 const {
   startSellerApplication, handleSellerApplicationStep,
   handleSellerApplicationContact, handleSellerApplicationReview,
@@ -169,6 +170,51 @@ async function handleTelegramWebhook(req, res) {
           }
         } catch (e) {
           console.error('bahslar list xatosi:', e.message);
+        }
+        return;
+      }
+
+      // ---- Sharhlar (moderatsiyasiz chiqadi, keyin yashirish mumkin) ----
+      // Sharh yozish uchun haqiqiy, yetkazilgan buyurtma kerak — shuning
+      // uchun oldindan tasdiqlash talab qilinmaydi. Bu buyruq — keyingi
+      // nazorat: haqoratli yoki begona sharhni navbatdan chiqarish.
+      if (/^\/sharhlar\b/i.test(text)) {
+        try {
+          const { rows } = await pool.query(
+            `SELECT r.id, r.stars, r.body, r.author_name, p.name_uz
+               FROM reviews r LEFT JOIN products p ON p.id = r.product_id
+              WHERE r.status='published' ORDER BY r.created_at DESC LIMIT 20`);
+          if (!rows.length) {
+            await callTelegram('sendMessage', { chat_id: msg.chat.id, text: "Hali sharh yo'q." });
+          } else {
+            const list = rows.map((r) =>
+              `• <b>#${r.id}</b> ${'★'.repeat(r.stars)}${'☆'.repeat(5 - r.stars)} — ${escapeHtml(r.name_uz || '?')}\n` +
+              (r.body ? `  <i>${escapeHtml(r.body.slice(0, 120))}</i>\n` : '') +
+              `  ${escapeHtml(r.author_name || "noma'lum")}   <code>/sharh_yashir ${r.id} sabab</code>`
+            ).join('\n\n');
+            await callTelegram('sendMessage', {
+              chat_id: msg.chat.id, parse_mode: 'HTML',
+              text: `⭐️ <b>Oxirgi sharhlar (${rows.length})</b>\n\n${list}`,
+            });
+          }
+        } catch (e) {
+          console.error('sharhlar list xatosi:', e.message);
+        }
+        return;
+      }
+      const revCmd = text.match(/^\/sharh_yashir\s+(\d+)\s+(.+)/i);
+      if (revCmd) {
+        try {
+          // hideReview reytingni ham qayta hisoblaydi — yashirilgan sharh
+          // yulduzlarda qolib ketmasin
+          const r = await hideReview(Number(revCmd[1]), revCmd[2].trim().slice(0, 500));
+          await callTelegram('sendMessage', {
+            chat_id: msg.chat.id, parse_mode: 'HTML',
+            text: `🙈 Sharh #${r.id} yashirildi va reytingdan chiqarildi.`,
+          });
+        } catch (e) {
+          const why = e.userFacing ? e.message : 'ichki xato';
+          await callTelegram('sendMessage', { chat_id: msg.chat.id, text: `❌ Bajarilmadi: ${why}` }).catch(() => {});
         }
         return;
       }

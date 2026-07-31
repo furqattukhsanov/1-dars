@@ -31,6 +31,9 @@ const {
   handleAuthTelegram, handleGetProducts, handleSubmitProduct,
   handleModerationList, handleModerationAction, handleGetContact, handleProductPhoto,
 } = require('./routes/catalog');
+const {
+  handleCreateReview, handleGetReviews, handleSellerReviews,
+} = require('./routes/reviews');
 const { handleTelegramWebhook } = require('./routes/webhook');
 
 
@@ -151,6 +154,16 @@ function handleRequest(req, res) {
     return handleSellerDisputeReply(req, res, ip);
   }
 
+  // Sharhlar: GET ommaviy (mahsulot kartochkasi uchun), POST — faqat o'z
+  // yetkazilgan buyurtmasi bo'yicha
+  if (path === '/api/reviews') {
+    cors(res, 'GET, POST, OPTIONS');
+    if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
+    if (req.method === 'GET') return handleGetReviews(req, res, ip);
+    if (req.method === 'POST') return handleCreateReview(req, res, ip);
+    return fail(res, 'method not allowed', 405);
+  }
+
   if (path === '/api/orders') {
     cors(res, 'GET, POST, OPTIONS');
     if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
@@ -189,6 +202,14 @@ function handleRequest(req, res) {
     if (req.method === 'GET') return handleSellerOrders(req, res, ip);
     if (req.method === 'POST') return handleSellerOrderAction(req, res, ip);
     return fail(res, 'method not allowed', 405);
+  }
+
+  // Sotuvchi o'z reytingi va sharhlarini ko'radi (PRD story №15)
+  if (path === '/api/seller/reviews') {
+    cors(res, 'GET, OPTIONS');
+    if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
+    if (req.method !== 'GET') return fail(res, 'method not allowed', 405);
+    return handleSellerReviews(req, res, ip);
   }
 
   if (path === '/api/telegram-notify') {

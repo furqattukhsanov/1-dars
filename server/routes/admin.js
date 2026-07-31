@@ -7,6 +7,7 @@ const { rateLimited, readBody, ok, fail } = require('../lib/http');
 const { callTelegram, callbackAnswer, notify } = require('../lib/telegram-api');
 const { handleSellerApplicationReview } = require('./seller-application');
 const { productPhotoUrl } = require('./catalog');
+const { findReviewForAdmin, hideReview } = require('./reviews');
 
 // ============ ADMIN PANEL RUXSATI ============
 // admin/index.html (standalone sahifa) Telegram initData ishlab chiqara olmaydi,
@@ -445,6 +446,25 @@ const ADMIN_ACTIONS = {
       await notify(d.opened_by_tg, text);
       for (const tg of await sellerTgIdsForOrder(d.order_id)) await notify(tg, text);
       return `⚖️ Bahs #${d.id} hal qilindi`;
+    },
+  },
+
+  // Sharhni yashirish. Sharh moderatsiyasiz chiqadi (uni faqat haqiqiy
+  // buyurtma bergan xaridor yoza oladi), shuning uchun bu — keyingi
+  // nazorat. O'CHIRILMAYDI, `status='hidden'` qilinadi: kim, qachon va
+  // NEGA yashirganini keyin ko'rish mumkin bo'lsin.
+  review_hide: {
+    schema: { reason: { type: 'string', required: true, min: 3, max: 500 } },
+    check: (targetId) => findReviewForAdmin(targetId),
+    summary: (t, p) =>
+      `🙈 <b>Sharhni yashirish</b>\n\n<b>${escapeHtml(t.name_uz || t.product_id)}</b>\n` +
+      `${'★'.repeat(t.stars)}${'☆'.repeat(5 - t.stars)} — ${escapeHtml(t.author_name || "noma'lum")}\n` +
+      (t.body ? `<i>${escapeHtml(t.body)}</i>\n` : '') +
+      `\n<b>Sabab:</b> ${escapeHtml(p.reason)}\n\n` +
+      `<i>Sharh o'chirilmaydi, faqat yashiriladi va reytingdan chiqariladi.</i>`,
+    async run(a) {
+      const r = await hideReview(a.target_id, a.payload.reason);
+      return `🙈 Sharh #${r.id} yashirildi`;
     },
   },
 };

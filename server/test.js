@@ -246,6 +246,10 @@ const CALLS = [
   ['GET',   '/api/disputes'],
   ['POST',  '/api/disputes', '{}'],
   ['POST',  '/api/seller/dispute', '{}'],
+  ['GET',   '/api/reviews?productId=p-x'],
+  ['GET',   '/api/reviews?mine=1'],
+  ['POST',  '/api/reviews', '{}'],
+  ['GET',   '/api/seller/reviews'],
   ['GET',   '/api/orders'],
   ['POST',  '/api/orders', '{}'],
   ['POST',  '/api/web-orders', '{}'],
@@ -399,6 +403,60 @@ async function testDecrementStock() {
   console.log('✅ Test 7: Rulon zaxirasi (atomik kamaytirish) — PASS');
 }
 
+// ============ TEST 8: Reyting hosila ustuni (recalcRating) ============
+// `products.rating` / `products.reviews` — HOSILA ustunlar, yagona yozuvchisi
+// recalcRating(). Xavf shundaki, kimdir kelajakda uni "tezroq" qilaman deb
+// `reviews = reviews + 1` ko'rinishidagi qo'lda oshirishga aylantirishi
+// mumkin — o'shanda sharh yashirilganda son kamaymay qoladi va reyting
+// abadiy yolg'on bo'lib qoladi. Test aynan shu farqni ushlaydi: qiymat
+// HAR DOIM `reviews` jadvali ustidan agregatdan kelishi kerak.
+function fakeRatingClient() {
+  const queries = [];
+  return { queries, async query(sql, params) { queries.push({ sql, params }); return { rows: [] }; } };
+}
+
+async function testRecalcRating() {
+  const { recalcRating } = require('./routes/reviews.js');
+
+  const c = fakeRatingClient();
+  await recalcRating(c, 'p-1', 7);
+
+  const prod = c.queries.find((q) => /UPDATE products/.test(q.sql));
+  assert.ok(prod, 'mahsulot reytingi yangilanishi kerak');
+  assert.ok(/avg\(stars\)/.test(prod.sql) && /count\(\*\)/.test(prod.sql),
+    'reyting va sharhlar soni agregatdan kelishi kerak (qo\'lda oshirish emas)');
+  assert.ok(/status = 'published'/.test(prod.sql),
+    'yashirilgan sharhlar reytingga kirmasligi kerak');
+  assert.ok(!/reviews\s*=\s*reviews\s*[+-]/.test(prod.sql),
+    'sonni qo\'lda oshirish/kamaytirish taqiqlanadi — yashirishda son buzilib qoladi');
+
+  const sel = c.queries.find((q) => /UPDATE sellers/.test(q.sql));
+  assert.ok(sel && /avg\(stars\)/.test(sel.sql), 'sotuvchi reytingi ham agregatdan hisoblanishi kerak');
+  assert.strictEqual(sel.params[0], 7, 'sotuvchi reytingi to\'g\'ri sellerId uchun hisoblanishi kerak');
+
+  // Sotuvchisi yo'q mahsulot (seller_id NULL) — sotuvchi so'rovi umuman
+  // yuborilmasin, aks holda `WHERE s.id = NULL` bo'sh yugurish bo'lardi
+  const c2 = fakeRatingClient();
+  await recalcRating(c2, 'p-2', null);
+  assert.ok(!c2.queries.some((q) => /UPDATE sellers/.test(q.sql)),
+    'sotuvchisi yo\'q mahsulotda sellers so\'rovi yuborilmasligi kerak');
+
+  console.log('✅ Test 8: Reyting hosila ustuni (recalcRating) — PASS');
+}
+
+// ============ TEST 8b: Sharh qachon yozilishi mumkin ============
+// Yo'lda ketayotgan matoga baho qo'yib bo'lmaydi — xaridor uni hali ko'rmagan.
+// Bahsdan (`shipped` dan boshlanadi) ATAYLAB farq qiladi.
+function testReviewAllowedStatus() {
+  const { REVIEW_ALLOWED_ORDER_STATUS } = require('./routes/reviews.js');
+  assert.ok(REVIEW_ALLOWED_ORDER_STATUS.includes('delivered'), 'yetkazilgan buyurtmaga sharh mumkin');
+  assert.ok(REVIEW_ALLOWED_ORDER_STATUS.includes('completed'), 'yakunlangan buyurtmaga sharh mumkin');
+  for (const st of ['pending', 'confirmed', 'shipped', 'cancelled', 'refunded']) {
+    assert.ok(!REVIEW_ALLOWED_ORDER_STATUS.includes(st), `${st} holatida sharh yozib bo'lmasligi kerak`);
+  }
+  console.log('✅ Test 8b: Sharh faqat yetkazilgandan keyin — PASS');
+}
+
 // ============ TEST RUNNER ============
 async function runTests() {
   console.log('\n🧪 LolaMarket Server Testlari\n');
@@ -416,6 +474,8 @@ async function runTests() {
     // sirlarni process.env'ga yozgandan keyin ishga tushirilishi kerak.
     testDeliveryFeeConfig();
     await testDecrementStock();
+    await testRecalcRating();
+    testReviewAllowedStatus();
 
     console.log('\n✅ Hammasi PASS — pul hisobi, imzo tekshiruvi va route jadvali joyida\n');
     process.exit(0);

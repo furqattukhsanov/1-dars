@@ -33,6 +33,15 @@ const STR = {
     day: "kun", addCart: "Savatga qo'shish", order: "Buyurtma berish", specs: "Tafsilotlar", width: "Eni", weight: "Zichlik",
     comp: "Tarkibi", leadTime: "Yetkazish muddati", minOrder: "Minimal buyurtma (MOQ)", supplierL: "Yetkazib beruvchi",
     verified: "Tasdiqlangan", reviews: "sharh", message: "Xabar yuborish", qty: "Miqdor", cart: "Savat", cartEmpty: "Savat bo'sh",
+    // — Sharhlar —
+    reviewsT: "Sharhlar", noReviews: "Hali sharh yo'q", noReviewsSub: "Birinchi sharhni siz yozishingiz mumkin",
+    rateIt: "Baholash", rated: "Baholandi", revTitle: "Matoni baholang",
+    revSub: "Faqat siz olgan mato haqida — bahoyingiz boshqa xaridorlarga yordam beradi",
+    revPh: "Sifati haqida qisqacha yozing (ixtiyoriy)", revSend: "Yuborish", revCancel: "Bekor",
+    revSent: "Rahmat! Sharhingiz qo'shildi", revStarsHint: "Yulduzni tanlang",
+    sReviews: "Sharhlar", sNoReviews: "Sizga hali sharh yozilmagan",
+    sNoReviewsSub: "Birinchi buyurtma yetkazilgandan keyin xaridorlar baho qo'ya boshlaydi",
+    sRatingAvg: "O'rtacha baho",
     cartEmptySub: "Katalogdan mato tanlang", browse: "Katalogga o'tish", subtotal: "Oraliq jami", delivery: "Yetkazish",
     deliveryCalc: "Taxminan", deliveryNote: "BTS nuqtasida to'g'ridan-to'g'ri to'lanadi, buyurtma summasiga kirmaydi",
     total: "Jami", checkout: "Rasmiylashtirish", checkoutT: "Buyurtma berish",
@@ -102,6 +111,15 @@ const STR = {
     day: "дн.", addCart: "В корзину", order: "Оформить заказ", specs: "Характеристики", width: "Ширина", weight: "Плотность",
     comp: "Состав", leadTime: "Срок поставки", minOrder: "Мин. заказ (MOQ)", supplierL: "Поставщик",
     verified: "Проверен", reviews: "отзыв.", message: "Написать", qty: "Количество", cart: "Корзина", cartEmpty: "Корзина пуста",
+    // — Отзывы —
+    reviewsT: "Отзывы", noReviews: "Отзывов пока нет", noReviewsSub: "Вы можете оставить первый отзыв",
+    rateIt: "Оценить", rated: "Оценено", revTitle: "Оцените ткань",
+    revSub: "Только о полученной вами ткани — ваша оценка поможет другим покупателям",
+    revPh: "Коротко о качестве (необязательно)", revSend: "Отправить", revCancel: "Отмена",
+    revSent: "Спасибо! Отзыв добавлен", revStarsHint: "Выберите оценку",
+    sReviews: "Отзывы", sNoReviews: "Вам пока не оставляли отзывов",
+    sNoReviewsSub: "Покупатели начнут оценивать после первой доставки",
+    sRatingAvg: "Средняя оценка",
     cartEmptySub: "Выберите ткань в каталоге", browse: "В каталог", subtotal: "Подытог", delivery: "Доставка",
     deliveryCalc: "Примерно", deliveryNote: "Оплачивается напрямую в пункте BTS, не входит в сумму заказа",
     total: "Итого", checkout: "Оформить", checkoutT: "Оформление заказа",
@@ -165,41 +183,48 @@ const STR = {
 
 // ============ MAHSULOTLAR ============
 // Zaxira ma'lumot — asosiy manba /api/products (bazadan). Tarmoq uzilsa do'kon buzilmaydi.
+//
+// `rating: null, reviews: 0` — ATAYLAB. 2026-07-31 gacha bu yerda o'ylab
+// topilgan sonlar turardi (`4.9`, `42 sharh`) va tarmoq uzilganda xaridorga
+// aynan o'sha yolg'on ko'rsatilardi. Reyting endi faqat haqiqiy sharhdan
+// hisoblanadi (012_reviews.sql) — zaxira nusxada esa reyting UMUMAN yo'q,
+// chunki zaxirada haqiqiy sharh bo'lishi mumkin emas. `null` bo'lsa
+// mahsulot sahifasi reyting blokini ko'rsatmaydi.
 let PRODUCTS = [
-  { id:'ik-1402', pattern:'adras',      img:'assets/products/textile-01.jpg', price:850000, unit:'rulon', moq:1, lead:28, rating:4.9, reviews:42,  verified:true,  stockKey:'in',   catKey:'silk',   badgeTone:'primary',
+  { id:'ik-1402', pattern:'adras',      img:'assets/products/textile-01.jpg', price:850000, unit:'rulon', moq:1, lead:28, rating:null, reviews:0,  verified:true,  stockKey:'in',   catKey:'silk',   badgeTone:'primary',
     name:{ uz:"Marg'ilon ipak ikat", ru:"Шёлковый икат" }, supplier:{ uz:"Marg'ilon Ipak Co.", ru:"Маргилан Силк" }, city:{ uz:"Marg'ilon", ru:"Маргилан" },
     width:"0.9 m", weight:"90 g/m²", comp:{ uz:"100% tut ipagi", ru:"100% тутовый шёлк" }, badge:{ uz:"Tavsiya", ru:"Хит" } },
-  { id:'ad-0890', pattern:'adrasWarm',  img:'assets/products/textile-02.jpg', price:730000, unit:'rulon', moq:1, lead:32, rating:4.7, reviews:28,  verified:true,  stockKey:'low',  catKey:'ikat',   badgeTone:'saffron',
+  { id:'ad-0890', pattern:'adrasWarm',  img:'assets/products/textile-02.jpg', price:730000, unit:'rulon', moq:1, lead:32, rating:null, reviews:0,  verified:true,  stockKey:'low',  catKey:'ikat',   badgeTone:'saffron',
     name:{ uz:"Qo'lbola adras", ru:"Ручной адрас" }, supplier:{ uz:"Buxoro Looms", ru:"Бухара Лумс" }, city:{ uz:"Buxoro", ru:"Бухара" },
     width:"1.0 m", weight:"150 g/m²", comp:{ uz:"50% ipak / 50% paxta", ru:"50% шёлк / 50% хлопок" }, badge:{ uz:"Kam qoldi", ru:"Мало" } },
-  { id:'sz-3310', pattern:'suzani',     img:'assets/products/textile-03.jpg', price:890000, unit:'rulon', moq:1, lead:45, rating:5.0, reviews:17,  verified:true,  stockKey:'made', catKey:'suzani', badgeTone:'teal',
+  { id:'sz-3310', pattern:'suzani',     img:'assets/products/textile-03.jpg', price:890000, unit:'rulon', moq:1, lead:45, rating:null, reviews:0,  verified:true,  stockKey:'made', catKey:'suzani', badgeTone:'teal',
     name:{ uz:"So'zana panel — anor", ru:"Сюзане — гранат" }, supplier:{ uz:"Nurota Atelier", ru:"Нурата Ателье" }, city:{ uz:"Nurota", ru:"Нурата" },
     width:"1.4 × 1.8 m", weight:"—", comp:{ uz:"Paxta asos, ipak ip", ru:"Хлопок, шёлковая нить" }, badge:{ uz:"Hunarmand", ru:"Ручная" } },
-  { id:'ck-2201', pattern:'adrasCool',  img:'assets/products/textile-04.jpg', price:700000, unit:'rulon', moq:1, lead:21, rating:4.6, reviews:51,  verified:false, stockKey:'in',   catKey:'cotton', badgeTone:'neutral',
+  { id:'ck-2201', pattern:'adrasCool',  img:'assets/products/textile-04.jpg', price:700000, unit:'rulon', moq:1, lead:21, rating:null, reviews:0,  verified:false, stockKey:'in',   catKey:'cotton', badgeTone:'neutral',
     name:{ uz:"Paxta adras — indigo", ru:"Хлопковый адрас — индиго" }, supplier:{ uz:"O'sh Textile", ru:"Ош Текстиль" }, city:{ uz:"O'sh", ru:"Ош" },
     width:"1.5 m", weight:"180 g/m²", comp:{ uz:"100% paxta", ru:"100% хлопок" }, badge:null },
-  { id:'hb-7740', pattern:'herringbone',img:'assets/products/textile-05.jpg', price:870000, unit:'rulon', moq:1, lead:35, rating:4.8, reviews:33,  verified:true,  stockKey:'in',   catKey:'wool',   badgeTone:'teal',
+  { id:'hb-7740', pattern:'herringbone',img:'assets/products/textile-05.jpg', price:870000, unit:'rulon', moq:1, lead:35, rating:null, reviews:0,  verified:true,  stockKey:'in',   catKey:'wool',   badgeTone:'teal',
     name:{ uz:"Junli mato — yelkacha", ru:"Шерсть — ёлочка" }, supplier:{ uz:"Almati Weaving", ru:"Алматы Вивинг" }, city:{ uz:"Almati", ru:"Алматы" },
     width:"1.5 m", weight:"320 g/m²", comp:{ uz:"70% jun / 30% PES", ru:"70% шерсть / 30% ПЭ" }, badge:{ uz:"Yangi", ru:"Новинка" } },
-  { id:'lk-5512', pattern:'weave',      img:'assets/products/textile-06.jpg', price:750000, unit:'rulon', moq:1, lead:24, rating:4.5, reviews:22,  verified:true,  stockKey:'in',   catKey:'linen',  badgeTone:'neutral',
+  { id:'lk-5512', pattern:'weave',      img:'assets/products/textile-06.jpg', price:750000, unit:'rulon', moq:1, lead:24, rating:null, reviews:0,  verified:true,  stockKey:'in',   catKey:'linen',  badgeTone:'neutral',
     name:{ uz:"Zig'ir mato — natural", ru:"Лён — натуральный" }, supplier:{ uz:"Shymkent Mills", ru:"Шымкент Миллс" }, city:{ uz:"Shymkent", ru:"Шымкент" },
     width:"1.4 m", weight:"200 g/m²", comp:{ uz:"100% zig'ir", ru:"100% лён" }, badge:null },
-  { id:'ik-9001', pattern:'ikat',       img:'assets/products/textile-07.jpg', price:900000, unit:'rulon', moq:1, lead:30, rating:4.9, reviews:19,  verified:true,  stockKey:'in',   catKey:'ikat',   badgeTone:'primary',
+  { id:'ik-9001', pattern:'ikat',       img:'assets/products/textile-07.jpg', price:900000, unit:'rulon', moq:1, lead:30, rating:null, reviews:0,  verified:true,  stockKey:'in',   catKey:'ikat',   badgeTone:'primary',
     name:{ uz:"Kelinlik ikat — za'faron", ru:"Свадебный икат — шафран" }, supplier:{ uz:"Marg'ilon Ipak Co.", ru:"Маргилан Силк" }, city:{ uz:"Marg'ilon", ru:"Маргилан" },
     width:"0.9 m", weight:"110 g/m²", comp:{ uz:"100% tut ipagi", ru:"100% тутовый шёлк" }, badge:{ uz:"Tavsiya", ru:"Хит" } },
-  { id:'pl-3320', pattern:'plain',      img:'assets/products/textile-08.jpg', price:700000, unit:'rulon', moq:1, lead:18, rating:4.4, reviews:64,  verified:false, stockKey:'in',   catKey:'cotton', badgeTone:'neutral',
+  { id:'pl-3320', pattern:'plain',      img:'assets/products/textile-08.jpg', price:700000, unit:'rulon', moq:1, lead:18, rating:null, reviews:0,  verified:false, stockKey:'in',   catKey:'cotton', badgeTone:'neutral',
     name:{ uz:"Sodda to'qima — marjon", ru:"Простое плетение — коралл" }, supplier:{ uz:"Farg'ona Fabric", ru:"Фергана Фабрик" }, city:{ uz:"Farg'ona", ru:"Фергана" },
     width:"1.6 m", weight:"160 g/m²", comp:{ uz:"65% paxta / 35% PES", ru:"65% хлопок / 35% ПЭ" }, badge:null },
-  { id:'tx-4401', pattern:'suzani',     img:'assets/products/textile-09.jpg', price:880000, unit:'rulon', moq:1, lead:40, rating:4.8, reviews:14,  verified:true,  stockKey:'made', catKey:'suzani', badgeTone:'saffron',
+  { id:'tx-4401', pattern:'suzani',     img:'assets/products/textile-09.jpg', price:880000, unit:'rulon', moq:1, lead:40, rating:null, reviews:0,  verified:true,  stockKey:'made', catKey:'suzani', badgeTone:'saffron',
     name:{ uz:"Zar naqsh so'zana panel", ru:"Сюзане с золотым узором" }, supplier:{ uz:"Qarshi Hunarmand", ru:"Карши Хунармад" }, city:{ uz:"Qarshi", ru:"Карши" },
     width:"1.3 × 1.7 m", weight:"—", comp:{ uz:"Paxta asos, ipak ip", ru:"Хлопок, шёлковая нить" }, badge:{ uz:"Yangi", ru:"Новинка" } },
-  { id:'tx-4402', pattern:'ikat',       img:'assets/products/textile-10.jpg', price:860000, unit:'rulon', moq:1, lead:26, rating:4.7, reviews:23,  verified:true,  stockKey:'in',   catKey:'silk',   badgeTone:'primary',
+  { id:'tx-4402', pattern:'ikat',       img:'assets/products/textile-10.jpg', price:860000, unit:'rulon', moq:1, lead:26, rating:null, reviews:0,  verified:true,  stockKey:'in',   catKey:'silk',   badgeTone:'primary',
     name:{ uz:"Gulli ipak — lola", ru:"Шёлк с цветами — тюльпан" }, supplier:{ uz:"Andijon Ipak Uyi", ru:"Андижан Силк Хаус" }, city:{ uz:"Andijon", ru:"Андижан" },
     width:"1.1 m", weight:"95 g/m²", comp:{ uz:"100% tut ipagi", ru:"100% тутовый шёлк" }, badge:null },
-  { id:'tx-4403', pattern:'plain',      img:'assets/products/textile-11.jpg', price:710000, unit:'rulon', moq:1, lead:19, rating:4.5, reviews:37,  verified:false, stockKey:'in',   catKey:'cotton', badgeTone:'neutral',
+  { id:'tx-4403', pattern:'plain',      img:'assets/products/textile-11.jpg', price:710000, unit:'rulon', moq:1, lead:19, rating:null, reviews:0,  verified:false, stockKey:'in',   catKey:'cotton', badgeTone:'neutral',
     name:{ uz:"Chit mato — sariq gul", ru:"Ситец — жёлтый цветок" }, supplier:{ uz:"Namangan Chit", ru:"Наманган Читтекс" }, city:{ uz:"Namangan", ru:"Наманган" },
     width:"1.5 m", weight:"140 g/m²", comp:{ uz:"100% paxta", ru:"100% хлопок" }, badge:null },
-  { id:'tx-4404', pattern:'weave',      img:'assets/products/textile-12.png', price:760000, unit:'rulon', moq:1, lead:27, rating:4.6, reviews:20,  verified:true,  stockKey:'low',  catKey:'linen',  badgeTone:'teal',
+  { id:'tx-4404', pattern:'weave',      img:'assets/products/textile-12.png', price:760000, unit:'rulon', moq:1, lead:27, rating:null, reviews:0,  verified:true,  stockKey:'low',  catKey:'linen',  badgeTone:'teal',
     name:{ uz:"Vintage chit — krem atirgul", ru:"Винтажный ситец — кремовая роза" }, supplier:{ uz:"Xiva Tekstil", ru:"Хива Текстиль" }, city:{ uz:"Xiva", ru:"Хива" },
     width:"1.4 m", weight:"175 g/m²", comp:{ uz:"70% zig'ir / 30% paxta", ru:"70% лён / 30% хлопок" }, badge:{ uz:"Kam qoldi", ru:"Мало" } },
 ];
@@ -333,6 +358,13 @@ const S = {
   dispReason: 'damaged',
   dispComment: '',
   sDispReply: {},        // bahs id → sotuvchi yozayotgan javob
+  // — Sharhlar —
+  myReviews: [],         // /api/reviews?mine=1 — "qaysi mahsulotni allaqachon baholaganman"
+  prodReviews: {},       // mahsulot id → sharhlar ro'yxati (detail ekranida yuklanadi)
+  revSheet: null,        // ochiq sheet: { orderId, productId }
+  revStars: 5,
+  revBody: '',
+  sReviews: null,        // sotuvchi kabineti: { rating, count, items }
   // — Sotuvchi kabineti —
   role: 'buyer',        // serverdan (/api/me) keladi — mijoz o'zi belgilamaydi
   seller: null,         // { id, name, verified }
@@ -501,6 +533,7 @@ function openProduct(id) {
   render();
   const w = document.getElementById('screen-wrap');
   if (w) w.scrollTop = 0;
+  loadProductReviews(id);
 }
 
 function incQty() {
@@ -822,10 +855,11 @@ function renderDetail() {
       <div>
         <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
           <h1 style="font-family:var(--font-display);font-size:23px;font-weight:800;color:var(--text-strong);letter-spacing:-.02em;line-height:1.15;margin:0">${p.name}</h1>
+          ${p.rating == null ? '' : `
           <span style="display:inline-flex;align-items:center;gap:4px;flex:none;font-family:var(--font-mono);font-size:13px;font-weight:600;color:var(--text-body)">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="#EFA91F"><path d="M12 2l2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 17.8 5.9 21.4l1.4-6.8L2.2 9.1l6.9-.8z"/></svg>${p.rating}
             <span style="color:var(--text-subtle);font-weight:500">· ${p.reviews} ${T.reviews}</span>
-          </span>
+          </span>`}
         </div>
         <div style="display:flex;align-items:baseline;gap:4px;margin-top:10px">
           <span style="font-family:var(--font-mono);font-size:30px;font-weight:600;color:var(--text-strong);letter-spacing:-.02em">${money(p.price)}</span>
@@ -872,8 +906,52 @@ function renderDetail() {
         </div>
       </div>
 
+      ${reviewsSection(p.id)}
+
     </div>
   </div>`;
+}
+
+// ============ SHARHLAR (mahsulot sahifasidagi bo'lim) ============
+function starsRow(n, size = 13) {
+  return `<span style="letter-spacing:1px;font-size:${size}px;color:#EFA91F;line-height:1">${'★'.repeat(n)}<span style="color:var(--ink-200)">${'☆'.repeat(5 - n)}</span></span>`;
+}
+
+function reviewsSection(productId) {
+  const T = STR[S.lang];
+  const list = S.prodReviews[productId];
+
+  return `
+  <div>
+    <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#7a140d;margin-bottom:10px">${T.reviewsT}</div>
+    ${list === undefined
+      // Hali yuklanmagan — bo'sh joy turadi, "sharh yo'q" DEB YOZILMAYDI.
+      // Aks holda yuklanish paytida yolg'on gap ko'rsatilardi.
+      ? `<div style="height:44px"></div>`
+      : list.length === 0
+      ? `<div style="padding:16px;border:1px dashed var(--border-hair);border-radius:var(--radius-md);text-align:center">
+           <div style="font-size:13px;font-weight:600;color:var(--text-body)">${T.noReviews}</div>
+           <div style="font-size:12px;color:var(--text-muted);margin-top:3px">${T.noReviewsSub}</div>
+         </div>`
+      : `<div style="display:flex;flex-direction:column;gap:9px">
+           ${list.map(r => `
+           <div style="padding:12px 13px;border:1px solid var(--border-hair);border-radius:var(--radius-md);background:var(--glass-fill)">
+             <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+               ${starsRow(r.stars)}
+               <span style="font-size:11.5px;color:var(--text-subtle)">${r.date[S.lang]}</span>
+             </div>
+             ${r.body ? `<div style="font-size:13px;color:var(--text-body);line-height:1.5;margin-top:7px">${esc(r.body)}</div>` : ''}
+             <div style="font-size:11.5px;color:var(--text-muted);margin-top:6px">${esc(r.author || '—')}</div>
+           </div>`).join('')}
+         </div>`}
+  </div>`;
+}
+
+// Sharh matni foydalanuvchidan keladi va innerHTML ga tushadi — teglar
+// ZARARSIZLANTIRILADI. Bu ilovada boshqa hamma matn o'zimizniki, shuning
+// uchun yagona joyda kerak bo'ladigan yordamchi.
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
 }
 
 // ============ EKRAN: QIDIRUV ============
@@ -1181,6 +1259,7 @@ function paintSheet() {
   if (!wrap) return;
   wrap.innerHTML = S.btsSheet ? renderBtsSheet()
     : S.dispSheet ? renderDisputeSheet()
+    : S.revSheet ? renderReviewSheet()
     : S.priceSheet ? renderPriceSheet()
     : '';
 }
@@ -1330,6 +1409,137 @@ function disputeBlock(o) {
   </div>`;
 }
 
+// ============ SHARH YOZISH (xaridor tomoni) ============
+// Sharh faqat mato yetib kelgandan keyin — serverdagi qoida bilan bir xil
+// (`REVIEW_ALLOWED_ORDER_STATUS`). `shipped` bu yerda YO'Q: yo'ldagi matoni
+// xaridor hali ko'rmagan. Bahs esa `shipped` dan boshlanadi — farq ataylab.
+const REV_ALLOWED = ['delivered', 'completed'];
+
+function reviewFor(orderId, productId) {
+  return S.myReviews.find(r => r.orderId === orderId && r.productId === productId) || null;
+}
+
+function renderReviewSheet() {
+  const T = STR[S.lang];
+  const sel = S.revSheet;
+  const p = sel && byId(sel.productId);
+  if (!p) return '';
+  return `
+  <div onclick="closeReviewSheet()" style="position:fixed;inset:0;z-index:60;background:rgba(24,10,8,.42);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)"></div>
+  <div style="position:fixed;left:0;right:0;bottom:0;z-index:61;max-height:82vh;display:flex;flex-direction:column;padding:18px 16px calc(18px + env(safe-area-inset-bottom));border-radius:22px 22px 0 0;background:var(--surface-solid);box-shadow:0 -12px 40px -12px rgba(81,1,0,.3)">
+    <span style="flex:none;width:38px;height:4px;border-radius:999px;background:var(--ink-100);margin:0 auto 14px"></span>
+
+    <div style="flex:none;font-family:var(--font-display);font-size:19px;font-weight:800;color:var(--text-strong);letter-spacing:-.02em">${T.revTitle}</div>
+    <div style="flex:none;font-size:12.5px;color:var(--text-muted);line-height:1.5;margin-top:5px">${T.revSub}</div>
+
+    <div style="flex:none;display:flex;align-items:center;gap:11px;margin-top:14px;padding:11px;border-radius:var(--radius-md);background:var(--glass-fill-strong);border:1px solid var(--border-hair)">
+      <span style="flex:none;width:44px;height:44px;border-radius:var(--radius-sm);${vm(p).bgStyle}"></span>
+      <span style="flex:1;min-width:0;font-size:14px;font-weight:700;color:var(--text-strong);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.name[S.lang]}</span>
+    </div>
+
+    <div style="flex:none;display:flex;justify-content:center;gap:6px;margin-top:18px">
+      ${[1,2,3,4,5].map(n => `
+      <button onclick="setRevStars(${n})" aria-label="${n}" style="width:52px;height:52px;border:none;background:transparent;cursor:pointer;font-size:34px;line-height:1;color:${n <= S.revStars ? '#EFA91F' : 'var(--ink-200)'}">★</button>`).join('')}
+    </div>
+    <div style="flex:none;text-align:center;font-size:12px;color:var(--text-muted);margin-top:4px">${T.revStarsHint}</div>
+
+    <textarea oninput="S.revBody=this.value" placeholder="${T.revPh}" rows="3"
+      style="flex:none;margin-top:14px;width:100%;padding:12px;border:1px solid var(--border-hair);border-radius:var(--radius-sm);background:var(--glass-fill-strong);font-family:var(--font-sans);font-size:16px;color:var(--text-strong);outline:none;resize:none">${esc(S.revBody)}</textarea>
+
+    <div style="flex:none;display:flex;gap:9px;margin-top:12px">
+      <button onclick="closeReviewSheet()" style="flex:1;height:50px;border-radius:var(--radius-md);border:1px solid var(--border-hair);background:transparent;font-family:var(--font-sans);font-size:15px;font-weight:600;color:var(--text-muted);cursor:pointer">${T.revCancel}</button>
+      <button onclick="submitReview()" style="flex:1.4;height:50px;border:none;border-radius:var(--radius-md);background:linear-gradient(135deg,#8f1a10,#510100);color:#ffe9db;font-family:var(--font-sans);font-size:15px;font-weight:600;cursor:pointer;box-shadow:var(--shadow-sm)">${T.revSend}</button>
+    </div>
+  </div>`;
+}
+
+function openReviewSheet(orderId, productId) {
+  S.revSheet = { orderId, productId };
+  S.revStars = 5;
+  S.revBody = '';
+  paintSheet();
+}
+function closeReviewSheet() {
+  S.revSheet = null;
+  paintSheet();
+}
+function setRevStars(n) {
+  S.revStars = n;
+  paintSheet();
+}
+
+async function submitReview() {
+  const T = STR[S.lang];
+  const sel = S.revSheet;
+  if (!sel) return;
+  const body = {
+    orderId: sel.orderId,
+    productId: sel.productId,
+    stars: S.revStars,
+    body: S.revBody.trim() || undefined,
+  };
+  closeReviewSheet();
+  try {
+    await sellerFetch('/api/reviews', { method: 'POST', body: JSON.stringify(body) });
+    showToast(T.revSent);
+    await loadMyReviews();
+    // Mahsulot reytingi serverda qayta hisoblandi — katalogni ham yangilaymiz,
+    // aks holda xaridor o'z sharhini yozib, eski reytingni ko'rib turardi
+    delete S.prodReviews[sel.productId];
+    await loadProductsFromServer();
+    if (S.screen === 'orders') document.getElementById('screen-wrap').innerHTML = renderOrders();
+  } catch (e) {
+    showToast(e.message);
+  }
+}
+
+async function loadMyReviews() {
+  if (!tgInitData()) return;
+  try {
+    const d = await sellerFetch('/api/reviews?mine=1');
+    if (Array.isArray(d)) S.myReviews = d;
+  } catch (e) { /* kirilmagan — jim o'tamiz */ }
+}
+
+// Mahsulot sahifasidagi ommaviy sharhlar — kirish shart emas
+async function loadProductReviews(productId) {
+  if (S.prodReviews[productId] !== undefined) return;
+  try {
+    const r = await fetch('/api/reviews?productId=' + encodeURIComponent(productId));
+    if (!r.ok) return;
+    const data = apiData(await r.json());
+    if (!Array.isArray(data)) return;
+    S.prodReviews[productId] = data;
+    // Foydalanuvchi hali shu sahifada bo'lsa — qayta chizamiz
+    if (S.screen === 'detail' && S.selectedId === productId) {
+      const w = document.getElementById('screen-wrap');
+      if (w) w.innerHTML = renderDetail();
+    }
+  } catch (e) { /* sharhsiz ham sahifa ishlaydi */ }
+}
+
+// Buyurtma kartochkasidagi baholash bloki — har mahsulot uchun alohida qator
+function reviewBlock(o) {
+  const T = STR[S.lang];
+  if (!REV_ALLOWED.includes(o.statusKey)) return '';
+
+  return `
+  <div style="margin-top:11px;padding-top:11px;border-top:1px solid var(--border-hair);display:flex;flex-direction:column;gap:7px">
+    ${o.items.map(it => {
+      const p = byId(it.id);
+      if (!p) return '';
+      const done = reviewFor(o.id, it.id);
+      return `
+      <div style="display:flex;align-items:center;gap:9px">
+        <span style="flex:1;min-width:0;font-size:12.5px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.name[S.lang]}</span>
+        ${done
+          ? `<span style="flex:none;display:inline-flex;align-items:center;gap:5px;font-size:11.5px;color:var(--text-subtle)">${starsRow(done.stars, 11)} ${T.rated}</span>`
+          : `<button onclick="openReviewSheet('${o.id}','${it.id}')" style="flex:none;height:30px;padding:0 13px;border-radius:999px;border:1px solid #7a140d;background:transparent;font-size:12px;font-weight:600;color:#7a140d;cursor:pointer">★ ${T.rateIt}</button>`}
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
 // ============ EKRAN: MUVAFFAQIYAT ============
 function renderSuccess() {
   const T = STR[S.lang];
@@ -1404,6 +1614,7 @@ function renderOrders() {
         </div>`;
         })() : ''}
         ${disputeBlock(o)}
+        ${reviewBlock(o)}
       </div>`;
     }).join('')}
   </div>`;
@@ -2241,7 +2452,51 @@ function renderSellerProfile() {
       </div>
     </div>
 
+    ${sellerReviewsCard()}
+
     <button onclick="exitSellerMode()" style="width:100%;cursor:pointer;padding:14px;border-radius:var(--radius-md);border:1px solid var(--glass-border);background:var(--glass-fill-strong);font-family:var(--font-sans);font-size:15px;font-weight:600;color:var(--text-strong)">${T.buyerMode}</button>
+  </div>`;
+}
+
+// Sotuvchining o'z reytingi va sharhlari (PRD story №15).
+// Sharh yo'q bo'lsa reyting o'rnida SON KO'RSATILMAYDI — "0.0" yozish
+// yolg'on bo'lardi ("baholanmagan" ≠ "yomon baholangan").
+function sellerReviewsCard() {
+  const T = STR[S.lang];
+  const r = S.sReviews;
+  if (!r) return '';   // hali yuklanmagan
+
+  return `
+  <div style="${CARD_BOX}">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+      <span style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#7a140d">${T.sReviews}</span>
+      ${r.rating == null ? '' : `
+      <span style="display:inline-flex;align-items:center;gap:6px">
+        ${/* floor, round EMAS: 4.5 ni beshta to'la yulduz qilib ko'rsatish
+             reytingni oshirib yuborardi. Yulduz hech qachon haqiqiy
+             bahodan yuqori ko'rinmasin — aniq son yonida turibdi. */
+          starsRow(Math.floor(r.rating), 12)}
+        <span style="font-family:var(--font-mono);font-size:15px;font-weight:600;color:var(--text-strong)">${r.rating}</span>
+        <span style="font-size:11.5px;color:var(--text-subtle)">· ${r.count} ${T.reviews}</span>
+      </span>`}
+    </div>
+
+    ${r.items.length === 0
+      ? `<div style="margin-top:11px;text-align:center;padding:14px 6px">
+           <div style="font-size:13px;font-weight:600;color:var(--text-body)">${T.sNoReviews}</div>
+           <div style="font-size:12px;color:var(--text-muted);margin-top:3px;line-height:1.5">${T.sNoReviewsSub}</div>
+         </div>`
+      : `<div style="margin-top:11px;display:flex;flex-direction:column;gap:8px">
+           ${r.items.slice(0, 10).map(it => `
+           <div style="padding:10px 11px;border:1px solid var(--border-hair);border-radius:var(--radius-sm)">
+             <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+               <span style="flex:1;min-width:0;font-size:12.5px;font-weight:700;color:var(--text-strong);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(it.product[S.lang] || it.product.uz)}</span>
+               ${starsRow(it.stars, 11)}
+             </div>
+             ${it.body ? `<div style="font-size:12.5px;color:var(--text-body);line-height:1.5;margin-top:6px">${esc(it.body)}</div>` : ''}
+             <div style="font-size:11px;color:var(--text-subtle);margin-top:5px">${esc(it.author || '—')} · ${it.date[S.lang]}</div>
+           </div>`).join('')}
+         </div>`}
   </div>`;
 }
 
@@ -2272,12 +2527,16 @@ async function loadSellerData() {
   if (S.role !== 'seller') return;
   S.sLoading = true;
   try {
-    const [prods, orders] = await Promise.all([
+    // Sharhlar alohida `catch` bilan: sharh so'rovi yiqilsa ham mahsulot va
+    // buyurtma ro'yxati ochilaversin (kabinetning asosiy ishi ular)
+    const [prods, orders, revs] = await Promise.all([
       sellerFetch('/api/seller/products'),
       sellerFetch('/api/seller/orders'),
+      sellerFetch('/api/seller/reviews').catch(() => null),
     ]);
     S.sProducts = Array.isArray(prods) ? prods : [];
     S.sOrders = Array.isArray(orders) ? orders : [];
+    S.sReviews = revs && Array.isArray(revs.items) ? revs : null;
   } catch (e) {
     showToast(e.message);
   } finally {
@@ -2327,6 +2586,7 @@ render();
   await loginTelegram();          // Telegram orqali kirish (imzo serverda tekshiriladi)
   await loadOrdersFromServer();
   await loadDisputes();           // o'z bahslari — buyurtma kartochkasida ko'rsatiladi
+  await loadMyReviews();          // qaysi mahsulotni allaqachon baholagan
   await loadMe();                 // rol: xaridormi yoki sotuvchi (serverda aniqlanadi)
   render();
   if (S.role === 'seller') loadSellerData().then(render);

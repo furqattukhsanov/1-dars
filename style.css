@@ -1833,3 +1833,213 @@ body { padding-bottom: calc(var(--dock-h) + env(safe-area-inset-bottom, 0px)); }
   #nav { position: static; }
   html { scroll-padding-top: 16px; }
 }
+
+/* ═══════════════════════════════════════════════════════
+   MAHSULOT DETALI VA SHARHLAR (drawer ichida)
+   2026-07-31. Detal alohida sahifa emas — mavjud drawer'ning
+   yangi ko'rinishi, shuning uchun scrim/Escape/scroll-lock
+   allaqachon ishlaydi va bu yerda qayta yozilmaydi.
+   ═══════════════════════════════════════════════════════ */
+
+.product-card { cursor: pointer; }
+.product-card:focus-visible {
+  outline: 2px solid var(--pom-700);
+  outline-offset: 3px;
+}
+/* Kartochka ichidagi tugmalar bosilganda kartochka kursorini merosxo'r
+   qilmasin — ular o'z ishini qiladi (savat/yurakcha) */
+.product-card .add-btn,
+.product-card .fav-btn,
+.product-card .qty-circle { cursor: pointer; }
+
+.pd-img {
+  width: 100%; aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: var(--radius-md);
+  background: var(--ink-100);
+}
+.pd-head {
+  margin-top: 14px;
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+}
+.pd-name {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 19px; font-weight: 800; line-height: 1.2;
+  letter-spacing: -.02em;
+  color: var(--text-strong);
+}
+.pd-rating {
+  flex: none;
+  display: inline-flex; align-items: center; gap: 5px;
+  font-family: var(--font-mono);
+  font-size: 13px; font-weight: 600;
+  color: var(--text-body);
+  white-space: nowrap;
+}
+.pd-rating-n { font-weight: 500; color: var(--text-subtle); }
+
+.stars { color: #EFA91F; letter-spacing: 1px; line-height: 1; }
+.stars.sm { font-size: 11px; }
+.stars-empty { color: var(--ink-200); }
+
+.pd-sup { margin-top: 4px; font-size: 13px; color: var(--text-muted); }
+
+.pd-price {
+  margin-top: 12px;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.pd-price-label {
+  font-size: 10.5px; font-weight: 700;
+  letter-spacing: .07em; text-transform: uppercase;
+  color: var(--text-subtle);
+}
+.pd-price-val {
+  font-family: var(--font-mono);
+  font-size: 24px; font-weight: 600;
+  letter-spacing: -.02em;
+  color: var(--text-strong);
+}
+
+.pd-specs {
+  margin-top: 14px;
+  border: 1px solid var(--border-hair);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+.pd-spec {
+  display: flex; justify-content: space-between; gap: 12px;
+  padding: 10px 13px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.pd-spec + .pd-spec { border-top: 1px solid var(--border-hair); }
+.pd-spec b {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: var(--text-strong);
+  text-align: right;
+}
+
+.pd-act { margin-top: 16px; }
+.pd-add {
+  width: 100%;
+  min-height: 48px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, #8f1a10, #510100);
+  color: #ffe9db;
+  font-family: var(--font-sans);
+  font-size: 15px; font-weight: 600;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+}
+.pd-add:active { transform: scale(.99); }
+.pd-add[disabled] { opacity: .6; cursor: default; }
+.pd-act .qty-row { justify-content: space-between; }
+.pd-act .qty-num {
+  font-family: var(--font-mono);
+  font-size: 15px; font-weight: 600;
+  color: var(--text-strong);
+}
+
+.pd-sec-title {
+  margin: 24px 0 10px;
+  font-size: 10.5px; font-weight: 700;
+  letter-spacing: .08em; text-transform: uppercase;
+  color: var(--pom-700);
+}
+/* Sharhlar hali yuklanmagan holat: joy band bo'lib turadi, lekin "sharh yo'q"
+   deb YOZILMAYDI — yuklanish paytida yolg'on gap ko'rsatilmasin */
+.pd-rev-wait { height: 40px; }
+.pd-rev-empty {
+  padding: 16px;
+  border: 1px dashed var(--border-hair);
+  border-radius: var(--radius-md);
+  text-align: center;
+}
+.pd-rev-empty-t { font-size: 13px; font-weight: 600; color: var(--text-body); }
+.pd-rev-empty-s { margin-top: 3px; font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+
+.pd-rev {
+  padding: 12px 13px;
+  border: 1px solid var(--border-hair);
+  border-radius: var(--radius-md);
+  background: var(--glass-fill);
+}
+.pd-rev + .pd-rev { margin-top: 9px; }
+.pd-rev-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.pd-rev-date { font-size: 11.5px; color: var(--text-subtle); }
+.pd-rev-body { margin-top: 7px; font-size: 13px; line-height: 1.55; color: var(--text-body); }
+.pd-rev-who { margin-top: 6px; font-size: 11.5px; color: var(--text-muted); }
+
+/* --- Profildagi buyurtma qatorida baholash --- */
+.order-rev {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-hair);
+  display: flex; flex-direction: column; gap: 7px;
+}
+.order-rev-line { display: flex; align-items: center; gap: 9px; }
+.order-rev-name {
+  flex: 1; min-width: 0;
+  font-size: 12.5px; color: var(--text-muted);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.order-rev-done {
+  flex: none;
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 11.5px; color: var(--text-subtle);
+}
+.order-rev-btn {
+  flex: none;
+  min-height: 32px;
+  padding: 0 13px;
+  border: 1px solid var(--pom-700);
+  border-radius: 999px;
+  background: transparent;
+  font-family: var(--font-sans);
+  font-size: 12px; font-weight: 600;
+  color: var(--pom-700);
+  cursor: pointer;
+}
+
+/* --- Sharh yozish formasi --- */
+.rv-target {
+  font-family: var(--font-display);
+  font-size: 16px; font-weight: 800;
+  color: var(--text-strong);
+}
+.rv-sub { margin-top: 5px; font-size: 12.5px; line-height: 1.5; color: var(--text-muted); }
+.rv-stars {
+  margin: 18px 0 4px;
+  display: flex; justify-content: center; gap: 4px;
+}
+.rv-star {
+  width: 52px; height: 52px;
+  border: none; background: transparent;
+  font-size: 34px; line-height: 1;
+  color: var(--ink-200);
+  cursor: pointer;
+}
+.rv-star.on { color: #EFA91F; }
+.rv-text {
+  margin-top: 12px;
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--border-hair);
+  border-radius: var(--radius-sm);
+  background: var(--glass-fill-strong);
+  font-family: var(--font-sans);
+  /* 16px — iOS Safari bundan kichik maydonga fokusda sahifani zoom qiladi */
+  font-size: 16px;
+  color: var(--text-strong);
+  outline: none;
+  resize: none;
+}
+.rv-btns {
+  margin-top: 14px;
+  display: flex; gap: 9px;
+}
+.rv-btns .auth-ghost { flex: 1; margin-top: 0; }
+.rv-btns .pd-add { flex: 1.4; }
