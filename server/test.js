@@ -457,6 +457,43 @@ function testReviewAllowedStatus() {
   console.log('✅ Test 8b: Sharh faqat yetkazilgandan keyin — PASS');
 }
 
+// ============ TEST 8c: Sharh kirishini tekshirish (yulduz chegarasi) ============
+// Nega unit test, jonli `curl` emas: `/api/reviews` da autentifikatsiya
+// validatsiyadan OLDIN ishlaydi, ya'ni kirmagan so'rov yulduz qiymatiga
+// yetib bormasdan 401 oladi — chegarani HTTP orqali sinab bo'lmaydi.
+// Klient faqat 1–5 beradi, lekin bu himoya EMAS: DevTools bilan istalgan
+// qiymat yuborish mumkin, shuning uchun chegara serverda turadi.
+function testReviewSchema() {
+  const { validate } = require('./lib/validate');
+  const { REVIEW_SCHEMA } = require('./routes/reviews.js');
+
+  const ok = validate({ orderId: '#LM-3011', productId: 'ik-1402', stars: 4 }, REVIEW_SCHEMA);
+  assert.strictEqual(ok.ok, true, "to'g'ri sharh qabul qilinishi kerak");
+  assert.strictEqual(ok.data.stars, 4, 'yulduz soni saqlanishi kerak');
+  assert.strictEqual(ok.data.body, null, 'matn ixtiyoriy — bo\'sh bo\'lsa null');
+
+  for (const bad of [0, 6, -1, 100]) {
+    const r = validate({ orderId: '#LM-3011', productId: 'ik-1402', stars: bad }, REVIEW_SCHEMA);
+    assert.strictEqual(r.ok, false, `stars=${bad} rad etilishi kerak`);
+  }
+  // Satr sifatida kelgan raqam ham chegaraga bo'ysunadi (JSON'da "6" bo'lishi mumkin)
+  assert.strictEqual(validate({ orderId: 'a', productId: 'b', stars: '6' }, REVIEW_SCHEMA).ok, false,
+    'satr shaklidagi 6 ham rad etilishi kerak');
+  assert.strictEqual(validate({ orderId: 'a', productId: 'b', stars: '3' }, REVIEW_SCHEMA).ok, true,
+    'satr shaklidagi 3 qabul qilinishi kerak');
+
+  // Majburiy maydonlar
+  assert.strictEqual(validate({ productId: 'b', stars: 3 }, REVIEW_SCHEMA).ok, false, 'orderId majburiy');
+  assert.strictEqual(validate({ orderId: 'a', stars: 3 }, REVIEW_SCHEMA).ok, false, 'productId majburiy');
+  assert.strictEqual(validate({ orderId: 'a', productId: 'b' }, REVIEW_SCHEMA).ok, false, 'stars majburiy');
+
+  // Juda uzun matn kesilmaydi — RAD ETILADI (jimgina qirqish ma'lumotni yo'qotardi)
+  assert.strictEqual(validate({ orderId: 'a', productId: 'b', stars: 3, body: 'x'.repeat(1001) }, REVIEW_SCHEMA).ok,
+    false, '1000 belgidan uzun matn rad etilishi kerak');
+
+  console.log('✅ Test 8c: Sharh kirishi (yulduz chegarasi va majburiy maydonlar) — PASS');
+}
+
 // ============ TEST RUNNER ============
 async function runTests() {
   console.log('\n🧪 LolaMarket Server Testlari\n');
@@ -476,6 +513,7 @@ async function runTests() {
     await testDecrementStock();
     await testRecalcRating();
     testReviewAllowedStatus();
+    testReviewSchema();
 
     console.log('\n✅ Hammasi PASS — pul hisobi, imzo tekshiruvi va route jadvali joyida\n');
     process.exit(0);

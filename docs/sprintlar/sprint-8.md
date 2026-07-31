@@ -33,6 +33,10 @@ Platformaning barcha funksiyalarini real foydalanuvchilar bilan sinovdan o'tkazi
   to'g'ri imzo bilan rasm keladi (590 KB, haqiqiy JPEG 1920×2560), soxta imzo bilan **401**.
   30-iyuldagi "navbatda rasm + zaxira ko'rinishi tekshirilmagan" bo'shlig'i YOPILDI. Band OCHIQ
   qoladi: **escrow, bahsli holat va bahs qarori oqimi hali sinalmagan**
+- [ ] Sharhlar oqimi: buyurtma → yetkazildi → sharh → reyting → admin yashirishi
+  — kod 2026-07-31 da yozildi va production'ga chiqdi (`rating` endi 13/13 mahsulotda
+  `null`, `/api/reviews` 200 qaytaryapti, himoyalangan 4 endpoint 401). **Haqiqiy sharh
+  bilan hali sinalmagan.** Qadamma-qadam reja: `docs/sinov-sharhlar.md`
 - [ ] To'lov xatolari: bekor qilish, vaqt tugashi, ikki marta to'lash
 - [ ] Qaytarish oqimi: xaridor muammo bildiradi → moderator qaror beradi → pul qaytariladi
 
@@ -56,6 +60,31 @@ Platformaning barcha funksiyalarini real foydalanuvchilar bilan sinovdan o'tkazi
 ---
 
 ## Qilingan ishlar
+
+- [2026-07-31] **Sharhlar tizimi production'ga chiqdi va DARVOZALARI sinaldi — asosiy
+  oqim esa sinalmay qoldi (sabab quyida).**
+
+  **Sinalgani (jonli, `curl` bilan):** soxta reyting yo'qoldi — `/api/products`
+  **13/13 mahsulotda `"rating":null, "reviews":0`** qaytaryapti (ilgari `4.9`, `42`).
+  `GET /api/reviews?productId=…` → **200** `{"ok":true,"data":[]}`; `productId`siz
+  → **400**. Himoyalangan yo'llar: `POST /api/reviews` → **401**, `?mine=1` → **401**,
+  `/api/seller/reviews` → **401**, `/api/web/orders` → **401**. **Soxta imzo bilan
+  ham 401** (`X-Telegram-Init-Data` da 64 nol) — ya'ni initData tekshiruvi sharh
+  yo'lida ham ishlayapti.
+
+  **Sinab BO'LMAGANI va nega:** sharh yozish uchun imzolangan Telegram kimligi kerak,
+  agent uni soxtalashtira olmaydi — himoya aynan shu uchun qurilgan. Lokal to'liq
+  oqimni ishga tushirish ham imkonsiz: mashinada Postgres ham, Docker ham yo'q
+  (`psql`/`docker` topilmadi). Ya'ni **buyurtma → yetkazildi → sharh → reyting
+  qayta hisoblanishi → admin yashirishi** zanjiri hali HAQIQIY sharh bilan
+  sinalmagan. Qadamma-qadam reja: `docs/sinov-sharhlar.md`, founder bajaradi.
+
+  **Yo'l-yo'lakay yopilgan bo'shliq:** yulduz chegarasini (`stars` 0 yoki 6) jonli
+  `curl` bilan sinab bo'lmadi — `/api/reviews` da autentifikatsiya validatsiyadan
+  OLDIN ishlaydi, ya'ni so'rov yulduz qiymatiga yetib bormasdan 401 oladi. Chegara
+  shu sababli unit test bilan qamaldi (`test.js` → Test 8c): sxema `REVIEW_SCHEMA`
+  sifatida eksport qilindi va 0/6/−1/100, satr shaklidagi `"6"`, majburiy maydonlar
+  hamda 1000 belgidan uzun matn tekshirildi. `npm test` — 8 ta test guruhi PASS.
 
 - [2026-07-31] **Uch oqim (sotuvchi → admin → xaridor) production'da haqiqiy Telegram bilan
   uchidan-uchiga sinaldi — 30-iyulda "founder qo'lda bajarishi kerak" deb qoldirilgan uchala

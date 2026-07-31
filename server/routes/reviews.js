@@ -76,6 +76,17 @@ function reviewRowToVM(r) {
   };
 }
 
+// Sxema alohida — testdan chaqirilishi uchun. HTTP orqali uni sinab bo'lmaydi:
+// autentifikatsiya validatsiyadan OLDIN ishlaydi, ya'ni kirmagan so'rov yulduz
+// qiymatiga yetib bormasdan 401 oladi. Klient 1–5 dan boshqa qiymat yubormaydi,
+// lekin bu himoya emas — DevTools bilan chetlab o'tish oson.
+const REVIEW_SCHEMA = {
+  orderId:   { type: 'string', required: true, max: 40 },
+  productId: { type: 'string', required: true, max: 100 },
+  stars:     { type: 'int',    required: true, min: 1, max: 5 },
+  body:      { type: 'string', required: false, max: 1000 },
+};
+
 // ============ POST /api/reviews — sharh yozish ============
 async function handleCreateReview(req, res, ip) {
   if (rateLimited(`review:${ip}`, 20)) return fail(res, 'too many requests', 429);
@@ -83,12 +94,7 @@ async function handleCreateReview(req, res, ip) {
   if (!me) return fail(res, 'unauthorized', 401);
   try {
     const data = JSON.parse(await readBody(req, 20_000));
-    const v = validate(data, {
-      orderId:   { type: 'string', required: true, max: 40 },
-      productId: { type: 'string', required: true, max: 100 },
-      stars:     { type: 'int',    required: true, min: 1, max: 5 },
-      body:      { type: 'string', required: false, max: 1000 },
-    });
+    const v = validate(data, REVIEW_SCHEMA);
     if (!v.ok) return fail(res, v.error, 400);
     const d = v.data;
 
@@ -281,5 +287,6 @@ async function hideReview(reviewId, reason) {
 
 module.exports = {
   handleCreateReview, handleGetReviews, handleSellerReviews,
-  findReviewForAdmin, hideReview, recalcRating, REVIEW_ALLOWED_ORDER_STATUS,
+  findReviewForAdmin, hideReview, recalcRating,
+  REVIEW_ALLOWED_ORDER_STATUS, REVIEW_SCHEMA,
 };
