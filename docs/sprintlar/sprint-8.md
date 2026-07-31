@@ -14,16 +14,25 @@ Platformaning barcha funksiyalarini real foydalanuvchilar bilan sinovdan o'tkazi
 
 ### Xato tekshiruvi
 - [ ] To'liq xaridor oqimi: ro'yxatdan o'tish → katalog → buyurtma → to'lov → yetkazib olish
-  — **QISMAN (2026-07-30):** saytdan buyurtma berish va zaxira kamayishi production'da to'liq sinaldi
-  (`#LM-3011`), lekin **Mini App'dan (Telegram imzosi bilan) buyurtma berish sinalmagan** va to'lov/
-  yetkazib olish qismi ham sinalmagan. Band OCHIQ qoladi
+  — **QISMAN (2026-07-31):** saytdan buyurtma (`#LM-3011`, 2026-07-30) ustiga endi **Mini App'dan
+  haqiqiy Telegram imzosi bilan buyurtma ham sinaldi** — buyurtma o'tdi va zaxira 20 → 19 bo'ldi,
+  ya'ni atomik kamaytirish Mini App yo'lida ham ishlaydi. 30-iyuldagi "Mini App buyurtmasi
+  sinalmagan" bo'shlig'i YOPILDI. Band OCHIQ qoladi: **to'lov (Payme/Click) va yetkazib olish (BTS)
+  qismi hali umuman sinalmagan** — integratsiyalar Sprint 6'da tugallanmagan
 - [ ] To'liq ishlab chiqaruvchi oqimi: kirish → mahsulot qo'shish → buyurtma qabul → jo'natish
-  — **QISMAN (2026-07-30):** buyurtmani bekor qilishda zaxiraning qaytishi (`restoreStock`) SQL
-  tranzaksiyada sinaldi, lekin **sotuvchining botga mahsulot rasmini yuborishi sinalmagan** (qo'lda
-  bajarilishi kerak). Band OCHIQ qoladi
+  — **QISMAN (2026-07-31):** sotuvchi Mini App'dan mahsulot qo'shdi (`Yengi paplim`, 8 600 000 so'm,
+  zaxira 20), bot rasm so'radi, sotuvchi botga rasm yubordi va rasm mahsulotga biriktirildi —
+  **haqiqiy Telegram bilan, birinchi marta**. Bu kod 2026-07-30 da yozilgan edi, lekin faqat soxta
+  ma'lumot bilan sinalgandi. Moderatsiyagacha mahsulot ommaviy katalogda ko'rinmadi (12 ta bo'lib
+  qoldi) — moderatsiya darvozasi ishlaydi. 30-iyuldagi "botga rasm yuborish sinalmagan" bo'shlig'i
+  YOPILDI. Band OCHIQ qoladi: **sotuvchining buyurtmani qabul qilishi va jo'natishi (accept/ship)
+  haqiqiy oqimda hali sinalmagan**
 - [ ] Admin oqimi: tasdiqlash → escrow → bahsli holat → qaror
-  — **QISMAN (2026-07-30):** 6 ta himoyalangan endpoint tokensiz 401 qaytarishi tasdiqlandi (ruxsat
-  darvozalari), lekin **moderatsiya navbatida rasm + zaxira ko'rinishi tekshirilmagan**. Band OCHIQ qoladi
+  — **QISMAN (2026-07-31):** moderatsiya navbatida rasm va zaxira ko'rindi, founder tasdiqladi,
+  mahsulot katalogga chiqdi (13 ta). HMAC-imzolangan `/api/product-photo` havolasi ham tekshirildi:
+  to'g'ri imzo bilan rasm keladi (590 KB, haqiqiy JPEG 1920×2560), soxta imzo bilan **401**.
+  30-iyuldagi "navbatda rasm + zaxira ko'rinishi tekshirilmagan" bo'shlig'i YOPILDI. Band OCHIQ
+  qoladi: **escrow, bahsli holat va bahs qarori oqimi hali sinalmagan**
 - [ ] To'lov xatolari: bekor qilish, vaqt tugashi, ikki marta to'lash
 - [ ] Qaytarish oqimi: xaridor muammo bildiradi → moderator qaror beradi → pul qaytariladi
 
@@ -47,6 +56,42 @@ Platformaning barcha funksiyalarini real foydalanuvchilar bilan sinovdan o'tkazi
 ---
 
 ## Qilingan ishlar
+
+- [2026-07-31] **Uch oqim (sotuvchi → admin → xaridor) production'da haqiqiy Telegram bilan
+  uchidan-uchiga sinaldi — 30-iyulda "founder qo'lda bajarishi kerak" deb qoldirilgan uchala
+  bo'shliq yopildi, va sinov bitta nuqson topdi.**
+
+  **1. Sotuvchi oqimi.** Sotuvchi Mini App'dan mahsulot qo'shdi (`Yengi paplim`, 8 600 000 so'm,
+  zaxira 20), bot rasm so'radi, sotuvchi botga rasm yubordi va rasm mahsulotga biriktirildi.
+  Bu kod 2026-07-30 da yozilgan edi, lekin **haqiqiy Telegram bilan hech qachon sinalmagandi** —
+  faqat soxta ma'lumot bilan. Moderatsiyagacha mahsulot ommaviy katalogda ko'rinmadi (12 ta bo'lib
+  qoldi), ya'ni moderatsiya darvozasi haqiqatan yopiq turadi.
+
+  **2. Admin moderatsiyasi.** Navbatda rasm va zaxira ko'rindi, founder tasdiqladi, mahsulot
+  katalogga chiqdi (13 ta). HMAC-imzolangan `/api/product-photo` havolasi alohida tekshirildi:
+  to'g'ri imzo bilan rasm keladi (590 KB, haqiqiy JPEG 1920×2560), soxta imzo bilan **401** —
+  bot tokeni chiqmaydi va havolani o'ylab topib bo'lmaydi.
+
+  **3. Mini App buyurtmasi (Telegram imzosi bilan).** Buyurtma o'tdi, zaxira **20 → 19**
+  (1 dona buyurtma qilingan). Ya'ni atomik `UPDATE ... WHERE stock >= qty` faqat sayt yo'lida
+  emas, haqiqiy Mini App yo'lida ham ishlaydi — 30-iyulgi sinov buni qamrab olmagan edi.
+
+  **Topilgan va tuzatilgan nuqson: `/api/product-photo` rasmni `application/octet-stream` deb
+  qaytarardi.** Sabab: `catalog.js` Telegram fayl CDN'i bergan `content-type` ni shundoq uzatardi,
+  u esa yo bo'sh, yo umumiy. Brauzer `<img>` ichida turni o'zi sezgani uchun rasm **ko'rinardi** —
+  aynan shuning uchun nuqson uzoq sezilmadi — lekin Cloudflare rasm optimizatsiyasi ishlamasdi.
+  Tuzatish (`server/routes/catalog.js`): yangi `usableMime()` bo'sh va `application/octet-stream`
+  ni yaroqsiz deb qaytaradi, `mimeFromPath()` esa turni `getFile` qaytargan yo'l kengaytmasidan
+  aniqlaydi. **Oddiy `|| ` fallback bu yerda ishlamasdi**: `application/octet-stream` "truthy",
+  ya'ni u fallback'ni jimgina bosib o'tardi. Olti holat bilan sinaldi, `npm test` ham o'tdi.
+  Kod serverga `scp` qilindi va jonli javob tasdiqlandi: endi `image/jpeg`.
+
+  **Sinov chiqindisi tozalandi** — founder sinov mahsuloti va buyurtmasini bazadan o'chirdi,
+  katalog 12 ta bazaviy holatga qaytdi (2026-07-30 dagi qarorga muvofiq).
+
+  **Bilib qo'yish kerak:** `/api/version` hali `28f3b36` ko'rsatadi — bitta fayl `scp` qilingani
+  uchun `version.txt` yangilanmadi. Serverda kod yangi, yorliq eski; keyingi to'liq deploy'da
+  o'z-o'zidan to'g'rilanadi.
 
 - [2026-07-31] **Yuklanish tezligi birinchi marta o'lchandi — sahifani sekinlashtirgan uchta
   sabab topildi va tuzatildi.** Ilgari bu band "rasmlar siqilgan" degan taxminga tayanardi;
@@ -142,3 +187,16 @@ Platformaning barcha funksiyalarini real foydalanuvchilar bilan sinovdan o'tkazi
   uchinchi domendan kutib HTML tahlilini ~613 ms to'xtatib turardi. Ikkinchi yarmi ham majburiy —
   bitta skript `defer`siz qolsa u parse paytida, ya'ni `defer`liklardan OLDIN ishlaydi va yuklanish
   TARTIBI buziladi (`script.js` / `app.js` `window.Telegram`ni topa olmay qoladi)
+- [2026-07-31] Qaror: **tashqi xizmat bergan `Content-Type` shundoq uzatilmaydi — tur o'zimizda
+  aniqlanadi.** `/api/product-photo` Telegram CDN'i bergan sarlavhani uzatardi, u esa
+  `application/octet-stream` bo'lib kelardi. Sabab ikkita: (1) brauzer `<img>` ichida turni o'zi
+  sezgani uchun nuqson KO'RINMAYDI, faqat Cloudflare rasm optimizatsiyasi jimgina o'chib qoladi;
+  (2) oddiy `qiymat || fallback` naqshi bu yerda yaramaydi — `application/octet-stream` "truthy",
+  ya'ni u fallback'ni bosib o'tadi, shuning uchun umumiy tur ATAYLAB yaroqsiz deb hisoblanadi
+  (`usableMime()`). Bundan keyin proksi qilingan har qanday faylda tur manbadan emas, fayl
+  kengaytmasidan olinadi
+- [2026-07-31] Qaror: **"haqiqiy Telegram bilan sinalmagan" kod sinalgan hisoblanmaydi.** Sotuvchining
+  botga rasm yuborish oqimi 2026-07-30 da soxta ma'lumot bilan sinalgan va ishlaydi deb yozilgan edi;
+  haqiqiy Telegram bilan o'tkazilganda esa `Content-Type` nuqsoni chiqdi. Sabab: soxta ma'lumot
+  o'zimiz kutgan shaklda keladi, tashqi xizmat esa kutmagan shaklda — nuqsonlar aynan shu farqda
+  yashiringan bo'ladi. Bu "CI yashil edi, fayllar esa serverga chiqmagandi" darsining aynan o'zi

@@ -52,6 +52,24 @@ function productPhotoUrl(fileId) {
   return `/api/product-photo?f=${encodeURIComponent(fileId)}&s=${productPhotoSig(fileId)}`;
 }
 
+// Telegram bergan `content-type` ishonchli emas: yo umuman yo'q, yo umumiy
+// `application/octet-stream`. Ikkalasi ham yaroqsiz deb qaytariladi.
+function usableMime(ct) {
+  if (!ct) return null;
+  const v = String(ct).split(';')[0].trim().toLowerCase();
+  return (!v || v === 'application/octet-stream') ? null : v;
+}
+
+// `getFile` qaytargan yo'l kengaytmasidan tur aniqlanadi (`photos/file_12.jpg`).
+const MIME_BY_EXT = {
+  jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png',
+  webp: 'image/webp', gif: 'image/gif', heic: 'image/heic',
+};
+function mimeFromPath(p) {
+  const ext = String(p || '').split('.').pop().toLowerCase();
+  return MIME_BY_EXT[ext] || 'application/octet-stream';
+}
+
 async function handleProductPhoto(req, res, ip) {
   if (rateLimited(`productphoto:${ip}`, 300)) return fail(res, 'too many requests', 429);
   let f, s;
@@ -66,7 +84,15 @@ async function handleProductPhoto(req, res, ip) {
     https.get(`https://api.telegram.org/file/bot${BOT_TOKEN}/${filePath}`, (tgRes) => {
       if (tgRes.statusCode !== 200) { tgRes.resume(); return fail(res, 'not found', 404); }
       res.writeHead(200, {
-        'Content-Type': tgRes.headers['content-type'] || 'application/octet-stream',
+        // Telegram fayl CDN'i `content-type` bermaydi — 2026-07-31 sinovida
+        // rasm `application/octet-stream` bo'lib kelgani aniqlandi. Brauzer
+        // <img> ichida turni o'zi sezadi, lekin Cloudflare rasm
+        // optimizatsiyasi ishlamay qoladi. Shuning uchun tur `getFile`
+        // qaytargan yo'lning kengaytmasidan aniqlanadi (`photos/file_12.jpg`).
+        // DIQQAT: `|| ` yetarli emas — Telegram `application/octet-stream` ni
+        // ATAYLAB yuborishi ham mumkin, u esa "truthy" va fallback'ni bosib
+        // o'tardi. Shuning uchun umumiy tur ham yaroqsiz deb hisoblanadi.
+        'Content-Type': usableMime(tgRes.headers['content-type']) || mimeFromPath(filePath),
         // Ommaviy katalog rasmi — brauzer/CDN uzoqroq keshlashi mumkin
         // (dalil rasmidan farqi: bu yerda maxfiylik yo'q).
         'Cache-Control': 'public, max-age=86400',
