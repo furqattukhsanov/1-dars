@@ -40,20 +40,20 @@ function testPrepayCalculation() {
 }
 
 // ============ TEST 2: Komissiya hisobi ============
-// Buyurtma summasi 1 000 000 so'm, COMMISSION_RATE = 0.10 (10%)
-// Kutiladi: commission = 100 000, payout = 900 000
+// Buyurtma summasi 1 000 000 so'm, COMMISSION_RATE = 0.12 (12%)
+// Kutiladi: commission = 120 000, payout = 880 000
 function testCommissionCalculation() {
-  const COMMISSION_RATE = 0.10;
+  const COMMISSION_RATE = 0.12;
   const total = 1_000_000;
 
   const commissionAmount = Math.round(total * COMMISSION_RATE);
   const payoutAmount = total - commissionAmount;
 
-  assert.strictEqual(commissionAmount, 100_000, 'komissiya 10% bo\'lishi kerak');
-  assert.strictEqual(payoutAmount, 900_000, 'sotuvchiga o\'tkaziladigan summa 90% bo\'lishi kerak');
+  assert.strictEqual(commissionAmount, 120_000, 'komissiya 12% bo\'lishi kerak');
+  assert.strictEqual(payoutAmount, 880_000, 'sotuvchiga o\'tkaziladigan summa 88% bo\'lishi kerak');
   assert.strictEqual(commissionAmount + payoutAmount, total, 'komissiya + payout jami summa bo\'lishi kerak');
 
-  console.log('✅ Test 2: Komissiya hisobi — PASS (commission=100k, payout=900k)');
+  console.log('✅ Test 2: Komissiya hisobi — PASS (commission=120k, payout=880k)');
 }
 
 // ============ TEST 2b: Logistika taxminiy narxi config'dan keladi ============

@@ -32,7 +32,7 @@ LolaMarket — faqat tasdiqlangan ishlab chiqaruvchilar ishtirok etadigan B2B to
 Xaridor kategoriya (chit, atlas, gilam, sitsa) va narx bo'yicha filtrlaydi. Mahsulot kartochkasida rasm, narx/rulon, mavjud rulon soni, ishlab chiqaruvchi reytingi ko'rinadi. Minimum buyurtma — 1 rulon.
 
 **2. Xavfsiz To'lov (Escrow)**
-Xaridor Payme yoki Click orqali to'laydi. Pul platformada saqlanadi. Mahsulot yetib borgach va muammo bo'lmasa — ishlab chiqaruvchiga o'tadi, 10–12% komissiya ayirilib.
+Xaridor Payme yoki Click orqali to'laydi. Pul platformada saqlanadi. Mahsulot yetib borgach va muammo bo'lmasa — ishlab chiqaruvchiga o'tadi, 12% komissiya ayirilib.
 
 **3. Yetkazib Berish va Qaytarish**
 BTS Pochta (200+ nuqta) orqali butun O'zbekistonga yetkaziladi. Xaridor eng yaqin BTS nuqtasini platformada ko'radi. Sifat yoqmasa to'liq pul qaytariladi. Logistika xarajatini aybdor tomon to'laydi. Bahsli holatlarda moderator 24 soat ichida qaror beradi.
@@ -58,7 +58,7 @@ BTS Pochta (200+ nuqta) orqali butun O'zbekistonga yetkaziladi. Xaridor eng yaqi
 
 11. Mahsulotlarimni (kategoriya, narx, rulon soni, rasm) katalogga qo'shishni xohlayman.
 12. Platformadan kelgan buyurtmalarni boshqarishni xohlayman.
-13. Escrow dan 10–12% komissiya ayirib to'lovimni olishni xohlayman.
+13. Escrow dan 12% komissiya ayirib to'lovimni olishni xohlayman.
 14. Xaridor tomonidan sifatsiz qaytarish da'vosiga javob berishni xohlayman.
 15. O'z reytingim va sharhlarimni ko'rishni xohlayman.
 
@@ -74,7 +74,7 @@ BTS Pochta (200+ nuqta) orqali butun O'zbekistonga yetkaziladi. Xaridor eng yaqi
 
 | Soha | Qaror |
 |---|---|
-| **Komissiya** | Ishlab chiqaruvchi har bir bitimdan 10–12% to'laydi |
+| **Komissiya** | Ishlab chiqaruvchi har bir bitimdan 12% to'laydi |
 | **To'lov** | Payme + Click, escrow rejimida |
 | **Logistika** | BTS Pochta (200+ nuqta), xaridor to'laydi |
 | **O'lchov** | Rulon (metr emas — har rulonda turli metr) |
@@ -135,7 +135,7 @@ Foydalanuvchi (rol: xaridor / ishlab chiqaruvchi / admin)
 - **Escrow oqimi:** To'lov → saqlash → yetkazish → chiqarish — har bosqich alohida testlanadi
 - **Qaytarish:** Sifatli (logistika xaridorda) va sifatsiz (logistika ishlab chiqaruvchida) scenariylar
 - **BTS integratsiyasi:** Eng yaqin nuqta aniqlash to'g'riligi
-- **Komissiya:** 10–12% to'g'ri ayirilishi
+- **Komissiya:** 12% to'g'ri ayirilishi
 
 ---
 

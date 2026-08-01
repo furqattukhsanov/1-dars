@@ -6,9 +6,14 @@
 -- statistika kamayib ko'rinadi (haqiqiy GMV o'zgarmagan).
 --
 -- Stavka: 005 dan oldin commission_rate umuman yozilmagan, shuning uchun
--- haqiqiy o'shа paytdagi stavkani bilib bo'lmaydi — kod default qiymati
--- (server/config.js COMMISSION_RATE, 0.10) ishlatiladi, xuddi shu stavka
--- bilan buyurtma yaratilganda hisoblanadi.
+-- haqiqiy o'shа paytdagi stavkani bilib bo'lmaydi — 2026-07-30 da amalda
+-- bo'lgan default qiymat, 0.10, ishlatiladi.
+--
+-- ⚠️ Bu 0.10 QASDDAN qotirilgan va O'ZGARTIRILMAYDI — migratsiya production'da
+-- 2026-07-30 da ALLAQACHON bajarilgan, fayl o'sha ijroning qaydi. 2026-08-02 da
+-- stavka 0.12 ga ko'tarildi va MAVJUD buyurtmalar ham qayta hisoblandi, lekin
+-- buni shu faylni tahrirlash emas, keyingi migratsiya qiladi:
+-- db/013_commission_12.sql. Joriy stavka faqat server/config.js dan keladi.
 --
 -- Idempotent: faqat commission_amount IS NULL qatorlarga tegadi, qayta
 -- ishga tushirilsa hech narsa o'zgarmaydi.

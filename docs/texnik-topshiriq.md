@@ -13,7 +13,7 @@
 | # | Qaror | Tanlov | Texnik ta'sir |
 |---|---|---|---|
 | A1 | Pul oqimi | **Escrow** — platforma ushlaydi, keyin sotuvchiga | Eng murakkab qism; MVP da soddalashtiriladi (q. §6) |
-| A2 | Daromad | Sotuvchidan **15% komissiya** har buyurtmada | `commission_amount` har order'da hisoblanadi |
+| A2 | Daromad | Sotuvchidan **12% komissiya** har buyurtmada | `commission_amount` har order'da hisoblanadi |
 | A3 | Rad etish | **Qisman qaytarish** mumkin | Refund mantig'i + admin tasdig'i kerak |
 | B1 | Sotuvchilar | **3–10 ta** (kichik multi-vendor) | Bitta order = bitta sotuvchi (soddalashtirish) |
 | B2 | Qoldiq | Sotuvchi **qo'lda** kiritadi | Real-time sync shart emas |
@@ -65,7 +65,7 @@
 `Kabinetga kirish → SKU qo'shish (foto, tarkib, eni, rang, rulonda necha metr, narx, qoldiq) → yangi order bildirishnomasi → tasdiqlash → BTS ga topshirish → tracking raqam kiritish → status: yo'lda`
 
 **Admin (escrow):**
-`Order yetkazildi → admin tasdiqlaydi → komissiya (15%) chegiriladi → sotuvchiga to'lov → order: yakunlandi`
+`Order yetkazildi → admin tasdiqlaydi → komissiya (12%) chegiriladi → sotuvchiga to'lov → order: yakunlandi`
 
 ---
 

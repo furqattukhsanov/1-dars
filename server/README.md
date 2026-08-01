@@ -191,7 +191,7 @@ www-data'ga tegishli, ya'ni bu himoya hali yo'q.
 | `BOT_USERNAME` | Saytdagi "Telegram orqali kirish" deep-link'i uchun bot nomi, `@`siz (default `lolamarketbot`) |
 | `ADMIN_PANEL_TOKEN` | `admin/index.html` kirish kaliti (`X-Admin-Token` header) — Telegram initData'dan mustaqil, alohida sir. Dalil rasmlari havolasini imzolash uchun ham ishlatiladi |
 | `PREPAY_RATE` | Oldindan to'lov ulushi (default `0.5`) |
-| `COMMISSION_RATE` | Platforma komissiyasi, 0..1 oralig'ida (default `0.10`). Buyurtma yaratilganda `orders.commission_rate` ga snapshot qilinadi |
+| `COMMISSION_RATE` | Platforma komissiyasi, 0..1 oralig'ida (default `0.12`). Buyurtma yaratilganda `orders.commission_rate` ga snapshot qilinadi |
 
 ## Sprint 7 deploy qadamlari (2026-07-27)
 
@@ -214,12 +214,41 @@ ssh root@65.21.180.44 "sudo -u postgres psql -d lolamarket -c \
    ALTER SEQUENCE admin_actions_id_seq OWNER TO lola; \
    GRANT SELECT ON admin_actions TO lola_ro;'"
 
-# 3. COMMISSION_RATE ni .env ga qo'shish (yozilmasa default 10% ishlatiladi)
+# 3. COMMISSION_RATE ni .env ga qo'shish (yozilmasa default 12% ishlatiladi)
+#    ⚠️ Stavka 2026-08-02 da 0.10 dan 0.12 ga o'zgardi — `grep -q ... ||` faqat
+#    QO'SHADI, mavjud qatorni yangilamaydi. Eski serverda qiymatni almashtirish
+#    uchun quyidagi `sed` kerak (pastdagi "Komissiya stavkasini o'zgartirish").
 ssh root@65.21.180.44 "grep -q COMMISSION_RATE /opt/lolamarket-notify/.env || \
-  echo 'COMMISSION_RATE=0.10' >> /opt/lolamarket-notify/.env"
+  echo 'COMMISSION_RATE=0.12' >> /opt/lolamarket-notify/.env"
 
 # 4. Kodni ko'chirish va restart (yuqoridagi odatdagi Deploy bo'limi)
 ```
+
+### Komissiya stavkasini o'zgartirish
+
+Stavka `.env` dagi `COMMISSION_RATE` bilan boshqariladi va **servis qayta
+ishga tushgandan keyin** kuchga kiradi. Mavjud qatorni almashtirish kerak —
+yuqoridagi `grep -q ... ||` faqat qator umuman bo'lmasa qo'shadi:
+
+```bash
+ssh root@65.21.180.44 "cd /opt/lolamarket-notify && cp .env .env.bak-\$(date +%Y%m%d-%H%M%S) && \
+  if grep -q '^COMMISSION_RATE=' .env; then sed -i 's|^COMMISSION_RATE=.*|COMMISSION_RATE=0.12|' .env; \
+  else echo 'COMMISSION_RATE=0.12' >> .env; fi && grep COMMISSION_RATE .env"
+ssh root@65.21.180.44 "systemctl restart lolamarket-notify && systemctl is-active lolamarket-notify"
+```
+
+⚠️ **`.env` o'zgarishi faqat YANGI buyurtmalarga ta'sir qiladi.** Stavka
+`orders.commission_rate` ga buyurtma yaratilgan paytda snapshot qilinadi, ya'ni
+bazadagi mavjud qatorlar servis restartidan keyin ham eski stavkada qoladi.
+
+Mavjud buyurtmalarni ham yangi stavkaga o'tkazish kerak bo'lsa — bu ALOHIDA
+migratsiya, `.env` o'zi buni qilmaydi. 2026-08-02 da aynan shunday qilindi:
+`db/013_commission_12.sql` barcha buyurtmalarni 12% ga qayta hisobladi
+(founder qarori — bazada bitta yagona stavka bo'lsin). Ya'ni snapshot
+"o'zgarmas" degani emas, "o'z-o'zidan o'zgarmaydi" degani; retroaktiv
+o'zgartirish ongli qaror bilan, zaxira jadval va tekshiruv bilan qilinadi
+(013 faylining sarlavhasidagi izohga qarang, jumladan to'langan buyurtmalar
+bo'yicha buxgalteriya ogohlantirishi).
 
 ### Nginx — yangi proxy bloklari
 

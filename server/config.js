@@ -57,10 +57,12 @@ const PREPAY_RATE = Number(process.env.PREPAY_RATE) || 0.5;
 // qarori) — sotuvchi bo'yicha alohida stavka emas. Buyurtma yaratilganda
 // o'sha paytdagi qiymat orders.commission_rate ga snapshot qilinadi, shuning
 // uchun stavka keyin o'zgarsa eski buyurtmalar hisoboti buzilmaydi.
-// PRD §4 diapazoni 10–12% — default 10%.
+// PRD §4: stavka 12% (2026-08-02 founder qarori — ilgari 10% edi;
+// o'sha kuni eski buyurtmalar ham db/013_commission_12.sql bilan
+// 12% ga qayta hisoblandi, ya'ni bazada endi bitta stavka).
 const COMMISSION_RATE = (() => {
   const v = Number(process.env.COMMISSION_RATE);
-  return Number.isFinite(v) && v >= 0 && v < 1 ? v : 0.10;
+  return Number.isFinite(v) && v >= 0 && v < 1 ? v : 0.12;
 })();
 
 // Logistika (BTS Pochta) taxminiy narxi. BTS API ulanmagan (Sprint 6),

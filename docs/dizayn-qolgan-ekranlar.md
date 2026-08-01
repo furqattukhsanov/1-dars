@@ -23,7 +23,7 @@ tasdiqlaydi, birinchilar shaxsiy tanishlar. Barcha bildirishnomalar mavjud
 | Q3. Mahsulot qo'shish | Rol `initData` orqali keladi, nav "Sotuvchi rejimi"ga o'tadi. Birinchi kirishda bo'sh holat ekrani | Mini App |
 | Q4. Buyurtma olish | Bot: "Yangi buyurtma #LM-3012 … escrow'da saqlanmoqda" + deep link. Kabinetda **Qabul qilish / Rad etish** | Bot + kabinet |
 | Q5. Jo'natish | "Jo'natildi" holatiga o'tkazadi + BTS trek-raqamini kiritadi (`--font-mono`). Xaridorga bot xabari | Kabinet |
-| Q6. Pul olish | Escrow ozod: bot "1 314 000 so'm o'tkazildi (komissiya 10%: −146 000)" | Bot + Balans |
+| Q6. Pul olish | Escrow ozod: bot "1 284 800 so'm o'tkazildi (komissiya 12%: −175 200)" | Bot + Balans |
 
 ### Taqqoslama diagramma
 
