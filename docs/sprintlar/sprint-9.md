@@ -1,6 +1,6 @@
 # Sprint 9 — Production + launch (Dars 16)
 
-**Holat:** kutilmoqda
+**Holat:** jarayonda
 
 ---
 
@@ -13,42 +13,52 @@ LolaMarket ni rasmiy ishga tushirish. Birinchi haqiqiy xaridorlar va ishlab chiq
 ## Bajariladigan vazifalar
 
 ### Production tayyorgarligi
-- [ ] SSL sertifikat tekshiruvi (lolamarket.uz HTTPS)
-  — **QISMAN (2026-07-31 da jonli tekshirildi).** Sertifikatning o'zi joyida va yaroqli:
-  Google Trust Services (`CN=WE1`), 2026-09-15 gacha; `https://lolamarket.uz/` → 200.
-  Sessiya cookie'si ham to'g'ri yozilgan — `HttpOnly; Secure; SameSite=Lax`
-  (`server/routes/web-auth.js:25`), ya'ni u shifrlanmagan ulanishda umuman yuborilmaydi.
-  **Ikki teshik qoldi:**
-  1. `http://lolamarket.uz/` HTTPS'ga **yo'naltirilmaydi** — sayt shifrlanmagan holda
-     ochilaveradi (`curl -sI http://lolamarket.uz/` → `200 OK`, `Location` yo'q).
-     Ochiq Wi-Fi'da sahifaga o'zga tarkib qo'shib qo'yish mumkin; bundan tashqari
-     `Secure` cookie yuborilmagani uchun foydalanuvchi `http://` da jimgina
-     tizimdan chiqqan bo'lib qoladi.
-  2. **HSTS sarlavhasi yo'q** (`Strict-Transport-Security`) — brauzer keyingi safar ham
-     avval `http://` ga urinadi.
+- [x] SSL sertifikat tekshiruvi (lolamarket.uz HTTPS)
+  — **BAJARILDI (2026-08-01), 31-iyulda ochilgan ikkala teshik yopildi.** Sertifikatning
+  o'zi 2026-07-31 da tekshirilgan edi: Google Trust Services (`CN=WE1`), 2026-09-15 gacha;
+  sessiya cookie'si `HttpOnly; Secure; SameSite=Lax` (`server/routes/web-auth.js:25`).
+  Bugun founder Cloudflare panelidan qolgan ikkalasini yoqdi va jonli tekshirildi:
+  1. **"Always Use HTTPS" yoqildi** — `http://lolamarket.uz` → **301** →
+     `https://lolamarket.uz/`. Redirect loop YO'Q: HTTPS'ning o'zi baribir **200** qaytaradi
+     (bu alohida tekshirildi — noto'g'ri sozlangan proksida aynan shu yerda cheksiz
+     aylanish paydo bo'ladi).
+  2. **HSTS yoqildi** — javobda `strict-transport-security: max-age=2592000` (30 kun).
+     `includeSubDomains` YO'Q va `preload` ATAYLAB yoqilmagan (sabab pastdagi qarorda).
 
-  Ikkalasi ham **Cloudflare panelidagi sozlama**, kodda emas: SSL/TLS → Edge Certificates →
-  "Always Use HTTPS" va "HSTS" yoqilsin. **Founder bajaradi** (agentga Cloudflare kirishi
-  yo'q, `deploy-bloklanadigan-amallar` bilan bir toifada). Yoqilgandan keyin tekshirish:
-  ```
-  curl -sI http://lolamarket.uz/ | head -3          # 301 va Location: https://… bo'lsin
-  curl -sI https://lolamarket.uz/ | grep -i strict  # HSTS sarlavhasi chiqsin
-  ```
+  **OCHIQ QOLDI:** `max-age` ni 12 oyga (`31536000`) ko'tarish — **~2026-08-08 dan keyin**,
+  30 kunlik muddat muammosiz o'tgani ko'ringach. Founder bajaradi.
+- [ ] Xavfsizlik sarlavhalari (`X-Content-Type-Options`, `X-Frame-Options`, `CSP`,
+  `Referrer-Policy`) — **YO'Q, yangi ochilgan teshik (2026-08-01).** HSTS tekshiruvi
+  yo'l-yo'lakay ko'rsatdiki, javobda bu sarlavhalarning **birortasi ham yo'q**. Ya'ni
+  sayt `<iframe>` ichiga solinishi mumkin (clickjacking), brauzer fayl turini o'zi taxmin
+  qilaveradi, va tashqi manbadan skript yuklanishiga hech qanday cheklov qo'yilmagan.
+  HSTS faqat ULANISHNI himoya qiladi, SAHIFANI emas — ikkalasi boshqa-boshqa narsa.
+  Cloudflare Transform Rules yoki nginx orqali qo'shiladi; CSP eng oxirida, chunki u
+  noto'g'ri yozilsa saytni jimgina sindiradi
 - [ ] Muhit o'zgaruvchilari (env vars) production uchun sozlash
   — **AMALDA BAJARILGAN, lekin bugun qayta tasdiqlanmadi.** `/opt/lolamarket-notify/.env`
   (600 huquq, git'ga kirmaydi) Sprint 2/3 da to'ldirilgan; bilvosita dalil — jonli
   `GET /api/products` bazadan haqiqiy ma'lumot qaytaryapti, ya'ni `DATABASE_URL` va bot
   tokeni joyida. To'g'ridan-to'g'ri tekshirish SSH talab qiladi va bu sessiyada bloklandi
-- [ ] Ma'lumotlar bazasi zaxira nusxasi (backup) sozlash
-  — **SOZLANGAN (2026-07-23), lekin ISHLAYOTGANI hech qachon tekshirilmagan.**
-  `/opt/lolamarket-notify/pg-backup.sh`, cron har kuni 03:30, `/opt/lolamarket-backups/`,
-  7 kun saqlanadi. ⚠️ "Sozladim ≠ ishlayapti" — bu Sprint 8 dagi PWA darsining aynan o'zi
-  (CI muvaffaqiyatli tugagan edi, fayl esa serverga chiqmagandi). **Founder bir marta
-  bajarsin** — oxirgi zaxira fayli bugungi sanada va bo'sh emasligi ko'rinsin:
-  ```
-  ssh root@65.21.180.44 'ls -lt /opt/lolamarket-backups/ | head -5'
-  ```
-  Zaxira faylining tiklanishi (restore) esa umuman sinalmagan — buzilgan zaxira zaxira emas
+- [x] Ma'lumotlar bazasi zaxira nusxasi (backup) sozlash
+  — **BAJARILDI (2026-08-01): ishlayotgani tekshirildi, TIKLANISHI birinchi marta sinaldi,
+  va nusxa serverdan tashqariga chiqarildi.**
+  1. **Cron ishlayapti.** `30 3 * * *` → `/opt/lolamarket-notify/pg-backup.sh`. Fayllar
+     24-iyuldan buyon **9 kun uzilishsiz**, hajm o'sib borgan (ya'ni bo'sh dump emas).
+  2. **Tiklash sinaldi** — zaxira alohida `lolamarket_restore_test` bazasiga tiklandi,
+     **13 jadvalning qator soni jonli baza bilan to'liq mos** chiqdi, keyin sinov bazasi
+     o'chirildi. ⚠️ Tekshirilmagani: qatorlarning ICHI (qiymatlar) va `sequence`
+     hisoblagichlari — ya'ni "tiklandi" degani hali "hamma narsa joyida" degani emas.
+  3. **Nusxa Telegram'ga chiqariladi** — `pg-backup.sh` endi zaxirani `sendDocument` bilan
+     ham yuboradi (sinaldi, fayl yetib bordi). Serverda 7 kunlik nusxa, Telegram'da
+     cheksiz. Chat: `.env` dagi `BACKUP_CHAT_ID`, bo'lmasa `ADMIN_CHAT_ID`. Eski skript
+     `pg-backup.sh.bak` da saqlandi. Sabab: nusxalar bazaning O'ZI bilan bitta diskda edi —
+     disk o'lsa zaxira ham birga ketardi, ya'ni zaxira nomigagina zaxira edi.
+
+  ⚠️ **OGOHLANTIRISH:** zaxira ichida mijoz ma'lumotlari bor (telefon, buyurtma, Telegram
+  ID). O'sha chatdagi HAR KIM butun bazani yuklab olishi mumkin — `BACKUP_CHAT_ID` ga odam
+  qo'shishdan oldin shu o'ylansin. Skript repoda saqlanmaydi (serverda yashaydi, tokenni
+  `.env` dan o'qiydi)
 - [ ] Xato monitoring ulash (Sentry yoki shunga o'xshash) — **bloklangan:** akkaunt kerak
 - [ ] Payme va Click production akkauntlarga o'tish — **bloklangan:** merchant kalitlari kerak.
   Launch'ning YAGONA haqiqiy to'sig'i — platformaning qolgan qismi uchidan-uchiga ishlaydi
@@ -79,6 +89,54 @@ LolaMarket ni rasmiy ishga tushirish. Birinchi haqiqiy xaridorlar va ishlab chiq
 
 ## Qilingan ishlar
 
+- [2026-08-01] **HTTPS majburiy qilindi va HSTS yoqildi — 31-iyulda ochilgan ikkala teshik
+  yopildi; yo'l-yo'lakay uchinchisi ochildi.**
+
+  **Qilingani (founder Cloudflare panelidan, agent jonli tekshirdi).** "Always Use HTTPS":
+  `http://lolamarket.uz` endi **301** bilan `https://lolamarket.uz/` ga yo'naltiriladi.
+  HSTS: javobda `strict-transport-security: max-age=2592000` (30 kun). Ikkalasi ham kodda
+  emas, Cloudflare sozlamasida — shuning uchun repoda hech narsa o'zgarmadi.
+
+  **Alohida tekshirilgani — redirect loop.** Yo'naltirish yoqilgandan keyin HTTPS'ning
+  o'zi ham **200** qaytarishi tasdiqlandi. Bu bekorga emas: proksi orqasidagi sayt
+  o'zining HTTPS ekanini tanimasa, u har HTTPS so'rovni yana HTTPS'ga yo'naltiraveradi
+  va sayt butunlay ochilmay qoladi. "301 keldi" degan tekshiruvning o'zi kifoya emas.
+
+  **Yo'l-yo'lakay topilgan yangi teshik:** javobda `X-Content-Type-Options`,
+  `X-Frame-Options`, `Content-Security-Policy`, `Referrer-Policy` sarlavhalarining
+  **birortasi ham yo'q**. HSTS ULANISHNI himoya qiladi, SAHIFANI emas — clickjacking va
+  skript in'yeksiyasi hamon ochiq. Yangi band sifatida yuqoriga yozildi.
+
+  **Reja:** `max-age` **~2026-08-08 dan keyin** 12 oyga ko'tariladi — 30 kun muammosiz
+  o'tgani ko'ringach.
+
+- [2026-08-01] **Zaxira "sozlangan" holatdan "ishlayapti va tiklanadi" holatiga o'tdi —
+  ustiga nusxa serverdan tashqariga chiqarildi.**
+
+  **1. Ishlayotgani ko'z bilan ko'rildi.** Cron (`30 3 * * *`) 24-iyuldan buyon **9 kun
+  uzilishsiz** ishlagan, fayl hajmi o'sib borgan — ya'ni dump bo'sh emas. Bu 2026-07-31
+  dagi "sozladim ≠ ishlayapti" bandini yopadi.
+
+  **2. Tiklash BIRINCHI MARTA sinaldi.** Zaxira alohida `lolamarket_restore_test` bazasiga
+  tiklandi, **13 jadvalning qator soni jonli baza bilan to'liq mos** chiqdi, so'ng sinov
+  bazasi o'chirildi. Buzilgan zaxira zaxira emas — endi buzilmagani ma'lum. **Lekin
+  tekshirilmagani ham bor:** qatorlarning ICHIDAGI qiymatlar va `sequence` hisoblagichlari
+  solishtirilmadi (masalan `order_seq` noto'g'ri tiklansa keyingi buyurtma mavjud raqamni
+  qayta ishlatib yuborishi mumkin).
+
+  **3. Zaxira endi Telegram'ga ham yuboriladi** (`pg-backup.sh` → `sendDocument`; sinaldi,
+  fayl yetib bordi). **Sabab:** nusxalar bazaning O'ZI bilan bitta diskda edi — disk
+  o'lganda zaxira ham birga ketardi, ya'ni himoya faqat "faylni o'chirib qo'ydim"
+  holatidan ishlardi, "server o'ldi" holatidan emas. Serverda 7 kunlik nusxa qoladi,
+  Telegram'da cheksiz. Chat: `.env` dagi `BACKUP_CHAT_ID`, bo'lmasa `ADMIN_CHAT_ID`.
+  Eski skript `pg-backup.sh.bak` da saqlandi.
+
+  **Skript repoda yo'q** — u serverda yashaydi va tokenni `.env` dan o'qiydi (`server/README.md`
+  dagi rsync exclude ro'yxatida turgani shu sabab, `sprint-1.md` 2026-07-30 yozuvi).
+
+  ⚠️ **Yangi xavf ochildi:** zaxira ichida mijoz ma'lumoti bor va u endi Telegram chatida
+  yotadi — o'sha chatdagi har kim butun bazani yuklab olishi mumkin.
+
 - [2026-07-31] **"Production tayyorgarligi" bo'limi jonli tekshiruvdan o'tkazildi (TOZALASH).**
   Beshta band ham "kutilmoqda" bo'lib turardi, aslida uchtasi allaqachon qilingan edi — lekin
   ularni oddiygina `[x]` qilib qo'yish noto'g'ri bo'lardi, chunki tekshirganda ikkita
@@ -90,6 +148,36 @@ LolaMarket ni rasmiy ishga tushirish. Birinchi haqiqiy xaridorlar va ishlab chiq
 
 ## Qarorlar
 
+- [2026-08-01] Qaror: **HSTS avval 30 kunlik `max-age` bilan yoqiladi, `preload` esa
+  ATAYLAB yoqilmaydi.** Sabab: HSTS — bu QAYTARIB BO'LMAYDIGAN tomonga qarab ishlaydigan
+  sozlama. Brauzer sarlavhani bir marta ko'rgach, muddat tugagunicha saytga faqat HTTPS
+  orqali kiradi; sertifikat bilan muammo chiqsa foydalanuvchi saytni umuman ocha olmaydi
+  va "bir daqiqaga o'chirib turaman" degan imkon YO'Q. 30 kun — xato qilsak qutulish
+  narxi arzon bo'ladigan muddat; muammosiz o'tsa ~2026-08-08 dan keyin 12 oyga
+  ko'tariladi. `preload` esa brauzer ishlab chiqaruvchilarining ro'yxatiga tushish
+  demak — undan chiqish oylab davom etadi, shuning uchun u eng oxirida ko'riladi.
+  `includeSubDomains` ham qo'yilmadi: hali qanday subdomenlar paydo bo'lishi noma'lum
+- [2026-08-01] Qaror: **HSTS ni "yoqdim" deb yozishdan oldin HTTPS'ning O'ZI 200
+  qaytarishi tekshiriladi.** Ya'ni tekshiruv ikki qadamli: `http://` → 301, va
+  `https://` → 200. Sabab: proksi orqasidagi sayt o'z ulanishini HTTPS deb tanimasa
+  yo'naltirish cheksiz aylanishga aylanadi va sayt butunlay ochilmay qoladi — birinchi
+  qadamning o'zi yashil ko'rinaverib, ikkinchisi sindirilgan bo'lishi mumkin
+- [2026-08-01] ⚠️ TUZOQ (qaror emas, eslatma): **Cloudflare panelidagi Max Age
+  ro'yxatining eng kichigi `0` — u "eng qisqa muddat" EMAS, "O'CHIRILGAN" degani.**
+  `max-age=0` brauzerga saqlangan HSTS yozuvini O'CHIR deb aytadi. Bir marta shunga
+  tushib qolindi. Qisqa muddat kerak bo'lsa ro'yxatdan `0` emas, keyingi qiymat tanlansin
+- [2026-08-01] Qaror: **zaxiraning nusxasi baza turgan diskdan TASHQARIDA bo'lishi shart** —
+  shu sabab `pg-backup.sh` endi dump'ni Telegram'ga ham yuboradi. Sabab: nusxalar
+  `/opt/lolamarket-backups/` da, ya'ni bazaning o'zi bilan bitta diskda edi — disk
+  o'lganda ikkalasi birga ketardi. Telegram tanlandi, chunki u allaqachon ulangan
+  (bot tokeni serverda bor), qo'shimcha akkaunt va xarajat talab qilmaydi.
+  ⚠️ Buning narxi: zaxira ichidagi mijoz ma'lumoti endi chatda yotadi — `BACKUP_CHAT_ID`
+  ga qo'shilgan har bir odam butun bazani yuklab ola oladi
+- [2026-08-01] Qaror: **zaxira "ishlayapti" deb hisoblanishi uchun TIKLANISHI sinalgan
+  bo'lishi kerak.** Fayl bor bo'lishi va hajmi o'sib borishi kifoya emas — buzilgan dump
+  ham xuddi shunday ko'rinadi. Shu sababli zaxira alohida bazaga tiklanib, 13 jadvalning
+  qator soni jonli baza bilan solishtirildi. Bu 2026-07-31 dagi "dalil ko'rsatilishi
+  kerak" qarorining aynan davomi
 - [2026-07-31] Qaror: **sprint bandi "sozlandi" degani uchun `[x]` qilinmaydi — dalil
   ko'rsatilishi kerak.** Sprint 9 ning uchta bandi (SSL, env, backup) "allaqachon bajarilgan"
   deb hisoblanardi; jonli tekshiruv ikkitasida kamchilik borligini ko'rsatdi. Sabab: bu

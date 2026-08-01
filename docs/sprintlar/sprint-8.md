@@ -25,8 +25,13 @@ Platformaning barcha funksiyalarini real foydalanuvchilar bilan sinovdan o'tkazi
   **haqiqiy Telegram bilan, birinchi marta**. Bu kod 2026-07-30 da yozilgan edi, lekin faqat soxta
   ma'lumot bilan sinalgandi. Moderatsiyagacha mahsulot ommaviy katalogda ko'rinmadi (12 ta bo'lib
   qoldi) — moderatsiya darvozasi ishlaydi. 30-iyuldagi "botga rasm yuborish sinalmagan" bo'shlig'i
-  YOPILDI. Band OCHIQ qoladi: **sotuvchining buyurtmani qabul qilishi va jo'natishi (accept/ship)
-  haqiqiy oqimda hali sinalmagan**
+  YOPILDI.
+  — **(2026-08-01) Oqimning ikkinchi yarmi ham sinaldi:** sotuvchining buyurtmani qabul
+  qilishi, jo'natishi va rad etishi (accept / ship / reject) production'da haqiqiy Telegram
+  va Mini App bilan o'tkazildi — 31-iyulda ochiq qolgan aynan shu bo'shliq YOPILDI (tafsilot
+  "Qilingan ishlar"da). Band hamon OCHIQ, chunki oqimning quyrug'i qolyapti: **to'lov
+  (Payme/Click) va yetkazib berish (BTS)** — ikkalasi ham Sprint 6 integratsiyalariga
+  bog'liq va tashqi kalitsiz sinab bo'lmaydi
 - [ ] Admin oqimi: tasdiqlash → escrow → bahsli holat → qaror
   — **QISMAN (2026-07-31):** moderatsiya navbatida rasm va zaxira ko'rindi, founder tasdiqladi,
   mahsulot katalogga chiqdi (13 ta). HMAC-imzolangan `/api/product-photo` havolasi ham tekshirildi:
@@ -60,6 +65,45 @@ Platformaning barcha funksiyalarini real foydalanuvchilar bilan sinovdan o'tkazi
 ---
 
 ## Qilingan ishlar
+
+- [2026-08-01] **Sotuvchining accept / ship / reject oqimi production'da haqiqiy Telegram va
+  Mini App bilan sinaldi — 31-iyulda ochiq qolgan bo'shliq yopildi. Nuqson topilmadi.**
+
+  Sinovda `p-ms8wy86z-r9c2` ("Tola", Marg'ilon Ipak Co., boshlang'ich zaxira 12) ishlatildi.
+  To'rtta buyurtma ataylab har xil yo'ldan yuborildi:
+
+  | Buyurtma | Mahsulot | Yo'l | Natija |
+  |---|---|---|---|
+  | `#LM-3016` | Tola ×1 | accept → ship | trek `test0001` bazaga yozildi |
+  | `#LM-3017` | Tola ×1 | accept | `confirmed` da qoldi |
+  | `#LM-3018` | Junli mato (`hb-7740`) ×2 | — | ataylab `pending` qoldirildi |
+  | `#LM-3019` | Tola ×4 | reject | zaxira **+4 qaytdi** |
+
+  **Tasdiqlangani.** `accept` (`pending` → `confirmed`) — xaridorga Telegram xabari va admin
+  chatga bildirishnoma ketdi. `ship` (`confirmed` → `shipped`) — trek raqami saqlandi, va
+  **trek raqamisiz jo'natish RAD ETILADI** (ya'ni "jo'natdim, raqamni keyin aytaman" degan
+  holat bo'lmaydi — xaridor qo'lida kuzatadigan narsa qolmasdi). `reject`
+  (`pending` → `cancelled`) — zaxira **aynan so'ralgan miqdorda** qaytdi: 4 so'raldi, 4 qaytdi.
+  Oxirgisi muhim, chunki `restoreStock` buyurtma qatorlari ustidan ishlaydi; noto'g'ri yozilsa
+  u zaxirani kam yoki ortiq qaytarardi va xatosi darrov ko'rinmasdi.
+
+  **Sinov chiqindisi tozalandi** (2026-07-30 qaroriga muvofiq): to'rtala buyurtma o'chirildi,
+  band turgan zaxira qaytarildi, ikkala mahsulot boshlang'ich holatiga qaytdi (Tola 12, Junli
+  mato 49). Tozalash **ochiq API orqali mustaqil tasdiqlandi** — ya'ni "o'chirdim" degan gapga
+  emas, bazadan qaytgan songa ishonildi.
+
+  **Sprint 8 da HAMON sinalmagani:** to'lov (Payme/Click — tashqi merchant kaliti yo'q,
+  bloklangan), yetkazib berish (BTS API), escrow, bahsli holat va bahs qarori.
+
+  **Yo'l-yo'lakay ko'rilgan, kod O'ZGARTIRILMAGAN ikki narsa:**
+  1. `server/routes/seller.js:197` dagi izoh yo'lni `/api/seller/order` deb yozgan, haqiqiy
+     yo'l esa `/api/seller/orders` (ko'plikda) — kichik eskirgan izoh, xatti-harakatga ta'siri
+     yo'q.
+  2. `restoreStock` dagi `UPDATE ... FROM order_items` naqshi tekshirildi va **NUQSON EMAS**
+     deb topildi. Shubha o'rinli edi (bir mahsulot ikki qatorda uchrasa `UPDATE` faqat bittasini
+     hisobga olardi), lekin bunday holat yuzaga kelmaydi: `orders.js:106` dagi `qtyById` Map va
+     `orders.js:121` dagi `prods` bitta buyurtmada bitta mahsulot faqat bir marta qator
+     bo'lishini ta'minlaydi. Yozib qo'yilyapti, chunki bu tekshiruv keyin yana takrorlanmasin
 
 - [2026-07-31] **Sharhlar tizimi production'ga chiqdi va DARVOZALARI sinaldi — asosiy
   oqim esa sinalmay qoldi (sabab quyida).**
@@ -195,6 +239,12 @@ Platformaning barcha funksiyalarini real foydalanuvchilar bilan sinovdan o'tkazi
 
 ## Qarorlar
 
+- [2026-08-01] Qaror: **sinov chiqindisi tozalangani MUSTAQIL manbadan tasdiqlanadi.** 2026-07-30
+  dagi "sinov o'z chiqindisini o'zi tozalaydi" qarorining davomi: tozalash amali bajarilgani
+  yetarli emas, natija ochiq API'dan qayta o'qib solishtiriladi (bugun: Tola 12, Junli mato 49
+  boshlang'ich holatiga qaytgani ko'rildi). Sabab: bu "CI yashil edi, fayllar esa serverga
+  chiqmagandi" darsining aynan o'zi — amal muvaffaqiyatli tugagani natija to'g'ri ekanini
+  ANGLATMAYDI; yarim tozalangan sinov esa zaxira sonini jimgina noto'g'ri qoldiradi
 - [2026-07-30] Qaror: **production bazasida o'tkazilgan sinov o'z chiqindisini o'zi tozalaydi.** Sinov
   buyurtmalari (`#LM-3012`, `#LM-3013`) sinovdan keyin o'chirildi va zaxira baseline'ga qaytarildi.
   Sabab: bazada haqiqiy buyurtmalar bilan aralashgan sinov qatorlari komissiya hisobotini va zaxira
