@@ -32,6 +32,23 @@
   tartiblangan holda qulflanadi (deadlock). `stock IS NULL` = CHEKSIZ —
   `made` mahsulotlar va son kiritilmagan e'lonlar. Bekor qilinganda zaxira
   qaytariladi, `refunded`da esa ATAYLAB qaytarilmaydi (mato xaridorda qoladi).
+- **Buyurtma holati o'zgarishi TARIXSIZ bo'lmaydi** (2026-08-03). Har bir
+  `UPDATE orders SET status` yonida `recordStatusChange()`
+  (`server/lib/order-history.js`) turadi va u holat bilan **BITTA
+  tranzaksiyada** bajariladi. Funksiya `pool` qabul qilmaydi — faqat
+  `pool.connect()` dan olingan klient (`pool` da ham `.query` bor, shuning
+  uchun `.release` bo'yicha farqlanadi): `pool` uzatilsa yozuv tranzaksiyadan
+  tashqarida ketib, atomiklik jimgina yo'qolardi. Xato ham yutilmaydi — tarix
+  yozilmasa butun o'tish ROLLBACK bo'ladi. Sabab: teshikli tarix tarix
+  yo'qligidan YOMONROQ, chunki unga qarab qaror qabul qilinadi va u jimgina
+  yolg'on gapiradi. Yangi yozuv nuqtasi qo'shilsa `server/test.js` dagi
+  `HISTORY_INVENTORY` ham yangilansin — aks holda Test 12b qizil bo'ladi
+  (u manba kodini skanerlab qamrovni tekshiradi).
+  ⚠️ **Bir xil ro'yxat ikki jadvalda takrorlanmasin.** `to_status` ga CHECK
+  ATAYLAB qo'yilmagan: qiymat baribir `orders_status_check` dan o'tgan bo'ladi.
+  Aynan shu naqsh 2026-08-03 da tishlagan — `admin_actions_kind_check` da
+  `review_hide` yo'q edi va sharh yashirish production'da BUTUNLAY ishlamasdi
+  (`db/014`). Ikkinchi ro'yxat himoya emas, kelajakdagi tuzoq.
 - **Reyting hosila — qo'lda yozilmasin** (2026-07-31). `products.rating`,
   `products.reviews` va `sellers.rating` ustunlarining YAGONA yozuvchisi —
   `routes/reviews.js` → `recalcRating()`, u qiymatni `reviews` jadvali ustidan

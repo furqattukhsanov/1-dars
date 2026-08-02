@@ -76,6 +76,15 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
 
 ## Qilingan ishlar
 
+- [2026-08-03] **Buyurtma oqimining har bir holat o'zgarishi endi tarixga yoziladi**
+  (`order_status_history`). Buyurtma tug'ilishi (Mini App va sayt), sotuvchining
+  accept/reject/ship amali, bot buyruqlari va admin panelning payout/refund/bahs qarori —
+  beshala yozuv nuqtasi ham holat bilan BITTA tranzaksiyada tarixga "qachon, qaysi holatdan
+  qaysisiga, kim" yozadi. Bu Sprint 4 dagi buyurtma oqimining o'zini o'zgartirmaydi —
+  qorovullar va xatti-harakat aynan oldingidek qoldi, faqat `UPDATE` lar `prev` CTE ga
+  o'tkazildi (oldingi holatni olish uchun). **To'liq tafsilot, qarorlar va ochiq qarz —
+  Sprint 8 dagi 2026-08-03 "B4" yozuvida.**
+
 - [2026-08-02] **Bosh sahifadagi kartochkalar refreshda joyini almashtirardi —
   yuqoridagi tuzatishning davomi, ildizi esa o'sha zaxira massiv edi.**
 

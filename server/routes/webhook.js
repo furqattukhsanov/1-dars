@@ -11,6 +11,7 @@ const { handleAdminActionCallback } = require('./admin');
 const { handleDisputeEvidence, handleDisputeEvidenceDone } = require('./disputes');
 const { handleProductImage } = require('./catalog');
 const { hideReview } = require('./reviews');
+const { recordStatusChange } = require('../lib/order-history');
 const {
   startSellerApplication, handleSellerApplicationStep,
   handleSellerApplicationContact, handleSellerApplicationReview,
@@ -85,10 +86,45 @@ async function handleTelegramWebhook(req, res) {
         const cmd = STATUS_COMMANDS[m[1].toLowerCase()];
         const orderId = m[2].startsWith('#') ? m[2] : '#' + m[2];
         try {
-          const { rows } = await pool.query(
-            `UPDATE orders SET status = $1 WHERE id = $2 RETURNING tg_user_id`,
-            [cmd.status, orderId]
-          );
+          // ⚠️ Bu yo'l holat O'TISHINI tekshirmaydi — `seller.js` dagidan farqi
+          // shu: admin `/yetdi` ni istalgan holatdagi buyurtmaga yozaveradi
+          // (masalan `pending` dan to'g'ridan-to'g'ri `delivered` ga). Bu
+          // MAVJUD xatti-harakat va 2026-08-03 da ATAYLAB o'zgartirilmadi:
+          // qorovul qo'shish founder'ning bot bilan ishlash odatini kutilmaganda
+          // buzardi. Tarix esa endi `from_status` ni yozadi, ya'ni bunday
+          // mantiqsiz o'tish KO'RINADI — tuzatilmaydi, lekin yashirinmaydi.
+          //
+          // Tranzaksiya: holat va tarix atomik bo'lishi uchun qo'shildi
+          // (ilgari bu yerda tranzaksiya umuman yo'q edi).
+          let rows;
+          const client = await pool.connect();
+          try {
+            await client.query('BEGIN');
+            const upd = await client.query(
+              `WITH prev AS (SELECT id, status FROM orders WHERE id = $2 FOR UPDATE)
+               UPDATE orders o SET status = $1
+                 FROM prev WHERE o.id = prev.id
+                 RETURNING o.tg_user_id, prev.status AS from_status`,
+              [cmd.status, orderId]
+            );
+            rows = upd.rows;
+            if (rows.length) {
+              await recordStatusChange(client, {
+                orderId,
+                from: rows[0].from_status,
+                to: cmd.status,
+                actorKind: 'admin',
+                actorTg: msg.from && msg.from.id,
+                note: 'bot buyrug\'i',
+              });
+            }
+            await client.query('COMMIT');
+          } catch (e) {
+            try { await client.query('ROLLBACK'); } catch (_) {}
+            throw e;
+          } finally {
+            client.release();
+          }
           if (!rows.length) {
             await callTelegram('sendMessage', { chat_id: ADMIN_CHAT_ID, text: `❌ ${orderId} topilmadi.` });
           } else if (rows[0].tg_user_id) {

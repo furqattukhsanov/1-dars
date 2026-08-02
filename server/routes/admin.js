@@ -8,6 +8,7 @@ const { callTelegram, callbackAnswer, notify } = require('../lib/telegram-api');
 const { handleSellerApplicationReview } = require('./seller-application');
 const { productPhotoUrl } = require('./catalog');
 const { findReviewForAdmin, hideReview } = require('./reviews');
+const { recordStatusChange } = require('../lib/order-history');
 
 // ============ ADMIN PANEL RUXSATI ============
 // admin/index.html (standalone sahifa) Telegram initData ishlab chiqara olmaydi,
@@ -323,12 +324,31 @@ const ADMIN_ACTIONS = {
       `<b>Jami:</b> ${escapeHtml(money(t.total_amount))}\n` +
       `<b>Komissiya:</b> ${escapeHtml(money(t.commission_amount || 0))}\n` +
       `<b>Sotuvchiga:</b> ${escapeHtml(money(t.payout_amount || 0))}`,
-    async run(a) {
-      const { rows } = await pool.query(
-        `UPDATE orders SET status='completed', paid_out_at=now()
-          WHERE id=$1 AND status='delivered' RETURNING id, payout_amount`,
-        [a.target_id]);
-      if (!rows.length) throw new ClientError("buyurtma holati o'zgargan");
+    async run(a, actorTg) {
+      // Tranzaksiya tarix uchun qo'shildi: holat o'zgarib, tarix yozilmay
+      // qolishi mumkin bo'lmasin. `status='delivered'` qorovuli saqlanadi,
+      // shuning uchun `from` har doim aynan 'delivered'.
+      let rows;
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN');
+        const upd = await client.query(
+          `UPDATE orders SET status='completed', paid_out_at=now()
+            WHERE id=$1 AND status='delivered' RETURNING id, payout_amount`,
+          [a.target_id]);
+        rows = upd.rows;
+        if (!rows.length) throw new ClientError("buyurtma holati o'zgargan");
+        await recordStatusChange(client, {
+          orderId: a.target_id, from: 'delivered', to: 'completed',
+          actorKind: 'admin', actorTg, note: "sotuvchiga pul o'tkazildi",
+        });
+        await client.query('COMMIT');
+      } catch (e) {
+        try { await client.query('ROLLBACK'); } catch (_) {}
+        throw e;
+      } finally {
+        client.release();
+      }
       for (const tg of await sellerTgIdsForOrder(a.target_id)) {
         await notify(tg,
           `💸 <b>To'lov o'tkazildi</b>\n\nBuyurtma: <code>${escapeHtml(a.target_id)}</code>\n` +
@@ -362,12 +382,36 @@ const ADMIN_ACTIONS = {
       (p.amount < Number(t.total_amount) ? ' (qisman)' : ' (to\'liq)') +
       `\n<b>Sabab:</b> ${escapeHtml(p.reason)}\n\n` +
       `<i>Diqqat: pul o'tkazmasi qo'lda bajariladi — bu yozuv faqat faktni qayd etadi.</i>`,
-    async run(a) {
-      const { rows } = await pool.query(
-        `UPDATE orders SET status='refunded', refund_amount=$1, refund_reason=$2, refunded_at=now()
-          WHERE id=$3 AND status <> 'refunded' RETURNING id, tg_user_id`,
-        [a.payload.amount, a.payload.reason, a.target_id]);
-      if (!rows.length) throw new ClientError("buyurtma holati o'zgargan");
+    async run(a, actorTg) {
+      // `prev` CTE — tarixga "qaysi holatdan qaytarildi" kerak. Qorovul
+      // (`status <> 'refunded'`) prev ustida qoladi, ya'ni ikki marta
+      // qaytarish ilgarigidek rad etiladi.
+      let rows;
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN');
+        const upd = await client.query(
+          `WITH prev AS (SELECT id, status FROM orders WHERE id=$3 FOR UPDATE)
+           UPDATE orders o SET status='refunded', refund_amount=$1,
+                  refund_reason=$2, refunded_at=now()
+             FROM prev
+            WHERE o.id = prev.id AND prev.status <> 'refunded'
+            RETURNING o.id, o.tg_user_id, prev.status AS from_status`,
+          [a.payload.amount, a.payload.reason, a.target_id]);
+        rows = upd.rows;
+        if (!rows.length) throw new ClientError("buyurtma holati o'zgargan");
+        await recordStatusChange(client, {
+          orderId: a.target_id, from: rows[0].from_status, to: 'refunded',
+          actorKind: 'admin', actorTg,
+          note: `qaytarildi ${a.payload.amount}: ${a.payload.reason}`,
+        });
+        await client.query('COMMIT');
+      } catch (e) {
+        try { await client.query('ROLLBACK'); } catch (_) {}
+        throw e;
+      } finally {
+        client.release();
+      }
       await notify(rows[0].tg_user_id,
         `↩️ <b>Pul qaytarildi</b>\n\nBuyurtma: <code>${escapeHtml(a.target_id)}</code>\n` +
         `Summa: ${escapeHtml(money(a.payload.amount))}\n<b>Sabab:</b> ${escapeHtml(a.payload.reason)}`);
@@ -406,7 +450,7 @@ const ADMIN_ACTIONS = {
         (p.refundAmount ? `<b>Qaytariladi:</b> ${escapeHtml(money(p.refundAmount))}\n` : '') +
         `<b>Qaror:</b> ${escapeHtml(p.decision)}`;
     },
-    async run(a) {
+    async run(a, actorTg) {
       const p = a.payload;
       let client;
       let d;
@@ -424,11 +468,24 @@ const ADMIN_ACTIONS = {
         // Qaytarish belgilangan bo'lsa buyurtma ham 'refunded' bo'ladi —
         // shunda pul o'tkazish (payout) endi mumkin bo'lmaydi.
         if (p.refundAmount > 0) {
-          await client.query(
-            `UPDATE orders SET status='refunded', refund_amount=$1,
+          const upd = await client.query(
+            `WITH prev AS (SELECT id, status FROM orders WHERE id=$3 FOR UPDATE)
+             UPDATE orders o SET status='refunded', refund_amount=$1,
                     refund_reason=$2, refunded_at=now()
-              WHERE id=$3 AND status <> 'refunded'`,
+               FROM prev
+              WHERE o.id = prev.id AND prev.status <> 'refunded'
+              RETURNING prev.status AS from_status`,
             [p.refundAmount, `Bahs #${d.id}: ${p.decision}`.slice(0, 500), d.order_id]);
+          // Buyurtma ALLAQACHON `refunded` bo'lsa UPDATE 0 qator qaytaradi —
+          // bu xato emas (bahs baribir hal qilinadi), lekin holat O'ZGARMAGANI
+          // uchun tarixga ham yozilmaydi: bo'lmagan o'tish yozilmasin.
+          if (upd.rows.length) {
+            await recordStatusChange(client, {
+              orderId: d.order_id, from: upd.rows[0].from_status, to: 'refunded',
+              actorKind: 'admin', actorTg,
+              note: `bahs #${d.id} qarori bo'yicha qaytarildi ${p.refundAmount}`,
+            });
+          }
         }
         await client.query('COMMIT');
       } catch (e) {
@@ -580,7 +637,10 @@ async function handleAdminActionCallback(cq) {
     try {
       // Ijrochi ClientError tashlasa — bu biznes sababi (holat o'zgargan),
       // uni adminga ko'rsatamiz. Boshqa xatolar yashiriladi.
-      const out = await ADMIN_ACTIONS[a.kind].run(a);
+      // Tugmani BOSGAN odamning Telegram ID'si — tarixga "kim qildi" bo'lib
+      // yoziladi. `a.decided_by` bu paytda hali NULL (u pastda, run'dan KEYIN
+      // qo'yiladi), shuning uchun qiymat parametr sifatida uzatiladi.
+      const out = await ADMIN_ACTIONS[a.kind].run(a, String(cq.from.id));
       await pool.query(
         `UPDATE admin_actions SET status='done', decided_at=now(), decided_by=$1 WHERE id=$2 AND status='pending'`,
         [String(cq.from.id), actionId]);

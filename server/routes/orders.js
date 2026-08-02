@@ -5,6 +5,7 @@ const { escapeHtml, money, dateLabel } = require('../lib/format');
 const { validate, ClientError } = require('../lib/validate');
 const { rateLimited, readBody, sendJson, fail } = require('../lib/http');
 const { sendOrderNotifyMessage, sendBuyerConfirmMessage } = require('../lib/telegram-api');
+const { recordStatusChange } = require('../lib/order-history');
 const { webSessionUser } = require('./web-auth');
 
 // ============ ZAXIRANI KAMAYTIRISH ============
@@ -177,6 +178,11 @@ async function handleCreateOrder(req, res, ip) {
         [orderId, it.id, it.name, it.qty, it.unitPrice]
       );
     }
+    // Tarixning birinchi qatori — buyurtma tug'ilgan lahza (from = NULL)
+    await recordStatusChange(client, {
+      orderId, from: null, to: 'pending', actorKind: 'buyer', actorTg: u.id,
+      note: 'Mini App',
+    });
     await client.query('COMMIT');
 
     // Telegram xabarlari (baza yozilgach)
@@ -344,6 +350,13 @@ async function handleCreateWebOrder(req, res, ip) {
         [orderId, it.id, it.name, it.qty, it.unitPrice]
       );
     }
+    // Saytda Telegram hisobi bo'lmasligi mumkin — u holda actorTg NULL qoladi,
+    // xaridor kimligi `orders.buyer_phone` da saqlanadi.
+    await recordStatusChange(client, {
+      orderId, from: null, to: 'pending', actorKind: 'buyer',
+      actorTg: session ? session.tgUserId : null,
+      note: 'sayt (web)',
+    });
     await client.query('COMMIT');
 
     const uShort = (u) => (u === 'rulon' ? 'rulon' : u || '');

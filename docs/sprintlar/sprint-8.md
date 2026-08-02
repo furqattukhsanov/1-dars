@@ -81,6 +81,76 @@ Platformaning barcha funksiyalarini real foydalanuvchilar bilan sinovdan o'tkazi
 
 ## Qilingan ishlar
 
+- [2026-08-03] **B4 — buyurtma holati tarixi (`order_status_history`) qo'shildi: endi har bir
+  o'tish "qachon, qaysi holatdan qaysisiga, KIM" bo'lib yoziladi.**
+
+  **Muammo:** `orders.status` faqat JORIY holatni saqlardi. Buyurtma qachon tasdiqlangani,
+  kim jo'natgani, nega bekor qilingani hech qayerda qolmasdi — bahs chiqqanda "sotuvchi
+  qachon jo'natdi?" degan savolga javob Telegram yozishmalarini qo'lda titishdan iborat edi.
+  B2 dagi `#LM-3001` bahsi aynan shuni ko'rsatdi.
+
+  **Sxema** (`db/015_order_status_history.sql`): `order_id`, `from_status` (NULL = buyurtma
+  endi yaratildi), `to_status`, `actor_kind` (`buyer`/`seller`/`admin`/`bot`/`system`),
+  `actor_tg`, `note`, `created_at`; `(order_id, created_at)` indeksi. Mavjud 13 buyurtma
+  backfill qilindi, lekin **TIKLANGAN tarix sifatida emas**: oraliq qadamlar hech qayerda
+  saqlanmagan va tiklab bo'lmaydi, shuning uchun har biriga bitta qator yoziladi —
+  `from_status=NULL`, `actor_kind='system'` va ochiq izoh bilan, `created_at` esa
+  buyurtmaning O'Z sanasi (aks holda 13 ta eski buyurtma "bugun o'zgargan" bo'lib
+  ko'rinardi). Migratsiya idempotent va oxirida tarixsiz buyurtma qolmaganini tekshiradi.
+
+  **`to_status` da CHECK ATAYLAB YO'Q** — bu o'sha kuni topilgan `review_hide` darsining
+  bevosita natijasi: bitta ro'yxat ikki joyda yashagani uchun `admin_actions_kind_check`
+  eskirib qolgan va funksiya butunlay ishlamas edi. Bu yerda qiymat baribir `orders` ning
+  o'zidan keladi va `orders_status_check` dan o'tgan bo'ladi, ya'ni ikkinchi ro'yxat faqat
+  kelajakda yangi holat qo'shilganda jimgina rad etadigan tuzoq bo'lardi. `actor_kind` da
+  esa CHECK BOR — u shu jadvalda tug'iladi va takrorlanmaydi.
+
+  **Yozuvchi** (`server/lib/order-history.js`, yangi fayl): `recordStatusChange()` — tarixning
+  YAGONA yozuvchisi. U `pool` emas, **tranzaksiya klientini** talab qiladi va buni haqiqatan
+  tekshiradi (`pool` da ham `.query` bor, shuning uchun farq `.release` mavjudligi bo'yicha
+  aniqlanadi): `pool` uzatilsa yozuv tranzaksiyadan tashqarida ketib, modulning butun maqsadi
+  jimgina yo'qolardi. Xato YUTILMAYDI — tarix yozilmasa butun o'tish ROLLBACK bo'ladi. Bu
+  ongli kelishuv: teshikli tarix tarix yo'qligidan yomonroq, chunki unga qarab qaror qabul
+  qilinadi. Narxi — tarix jadvali buzilsa buyurtma oqimi ham to'xtaydi, lekin bu B1 alerti
+  orqali darhol Telegram'ga chiqadi.
+
+  **Yozuv nuqtalari (5 ta):** `routes/orders.js` — Mini App va sayt buyurtmasi tug'ilishi
+  (`from=NULL`, `actor_kind='buyer'`; saytda Telegram hisobi bo'lmasligi mumkin, u holda
+  `actor_tg` NULL); `routes/seller.js` — accept/reject/ship; `routes/webhook.js` — bot
+  buyruqlari (`/tasdiqla` `/yolga` `/yetdi`), bu yerda **ilgari tranzaksiya UMUMAN yo'q edi**;
+  `routes/admin.js` — `order_payout`, `order_refund`, `dispute_resolve`. `UPDATE` lar `prev`
+  CTE ga o'tkazildi, chunki `RETURNING` faqat YANGI qiymatni beradi, tarixga esa "qaysi
+  holatdan" kerak — `FOR UPDATE` bilan qator qulflanadi va mavjud atomik qorovullar
+  (`prev.status = ANY(...)`, `<> 'refunded'`, `status='delivered'`) ilgarigidek ishlaydi.
+  Admin amallarida `run(a)` → `run(a, actorTg)` bo'ldi: tugmani BOSGAN adminning Telegram
+  ID'si tarixga yoziladi (`a.decided_by` bu paytda hali NULL).
+
+  **Sinov — uchta yangi test va uchta mutatsiya.** Test 12 yozuvchining o'zini qamraydi
+  (`pool` rad etilishi, noma'lum `actorKind` rad etilishi, parametrlar, `from`/`actorTg` NULL
+  ga aylanishi). **Test 12b eng muhimi:** u manba kodini skanerlaydi va har bir
+  `UPDATE orders SET status` yozuvi yonida `recordStatusChange` borligini tekshiradi, ustiga
+  aniq inventar (`HISTORY_INVENTORY`) bilan solishtiradi — yangi yozuv nuqtasi qo'shilsa test
+  QIZIL bo'ladi va odam ongli qaror qabul qilishga majbur. Sabab: xavf funksiyada emas,
+  QAMROVDA — unutilgan yozuv nuqtasi hech narsani buzmaydi, testlar yashil qoladi va tarixda
+  jimgina teshik paydo bo'ladi. Test 12c CTE refaktoringidan keyin atomik qorovullar
+  joyidaligini tekshiradi. Mutatsiya bilan tasdiqlandi: (a) `seller.js` dan tarix chaqiruvi
+  olib tashlanganda 12b qizil; (b) tarixsiz yangi `UPDATE orders SET status` qo'shilganda
+  inventar mos kelmadi va 12b qizil; (c) `prev.status = ANY(...)` olib tashlanganda 12c qizil.
+  Hammasi qaytarildi. `npm test` — hammasi PASS, lint 0 xato.
+
+  **OCHIQ QARZ (ataylab qoldirildi):** `webhook.js` dagi bot buyrug'ida holat qorovuli YO'Q —
+  u `/yetdi` ni istalgan holatdagi buyurtmaga yozaveradi (`seller.js` dan farqi shu). Qorovul
+  qo'shish founder'ning bot bilan ishlash odatini kutilmaganda buzardi, bu esa B4 doirasidan
+  tashqari xatti-harakat o'zgarishi bo'lardi. Tarix endi `from_status` ni yozadi, ya'ni
+  mantiqsiz o'tish KO'RINADI — tuzatilmaydi, lekin yashirinmaydi.
+
+  **Deploy holati:** migratsiya production'da QO'LLANILDI va tasdiqlandi (13 buyurtma,
+  13 tarix yozuvi, tarixsiz buyurtma 0, jadval egaligi `lola`), zaxira nusxa olindi.
+  **Kod hali serverga ko'chirilmagan** — commit'dan keyin rsync + `systemctl restart
+  lolamarket-notify` kerak. Ya'ni HOZIR production'da jadval bor, lekin unga yozadigan kod
+  yo'q: bu vaqtinchalik holat, keyingi deploy'gacha yangi o'tishlar tarixga tushmaydi.
+  Sprint bandi shu sabab `[x]` qilinmadi (30-iyul qarori: dalil jonli tekshiruvdan keladi).
+
 - [2026-08-03] **B2 — bahs (dispute) oqimi jonli Telegram bilan uchidan-uchiga sinaldi, va
   yo'l-yo'lakay `review_hide` amalini BUTUNLAY ishlamas qilib turgan production nuqsoni
   topib tuzatildi.**
@@ -347,6 +417,29 @@ Platformaning barcha funksiyalarini real foydalanuvchilar bilan sinovdan o'tkazi
 
 ## Qarorlar
 
+- [2026-08-03] Qaror: **himoya faqat FUNKSIYAda emas, QAMROVda ham bo'lsin — inventar test
+  bilan qotiriladi.** Test 12b manba kodini skanerlab, har bir `UPDATE orders SET status`
+  yozuvi tarix chaqiruvi bilan birga ekanini tekshiradi va aniq ro'yxat bilan solishtiradi;
+  yangi yozuv nuqtasi qo'shilsa test qizil bo'ladi. Sabab: unutilgan yozuv nuqtasi hech
+  narsani BUZMAYDI — hamma test yashil qolaveradi va tarixda jimgina teshik paydo bo'ladi,
+  keyin esa unga qarab qaror qabul qilinadi. Bu 8-avgustdagi "ulanish ham sinaladi"
+  qarorining keyingi qadami: endi ulanish EMAS, ulanishlarning TO'LIQLIGI qamalyapti
+- [2026-08-03] Qaror: **buyurtma holati o'zgarishi va uning tarixi BITTA tranzaksiyada.**
+  `recordStatusChange()` `pool` qabul qilmaydi (imzoning o'zi noto'g'ri ishlatishni
+  qiyinlashtiradi) va xatoni yutmaydi — tarix yozilmasa butun o'tish ROLLBACK bo'ladi.
+  Ya'ni "holat o'zgardi, tarix yo'q" holati umuman yuzaga kelmaydi. Narxi ochiq tan olinadi:
+  tarix jadvali buzilsa buyurtma oqimi ham to'xtaydi. Sabab — jimgina teshikli tarix eng
+  yomon variant: u "ba'zan to'g'ri" bo'ladi va yolg'onligi bilinmaydi
+- [2026-08-03] Qaror: **backfill tarix o'rniga o'tkazilmaydi.** Eski 13 buyurtmaning oraliq
+  qadamlari hech qayerda saqlanmagan va ularni tiklab bo'lmaydi, shuning uchun har biriga
+  bitta qator yoziladi — `from_status=NULL`, `actor_kind='system'` va ochiq izoh bilan, ya'ni
+  bu yozuv haqiqiy o'tish EMASLIGI ko'rinib turadi. Taxmin qilingan oraliq holatlarni yozish
+  "o'ylab topilgan raqam ko'rsatilmasin" qoidasining aynan buzilishi bo'lardi, faqat panelda
+  emas, BAHS hal qilinadigan joyda
+- [2026-08-03] Qaror: **bir xil ro'yxat ikki jadvalda takrorlanmaydi** — `to_status` da CHECK
+  ATAYLAB qo'yilmadi, chunki qiymat `orders` ning o'zidan keladi va u yerda allaqachon
+  tekshirilgan. Aynan shu naqsh o'sha kuni `review_hide` da tishlagan edi. CHECK faqat
+  qiymat SHU jadvalda tug'ilganda qo'yiladi (`actor_kind`)
 - [2026-08-03] Qaror: **funksiyaning O'ZI sinalgani yetarli emas — ULANISH ham sinaladi.**
   `recalcRating()` alohida sinalgan va o'tgan edi, lekin uni `hideReview()` chaqirishini
   hech narsa tekshirmasdi; chaqiruv yo'qolsa butun to'plam yashil qolardi va reyting

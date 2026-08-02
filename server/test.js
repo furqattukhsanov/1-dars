@@ -668,6 +668,161 @@ async function testHideReviewRecalculates() {
   console.log('✅ Test 11: Sharh yashirilganda reyting qayta hisoblanadi — PASS');
 }
 
+// ============ TEST 12: Buyurtma tarixi — yozuvchi funksiya ============
+// `recordStatusChange` tarixning YAGONA yozuvchisi. Uning ikkita himoyasi
+// muhim: (1) tranzaksiya klientini talab qiladi — `pool` uzatilsa yozuv
+// tranzaksiyadan tashqarida ketib, atomiklik jimgina yo'qolardi;
+// (2) noma'lum `actorKind` ni RAD ETADI — u jimgina o'tsa "kim qildi"
+// degan savolga tarix yolg'on javob berardi.
+function fakeHistoryClient() {
+  const queries = [];
+  return {
+    queries,
+    async query(sql, params) { queries.push({ sql, params }); return { rows: [] }; },
+    release() {},
+  };
+}
+
+async function testRecordStatusChange() {
+  const { recordStatusChange, ACTOR_KINDS } = require('./lib/order-history');
+
+  const c = fakeHistoryClient();
+  await recordStatusChange(c, {
+    orderId: '#LM-3001', from: 'confirmed', to: 'shipped',
+    actorKind: 'seller', actorTg: 1378240226, note: 'BTS trek: AB123',
+  });
+  assert.strictEqual(c.queries.length, 1, 'bitta INSERT yuborilishi kerak');
+  const q = c.queries[0];
+  assert.ok(/INSERT INTO order_status_history/.test(q.sql), 'tarix jadvaliga yozilishi kerak');
+  assert.deepStrictEqual(
+    q.params,
+    ['#LM-3001', 'confirmed', 'shipped', 'seller', '1378240226', 'BTS trek: AB123'],
+    'parametrlar tartibi va qiymatlari to\'g\'ri bo\'lishi kerak');
+
+  // Yaratilish: from NULL bo'ladi, actorTg yo'q bo'lsa ham NULL
+  const c2 = fakeHistoryClient();
+  await recordStatusChange(c2, { orderId: '#LM-1', from: null, to: 'pending', actorKind: 'buyer' });
+  assert.strictEqual(c2.queries[0].params[1], null, 'yangi buyurtmada from NULL bo\'lishi kerak');
+  assert.strictEqual(c2.queries[0].params[4], null, 'actorTg berilmasa NULL bo\'lishi kerak');
+  // Bo'sh satr ham NULL — aks holda Postgres bigint xatosi berardi
+  const c3 = fakeHistoryClient();
+  await recordStatusChange(c3, { orderId: '#LM-1', to: 'pending', actorKind: 'buyer', actorTg: '' });
+  assert.strictEqual(c3.queries[0].params[4], null, 'bo\'sh actorTg NULL ga aylanishi kerak');
+
+  // ---- pool uzatilsa RAD ETILISHI kerak ----
+  // pool'da `query` bor, lekin `release` yo'q — modul aynan shu farqqa tayanadi
+  const poolLike = { query: async () => ({ rows: [] }) };
+  await assert.rejects(
+    () => recordStatusChange(poolLike, { orderId: '#LM-1', to: 'pending', actorKind: 'buyer' }),
+    /tranzaksiya klienti kerak/,
+    'pool uzatilsa xato berilishi kerak — aks holda yozuv tranzaksiyadan tashqarida ketardi');
+
+  // ---- Noma'lum actorKind ----
+  await assert.rejects(
+    () => recordStatusChange(fakeHistoryClient(), { orderId: '#LM-1', to: 'pending', actorKind: 'kimdir' }),
+    /noma'lum actorKind/,
+    'ro\'yxatda yo\'q actorKind rad etilishi kerak');
+  for (const kind of ACTOR_KINDS) {
+    await recordStatusChange(fakeHistoryClient(), { orderId: '#LM-1', to: 'pending', actorKind: kind });
+  }
+
+  // ---- Majburiy maydonlar ----
+  await assert.rejects(() => recordStatusChange(fakeHistoryClient(), { to: 'pending', actorKind: 'buyer' }),
+    /orderId kerak/, 'orderId majburiy');
+  await assert.rejects(() => recordStatusChange(fakeHistoryClient(), { orderId: '#LM-1', actorKind: 'buyer' }),
+    /to \(yangi holat\) kerak/, 'to majburiy');
+
+  console.log('✅ Test 12: Buyurtma tarixi yozuvchisi (recordStatusChange) — PASS');
+}
+
+// ============ TEST 12b: HAR BIR holat yozuvi tarixga tushadimi ============
+// Bu B4 ning eng muhim testi. Xavf funksiyada emas — QAMROVDA: kimdir
+// kelajakda yangi `UPDATE orders SET status` qo'shsa-yu tarix yozuvini
+// unutsa, hech narsa buzilmaydi, testlar yashil qoladi va tarixda JIMGINA
+// teshik paydo bo'ladi. Uni faqat bahs chiqqanda, ya'ni eng kerakli paytda
+// sezardik.
+//
+// Shuning uchun test manba KODINI skanerlaydi: har bir faylda holat
+// yozuvlari soni tarix chaqiruvlari sonidan OSHMASLIGI kerak. Ro'yxat
+// ataylab aniq sanaladi — yangi yozuv nuqtasi qo'shilsa test "kutilgan son
+// o'zgardi" deb qizil bo'ladi va odam ongli qaror qabul qilishga majbur.
+const ORDER_STATUS_WRITE = /UPDATE\s+orders\s+(?:o\s+)?SET\s+status\s*=/g;
+const HISTORY_CALL = /recordStatusChange\s*\(/g;
+
+// Kutilgan inventar (2026-08-03). {status yozuvi, tarix chaqiruvi}
+const HISTORY_INVENTORY = {
+  'orders.js':  { writes: 0, records: 2 },  // ikkalasi INSERT (yaratish), UPDATE emas
+  'seller.js':  { writes: 1, records: 1 },  // accept / reject / ship
+  'webhook.js': { writes: 1, records: 1 },  // bot: /tasdiqla /yolga /yetdi
+  'admin.js':   { writes: 3, records: 3 },  // payout, refund, dispute qarori
+};
+
+function testEveryStatusWriteIsRecorded() {
+  const fs = require('fs');
+  const path = require('path');
+  const dir = path.join(__dirname, 'routes');
+
+  let totalWrites = 0;
+  let totalRecords = 0;
+  const seen = {};
+
+  for (const file of fs.readdirSync(dir).filter((f) => f.endsWith('.js'))) {
+    const src = fs.readFileSync(path.join(dir, file), 'utf8');
+    const writes = (src.match(ORDER_STATUS_WRITE) || []).length;
+    const records = (src.match(HISTORY_CALL) || []).length;
+    if (writes === 0 && records === 0) continue;
+    seen[file] = { writes, records };
+    totalWrites += writes;
+    totalRecords += records;
+
+    assert.ok(records >= writes,
+      `${file}: ${writes} ta holat yozuvi bor, lekin ${records} ta tarix chaqiruvi — ` +
+      `har bir "UPDATE orders SET status" recordStatusChange bilan birga bo'lishi SHART`);
+  }
+
+  assert.deepStrictEqual(seen, HISTORY_INVENTORY,
+    'Buyurtma holati yozuvlari inventari o\'zgardi. Yangi yozuv nuqtasi qo\'shgan ' +
+    'bo\'lsangiz — tarix chaqiruvini ham qo\'shing va HISTORY_INVENTORY ni yangilang.\n' +
+    '   Topilgan: ' + JSON.stringify(seen));
+
+  // Tarix yozuvchisi FAQAT bitta modulda yashaydi — nusxa ko'chirilmasin
+  const lib = fs.readFileSync(path.join(__dirname, 'lib', 'order-history.js'), 'utf8');
+  assert.ok(/INSERT INTO order_status_history/.test(lib),
+    'tarix INSERT\'i lib/order-history.js da bo\'lishi kerak');
+  for (const file of fs.readdirSync(dir).filter((f) => f.endsWith('.js'))) {
+    const src = fs.readFileSync(path.join(dir, file), 'utf8');
+    assert.ok(!/INSERT INTO order_status_history/.test(src),
+      `${file}: tarixga TO'G'RIDAN-TO'G'RI yozilmasin — recordStatusChange() ishlatilsin`);
+  }
+
+  console.log(`✅ Test 12b: Har bir holat yozuvi tarixga tushadi — PASS ` +
+    `(${totalWrites} ta yozuv, ${totalRecords} ta tarix chaqiruvi)`);
+}
+
+// ============ TEST 12c: Atomik qorovul CTE dan keyin ham saqlanganmi ============
+// `seller.js` dagi UPDATE tarix uchun CTE ga o'tkazildi (oldingi holatni olish
+// kerak edi). Xavf: kimdir uni "soddalashtirib" `FOR UPDATE` yoki
+// `prev.status = ANY(...)` shartini yo'qotishi mumkin — o'shanda ikki marta
+// bosilgan "rad etish" zaxirani IKKI MARTA qaytarardi (2026-07-30 da aynan shu
+// sabab atomik shart qo'yilgan edi).
+function testStatusGuardsSurviveCte() {
+  const fs = require('fs');
+  const path = require('path');
+
+  const seller = fs.readFileSync(path.join(__dirname, 'routes', 'seller.js'), 'utf8');
+  assert.ok(/FOR UPDATE/.test(seller), 'seller.js: qator qulflanishi kerak (FOR UPDATE)');
+  assert.ok(/prev\.status\s*=\s*ANY\(/.test(seller),
+    'seller.js: holat qorovuli saqlanishi kerak — ikki marta bosilsa zaxira ikki marta qaytmasin');
+
+  const admin = fs.readFileSync(path.join(__dirname, 'routes', 'admin.js'), 'utf8');
+  assert.ok(/prev\.status\s*<>\s*'refunded'/.test(admin),
+    'admin.js: ikki marta qaytarish qorovuli saqlanishi kerak');
+  assert.ok(/status='delivered'/.test(admin),
+    'admin.js: pul o\'tkazish faqat "yetkazildi" holatida bo\'lishi kerak');
+
+  console.log('✅ Test 12c: Atomik qorovullar CTE dan keyin ham joyida — PASS');
+}
+
 // ============ TEST RUNNER ============
 async function runTests() {
   console.log('\n🧪 LolaMarket Server Testlari\n');
@@ -691,8 +846,11 @@ async function runTests() {
     testAlertThrottle();
     testAlertTextEscaping();
     await testHideReviewRecalculates();
+    await testRecordStatusChange();
+    testEveryStatusWriteIsRecorded();
+    testStatusGuardsSurviveCte();
 
-    console.log('\n✅ Hammasi PASS — pul hisobi, imzo tekshiruvi, route jadvali va xato alerti joyida\n');
+    console.log('\n✅ Hammasi PASS — pul hisobi, imzo, route jadvali, xato alerti va buyurtma tarixi joyida\n');
     process.exit(0);
   } catch (err) {
     console.error('\n❌ TEST XATOSI:\n', err.message, '\n');

@@ -5,6 +5,7 @@ const { escapeHtml, dateLabel } = require('../lib/format');
 const { validate } = require('../lib/validate');
 const { rateLimited, readBody, ok, fail } = require('../lib/http');
 const { callTelegram, notify } = require('../lib/telegram-api');
+const { recordStatusChange } = require('../lib/order-history');
 const { productPhotoUrl } = require('./catalog');
 const { restoreStock } = require('./orders');
 
@@ -244,10 +245,17 @@ async function handleSellerOrderAction(req, res, ip) {
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
+      // `prev` CTE oldingi holatni tarix uchun olib qoladi: RETURNING faqat
+      // YANGI qiymatni bera oladi, tarixga esa "qaysi holatdan" kerak.
+      // `FOR UPDATE` qatorni qulflaydi, ya'ni atomik qorovul (`prev.status =
+      // ANY(...)`) ilgarigidek ishlaydi — ikki marta bosilsa ikkinchisi 0 qator
+      // qaytaradi va zaxira ikki marta qaytmaydi.
       const { rows } = await client.query(
-        `UPDATE orders SET status = $1, tracking_code = COALESCE($2, tracking_code)
-          WHERE id = $3 AND status = ANY($4)
-          RETURNING id, status, tg_user_id`,
+        `WITH prev AS (SELECT id, status FROM orders WHERE id = $3 FOR UPDATE)
+         UPDATE orders o SET status = $1, tracking_code = COALESCE($2, o.tracking_code)
+           FROM prev
+          WHERE o.id = prev.id AND prev.status = ANY($4)
+          RETURNING o.id, o.status, o.tg_user_id, prev.status AS from_status`,
         [cmd.to, tracking, orderId, cmd.from]
       );
       if (!rows.length) {
@@ -256,6 +264,14 @@ async function handleSellerOrderAction(req, res, ip) {
       }
       // Rad etildi — mato jo'natilmagan, rulonlar omborga qaytadi
       if (cmd.restoresStock) await restoreStock(client, orderId);
+      await recordStatusChange(client, {
+        orderId,
+        from: rows[0].from_status,
+        to: rows[0].status,
+        actorKind: 'seller',
+        actorTg: me.tg && me.tg.id,
+        note: tracking ? `BTS trek: ${tracking}` : null,
+      });
       await client.query('COMMIT');
       row = rows[0];
     } catch (e) {
