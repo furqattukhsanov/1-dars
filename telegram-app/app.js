@@ -209,9 +209,11 @@ let PRODUCTS = [
   { id:'lk-5512', pattern:'weave',      img:'assets/products/textile-06.jpg', price:750000, unit:'rulon', moq:1, lead:24, rating:null, reviews:0,  verified:true,  stockKey:'in',   catKey:'linen',  badgeTone:'neutral',
     name:{ uz:"Zig'ir mato — natural", ru:"Лён — натуральный" }, supplier:{ uz:"Shymkent Mills", ru:"Шымкент Миллс" }, city:{ uz:"Shymkent", ru:"Шымкент" },
     width:"1.4 m", weight:"200 g/m²", comp:{ uz:"100% zig'ir", ru:"100% лён" }, badge:null },
-  { id:'ik-9001', pattern:'ikat',       img:'assets/products/textile-07.jpg', price:900000, unit:'rulon', moq:1, lead:30, rating:null, reviews:0,  verified:true,  stockKey:'in',   catKey:'ikat',   badgeTone:'primary',
-    name:{ uz:"Kelinlik ikat — za'faron", ru:"Свадебный икат — шафран" }, supplier:{ uz:"Marg'ilon Ipak Co.", ru:"Маргилан Силк" }, city:{ uz:"Marg'ilon", ru:"Маргилан" },
-    width:"0.9 m", weight:"110 g/m²", comp:{ uz:"100% tut ipagi", ru:"100% тутовый шёлк" }, badge:{ uz:"Tavsiya", ru:"Хит" } },
+  // `ik-9001` shu yerdan OLIB TASHLANDI (2026-08-02): u bazada hech qachon
+  // bo'lmagan, ya'ni zaxira massiv haqiqatdan chetga chiqib ketgandi. Natijasi
+  // ikki nuqson bo'ldi — bosh sahifa uni topa olmay butunlay qulardi, keyin esa
+  // kartochkalar yuklanish paytida joyini almashtirardi. Zaxira massiv bazaning
+  // MOSLASHGAN nusxasi bo'lsin: bu yerga bazada yo'q mahsulot qo'shilmasin.
   { id:'pl-3320', pattern:'plain',      img:'assets/products/textile-08.jpg', price:700000, unit:'rulon', moq:1, lead:18, rating:null, reviews:0,  verified:false, stockKey:'in',   catKey:'cotton', badgeTone:'neutral',
     name:{ uz:"Sodda to'qima — marjon", ru:"Простое плетение — коралл" }, supplier:{ uz:"Farg'ona Fabric", ru:"Фергана Фабрик" }, city:{ uz:"Farg'ona", ru:"Фергана" },
     width:"1.6 m", weight:"160 g/m²", comp:{ uz:"65% paxta / 35% PES", ru:"65% хлопок / 35% ПЭ" }, badge:null },
@@ -376,7 +378,7 @@ const S = {
   sEditId: null,        // tahrirlanayotgan mahsulot (null = yangi qo'shish)
   sTracking: {},        // buyurtma id → kiritilayotgan trek raqami
   sLoading: false,
-  liked: { 'ik-9001': true },
+  liked: {},            // sevimlilar; `ik-9001` bazada yo'q edi — olib tashlandi
   lang: 'uz',
   notif: true,
   comment: '',
@@ -407,7 +409,11 @@ function cssUrl(u) {
 // Bosh sahifadagi "Tanlangan" bloki. Bu ID'lar bazaga bog'liq EMAS — biror
 // mahsulot o'chirilsa ro'yxat jimgina eskiradi, shuning uchun `renderHome()`
 // yo'q ID'ni tashlab ketadi va o'rnini katalogdan to'ldiradi.
-const FEATURED_IDS = ['ik-1402','ik-9001','sz-3310','hb-7740'];
+// ⚠️ Bu ID'lar HAM zaxira massivda, HAM bazada bo'lishi shart. Bittasi faqat
+// zaxirada bo'lsa, ilova ochilganda avval u ko'rinadi, keyin katalog bazadan
+// kelgach tushib qoladi va kartochkalar KO'Z OLDIDA joyini almashtiradi
+// (2026-08-02: `ik-9001` aynan shunday edi — u bazada umuman yo'q).
+const FEATURED_IDS = ['ik-1402','ad-0890','sz-3310','hb-7740'];
 
 const BADGE_COLORS = {
   primary: ['var(--color-primary)','#fff'],

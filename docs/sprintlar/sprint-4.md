@@ -76,6 +76,47 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
 
 ## Qilingan ishlar
 
+- [2026-08-02] **Bosh sahifadagi kartochkalar refreshda joyini almashtirardi —
+  yuqoridagi tuzatishning davomi, ildizi esa o'sha zaxira massiv edi.**
+
+  **Shikoyat.** Foydalanuvchi: "ilovani refresh qilganda birinchi sahifadagi
+  mahsulotlar joyni bir o'zgartirib olgandek". Tekshirildi — haqiqiy nuqson.
+
+  **Sabab.** Ilova ikki marta chiziladi: avval kod ichidagi ZAXIRA massiv bilan
+  (darhol), keyin katalog bazadan kelgach (`loadProductsFromServer()` `PRODUCTS`
+  ni almashtiradi). `FEATURED_IDS` da `ik-9001` bor edi, u esa faqat zaxirada,
+  bazada YO'Q. Natijada 1-chizish `ik-1402, ik-9001, sz-3310, hb-7740`,
+  2-chizish esa `ik-1402, sz-3310, hb-7740, ad-0890` — **4 kartochkadan 3 tasi
+  ko'z oldida joyini almashtirardi.** Narxlar solishtirildi: zaxira va baza
+  narxlari bir xil, ya'ni yagona ko'rinadigan farq tartib edi.
+
+  **Muhim: bu ertalabki tuzatish YARATGAN nuqson emas, u KO'RSATIB QO'YGAN
+  nuqson.** Ilgari `renderHome()` `ik-9001` ni topa olmay xato tashlardi va bosh
+  sahifa umuman yangilanmasdi — foydalanuvchi eskirgan, lekin QIMIRLAMAYDIGAN
+  ekranni ko'rardi. Ekran ishlay boshlagach, ostidagi ma'lumot nomuvofiqligi
+  ko'rinib qoldi.
+
+  **Tuzatildi — `telegram-app/app.js`.** (1) `FEATURED_IDS` da `ik-9001` o'rniga
+  `ad-0890` (u ham zaxirada, ham bazada bor); tepasiga izoh — bu ID'lar HAR
+  IKKALASIDA bo'lishi shart, aks holda kartochkalar sakraydi. (2) `ik-9001`
+  zaxira massivdan butunlay olib tashlandi: u bazada hech qachon bo'lmagan, ya'ni
+  zaxira massiv haqiqatdan chetga chiqib ketgandi; o'rniga izoh qoldirildi.
+  (3) `S.liked` boshlang'ich qiymati `{ 'ik-9001': true }` edi → `{}`.
+  `renderHome()` dagi himoya (yo'q ID'ni tashlab, o'rnini katalogdan to'ldirish)
+  ATAYLAB QOLDIRILDI — u endi kutilmagan holat uchun zaxira, kundalik yo'l emas.
+
+  **DARS: zaxira massiv bazadan chetga chiqib ketsa, u nuqson MANBAIGA
+  aylanadi.** Bugun bitta shu nomuvofiqlik ikki xil nuqson tug'dirdi — avval
+  ekran qulashi, keyin kartochkalar sakrashi. Zaxira massivning vazifasi —
+  baza javob bermaganda bir zumga o'rnini bosish, ya'ni u bazaning MOSLASHGAN
+  nusxasi bo'lishi kerak; unga bazada yo'q mahsulot qo'shilsa, u zaxira emas,
+  ikkinchi haqiqatga aylanadi.
+
+  **Sinov:** brauzerda ikkala holat (zaxira massiv va baza) uchun yakuniy ro'yxat
+  hisoblab solishtirildi — eski variantda mos kelmasdi, yangisida BIR XIL.
+  `node --check` o'tdi. Zaxira massivda endi aynan bazadagi 11 ta seed mahsulot
+  bor. Kesh-bust: `app.js?v=58` → `?v=59`.
+
 - [2026-08-02] **Mini App bosh sahifasi katalog bazadan yuklangan ondan boshlab
   qulardi — foydalanuvchi topdi, sabab bitta bo'lib chiqdi.**
 
@@ -339,6 +380,19 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
 
 ## Qarorlar
 
+- [2026-08-02] Qaror: **`app.js` ichidagi zaxira mahsulot massivi bazaning
+  MOSLASHGAN nusxasi bo'lsin — unga bazada yo'q mahsulot qo'shilmasin.** Sabab:
+  ilova ikki marta chiziladi (avval zaxira, keyin baza), shuning uchun ikkalasi
+  orasidagi har qanday farq foydalanuvchining KO'Z OLDIDA yuz beradi. `ik-9001`
+  faqat zaxirada bo'lgani uchun bitta shu nomuvofiqlik ikki xil nuqson tug'dirdi:
+  avval bosh sahifa qulashi, keyin kartochkalarning sakrashi. Zaxira massivning
+  vazifasi — baza javob bermaganda bir zumga o'rnini bosish; u haqiqatdan chetga
+  chiqsa, zaxira emas, ikkinchi haqiqatga aylanadi
+- [2026-08-02] Qaror: **`FEATURED_IDS` dagi har bir ID HAM zaxira massivda, HAM
+  bazada bo'lishi shart.** Bu yuqoridagi "yo'q ID jimgina tashlanadi" qaroriga
+  ZID emas, uni to'ldiradi: tashlash — kutilmagan holat uchun himoya, ikkala
+  manbada bo'lish esa kundalik talab. Faqat bittasida bor ID qulatmaydi, lekin
+  ro'yxatni ikki chizish orasida o'zgartiradi va kartochkalar sakraydi
 - [2026-08-02] Qaror: **UI'da qo'lda yozilgan mahsulot IDsi hech qachon MAJBURIY
   bo'lmasin — yo'q bo'lsa jimgina tashlab ketilsin.** Bosh sahifadagi "Tanlangan"
   bloki to'rtta ID ga bog'langan edi, katalog esa BAZADAN keladi: mahsulot
