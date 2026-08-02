@@ -38,6 +38,12 @@ Platformaning barcha funksiyalarini real foydalanuvchilar bilan sinovdan o'tkazi
   to'g'ri imzo bilan rasm keladi (590 KB, haqiqiy JPEG 1920×2560), soxta imzo bilan **401**.
   30-iyuldagi "navbatda rasm + zaxira ko'rinishi tekshirilmagan" bo'shlig'i YOPILDI. Band OCHIQ
   qoladi: **escrow, bahsli holat va bahs qarori oqimi hali sinalmagan**
+  — **(2026-08-03) Bahsli holat va bahs qarori bo'shlig'i YOPILDI:** haqiqiy buyurtma
+  `#LM-3001` ustida xaridor → bot → sotuvchi → admin panel → Telegram tasdiqlash zanjiri
+  uchidan-uchiga sinaldi (tafsilot "Qilingan ishlar"da), `disputes.status='resolved'` va
+  `orders.status='refunded'` bitta tranzaksiyada tasdiqlandi. Band hamon OCHIQ qoladi —
+  **escrow (mablag'ni ushlab turish) mexanizmining o'zi alohida sinalmagan**, faqat bahs
+  ochilishidan qarorgacha bo'lgan qism
 - [ ] Sharhlar oqimi: buyurtma → yetkazildi → sharh → reyting → admin yashirishi
   — kod 2026-07-31 da yozildi va production'ga chiqdi (`rating` endi 13/13 mahsulotda
   `null`, `/api/reviews` 200 qaytaryapti, himoyalangan 4 endpoint 401). **Haqiqiy sharh
@@ -49,6 +55,10 @@ Platformaning barcha funksiyalarini real foydalanuvchilar bilan sinovdan o'tkazi
   tasdiqlab bo'lmaydi — haqiqiy sharh kerak
 - [ ] To'lov xatolari: bekor qilish, vaqt tugashi, ikki marta to'lash
 - [ ] Qaytarish oqimi: xaridor muammo bildiradi → moderator qaror beradi → pul qaytariladi
+  — **QISMAN (2026-08-03):** aynan shu zanjir B2 dispute sinovida haqiqiy Telegram va admin
+  panel bilan o'tdi — `#LM-3001` uchun qaytarish (1 000 000 so'm, aybdor=sotuvchi) tasdiqlandi
+  va `orders.status='refunded'` bo'ldi. Band OCHIQ qoladi: bitta muvaffaqiyatli yo'l sinaldi,
+  chegara holatlar (masalan aybdor=xaridor bo'lganda qaytarilmaslik) hali sinalmagan
 
 ### Pilot foydalanuvchilar
 - [ ] 3–5 ta tanish xaridor bilan real buyurtma sinovlari
@@ -70,6 +80,50 @@ Platformaning barcha funksiyalarini real foydalanuvchilar bilan sinovdan o'tkazi
 ---
 
 ## Qilingan ishlar
+
+- [2026-08-03] **B2 — bahs (dispute) oqimi jonli Telegram bilan uchidan-uchiga sinaldi, va
+  yo'l-yo'lakay `review_hide` amalini BUTUNLAY ishlamas qilib turgan production nuqsoni
+  topib tuzatildi.**
+
+  `routes/disputes.js` (316 satr) hech qachon shu tarzda sinalmagan edi. Haqiqiy buyurtma
+  `#LM-3001` (allaqachon `shipped` holatida) ustida: xaridor Mini App'dan bahs ochdi
+  (sabab + izoh) → bot dalil rasmi so'radi → 1 ta rasm yuborildi → "tayyor" deyildi →
+  sotuvchi kabinetdan javob yozildi → admin panelning "Bahslar" bo'limida "Qaror qabul
+  qilish" bosildi (aybdor=sotuvchi, logistika=sotuvchi, qaytarish=1 000 000 so'm) →
+  Telegram'ga tasdiq xabari keldi → "✅ Tasdiqlash" bosildi. Natija: `disputes.status='resolved'`
+  VA `orders.status='refunded'` bitta tranzaksiyada, ikkalasi ham bir xil timestamp bilan
+  (`03:56:57.517992`) — kod to'g'ri ishladi.
+
+  **Bitta izohsiz hodisa:** birinchi urinishda admin panel so'rovi serverga umuman yetib
+  bormadi (nginx jurnalida iz yo'q, `admin_actions` jadvalida yozuv yo'q — B1 alerti ham
+  jim, chunki serverga hech narsa kelmagan, ya'ni bu client-side hodisa). Ikkinchi urinishda
+  muammosiz o'tdi. Sabab aniqlanmadi (ehtimol validatsiya toast'i e'tiborsiz qolgan yoki
+  tarmoq sekinligi) — takrorlanmadi, shuning uchun kod o'zgartirilmadi.
+
+  **Yo'l-yo'lakay jiddiy production nuqsoni topildi va tuzatildi: `review_hide` amali
+  BUTUNLAY ishlamas edi.** `routes/admin.js` da `review_hide` haqiqiy `ADMIN_ACTIONS` amali
+  sifatida ro'yxatga olingan (sharh yashirish), lekin `db/005_sprint7_admin.sql` dagi
+  `admin_actions_kind_check` CHECK cheklovida bu qiymat yo'q edi — `dispute_resolve`
+  migratsiyaga kiritilgan, `review_hide` esa (sharhlar funksiyasi keyinroq, `012_reviews.sql`
+  da qo'shilganda) unutilgan. Ya'ni **har safar admin panelda "Sharhni yashirish" bosilganda
+  500 xato kelardi** — `INSERT INTO admin_actions` baza darajasida (23514, check constraint)
+  rad etilardi. `db/014_review_hide_action.sql` yozildi (CHECK qayta yaratildi, `review_hide`
+  qo'shildi), production'da qo'llanildi va ikki marta tasdiqlandi: (a) `BEGIN; INSERT ...;
+  ROLLBACK;` bilan oldin xato ekanini ko'rsatdim, migratsiyadan keyin xatosiz o'tdi;
+  (b) `\d admin_actions` cheklov ro'yxatida `review_hide` borligini ko'rsatadi. Test residue
+  yo'q (`SELECT count(*) FROM admin_actions WHERE kind='review_hide'` = 0).
+
+  **Ishonch darajasi:** ikkalasi ham jonli production'da, real Telegram va real admin panel
+  orqali sinaldi va tasdiqlandi (bazadagi haqiqiy qatorlar bilan) — unit test emas.
+
+  **Deploy holati:** migratsiya QO'LLANILDI (production). Kod tomonida o'zgarish yo'q —
+  faqat bitta yangi migratsiya fayli (`db/014_review_hide_action.sql`), u allaqachon serverda
+  `sudo -u postgres psql -f` bilan bajarilgan. `server/` papkasida O'ZGARISH YO'Q,
+  rsync/restart kerak emas.
+
+  **Ochiq narsa:** `#LM-3001` (haqiqiy buyurtma) foydalanuvchining ONGLI QARORI bilan
+  `refunded` holatida QOLDIRILDI (tozalanmadi) — bu nuqson emas, buyurtma test qoldig'i
+  sifatida ataylab saqlanmoqda.
 
 - [2026-08-03] **"Sharh yashirilganda reyting qayta hisoblanadi" — kod to'g'ri edi, lekin
   bu ULANISH hech qachon tekshirilmagan ekan. Test 11 qo'shildi.**
