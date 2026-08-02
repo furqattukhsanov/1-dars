@@ -192,6 +192,29 @@ www-data'ga tegishli, ya'ni bu himoya hali yo'q.
 | `ADMIN_PANEL_TOKEN` | `admin/index.html` kirish kaliti (`X-Admin-Token` header) — Telegram initData'dan mustaqil, alohida sir. Dalil rasmlari havolasini imzolash uchun ham ishlatiladi |
 | `PREPAY_RATE` | Oldindan to'lov ulushi (default `0.5`) |
 | `COMMISSION_RATE` | Platforma komissiyasi, 0..1 oralig'ida (default `0.12`). Buyurtma yaratilganda `orders.commission_rate` ga snapshot qilinadi |
+| `ALERT_CHAT_ID` | Server xatosi alertlari boradigan chat (default — `ADMIN_CHAT_ID`). Alohida chat tavsiya etiladi: alert oqimi buyurtma xabarlarini ko'mib yubormasin |
+
+## Xato monitoringi (2026-08-03)
+
+Sentry o'rniga: server xatosi Telegram'ga xabar bo'lib boradi (`lib/alert.js`).
+Tashqi akkaunt kerak emas — bot relayi allaqachon ishlab turibdi.
+
+**Ushlash bitta joyda — `console.error` ning o'zida.** Kodda 66 ta `console.error`
+bor; ularning har birini alohida tahrirlash 66 ta regress imkoniyati bo'lardi va
+kelajakda yangi `console.error` yozgan odam alert qo'shishni unutardi. Endi har
+qanday yangi xato yozuvi avtomatik alertga aylanadi.
+
+Ikki qatlamli tom bilan: bir xil xato 10 daqiqada bir marta, jami soatiga 20 ta.
+Bosilgan takrorlar SANALADI va keyingi xabarda ko'rsatiladi — ya'ni yo'qolmaydi.
+Ikkinchi tom baza qulagan holat uchun: o'shanda har bir so'rov boshqacha matnli
+xato beradi va birinchi filtr ularni bir guruh deb ko'rmaydi.
+
+`install()` FAQAT `require.main === module` shohbasida chaqiriladi — testlar
+`console.error` ni o'zi ushlaydi (`test.js` → `testNoBrokenReferences`).
+
+⚠️ **Alert chatida xato tafsiloti bo'ladi**, unda foydalanuvchi matni uchrashi
+mumkin (buyurtma izohi, manzil). Zaxira nusxa chati bilan bir xil ehtiyot:
+chatda begona odam paydo bo'lsa alohida yopiq kanal ochilsin.
 
 ## Sprint 7 deploy qadamlari (2026-07-27)
 

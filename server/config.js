@@ -78,6 +78,12 @@ const DELIVERY_FEE_ESTIMATE = (() => {
   return Number.isFinite(v) && v >= 0 ? v : 25000;
 })();
 
+// Server xatolari haqidagi alertlar shu chatga boradi. Berilmasa —
+// ADMIN_CHAT_ID (zaxira nusxadagi BACKUP_CHAT_ID bilan bir xil naqsh).
+// Alohida chat ajratish tavsiya etiladi: alert oqimi buyurtma xabarlarini
+// ko'mib yubormasin.
+const ALERT_CHAT_ID = process.env.ALERT_CHAT_ID || ADMIN_CHAT_ID;
+
 // Moderatsiya ruxsati bor Telegram ID'lari (vergul bilan ajratilgan).
 // Berilmasa — ADMIN_CHAT_ID (admin shaxsiy chati = uning Telegram user id'si).
 const ADMIN_TG_IDS = new Set(
@@ -96,6 +102,6 @@ if (!process.env.DATABASE_URL) {
 
 module.exports = {
   PORT, BOT_TOKEN, ADMIN_CHAT_ID, ALLOWED_ORIGIN, WEBHOOK_SECRET,
-  MINI_APP_URL, BOT_USERNAME, CONTACTS_FILE, GIT_SHA,
+  MINI_APP_URL, BOT_USERNAME, CONTACTS_FILE, GIT_SHA, ALERT_CHAT_ID,
   ADMIN_PANEL_TOKEN, PREPAY_RATE, COMMISSION_RATE, ADMIN_TG_IDS, DELIVERY_FEE_ESTIMATE,
 };

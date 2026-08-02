@@ -37,7 +37,7 @@ const {
 const { handleTelegramWebhook } = require('./routes/webhook');
 
 
-function handleRequest(req, res) {
+function routeRequest(req, res) {
   const ip = clientIp(req);
   const path = req.url.split('?')[0];
 
@@ -248,9 +248,44 @@ function handleRequest(req, res) {
   fail(res, 'not found', 404);
 }
 
+// ---- Qulagan so'rov butun serverni o'ldirmasin ----
+// To'qqizta handler `try` blokiga KIRISHDAN OLDIN `await` qiladi (auth
+// tekshiruvi: authUser / requireSeller / webSessionUser — ular bazaga boradi).
+// Baza o'sha lahzada javob bermasa, rad etilgan promise hech kim ushlamaydi:
+// Node buni `unhandledRejection` deb biladi va JARAYONNI O'LDIRADI — ya'ni
+// bitta so'rovdagi baza uzilishi o'sha paytdagi BARCHA so'rovlarni yiqitardi.
+// Shu o'ram xatoni so'rov chegarasida to'xtatadi: qulagan so'rov 500 oladi,
+// qolganlari ishlayveradi. Xato `console.error` ga tushadi, ya'ni alertga ham.
+function handleRequest(req, res) {
+  let out;
+  try {
+    out = routeRequest(req, res);
+  } catch (e) {
+    return requestCrashed(req, res, e);
+  }
+  if (out && typeof out.then === 'function') {
+    out.catch((e) => requestCrashed(req, res, e));
+  }
+}
+
+function requestCrashed(req, res, e) {
+  const path = String(req.url || '').split('?')[0];
+  console.error(`so'rov qulashi ${req.method} ${path}:`, (e && e.message) || e);
+  // Handler javobni allaqachon boshlagan bo'lishi mumkin — u holda status
+  // qo'yib bo'lmaydi, faqat ulanishni yopamiz (aks holda klient osilib qoladi).
+  try {
+    if (res.headersSent) res.end();
+    else fail(res, 'server error', 500);
+  } catch (_) { /* javob yozib bo'lmadi — ulanish allaqachon uzilgan */ }
+}
+
 // Faqat to'g'ridan-to'g'ri ishga tushirilganda tinglaymiz — `require` qilinganda
 // (test.js) tinglamaydi, shunda testlar port band qilmasdan router'ni sinaydi.
 if (require.main === module) {
+  // Xato alertlari FAQAT shu yerda o'rnatiladi: u console.error'ni o'raydi,
+  // testlar esa console.error'ni o'zi ushlaydi (test.js → testNoBrokenReferences).
+  require('./lib/alert').install();
+
   http.createServer(handleRequest)
     .listen(PORT, '127.0.0.1', () => console.log(`lolamarket-notify listening on ${PORT}`));
 
@@ -259,4 +294,4 @@ if (require.main === module) {
   setInterval(scanStaleDisputes, DISPUTE_REMINDER_MS).unref();
 }
 
-module.exports = { handleRequest };
+module.exports = { handleRequest, routeRequest };

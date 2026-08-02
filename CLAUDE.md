@@ -64,6 +64,14 @@
   **Serverda tozalanmaydi:** baza xom matn saqlaydi, chunki Telegram yo'li
   o'zining `escapeHtml` ini qo'llaydi (`routes/orders.js`) — ikki marta
   qochirilsa foydalanuvchi `&lt;` ko'rib qolardi. Himoya CHIQISHDA turadi.
+- **`console.error` ning BIRINCHI argumenti — alert guruhlash KALITI**
+  (2026-08-03). Server xatosi Telegram'ga boradi (`server/lib/alert.js`) va
+  bosish tomi aynan shu birinchi argument bo'yicha guruhlaydi. Unga
+  **o'zgaruvchan ma'lumot qo'yilmasin** — buyurtma raqami, ID, foydalanuvchi
+  nomi: har xil kalit ALOHIDA alert bo'lib ketadi, tom ishlamay qoladi va
+  bitta nosozlik Telegram'ni yuzlab xabar bilan to'ldiradi. To'g'ri shakl:
+  `console.error('createOrder xatosi:', e.message)` — belgi birinchi, o'zgaruvchan
+  qism ikkinchi argumentda.
 - **Frontendda `window.addEventListener('load', ...)` ishlatilmasin** (2026-07-31,
   ikki marta kuyganimizdan keyin). `load` BARCHA rasm va shrift yuklanib bo'lgandan
   keyin otiladi — sekin tarmoqda bu soniyalar. Ikki marta zarar keltirdi:

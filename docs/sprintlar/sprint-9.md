@@ -83,7 +83,14 @@ LolaMarket ni rasmiy ishga tushirish. Birinchi haqiqiy xaridorlar va ishlab chiq
   ID). O'sha chatdagi HAR KIM butun bazani yuklab olishi mumkin — `BACKUP_CHAT_ID` ga odam
   qo'shishdan oldin shu o'ylansin. Skript repoda saqlanmaydi (serverda yashaydi, tokenni
   `.env` dan o'qiydi)
-- [ ] Xato monitoring ulash (Sentry yoki shunga o'xshash) — **bloklangan:** akkaunt kerak
+- [ ] Xato monitoring ulash (Sentry yoki shunga o'xshash)
+  — **KOD YOZILDI (2026-08-03), lekin band OCHIQ: hali deploy qilinmagan.** Sentry
+  bloklangan edi (tashqi akkaunt kerak), shuning uchun boshqa yo'l tanlandi: server
+  xatosi Telegram'ga xabar bo'lib boradi (`server/lib/alert.js`) — bildirishnoma relayi
+  allaqachon ishlab turibdi, yangi hisob kerak emas. Band `[x]` QILINMADI, chunki
+  2026-07-30 qaroriga ko'ra dalil jonli tekshiruvdan keladi: alert hali production'da
+  bir marta ham otilmagan. Yopilishi: deploy + servis restarti (founder), keyin
+  ataylab bitta xato chiqarib alert Telegram'ga yetib borgani ko'rilishi
 - [ ] Payme va Click production akkauntlarga o'tish — **bloklangan:** merchant kalitlari kerak.
   Launch'ning YAGONA haqiqiy to'sig'i — platformaning qolgan qismi uchidan-uchiga ishlaydi
 
@@ -112,6 +119,58 @@ LolaMarket ni rasmiy ishga tushirish. Birinchi haqiqiy xaridorlar va ishlab chiq
 ---
 
 ## Qilingan ishlar
+
+- [2026-08-03] **Xato monitoringi yozildi (Sentry o'rniga Telegram alerti), va shu ish
+  yo'l-yo'lakay JIDDIYROQ nuqson ochib berdi: bitta so'rovdagi baza uzilishi BUTUN
+  serverni o'ldirardi.**
+
+  **1. Monitoring (`server/lib/alert.js`, yangi fayl).** Kodda 66 ta `console.error`
+  bor edi va hammasi `journalctl` ga tushib yo'qolardi — ya'ni bugun serverda xato
+  bo'lsa, biz buni faqat foydalanuvchi shikoyat qilganda bilardik. Endi xato
+  Telegram'ga xabar bo'lib boradi.
+
+  **Ushlash BITTA joyda — `console.error` ning o'zida.** 66 ta chaqiruvni alohida
+  tahrirlash 66 ta regress imkoniyati bo'lardi, ustiga kelajakda yangi `console.error`
+  yozgan odam alert qo'shishni unutardi. Shu yo'l bilan har qanday YANGI xato yozuvi
+  ham avtomatik qamraladi.
+
+  **Ikki qatlamli tom:** bir xil xato 10 daqiqada 1 marta, jami soatiga 20 ta. Bosilgan
+  takrorlar SANALADI va keyingi xabarda ko'rsatiladi ("yana N marta takrorlandi") — ya'ni
+  yo'qolmaydi, faqat jamlanadi. Ikkinchi qatlam aynan baza qulagan holat uchun: o'shanda
+  har bir so'rov BOSHQACHA matnli xato beradi va birinchi filtr ularni bir guruh deb
+  ko'rmaydi, ya'ni tomsiz bitta nosozlik Telegram'ni minglab xabar bilan to'ldirardi.
+  `uncaughtException` / `unhandledRejection` ham ushlanadi, lekin **bugungi xatti-harakat
+  SAQLANADI** — jarayon baribir o'ladi va systemd uni ko'taradi; faqat KO'RINISH qo'shildi.
+
+  `install()` FAQAT `require.main === module` shohbasida chaqiriladi: testlar
+  `console.error` ni o'zi ushlaydi (`testNoBrokenReferences`), shuning uchun test
+  muhitida o'ram o'rnatilmasligi shart.
+
+  **2. Yo'l-yo'lakay topilgan nuqson (tuzatildi, `server/server.js`).** To'qqizta handler
+  `try` blokiga KIRISHDAN OLDIN `await` qiladi — auth tekshiruvi bazaga boradi
+  (`handleSellerReviews`, `handleCreateWebOrder`, `handleCreateReview`,
+  `handleSellerDisputeReply`, `handleSellerApplicationReview`, `handleSellerProducts`,
+  `handleSellerProductUpdate`, `handleSellerOrders`, `handleSellerOrderAction`). Baza
+  o'sha lahzada javob bermasa, rad etilgan promise'ni hech kim ushlamasdi va Node
+  **BUTUN JARAYONNI o'ldirardi** — ya'ni bitta so'rovdagi uzilish o'sha paytdagi
+  BARCHA so'rovlarni birga yiqitardi. Endi `handleRequest` ikkiga bo'lindi: `routeRequest`
+  (eski router) va uni o'raydigan `handleRequest`. Xato so'rov chegarasida to'xtaydi —
+  qulagan so'rov 500 oladi, qolganlari ishlayveradi. `res.headersSent` holati alohida
+  qaralgan: javob boshlangan bo'lsa status qo'yilmaydi, faqat ulanish yopiladi (aks holda
+  klient osilib qolardi).
+
+  **Sinov — mutatsiya bilan tasdiqlandi, "test yozdim"ning o'zi hisoblanmadi.** Test 9
+  `DATABASE_URL` ni o'lik portga qaratadi va HAQIQIY imzo bilan so'rov yuboradi, ya'ni
+  so'rov 401 da to'xtamay aynan `await pool.query` gacha borib qulaydi. **O'ram olib
+  tashlanganda test jarayonining O'ZI `unhandledRejection` bilan o'ldi** — ya'ni test
+  haqiqatan shu nuqsonni tutadi. Test 10 va 10b tomlarni va alert matnini (HTML
+  qochirish) qamraydi.
+
+  ⚠️ **Deploy QILINMAGAN.** Migratsiya va nginx tahriri kerak emas. `.env` ga
+  `ALERT_CHAT_ID` qo'shish ixtiyoriy (default — `ADMIN_CHAT_ID`), lekin alohida chat
+  tavsiya etiladi: alert oqimi buyurtma xabarlarini ko'mib yubormasin. **Alert chatida
+  xato tafsiloti bo'ladi va unda foydalanuvchi matni uchrashi mumkin** (buyurtma izohi,
+  manzil) — zaxira nusxa chati bilan bir xil ehtiyot.
 
 - [2026-08-02] **Mini App'da saqlanuvchi XSS topildi va yopildi — xaridor yozgan matn
   SOTUVCHINING ekranida kod bo'lib ishga tushardi.** Teshikni "bu to'la qonligicha
@@ -320,6 +379,28 @@ LolaMarket ni rasmiy ishga tushirish. Birinchi haqiqiy xaridorlar va ishlab chiq
 
 ## Qarorlar
 
+- [2026-08-03] Qaror: **xato monitoringi Sentry emas, Telegram alerti bo'ladi, va ushlash
+  BITTA joyda — `console.error` ning o'zida.** Sentry bandi tashqi akkaunt talab qilgani
+  uchun oylab bloklangan turdi, holbuki bildirishnoma relayi allaqachon ishlab turibdi.
+  Ikkinchi qismi muhimroq: 66 ta `console.error` ni birma-bir tahrirlash 66 ta regress
+  imkoniyati, ustiga kelajakda yangi `console.error` yozgan odam alert qo'shishni unutadi
+  — ya'ni qamrov vaqt o'tishi bilan JIMGINA kamayardi. Bitta o'ram esa yangi xato
+  yozuvlarini avtomatik qamraydi. Narxi: alert matnida foydalanuvchi ma'lumoti uchrashi
+  mumkin, shuning uchun alert chati zaxira chati bilan bir xil ehtiyotni talab qiladi
+- [2026-08-03] Qaror: **`try` blokidan TASHQARIDA `await` qiladigan handler serverni
+  o'ldirmasin — router butun so'rov chegarasida o'raladi.** Handlerlarning har birini
+  alohida to'g'rilash o'rniga `handleRequest` o'ram qilindi. Sabab: nuqson HANDLER'da
+  emas, NAQSHDA edi — auth tekshiruvi `try` dan oldin turgani to'qqiz joyda takrorlangan,
+  ya'ni to'qqizta joyni tuzatsak ham o'ninchisi yana shu tarzda yozilardi. O'ram bo'lsa
+  yangi handler qanday yozilishidan qat'i nazar qulash so'rov bilan cheklanadi
+- [2026-08-03] Qaror: **yangi test "yashil bo'ldi" degani bilan qabul qilinmaydi — u
+  MUTATSIYA bilan tekshiriladi.** Ya'ni test tutishi kerak bo'lgan narsa ataylab buziladi
+  va test QIZIL bo'lgani ko'riladi, keyin buzilgan joy qaytariladi. Bugun ikkalasi ham
+  shu yo'ldan o'tdi: o'ram olib tashlanganda test jarayoni haqiqatan `unhandledRejection`
+  bilan o'ldi, `recalcRating` chaqiruvi olib tashlanganda Test 11 qizil bo'ldi. Sabab —
+  bu "CI yashil edi, fayllar esa serverga chiqmagandi" darsining test tarafdagi ko'rinishi:
+  hech narsani tekshirmaydigan test ham har doim yashil bo'ladi va u eng xavflisi, chunki
+  u himoya BOR degan yolg'on ishonch beradi
 - [2026-08-02] Qaror: **mahsulot maydonlari `vm()` CHEGARASIDA bir marta tozalanadi,
   chizish joyida emas.** `name`, `supplier`, `city`, `comp`, `badge`, `img` o'nlab
   joyda `innerHTML` ga qo'yiladi — har birini alohida `esc()` ga o'rash ertami-kech

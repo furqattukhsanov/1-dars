@@ -42,6 +42,11 @@ Platformaning barcha funksiyalarini real foydalanuvchilar bilan sinovdan o'tkazi
   — kod 2026-07-31 da yozildi va production'ga chiqdi (`rating` endi 13/13 mahsulotda
   `null`, `/api/reviews` 200 qaytaryapti, himoyalangan 4 endpoint 401). **Haqiqiy sharh
   bilan hali sinalmagan.** Qadamma-qadam reja: `docs/sinov-sharhlar.md`
+  — **(2026-08-03) Zanjirning oxirgi bo'g'ini test bilan qamaldi:** "admin yashirishi →
+  reyting qayta hisoblanishi" ulanishi endi Test 11 da tekshiriladi (tafsilot
+  "Qilingan ishlar"da). Band HAMON OCHIQ: jonli bazada **0 ta sharh** bor, ya'ni
+  reyting invariantlari trivial ravishda to'g'ri va production ma'lumotida hech narsa
+  tasdiqlab bo'lmaydi — haqiqiy sharh kerak
 - [ ] To'lov xatolari: bekor qilish, vaqt tugashi, ikki marta to'lash
 - [ ] Qaytarish oqimi: xaridor muammo bildiradi → moderator qaror beradi → pul qaytariladi
 
@@ -65,6 +70,36 @@ Platformaning barcha funksiyalarini real foydalanuvchilar bilan sinovdan o'tkazi
 ---
 
 ## Qilingan ishlar
+
+- [2026-08-03] **"Sharh yashirilganda reyting qayta hisoblanadi" — kod to'g'ri edi, lekin
+  bu ULANISH hech qachon tekshirilmagan ekan. Test 11 qo'shildi.**
+
+  Test 8 `recalcRating()` ning O'ZINI sinardi va u o'tardi. Lekin uni `hideReview()`
+  HAQIQATAN chaqirishini hech kim tekshirmagan — ya'ni chaqiruv kodda tasodifan olib
+  tashlansa **butun test to'plami yashil qolardi**, admin sharhni yashirar, reyting esa
+  yashirilgan sharhni hisobga olib abadiy yolg'on qolib ketardi. Bu CLAUDE.md dagi
+  "reyting hosila, qo'lda yozilmasin" qoidasining ikkinchi yuzi: qoida bajarilishi
+  ta'minlanmagan bo'lsa, u qoida emas, niyat.
+
+  **Test 11 nimani tekshiradi** (`server/test.js`, soxta `pool.connect` klienti bilan —
+  baza kerak emas):
+  1. `hideReview()` haqiqatan `recalcRating()` ni chaqiradi (`UPDATE products ... avg(stars)`).
+  2. **TARTIB:** `UPDATE reviews` → `recalcRating` → `COMMIT`, ya'ni qayta hisoblash
+     `COMMIT` dan OLDIN va bitta tranzaksiyada. Keyin bo'lsa, hisoblash qulaganda sharh
+     yashirilgan, reyting esa eski holida qolardi — baza o'zi bilan ziddiyatga tushardi.
+  3. Faqat `status = 'published'` sharh yashiriladi — ikki marta yashirish sonni buzardi.
+  4. Sotuvchi reytingi ham yangilanadi (`UPDATE sellers`).
+  5. **Teskari holat:** sharh allaqachon yashirilgan bo'lsa (`UPDATE` 0 qator qaytardi)
+     reyting UMUMAN tegilmaydi, `ROLLBACK` bo'ladi va ulanish poolga qaytariladi.
+
+  **Mutatsiya bilan tasdiqlandi:** `hideReview` dagi `recalcRating` chaqiruvi olib
+  tashlanganda Test 11 QIZIL bo'ldi, keyin qaytarildi. Ya'ni test haqiqatan shu ulanishni
+  tutadi — "yozdim va yashil" degan gapga ishonilmadi.
+
+  **Jonli bazada tekshirilgani va CHEGARASI:** bazada 14 mahsulot va **0 ta sharh** bor.
+  Ya'ni reyting invariantlari hozir trivial ravishda to'g'ri va production ma'lumoti bu
+  yerda hech narsani isbotlamaydi. Zanjirning qolgan qismi (buyurtma → yetkazildi →
+  haqiqiy sharh → reyting) hamon keyingi `SINOV` sessiyasiga qoladi.
 
 - [2026-08-02] **Xavfsizlik auditi Mini App'da saqlanuvchi XSS topdi — tafsilot va
   tuzatish `sprint-9.md` da, bu yerda faqat SINOV USULI qayd etilyapti.**
@@ -258,6 +293,14 @@ Platformaning barcha funksiyalarini real foydalanuvchilar bilan sinovdan o'tkazi
 
 ## Qarorlar
 
+- [2026-08-03] Qaror: **funksiyaning O'ZI sinalgani yetarli emas — ULANISH ham sinaladi.**
+  `recalcRating()` alohida sinalgan va o'tgan edi, lekin uni `hideReview()` chaqirishini
+  hech narsa tekshirmasdi; chaqiruv yo'qolsa butun to'plam yashil qolardi va reyting
+  jimgina yolg'onga aylanardi. Bundan keyin "A funksiyasi B ni chaqiradi" degan invariant
+  ham, va kerak bo'lsa CHAQIRUV TARTIBI ham (bugun: qayta hisoblash `COMMIT` dan oldin,
+  ya'ni bitta tranzaksiyada) test bilan qamaladi. Sabab: birlik testlari qismlarni
+  tekshiradi, nuqson esa ko'pincha qismlar ORASIDA yashaydi — bu Sprint 8 ning takrorlanib
+  turgan darsi (deploy, `Content-Type`, endi test)
 - [2026-08-02] Qaror: **foydalanuvchi matni qabul qiladigan oqim HUJUM YUKI bilan ham
   sinaladi, faqat oddiy matn bilan emas.** Buyurtma va bahs oqimlari bir necha marta
   uchidan-uchiga sinalgan va "ishlaydi" deb yozilgan edi, lekin izoh/manzil/sabab

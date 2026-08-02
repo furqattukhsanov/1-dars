@@ -153,9 +153,9 @@ function testVerifyInitDataStale() {
 const WEBHOOK = '/api/telegram-webhook';
 const ROUTES = readRoutes().filter((p) => p !== WEBHOOK);
 
-function request(port, method, path, payload) {
+function request(port, method, path, payload, extraHeaders) {
   return new Promise((resolve, reject) => {
-    const headers = {};
+    const headers = { ...(extraHeaders || {}) };
     if (payload !== undefined) {
       headers['Content-Type'] = 'application/json';
       headers['Content-Length'] = Buffer.byteLength(payload);
@@ -216,6 +216,7 @@ async function testRouteTable() {
 
     await testNoBrokenReferences(port);
     await testProductPhotoSignature(port);
+    await testRequestCrashIsolation(port);
   } finally {
     await new Promise((r) => srv.close(r));
   }
@@ -494,6 +495,179 @@ function testReviewSchema() {
   console.log('✅ Test 8c: Sharh kirishi (yulduz chegarasi va majburiy maydonlar) — PASS');
 }
 
+// ---- Haqiqiy imzoli initData yasash (auth qorovulidan o'tish uchun) ----
+function signedInitData(user) {
+  const userJson = JSON.stringify(user);
+  const now = Math.floor(Date.now() / 1000);
+  const dataCheckString = [`auth_date=${now}`, `user=${userJson}`].sort().join('\n');
+  const secretKey = crypto.createHmac('sha256', 'WebAppData').update(BOT_TOKEN).digest();
+  const hash = crypto.createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
+  return `auth_date=${now}&hash=${hash}&user=${encodeURIComponent(userJson)}`;
+}
+
+// ============ TEST 9: Qulagan so'rov serverni o'ldirmasligi ============
+// To'qqizta handler `try` blokiga KIRISHDAN OLDIN `await` qiladi (auth
+// tekshiruvi bazaga boradi). Baza javob bermasa, o'sha rad etilgan promise'ni
+// hech kim ushlamaydi va Node BUTUN JARAYONNI o'ldiradi — bitta so'rovdagi
+// uzilish o'sha paytdagi barcha so'rovlarni yiqitardi.
+//
+// Nega bu test haqiqiy: DATABASE_URL o'lik portga qaratilgan (127.0.0.1:1),
+// imzo esa HAQIQIY — ya'ni so'rov 401 da to'xtamay, aynan `await pool.query`
+// gacha yetib boradi va u yerda qulaydi. O'ram bo'lmasa test jarayoni
+// `unhandledRejection` bilan o'lib, suite qizil bo'ladi.
+async function testRequestCrashIsolation(port) {
+  const initData = signedInitData({ id: 424242, first_name: 'Crash' });
+
+  const res = await request(port, 'GET', '/api/seller/reviews', undefined, {
+    'X-Telegram-Init-Data': initData,
+  });
+  assert.strictEqual(res.status, 500, 'baza qulaganda so\'rov 500 olishi kerak (jarayon o\'lmasin)');
+  assert.strictEqual(JSON.parse(res.body).ok, false, 'javob { ok:false } shaklida bo\'lishi kerak');
+
+  // Eng muhimi: server SHUNDAN KEYIN ham javob berayotgan bo'lsin
+  const alive = await request(port, 'GET', '/api/version');
+  assert.strictEqual(alive.status, 200, 'qulagan so\'rovdan keyin server ishlashda davom etishi kerak');
+
+  console.log('✅ Test 9: Qulagan so\'rov izolyatsiyasi — PASS (500 qaytdi, server tirik)');
+}
+
+// ============ TEST 10: Xato alerti — bosish (throttle) ============
+// Alert ikki qatlamli tomga ega. Birinchisi bir xil xatoni takrorlamaydi,
+// ikkinchisi (soatlik tom) baza qulagan holat uchun: o'shanda HAR BIR so'rov
+// boshqacha matnli xato beradi va birinchi filtr ularni bir guruh deb ko'rmaydi.
+// Tomsiz bitta nosozlik Telegram'ni minglab xabar bilan to'ldirardi.
+function testAlertThrottle() {
+  const alert = require('./lib/alert');
+
+  alert._reset();
+  const t0 = 1_000_000;
+
+  assert.deepStrictEqual(alert.shouldSend('createOrder xatosi:', t0), { send: true, suppressed: 0 },
+    'birinchi xato darrov yuborilishi kerak');
+  assert.strictEqual(alert.shouldSend('createOrder xatosi:', t0 + 1_000).send, false,
+    'oyna ichidagi takror yuborilmasligi kerak');
+  assert.strictEqual(alert.shouldSend('createOrder xatosi:', t0 + 2_000).suppressed, 2,
+    'bosilgan xatolar SANALISHI kerak — yo\'qolib ketmasin');
+
+  // Boshqa kalit mustaqil: bitta shovqinli xato boshqasini ko'mib qo'ymaydi
+  assert.strictEqual(alert.shouldSend('getOrders xatosi:', t0 + 2_000).send, true,
+    'boshqa xato turi alohida hisoblanishi kerak');
+
+  // Oyna o'tgach — yana yuboriladi va bosilganlar soni xabarda boradi
+  const after = alert.shouldSend('createOrder xatosi:', t0 + alert.WINDOW_MS + 1);
+  assert.strictEqual(after.send, true, 'oyna tugagach qayta yuborilishi kerak');
+  assert.strictEqual(after.suppressed, 2, 'xabarda bosilgan takrorlar soni ko\'rsatilishi kerak');
+  assert.strictEqual(alert.shouldSend('createOrder xatosi:', t0 + alert.WINDOW_MS + 2).suppressed, 1,
+    'yuborilgandan keyin hisoblagich nolga tushishi kerak');
+
+  // ---- Soatlik tom ----
+  alert._reset();
+  for (let i = 0; i < alert.MAX_PER_HOUR; i++) {
+    assert.strictEqual(alert.shouldSend(`xato-${i}`, t0).send, true, `${i}-alert tom ichida bo'lishi kerak`);
+  }
+  assert.strictEqual(alert.shouldSend('xato-oshib-ketdi', t0).send, false,
+    'soatlik tomdan oshgan alert yuborilmasligi kerak');
+  // Soat o'tgach tom bo'shaydi
+  assert.strictEqual(alert.shouldSend('xato-oshib-ketdi', t0 + 60 * 60_000 + 1).send, true,
+    'soat o\'tgach tom bo\'shashi kerak');
+
+  alert._reset();
+  console.log('✅ Test 10: Xato alerti — bosish tomlari PASS');
+}
+
+// ============ TEST 10b: Alert matni — HTML qochirish ============
+// Alert `parse_mode: 'HTML'` bilan ketadi va xato tafsilotida FOYDALANUVCHI
+// matni bo'lishi mumkin (buyurtma izohi, manzil — ular xato xabariga tushadi).
+// Qochirilmasa Telegram xabarni rad etadi va aynan eng kerakli paytda alert
+// yetib bormaydi. Bu CLAUDE.md dagi esc() qoidasining server tarafdagi ko'rinishi.
+function testAlertTextEscaping() {
+  const alert = require('./lib/alert');
+
+  const text = alert.alertText('createOrder xatosi:', '<b onclick="x">mato</b> & 5 < 7', 0);
+  assert.ok(!/<b onclick/.test(text), 'foydalanuvchi HTML\'i xom holda qolmasligi kerak');
+  assert.ok(text.includes('&lt;b onclick'), 'burchakli qavs qochirilishi kerak');
+  assert.ok(text.includes('&amp;'), 'ampersand qochirilishi kerak');
+
+  // Bosilgan takrorlar soni matnda ko'rinsin (aks holda "yana necha marta" yo'qoladi)
+  assert.ok(alert.alertText('x:', 'y', 4).includes('4 marta'), 'takrorlar soni matnda bo\'lishi kerak');
+  assert.ok(!alert.alertText('x:', 'y', 0).includes('marta'), 'takror yo\'q bo\'lsa qator qo\'shilmasin');
+
+  // Birinchi argument — guruhlash kaliti, qolgani tafsilot
+  const parsed = alert.argsToKeyAndDetail(['getOrders xatosi:', new Error('ECONNREFUSED')]);
+  assert.strictEqual(parsed.key, 'getOrders xatosi:', 'kalit birinchi argumentdan olinishi kerak');
+  assert.ok(/ECONNREFUSED/.test(parsed.detail), 'Error tafsiloti saqlanishi kerak');
+
+  console.log('✅ Test 10b: Alert matni (HTML qochirish) — PASS');
+}
+
+// ============ TEST 11: Sharh yashirilganda reyting qayta hisoblanadi ============
+// Test 8 `recalcRating` ning O'ZINI sinaydi, lekin uni `hideReview` HAQIQATAN
+// chaqirishini hech kim tekshirmasdi — chaqiruv olib tashlansa testlar yashil
+// qolardi va yashirilgan sharh reytingda abadiy qolib ketardi.
+//
+// Tranzaksiya TARTIBI ham tekshiriladi: qayta hisoblash COMMIT'dan OLDIN
+// bo'lishi shart. Keyin bo'lsa, hisoblash qulaganda sharh yashirilgan, reyting
+// esa eski holida qolardi — ya'ni baza o'zi bilan ziddiyatga tushardi.
+function fakeHideClient(updateRows) {
+  const queries = [];
+  return {
+    queries,
+    released: false,
+    async query(sql, params) {
+      queries.push({ sql, params });
+      if (/UPDATE reviews/.test(sql)) return { rows: updateRows };
+      return { rows: [] };
+    },
+    release() { this.released = true; },
+  };
+}
+
+async function testHideReviewRecalculates() {
+  const { hideReview } = require('./routes/reviews.js');
+  const { pool } = require('./db');
+  const realConnect = pool.connect;
+
+  try {
+    // ---- Muvaffaqiyatli yashirish ----
+    const c = fakeHideClient([{ id: 5, product_id: 'ik-1402', seller_id: 7 }]);
+    pool.connect = async () => c;
+    const out = await hideReview(5, 'haqoratli matn');
+    assert.strictEqual(out.product_id, 'ik-1402', 'yashirilgan sharh mahsuloti qaytishi kerak');
+
+    const sqls = c.queries.map((q) => q.sql);
+    const iUpdate = sqls.findIndex((s) => /UPDATE reviews/.test(s));
+    const iRecalc = sqls.findIndex((s) => /UPDATE products/.test(s) && /avg\(stars\)/.test(s));
+    const iCommit = sqls.findIndex((s) => /COMMIT/.test(s));
+
+    assert.ok(iUpdate !== -1, 'sharh holati yangilanishi kerak');
+    assert.ok(/status\s*=\s*'published'/.test(sqls[iUpdate]),
+      'faqat chop etilgan sharh yashirilsin — ikki marta yashirish sonni buzardi');
+    assert.ok(iRecalc !== -1, 'sharh yashirilganda reyting QAYTA HISOBLANISHI kerak');
+    assert.ok(iRecalc > iUpdate, 'qayta hisoblash yashirishdan keyin bo\'lishi kerak');
+    assert.ok(iCommit !== -1 && iRecalc < iCommit,
+      'qayta hisoblash COMMIT dan OLDIN, ya\'ni bir xil tranzaksiyada bo\'lishi kerak');
+    assert.ok(c.released, 'ulanish poolga qaytarilishi kerak');
+
+    // Sotuvchi reytingi ham yangilanadi
+    assert.ok(sqls.some((s) => /UPDATE sellers/.test(s)), 'sotuvchi reytingi ham yangilanishi kerak');
+
+    // ---- Holati o'zgargan sharh: hech narsa qayta hisoblanmaydi ----
+    const c2 = fakeHideClient([]);
+    pool.connect = async () => c2;
+    await assert.rejects(() => hideReview(5, null), /holati o'zgargan/,
+      'allaqachon yashirilgan sharhda xato qaytishi kerak');
+    const sqls2 = c2.queries.map((q) => q.sql);
+    assert.ok(!sqls2.some((s) => /UPDATE products/.test(s)),
+      'sharh yashirilmagan bo\'lsa reyting ham tegilmasligi kerak');
+    assert.ok(sqls2.some((s) => /ROLLBACK/.test(s)), 'tranzaksiya orqaga qaytarilishi kerak');
+    assert.ok(c2.released, 'xato bo\'lganda ham ulanish qaytarilishi kerak');
+  } finally {
+    pool.connect = realConnect;
+  }
+
+  console.log('✅ Test 11: Sharh yashirilganda reyting qayta hisoblanadi — PASS');
+}
+
 // ============ TEST RUNNER ============
 async function runTests() {
   console.log('\n🧪 LolaMarket Server Testlari\n');
@@ -514,8 +688,11 @@ async function runTests() {
     await testRecalcRating();
     testReviewAllowedStatus();
     testReviewSchema();
+    testAlertThrottle();
+    testAlertTextEscaping();
+    await testHideReviewRecalculates();
 
-    console.log('\n✅ Hammasi PASS — pul hisobi, imzo tekshiruvi va route jadvali joyida\n');
+    console.log('\n✅ Hammasi PASS — pul hisobi, imzo tekshiruvi, route jadvali va xato alerti joyida\n');
     process.exit(0);
   } catch (err) {
     console.error('\n❌ TEST XATOSI:\n', err.message, '\n');
