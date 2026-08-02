@@ -396,6 +396,14 @@ function step(p) { return 1; }
 
 function byId(id) { return PRODUCTS.find(x => x.id === id); }
 
+// CSS `url('...')` ichiga tushadigan manzil uchun. `esc()` bu yerda YARAMAYDI —
+// sabab uning tepasidagi izohda. DIQQAT: `encodeURI()` ning O'ZI ham yetarli
+// emas — u bitta tirnoqni qochirmaydi (sinab ko'rilgan: hujum baribir o'tdi),
+// shuning uchun tirnoq alohida `%27` ga almashtiriladi.
+function cssUrl(u) {
+  return encodeURI(String(u == null ? '' : u)).replace(/'/g, '%27');
+}
+
 // Bosh sahifadagi "Tanlangan" bloki. Bu ID'lar bazaga bog'liq EMAS — biror
 // mahsulot o'chirilsa ro'yxat jimgina eskiradi, shuning uchun `renderHome()`
 // yo'q ID'ni tashlab ketadi va o'rnini katalogdan to'ldiradi.
@@ -471,8 +479,11 @@ function vm(p) {
     badge: p.badge ? esc(p.badge[L]) : null,
     bg: PATTERNS[p.pattern] || PATTERNS.plain,
     bgSize: pSize(p.pattern),
+    // Bu yerda `esc()` EMAS, `cssUrl()` — qiymat `style` atributi ichidagi
+    // CSS `url()` ga tushadi va u yerda HTML qochirilishi ish bermaydi
+    // (sabab `esc()` tepasidagi izohda).
     bgStyle: p.img
-      ? `background-image:url('${esc(p.img)}');background-size:cover;background-position:center`
+      ? `background-image:url('${cssUrl(p.img)}');background-size:cover;background-position:center`
       : `background:${PATTERNS[p.pattern] || PATTERNS.plain};background-size:${pSize(p.pattern)}`,
     priceLabel: money(p.price),
     unitLabel: '/' + uShort(p.unit),
@@ -971,9 +982,15 @@ function reviewsSection(productId) {
 // (Ilgari bu yerda "boshqa hamma matn o'zimizniki" deb yozilgandi — bu NOTO'G'RI
 // edi va aynan shu taxmin sababli buyurtma izohi, manzil va bahs sababi
 // tozalanmay qolgan edi: 2026-08-02 da to'rttala joy ham yopildi.)
-// Bitta tirnoq ham qamraladi: `style="...url('${x}')"` va `onclick="f('${x}')"`
-// kabi joylarda faqat qo'shtirnoqni qochirish YETARLI EMAS — matn bitta tirnoq
-// bilan atributdan chiqib ketardi.
+//
+// ⚠️ CHEGARASI: bu faqat MATN va ODDIY ATRIBUT uchun ishlaydi
+// (`<div>${esc(x)}</div>`, `<img src="${esc(x)}">`).
+// Atribut ICHIDA boshqa til boshlansa — `style="...url('${x}')"` yoki
+// `onclick="f('${x}')"` — YARAMAYDI: HTML tahlilchisi `&#39;` ni `'` ga
+// QAYTARADI, keyin uni CSS/JS o'qiydi va matn tirnoqdan chiqib ketadi.
+// Sinab ko'rilgan (2026-08-02): `esc()` bilan ham `background:red` qo'llanib ketdi.
+// Bunday joyda URL uchun `cssUrl()`, qolgani uchun esa umuman
+// interpolatsiya qilinmasin — qiymat `dataset` orqali berilsin.
 function esc(s) {
   return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
 }

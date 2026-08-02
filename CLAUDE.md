@@ -51,8 +51,16 @@
   shahar, `img` `vm()` chegarasida bir marta tozalanadi (`telegram-app/app.js`),
   chunki ular o'nlab joyda chiziladi va har birini eslab qolish imkonsiz.
   `vm()` dan o'tmaydigan narsalar (buyurtma, bahs, profil) esa chizish joyida
-  o'raladi. `esc()` bitta tirnoqni ham qochiradi — `style="url('${x}')"` va
-  `onclick="f('${x}')"` da faqat qo'shtirnoq yetarli emas.
+  o'raladi.
+  ⚠️ **`esc()` faqat matn va oddiy atribut uchun** (`<div>${esc(x)}</div>`,
+  `<img src="${esc(x)}">`). Atribut ICHIDA boshqa til boshlansa —
+  `style="...url('${x}')"` yoki `onclick="f('${x}')"` — **yaramaydi:** HTML
+  tahlilchisi `&#39;` ni `'` ga qaytaradi va matn tirnoqdan chiqib ketadi
+  (2026-08-02 da sinab ko'rilgan — `esc()` bilan ham CSS qo'llanib ketdi).
+  Bunday joyda URL uchun `cssUrl()` ishlatilsin (`vm()` → `bgStyle` namunasi),
+  qolgani esa umuman interpolatsiya qilinmasin — qiymat `dataset` orqali berilsin.
+  `encodeURI()` ning O'ZI ham yetarli emas: u bitta tirnoqni qochirmaydi, shuning
+  uchun `cssUrl()` uni alohida `%27` ga almashtiradi.
   **Serverda tozalanmaydi:** baza xom matn saqlaydi, chunki Telegram yo'li
   o'zining `escapeHtml` ini qo'llaydi (`routes/orders.js`) — ikki marta
   qochirilsa foydalanuvchi `&lt;` ko'rib qolardi. Himoya CHIQISHDA turadi.

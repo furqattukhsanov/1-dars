@@ -143,9 +143,10 @@ LolaMarket ni rasmiy ishga tushirish. Birinchi haqiqiy xaridorlar va ishlab chiq
 
   **Tuzatilgani** (`telegram-app/app.js`, `esc()` ishlatilishi 7 → 28):
   - `esc()` ning O'ZI kengaytirildi — endi BITTA TIRNOQNI ham qochiradi
-    (`'` → `&#39;`). Ilgari faqat `& < > "` qamralardi, ya'ni `style="url('${x}')"`
-    va `onclick="f('${x}')"` kabi joylarda matn bitta tirnoq bilan atributdan chiqib
-    keta olardi — qo'shtirnoqni qochirishning o'zi u yerda YETARLI EMAS.
+    (`'` → `&#39;`). Ilgari faqat `& < > "` qamralardi.
+    ⚠️ **Bu o'zgarishga o'sha kuni berilgan IZOH noto'g'ri edi** — "shuning uchun
+    `style="url('${x}')"` va `onclick="f('${x}')"` da ham himoya qiladi" deyilgandi.
+    Bu yolg'on; pastdagi «Yolg'on da'vo tuzatildi» blokiga qara.
   - **`vm()` chegarasida tozalash** (arxitektura qarori, pastda): `name`, `supplier`,
     `city`, `comp`, `badge`, `img` (`bgStyle` ichida) va `meta`.
   - `vm()` dan o'tmaydigan joylar chizish joyida o'raldi: buyurtma (`buyerName`,
@@ -171,6 +172,44 @@ LolaMarket ni rasmiy ishga tushirish. Birinchi haqiqiy xaridorlar va ishlab chiq
   tirnoq yozganim shablon satrini uzib yubordi — `node --check` tutdi, izohlar
   tirnoqsiz qayta yozildi. Bu `node --check` ni har tahrirdan keyin ishlatishning
   arzon dalili.
+
+  **Yolg'on da'vo tuzatildi (o'sha kuni kechroq, `app.js?v=57→58`).** Yuqoridagi
+  tuzatish bilan birga kodga va CLAUDE.md ga yozib qo'yilgan sabab NOTO'G'RI edi:
+  "`esc()` bitta tirnoqni qochiradi, shuning uchun `style="url('${x}')"` va
+  `onclick="f('${x}')"` da ham himoya qiladi". Brauzerda sinab ko'rildi — himoya
+  qilmaydi.
+
+  1. **`esc()` ning haqiqiy CHEGARASI: faqat MATN va ODDIY ATRIBUT.**
+     (`<div>${esc(x)}</div>`, `<img src="${esc(x)}">`.) Atribut ICHIDA boshqa til
+     boshlansa — CSS yoki JS — yaramaydi, chunki qochirish YECHILADI: HTML
+     tahlilchisi `&#39;` ni avval `'` ga QAYTARADI, keyin natijani CSS/JS o'qiydi.
+     Ya'ni qochirilgan tirnoq CSS ga yetib borguncha oddiy tirnoqqa aylanib
+     ulguradi. Sinovda `esc()` bilan ham hujum yuki `background:red` ni
+     qo'llab yubordi.
+  2. **`encodeURI()` ning O'ZI ham yetarli emas.** U bitta tirnoqni qochirmaydi —
+     sinovda hujum baribir o'tdi. Tirnoq ALOHIDA `%27` ga almashtirilishi shart.
+
+  **Tuzatilgani:** `telegram-app/app.js` ga `cssUrl()` yordamchisi qo'shildi
+  (`encodeURI()` + tirnoq → `%27`), `vm()` dagi `bgStyle` endi `esc()` emas
+  `cssUrl()` ishlatadi. `esc()` tepasidagi izoh chegarasi bilan qayta yozildi,
+  CLAUDE.md dagi noto'g'ri jumla almashtirildi.
+
+  **Bu foydalanib bo'ladigan teshik EMAS edi.** Yagona shunday joy — `vm()` dagi
+  `bgStyle`, `p.img` esa sotuvchi nazoratida emas: mahsulot qo'shishda `img`
+  maydoni umuman yo'q (`server/routes/catalog.js` INSERT), rasm yo'li serverda
+  `encodeURIComponent` bilan yasaladi. Tuzatish — kelajak uchun va yolg'on izohni
+  olib tashlash uchun.
+
+  **Sinov:** brauzerda uch variant taqqoslandi — `esc()` (hujum O'TDI),
+  `encodeURI()` (hujum O'TDI), `cssUrl()` (himoyalandi). Oddiy yo'llar buzilmadi
+  (`assets/products/textile-01.jpg` va `/api/product-photo?f=..&s=..`
+  o'zgarishsiz, haqiqiy mahsulot rasmi ishladi). `node --check` o'tdi. Barcha
+  fayllarda `url(` interpolatsiyasi qayta qidirildi — boshqa joy yo'q (admin
+  paneldagi ikkitasi SVG gradient havolasi).
+
+  **Dars:** "sinab ko'rmasdan yozilgan xavfsizlik izohi — o'zi nuqson." Bu
+  yozuvda ikkinchi marta shunday bo'ldi (birinchisi — o'chirilgan eski izoh,
+  "boshqa hamma matn o'zimizniki").
 
 - [2026-08-02] **Xavfsizlik sarlavhalari qo'yildi — 1-avgustda ochilgan teshik o'sha
   haftada yopildi, CSP bilan birga.**
@@ -290,9 +329,14 @@ LolaMarket ni rasmiy ishga tushirish. Birinchi haqiqiy xaridorlar va ishlab chiq
   sotuvchi mahsulot ro'yxati) chizish joyida qo'lda o'ralishi SHART — bu qoidaning
   istisnosi emas, boshqa chegarasi. CLAUDE.md ga yozildi
 - [2026-08-02] Qaror: **`esc()` bitta tirnoqni ham qochiradi.** Faqat `& < > "` ni
-  qochirish yetarli emas, chunki loyihada atribut qiymatlari bitta tirnoq bilan ham
-  yoziladi: `style="background-image:url('${x}')"` va `onclick="f('${x}')"`. Bunday
-  joyda matn `'` bilan atributdan chiqib, o'z hodisa atributini qo'sha olardi
+  qochirish yetarli emas: matn oddiy atributdan `'` bilan chiqib, o'z hodisa
+  atributini qo'sha olardi.
+  ⚠️ **O'sha kuni kechroq TO'G'RILANDI:** bu qarorga dastlab "shuning uchun
+  `style="url('${x}')"` va `onclick="f('${x}')"` da ham himoya qiladi" deb
+  qo'shilgandi — bu NOTO'G'RI. `esc()` faqat MATN va ODDIY ATRIBUT uchun ishlaydi;
+  atribut ichida CSS/JS boshlansa qochirish yechiladi (`&#39;` → `'`) va himoya
+  qolmaydi. `encodeURI()` yolg'iz ham yetarli emas — tirnoqni qochirmaydi.
+  CSS `url()` uchun `cssUrl()` (`encodeURI()` + tirnoq → `%27`) ishlatiladi
 - [2026-08-02] Qaror: **HTML tozalash SERVERDA emas, CHIQISHDA bajariladi — baza xom
   matn saqlaydi.** Sabab: Telegram yo'li o'zining `escapeHtml` ini qo'llaydi
   (`server/routes/orders.js:192-196`); matn bazada allaqachon qochirilgan bo'lsa u
