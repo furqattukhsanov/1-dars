@@ -41,6 +41,21 @@
   bo'lganda reyting blokini umuman ko'rsatmaydi ("baholanmagan" ≠ "yomon
   baholangan"). Xuddi shu sabab `telegram-app/app.js` dagi zaxira massivda ham
   reyting yo'q — u yerda haqiqiy sharh bo'lishi mumkin emas.
+- **`innerHTML` ga boradigan HAR QANDAY tashqi matn `esc()` dan o'tsin**
+  (2026-08-02). Foydalanuvchi yozgan matn — buyurtma izohi, manzil, bahs sababi,
+  sotuvchi javobi, mahsulot nomi, Telegram ismi — shablon satriga xom qo'yilsa,
+  u **kod bo'lib ishga tushadi**. Bu nazariy emas: xaridor buyurtma izohiga
+  `<img src=x onerror=...>` yozsa, u SOTUVCHI ekranida sotuvchining sessiyasida
+  bajarilardi. CSP to'xtatmaydi — u `'unsafe-inline'` bilan ishlaydi.
+  **Mahsulot maydonlari uchun alohida `esc()` YOZILMASIN** — nom, sotuvchi,
+  shahar, `img` `vm()` chegarasida bir marta tozalanadi (`telegram-app/app.js`),
+  chunki ular o'nlab joyda chiziladi va har birini eslab qolish imkonsiz.
+  `vm()` dan o'tmaydigan narsalar (buyurtma, bahs, profil) esa chizish joyida
+  o'raladi. `esc()` bitta tirnoqni ham qochiradi — `style="url('${x}')"` va
+  `onclick="f('${x}')"` da faqat qo'shtirnoq yetarli emas.
+  **Serverda tozalanmaydi:** baza xom matn saqlaydi, chunki Telegram yo'li
+  o'zining `escapeHtml` ini qo'llaydi (`routes/orders.js`) — ikki marta
+  qochirilsa foydalanuvchi `&lt;` ko'rib qolardi. Himoya CHIQISHDA turadi.
 - **Frontendda `window.addEventListener('load', ...)` ishlatilmasin** (2026-07-31,
   ikki marta kuyganimizdan keyin). `load` BARCHA rasm va shrift yuklanib bo'lgandan
   keyin otiladi — sekin tarmoqda bu soniyalar. Ikki marta zarar keltirdi:

@@ -47,7 +47,18 @@ LolaMarket ni rasmiy ishga tushirish. Birinchi haqiqiy xaridorlar va ishlab chiq
 
   ⚠️ **Ochiq qolgan qarz:** CSP `'unsafe-inline'` bilan yozilgan (sabab pastdagi
   qarorda) — ~120 ta inline hodisa `addEventListener` ga o'tkazilgunicha CSP to'liq
-  kuchga kirmaydi
+  kuchga kirmaydi.
+
+  **QARZ QAYTA BAHOLANDI (2026-08-02 kechqurun).** O'sha kuni "bu to'la qonligicha
+  tugadimi?" degan savol audit qildirdi va audit HAQIQIY teshik topdi — Mini App'da
+  saqlanuvchi XSS (pastdagi yozuv). Teshik yopilgach qarzning OG'IRLIGI kamaydi:
+  `'unsafe-inline'` faqat "kod sahifaga kirib qolsa" holatida zarar qiladi, endi esa
+  ma'lum bo'lgan kirish yo'li qolmadi. **Lekin qarzning O'ZI turibdi** — inventarizatsiya
+  o'zgarmadi (`telegram-app/app.js` 76 inline `onclick`, `script.js` 24), ya'ni
+  `'unsafe-inline'` hamon CSP'ning ikkinchi qatlam bo'lish qobiliyatini yo'q qiladi:
+  kelajakda yangi bir joyda `esc()` unutilsa, CSP xatoni TUTMAYDI. Shu sababli
+  himoyaning butun og'irligi hozir `esc()` ning izchil qo'llanishida. Yopilishi
+  o'zgarmadi: ~120 ta inline hodisani `addEventListener` ga o'tkazish
 - [ ] Muhit o'zgaruvchilari (env vars) production uchun sozlash
   — **AMALDA BAJARILGAN, lekin bugun qayta tasdiqlanmadi.** `/opt/lolamarket-notify/.env`
   (600 huquq, git'ga kirmaydi) Sprint 2/3 da to'ldirilgan; bilvosita dalil — jonli
@@ -101,6 +112,65 @@ LolaMarket ni rasmiy ishga tushirish. Birinchi haqiqiy xaridorlar va ishlab chiq
 ---
 
 ## Qilingan ishlar
+
+- [2026-08-02] **Mini App'da saqlanuvchi XSS topildi va yopildi — xaridor yozgan matn
+  SOTUVCHINING ekranida kod bo'lib ishga tushardi.** Teshikni "bu to'la qonligicha
+  tugadimi?" degan savol ochdi: o'sha kuni ertalab qo'yilgan CSP `'unsafe-inline'`
+  bilan ishlagani uchun javob "yo'q" bo'ldi, va shu savol audit qildirdi.
+
+  **Zanjir uchidan-uchiga tasdiqlandi:**
+  1. Xaridor buyurtma izohiga / manziliga / bahs sababiga matn yozadi.
+     `server/lib/validate.js` faqat TUR va UZUNLIKni tekshiradi — HTML tozalanmaydi.
+  2. Matn bazaga xom tushadi.
+  3. `server/routes/seller.js:170-173` uni sotuvchiga xom qaytaradi (`buyerName`,
+     `address`, `comment`, `tracking`).
+  4. `telegram-app/app.js` uni `innerHTML` ga XOM qo'yadi — `esc()` ishlatilmagan.
+  5. CSP to'xtatmaydi, chunki u `'unsafe-inline'` bilan ishlaydi.
+
+  Xuddi shu narsa bahs oqimida ham: `server/routes/disputes.js:49` da `reason` =
+  tayyor sabab + xaridorning ERKIN izohi, u ham xom saqlanadi va sotuvchiga xom
+  ko'rsatiladi. **Zararning chegarasi:** `connect-src 'self'` o'g'irlangan ma'lumotni
+  tashqariga chiqarishga yo'l bermaydi, lekin zararli kod BIZNING O'Z API'imizga
+  sotuvchi nomidan murojaat qila olardi — buyurtmani qabul qilish/rad etish, narx
+  o'zgartirish. Ya'ni ma'lumot o'g'irlash emas, **sotuvchi nomidan amal bajarish**.
+
+  **Eng muhim kuzatuv: yechim allaqachon loyihada bor edi.** `esc()` to'g'ri yozilgan
+  va landing (`script.js`) uni 32 marta, admin panel (`admin/admin.js`) 48 marta
+  ishlatadi — ularda teshik YO'Q. Mini App esa atigi 7 marta ishlatgan, faqat sharhlar
+  tizimida (u yaqinda yozilgan). Buyurtma va bahs ekranlari eskiroq va e'tibordan
+  chetda qolgan. Ya'ni bu noma'lum muammo emas edi — qoida bor edi, shunchaki bir
+  necha joyda qo'llanmagan.
+
+  **Tuzatilgani** (`telegram-app/app.js`, `esc()` ishlatilishi 7 → 28):
+  - `esc()` ning O'ZI kengaytirildi — endi BITTA TIRNOQNI ham qochiradi
+    (`'` → `&#39;`). Ilgari faqat `& < > "` qamralardi, ya'ni `style="url('${x}')"`
+    va `onclick="f('${x}')"` kabi joylarda matn bitta tirnoq bilan atributdan chiqib
+    keta olardi — qo'shtirnoqni qochirishning o'zi u yerda YETARLI EMAS.
+  - **`vm()` chegarasida tozalash** (arxitektura qarori, pastda): `name`, `supplier`,
+    `city`, `comp`, `badge`, `img` (`bgStyle` ichida) va `meta`.
+  - `vm()` dan o'tmaydigan joylar chizish joyida o'raldi: buyurtma (`buyerName`,
+    `address`, `tracking`, `comment`), bahs (`reason`, `decision`, `sellerResponse`,
+    javob qoralamasi), sotuvchi mahsulot ro'yxati (`name`, `rejectReason`, `img`),
+    Telegram profili (`first_name`, `fullName`, `username`, `photo_url`).
+  - `esc()` tepasidagi ESKI IZOH o'chirildi. U "bu ilovada boshqa hamma matn
+    o'zimizniki" derdi — bu NOTO'G'RI edi va aynan shu taxmin sababli teshik ochiq
+    qolgandi. Izohning o'zi nuqsonning bir qismi edi.
+
+  `admin/admin.js` da bitta mayda joy: `initials(name)` ismning birinchi harfini xom
+  qaytarardi, u `esc()` ga o'raldi. Panelning qolgan qismi allaqachon toza edi.
+
+  **Sinov (brauzerda, to'rtta haqiqiy hujum yuki):** `<img src=x onerror=...>`,
+  `<script>`, `' onmouseover='`, `"><svg onload=...>`. Eski yo'lda **4 tadan 3 tasi
+  HAQIQIY TEG yaratdi va 3 tasi hodisa atributini kiritdi**; `esc()` bilan 4 tasi ham
+  0 teg berdi va oddiy matn bo'lib ko'rindi. `node --check` ikkala faylda o'tdi.
+  Yakuniy sweep: tozalanmagan tashqi matn qolmadi.
+
+  **Versiyalar:** `telegram-app/app.js?v=56→57`, `admin/admin.js?v=18→19`.
+
+  **Yo'l-yo'lakay o'zim kiritib o'zim tuzatgan nuqson:** HTML izohi ichiga teskari
+  tirnoq yozganim shablon satrini uzib yubordi — `node --check` tutdi, izohlar
+  tirnoqsiz qayta yozildi. Bu `node --check` ni har tahrirdan keyin ishlatishning
+  arzon dalili.
 
 - [2026-08-02] **Xavfsizlik sarlavhalari qo'yildi — 1-avgustda ochilgan teshik o'sha
   haftada yopildi, CSP bilan birga.**
@@ -211,6 +281,32 @@ LolaMarket ni rasmiy ishga tushirish. Birinchi haqiqiy xaridorlar va ishlab chiq
 
 ## Qarorlar
 
+- [2026-08-02] Qaror: **mahsulot maydonlari `vm()` CHEGARASIDA bir marta tozalanadi,
+  chizish joyida emas.** `name`, `supplier`, `city`, `comp`, `badge`, `img` o'nlab
+  joyda `innerHTML` ga qo'yiladi — har birini alohida `esc()` ga o'rash ertami-kech
+  esdan chiqadi va aynan shu tarzda unutilgan joy teshik bo'lib qoladi. `vm()` —
+  mahsulot ekranga chiqishidan oldin o'tadigan YAGONA nuqta, shuning uchun himoya shu
+  yerda turadi. Narxi ochiq: `vm()` dan o'tmaydigan ma'lumot (buyurtma, bahs, profil,
+  sotuvchi mahsulot ro'yxati) chizish joyida qo'lda o'ralishi SHART — bu qoidaning
+  istisnosi emas, boshqa chegarasi. CLAUDE.md ga yozildi
+- [2026-08-02] Qaror: **`esc()` bitta tirnoqni ham qochiradi.** Faqat `& < > "` ni
+  qochirish yetarli emas, chunki loyihada atribut qiymatlari bitta tirnoq bilan ham
+  yoziladi: `style="background-image:url('${x}')"` va `onclick="f('${x}')"`. Bunday
+  joyda matn `'` bilan atributdan chiqib, o'z hodisa atributini qo'sha olardi
+- [2026-08-02] Qaror: **HTML tozalash SERVERDA emas, CHIQISHDA bajariladi — baza xom
+  matn saqlaydi.** Sabab: Telegram yo'li o'zining `escapeHtml` ini qo'llaydi
+  (`server/routes/orders.js:192-196`); matn bazada allaqachon qochirilgan bo'lsa u
+  ikki marta qochiriladi va foydalanuvchi Telegram xabarida `&lt;` ko'rib qoladi.
+  Bitta manba, ikkita chiqish kanali — himoya har kanalning O'Z chegarasida turadi.
+  Buning narxi: bazadagi matn ishonchsiz deb hisoblanishi kerak, ya'ni yangi chiqish
+  kanali qo'shilsa u ham o'z tozalashini olib kelishi shart
+- [2026-08-02] Qaror: **"tugadimi?" degan savolga "ha" deb javob berishdan oldin
+  audit qilinadi.** Bugungi kun buni ikki marta oqladi: ertalabki CSP ishi "bajarildi"
+  deb yozilgandi, savol berilganda `'unsafe-inline'` qarzi ochiq ekani ayon bo'ldi, va
+  o'sha audit HAQIQIY, mustaqil teshik topdi (saqlanuvchi XSS). Bu 2026-07-31 dagi
+  "dalil ko'rsatilishi kerak" qarorining aynan davomi, faqat boshqa tomondan: u yerda
+  band `[x]` bo'lgani yetarli emas edi, bu yerda esa **band chindan bajarilgan bo'lsa
+  ham qo'shni teshikni yopmaydi**
 - [2026-08-02] Qaror: **CSP avval `Content-Security-Policy-Report-Only` bilan yoqiladi,
   majburlash faqat konsol toza bo'lgandan keyin.** Sabab: CSP noto'g'ri yozilsa saytni
   **jimgina** sindiradi — skript yuklanmaydi, xato faqat brauzer konsolida ko'rinadi,

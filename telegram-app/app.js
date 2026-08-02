@@ -460,14 +460,19 @@ function vm(p) {
   if (!p) return null;
   const [bbg,bfg] = BADGE_COLORS[p.badgeTone] || BADGE_COLORS.neutral;
   const L = S.lang;
+  // Matn maydonlari SHU YERDA tozalanadi, chizish joyida emas. Sabab: nom,
+  // sotuvchi va shahar BAZADAN keladi (sotuvchi yozadi), ular esa o'nlab
+  // joyda `innerHTML` ga qo'yiladi — har birini alohida `esc()` ga o'rash
+  // ertami-kech esdan chiqadi. `vm()` — mahsulot ekranga chiqishidan oldin
+  // o'tadigan YAGONA nuqta, shuning uchun himoya shu chegarada turadi.
   return {
     ...p,
-    name: p.name[L], supplier: p.supplier[L], city: p.city[L], comp: p.comp[L],
-    badge: p.badge ? p.badge[L] : null,
+    name: esc(p.name[L]), supplier: esc(p.supplier[L]), city: esc(p.city[L]), comp: esc(p.comp[L]),
+    badge: p.badge ? esc(p.badge[L]) : null,
     bg: PATTERNS[p.pattern] || PATTERNS.plain,
     bgSize: pSize(p.pattern),
     bgStyle: p.img
-      ? `background-image:url('${p.img}');background-size:cover;background-position:center`
+      ? `background-image:url('${esc(p.img)}');background-size:cover;background-position:center`
       : `background:${PATTERNS[p.pattern] || PATTERNS.plain};background-size:${pSize(p.pattern)}`,
     priceLabel: money(p.price),
     unitLabel: '/' + uShort(p.unit),
@@ -482,7 +487,7 @@ function vm(p) {
     liked: !!S.liked[p.id],
     heartFill: S.liked[p.id] ? 'var(--color-primary)' : 'none',
     heartStroke: S.liked[p.id] ? 'var(--color-primary)' : 'var(--text-body)',
-    meta: p.city[L] + ' · MOQ ' + num(p.moq) + uShort(p.unit) + ' · ' + p.lead + ' ' + STR[L].day,
+    meta: esc(p.city[L]) + ' · MOQ ' + num(p.moq) + uShort(p.unit) + ' · ' + p.lead + ' ' + STR[L].day,
   };
 }
 
@@ -706,7 +711,7 @@ function renderHome() {
   return `
   <div style="padding:10px 16px 28px;display:flex;flex-direction:column;gap:14px">
     <div>
-      <div style="font-family:var(--font-display);font-size:19px;font-weight:800;color:var(--text-strong);letter-spacing:-.02em;line-height:1.15">Salom, ${S.tgUser?.first_name || 'Maryam'} 🌷</div>
+      <div style="font-family:var(--font-display);font-size:19px;font-weight:800;color:var(--text-strong);letter-spacing:-.02em;line-height:1.15">Salom, ${esc(S.tgUser?.first_name || 'Maryam')} 🌷</div>
       <div style="font-size:12.5px;color:var(--text-muted);margin-top:1px">${T.greetSub}</div>
     </div>
 
@@ -962,11 +967,15 @@ function reviewsSection(productId) {
   </div>`;
 }
 
-// Sharh matni foydalanuvchidan keladi va innerHTML ga tushadi — teglar
-// ZARARSIZLANTIRILADI. Bu ilovada boshqa hamma matn o'zimizniki, shuning
-// uchun yagona joyda kerak bo'ladigan yordamchi.
+// HTML'ga qo'yiladigan HAR QANDAY foydalanuvchi matni shu yerdan o'tishi shart.
+// (Ilgari bu yerda "boshqa hamma matn o'zimizniki" deb yozilgandi — bu NOTO'G'RI
+// edi va aynan shu taxmin sababli buyurtma izohi, manzil va bahs sababi
+// tozalanmay qolgan edi: 2026-08-02 da to'rttala joy ham yopildi.)
+// Bitta tirnoq ham qamraladi: `style="...url('${x}')"` va `onclick="f('${x}')"`
+// kabi joylarda faqat qo'shtirnoqni qochirish YETARLI EMAS — matn bitta tirnoq
+// bilan atributdan chiqib ketardi.
 function esc(s) {
-  return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
 }
 
 // ============ EKRAN: QIDIRUV ============
@@ -1417,9 +1426,11 @@ function disputeBlock(o) {
         ${open ? T.dispOpenBadge : T.dispResolvedBadge}
       </span>
     </div>
-    <div style="font-size:12px;color:var(--text-muted);margin-top:6px;line-height:1.5">${d.reason || ''}</div>
+    <!-- reason = tayyor sabab + XARIDORNING erkin izohi (disputes.js:49),
+         decision = admin matni. Ikkalasi ham tozalanadi. -->
+    <div style="font-size:12px;color:var(--text-muted);margin-top:6px;line-height:1.5">${esc(d.reason || '')}</div>
     ${open && !d.photos ? `<div style="font-size:11.5px;color:var(--saffron-700);margin-top:5px">📸 ${T.dispNeedPhoto}</div>` : ''}
-    ${d.decision ? `<div style="font-size:12px;color:var(--text-body);margin-top:6px;line-height:1.5"><b>${T.dispDecision}:</b> ${d.decision}</div>` : ''}
+    ${d.decision ? `<div style="font-size:12px;color:var(--text-body);margin-top:6px;line-height:1.5"><b>${T.dispDecision}:</b> ${esc(d.decision)}</div>` : ''}
     ${d.refundAmount ? `<div style="font-size:12px;color:var(--text-body);margin-top:3px"><b>${T.dispRefund}:</b> <span style="font-family:var(--font-mono)">${money(d.refundAmount)}</span></div>` : ''}
   </div>`;
 }
@@ -1660,15 +1671,17 @@ function renderTgCard() {
     </div>`;
   }
   const fullName = [u.first_name, u.last_name].filter(Boolean).join(' ') || T.tgUserFallback;
+  // Ism va rasm manzili Telegram profilidan keladi — foydalanuvchi ularni
+  // o'zi yozadi, ya'ni ishonchsiz matn.
   const avatar = u.photo_url
-    ? `<img src="${u.photo_url}" style="width:48px;height:48px;border-radius:14px;object-fit:cover;flex:none" alt="">`
-    : `<span style="flex:none;width:48px;height:48px;border-radius:14px;background:linear-gradient(150deg,#37AEE2,#1E96C8);color:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:800;font-size:18px">${fullName[0].toUpperCase()}</span>`;
+    ? `<img src="${esc(u.photo_url)}" style="width:48px;height:48px;border-radius:14px;object-fit:cover;flex:none" alt="">`
+    : `<span style="flex:none;width:48px;height:48px;border-radius:14px;background:linear-gradient(150deg,#37AEE2,#1E96C8);color:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:800;font-size:18px">${esc(fullName[0].toUpperCase())}</span>`;
   return `
   <div style="display:flex;align-items:center;gap:12px;padding:14px;border-radius:var(--radius-lg);background:var(--glass-fill-strong);backdrop-filter:var(--blur-md);-webkit-backdrop-filter:var(--blur-md);border:1px solid var(--glass-border);box-shadow:var(--glass-shadow)">
     ${avatar}
     <div style="flex:1;min-width:0">
-      <div style="font-family:var(--font-display);font-size:15px;font-weight:700;color:var(--text-strong);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${fullName}</div>
-      <div style="font-size:12px;color:var(--text-muted);margin-top:1px">${u.username ? '@' + u.username : ''}</div>
+      <div style="font-family:var(--font-display);font-size:15px;font-weight:700;color:var(--text-strong);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(fullName)}</div>
+      <div style="font-size:12px;color:var(--text-muted);margin-top:1px">${u.username ? '@' + esc(u.username) : ''}</div>
     </div>
     <span style="flex:none;display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 10px;border-radius:999px;background:rgba(55,174,226,.13);color:#1E96C8;font-size:11px;font-weight:600;white-space:nowrap">
       <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M21 4L2.5 11.5l6 2 2 6.5L15 15l5-11z"/></svg>${T.tgVerified}
@@ -2192,10 +2205,11 @@ function renderSellerProducts() {
       return `<div style="${CARD_BOX};margin-bottom:9px">
         <div style="display:flex;gap:11px;align-items:center">
           <div style="flex:none;width:46px;height:46px;border-radius:11px;background:linear-gradient(135deg,#e8c9b8,#c98f74);overflow:hidden">
-            ${p.img ? `<img src="${p.img}" alt="" style="width:100%;height:100%;object-fit:cover">` : ''}
+            ${p.img ? `<img src="${esc(p.img)}" alt="" style="width:100%;height:100%;object-fit:cover">` : ''}
           </div>
           <div style="flex:1;min-width:0">
-            <div style="font-size:14px;font-weight:700;color:var(--text-strong);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.name[S.lang]}</div>
+            <!-- Bu ro'yxat sotuvchi API'sidan XOM keladi, vm() dan o'tmaydi. -->
+            <div style="font-size:14px;font-weight:700;color:var(--text-strong);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(p.name[S.lang])}</div>
             <div style="font-family:var(--font-mono);font-size:12px;color:var(--text-muted);margin-top:2px">${money(p.price)} · ${T.minOrder}: ${num(p.moq)}</div>
             <div style="font-size:11.5px;color:${p.stock === 0 ? 'var(--danger-500)' : 'var(--text-muted)'};margin-top:2px">${T.sStockLabel}: ${p.stock == null ? T.sStockUnlimited : num(p.stock)}</div>
             <div style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:${st.fg};margin-top:4px">
@@ -2203,7 +2217,7 @@ function renderSellerProducts() {
             </div>
           </div>
         </div>
-        ${p.status === 'rejected' && p.rejectReason ? `<div style="margin-top:9px;padding:9px 11px;border-radius:var(--radius-sm);background:var(--danger-100);font-size:12px;color:#a3181c;line-height:1.45">${p.rejectReason}</div>` : ''}
+        ${p.status === 'rejected' && p.rejectReason ? `<div style="margin-top:9px;padding:9px 11px;border-radius:var(--radius-sm);background:var(--danger-100);font-size:12px;color:#a3181c;line-height:1.45">${esc(p.rejectReason)}</div>` : ''}
         ${!p.img ? `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:9px;padding:8px 11px;border-radius:var(--radius-sm);background:var(--saffron-50);font-size:12px;color:var(--saffron-700)">
           <span>${p.awaitingImage ? T.sImgWaiting : ''}</span>
           ${p.awaitingImage ? '' : `<button onclick="requestProductImage('${p.id}')" style="flex:none;cursor:pointer;padding:6px 11px;border-radius:999px;border:none;background:var(--saffron-500);font-family:var(--font-sans);font-size:11.5px;font-weight:700;color:#fff">${T.sImgAdd}</button>`}
@@ -2377,10 +2391,12 @@ function renderSellerOrders() {
         <div style="margin-top:9px;padding-top:9px;border-top:1px solid var(--border-hair);font-size:12px;color:var(--text-muted);line-height:1.6">
           <div>${T.sYourPart}: <b style="color:var(--text-strong);font-family:var(--font-mono)">${money(o.sellerTotal)}</b></div>
           ${o.prepay ? `<div>${T.sPrepaid}: <b style="color:var(--text-body);font-family:var(--font-mono)">${money(o.prepay)}</b> · ${T.sRestWait}: <span style="font-family:var(--font-mono)">${money(o.rest || 0)}</span></div>` : ''}
-          <div>${T.sBuyer}: <b style="color:var(--text-body)">${o.buyerName || '—'}</b></div>
-          <div>${T.sPickup}: <b style="color:var(--text-body)">${o.address || '—'}</b></div>
-          ${o.tracking ? `<div>${T.sTracking}: <b style="font-family:var(--font-mono);color:var(--text-body)">${o.tracking}</b></div>` : ''}
-          ${o.comment ? `<div style="margin-top:4px;font-style:italic">"${o.comment}"</div>` : ''}
+          <!-- Bu to'rttasini XARIDOR yozadi va ular SOTUVCHI ekranida chiziladi —
+               tozalanmasa xaridor sotuvchining sessiyasida kod ishga tushira olardi. -->
+          <div>${T.sBuyer}: <b style="color:var(--text-body)">${esc(o.buyerName || '—')}</b></div>
+          <div>${T.sPickup}: <b style="color:var(--text-body)">${esc(o.address || '—')}</b></div>
+          ${o.tracking ? `<div>${T.sTracking}: <b style="font-family:var(--font-mono);color:var(--text-body)">${esc(o.tracking)}</b></div>` : ''}
+          ${o.comment ? `<div style="margin-top:4px;font-style:italic">"${esc(o.comment)}"</div>` : ''}
         </div>
 
         ${isNew ? `<div style="display:flex;gap:8px;margin-top:11px">
@@ -2406,13 +2422,14 @@ function sellerDisputeBlock(d) {
   return `
   <div style="margin-top:11px;padding:11px;border-radius:var(--radius-sm);background:var(--danger-100);border:1px solid rgba(163,24,28,.18)">
     <div style="font-size:12px;font-weight:700;color:#a3181c">⚖️ ${T.sDispute}</div>
-    <div style="font-size:12.5px;color:var(--text-body);margin-top:5px;line-height:1.5">${d.reason || ''}</div>
+    <!-- reason ni XARIDOR yozadi, bu blok esa SOTUVCHI ekranida chiziladi. -->
+    <div style="font-size:12.5px;color:var(--text-body);margin-top:5px;line-height:1.5">${esc(d.reason || '')}</div>
 
     ${d.sellerResponse
-      ? `<div style="margin-top:8px;font-size:12px;color:var(--text-muted);line-height:1.5"><b>${T.sDisputeYours}:</b> ${d.sellerResponse}</div>`
+      ? `<div style="margin-top:8px;font-size:12px;color:var(--text-muted);line-height:1.5"><b>${T.sDisputeYours}:</b> ${esc(d.sellerResponse)}</div>`
       : `<div style="margin-top:9px">
            <textarea oninput="S.sDispReply[${d.id}]=this.value" placeholder="${T.sDisputeReplyPh}" rows="3"
-             style="width:100%;padding:10px;border:1px solid var(--border-hair);border-radius:var(--radius-sm);background:var(--surface-solid);font-family:var(--font-sans);font-size:16px;color:var(--text-strong);outline:none;resize:none">${S.sDispReply[d.id] || ''}</textarea>
+             style="width:100%;padding:10px;border:1px solid var(--border-hair);border-radius:var(--radius-sm);background:var(--surface-solid);font-family:var(--font-sans);font-size:16px;color:var(--text-strong);outline:none;resize:none">${esc(S.sDispReply[d.id] || '')}</textarea>
            <button onclick="sendDisputeReply(${d.id})" style="width:100%;margin-top:7px;cursor:pointer;padding:10px;border-radius:var(--radius-sm);border:none;background:linear-gradient(135deg,#8f1a10,#510100);font-family:var(--font-sans);font-size:13px;font-weight:700;color:#ffe9db">${T.sDisputeSend}</button>
          </div>`}
   </div>`;

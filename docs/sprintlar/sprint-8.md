@@ -66,6 +66,25 @@ Platformaning barcha funksiyalarini real foydalanuvchilar bilan sinovdan o'tkazi
 
 ## Qilingan ishlar
 
+- [2026-08-02] **Xavfsizlik auditi Mini App'da saqlanuvchi XSS topdi — tafsilot va
+  tuzatish `sprint-9.md` da, bu yerda faqat SINOV USULI qayd etilyapti.**
+
+  Nuqson rejalashtirilgan bandlardan birortasida emas, "bu to'la qonligicha tugadimi?"
+  degan savoldan keyingi auditda chiqdi. Sprint 8 uchun ahamiyatli qismi — **qanday
+  tasdiqlangani**: teshik "bor ko'rinadi" deb emas, brauzerda to'rtta haqiqiy hujum
+  yuki bilan sinaldi (`<img src=x onerror=...>`, `<script>`, `' onmouseover='`,
+  `"><svg onload=...>`). Eski yo'lda **4 tadan 3 tasi haqiqiy TEG yaratdi va 3 tasi
+  hodisa atributini kiritdi** — ya'ni bu nazariy xavf emas, ishlaydigan hujum edi.
+  Tuzatishdan keyin 4 tasi ham 0 teg berdi va oddiy matn bo'lib ko'rindi.
+
+  **Sprint 8 uchun dars:** oqim sinovlari (buyurtma, bahs) shu paytgacha faqat
+  ODDIY ma'lumot bilan o'tkazilgan edi. Oqim "ishlaydi" degani uni **yomon niyatli
+  kirish bilan** sinalgan degani emas — buyurtma izohi va bahs sababi barcha
+  sinovlarda oddiy matn edi, shuning uchun teshik oqim sinovlaridan o'tib ketaverdi.
+  Bu 2026-07-31 dagi "soxta ma'lumot o'zimiz kutgan shaklda keladi" darsining ikkinchi
+  yuzi: bu safar ma'lumot foydalanuvchidan keladi, biz esa uni ham "kutgan shaklda"
+  deb faraz qilgan edik.
+
 - [2026-08-01] **Sotuvchining accept / ship / reject oqimi production'da haqiqiy Telegram va
   Mini App bilan sinaldi — 31-iyulda ochiq qolgan bo'shliq yopildi. Nuqson topilmadi.**
 
@@ -239,6 +258,13 @@ Platformaning barcha funksiyalarini real foydalanuvchilar bilan sinovdan o'tkazi
 
 ## Qarorlar
 
+- [2026-08-02] Qaror: **foydalanuvchi matni qabul qiladigan oqim HUJUM YUKI bilan ham
+  sinaladi, faqat oddiy matn bilan emas.** Buyurtma va bahs oqimlari bir necha marta
+  uchidan-uchiga sinalgan va "ishlaydi" deb yozilgan edi, lekin izoh/manzil/sabab
+  maydonlariga har doim oddiy matn kiritilgandi — shuning uchun saqlanuvchi XSS
+  hamma sinovlardan o'tib ketdi. Bundan keyin matn maydoni bor oqim sinovida kamida
+  bitta `<img src=x onerror=...>` shaklidagi yuk bo'ladi, va natija "sahifa ochildi"
+  emas, **yaratilgan TEG soni** bilan o'lchanadi (0 bo'lishi kerak)
 - [2026-08-01] Qaror: **sinov chiqindisi tozalangani MUSTAQIL manbadan tasdiqlanadi.** 2026-07-30
   dagi "sinov o'z chiqindisini o'zi tozalaydi" qarorining davomi: tozalash amali bajarilgani
   yetarli emas, natija ochiq API'dan qayta o'qib solishtiriladi (bugun: Tola 12, Junli mato 49

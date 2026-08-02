@@ -394,7 +394,7 @@ function renderOrdersMini() {
           <span class="status-badge ${st.cls}">${st.text}</span>
         </div>
         <div class="oc-buyer">
-          <span class="oc-avatar">${initials(name)}</span>
+          <span class="oc-avatar">${esc(initials(name))}</span>
           <span class="oc-name">${esc(name)}</span>
         </div>
         <div class="oc-foot">
