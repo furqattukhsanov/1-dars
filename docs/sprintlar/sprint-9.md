@@ -27,14 +27,27 @@ LolaMarket ni rasmiy ishga tushirish. Birinchi haqiqiy xaridorlar va ishlab chiq
 
   **OCHIQ QOLDI:** `max-age` ni 12 oyga (`31536000`) ko'tarish — **~2026-08-08 dan keyin**,
   30 kunlik muddat muammosiz o'tgani ko'ringach. Founder bajaradi.
-- [ ] Xavfsizlik sarlavhalari (`X-Content-Type-Options`, `X-Frame-Options`, `CSP`,
-  `Referrer-Policy`) — **YO'Q, yangi ochilgan teshik (2026-08-01).** HSTS tekshiruvi
-  yo'l-yo'lakay ko'rsatdiki, javobda bu sarlavhalarning **birortasi ham yo'q**. Ya'ni
-  sayt `<iframe>` ichiga solinishi mumkin (clickjacking), brauzer fayl turini o'zi taxmin
-  qilaveradi, va tashqi manbadan skript yuklanishiga hech qanday cheklov qo'yilmagan.
-  HSTS faqat ULANISHNI himoya qiladi, SAHIFANI emas — ikkalasi boshqa-boshqa narsa.
-  Cloudflare Transform Rules yoki nginx orqali qo'shiladi; CSP eng oxirida, chunki u
-  noto'g'ri yozilsa saytni jimgina sindiradi
+- [x] Xavfsizlik sarlavhalari (`X-Content-Type-Options`, `X-Frame-Options`, `CSP`,
+  `Referrer-Policy`) — **BAJARILDI (2026-08-02), CSP majburlash rejimida, jonli
+  tekshirildi.** 2026-08-01 da ochilgan teshik: javobda bu sarlavhalarning birortasi
+  ham yo'q edi. Endi uchta Cloudflare Transform Rule ishlaydi (founder panelda qo'lladi,
+  agent qoidalarni yozib berdi va tekshirdi):
+  1. **Barcha so'rovlarga:** `X-Content-Type-Options: nosniff`,
+     `Referrer-Policy: strict-origin-when-cross-origin`,
+     `Permissions-Policy: camera=(), microphone=(), geolocation=()`.
+  2. **`/mini-app` dan tashqari yo'llarga:** `X-Frame-Options: DENY`.
+  3. **To'liq CSP** — `default-src 'self'` dan boshlab `connect-src 'self'`,
+     `frame-ancestors 'self' https://telegram.org https://*.telegram.org`,
+     `object-src 'none'` gacha. Kanonik nusxa: `docs/xavfsizlik-sarlavhalari.md`.
+
+  **Jonli tasdiq (majburlash rejimida):** `/`, `/admin/`, `/mini-app/` ochildi —
+  bloklangan manba 0 ta, rasm xatosi 0 ta, katalogda 85 kartochka chizildi,
+  `window.Telegram` joyida, Mini App Telegram'da ochildi (ya'ni `frame-ancestors`
+  haqiqatan ishlayapti).
+
+  ⚠️ **Ochiq qolgan qarz:** CSP `'unsafe-inline'` bilan yozilgan (sabab pastdagi
+  qarorda) — ~120 ta inline hodisa `addEventListener` ga o'tkazilgunicha CSP to'liq
+  kuchga kirmaydi
 - [ ] Muhit o'zgaruvchilari (env vars) production uchun sozlash
   — **AMALDA BAJARILGAN, lekin bugun qayta tasdiqlanmadi.** `/opt/lolamarket-notify/.env`
   (600 huquq, git'ga kirmaydi) Sprint 2/3 da to'ldirilgan; bilvosita dalil — jonli
@@ -88,6 +101,56 @@ LolaMarket ni rasmiy ishga tushirish. Birinchi haqiqiy xaridorlar va ishlab chiq
 ---
 
 ## Qilingan ishlar
+
+- [2026-08-02] **Xavfsizlik sarlavhalari qo'yildi — 1-avgustda ochilgan teshik o'sha
+  haftada yopildi, CSP bilan birga.**
+
+  **Qilingani.** Uchta Cloudflare Transform Rule (founder panelda qo'lladi, agent
+  qoidalarni yozib berdi va natijani jonli tekshirdi): (1) barcha so'rovlarga
+  `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`,
+  `Permissions-Policy: camera=(), microphone=(), geolocation=()`; (2) `/mini-app` dan
+  tashqari yo'llarga `X-Frame-Options: DENY`; (3) to'liq CSP. Qoidalar Cloudflare
+  panelida yashaydi, ya'ni git'da emas — shuning uchun kanonik nusxasi yangi hujjatga
+  yozildi: **`docs/xavfsizlik-sarlavhalari.md`**. Nginx tanlanmadi, chunki nginx'da
+  `add_header` **meros olinmaydi**: biror `location` o'zining `add_header`ini e'lon
+  qilsa, tepadagi hammasini tashlab yuboradi va o'sha yo'l jimgina himoyasiz qoladi.
+
+  **Mini App ATAYLAB `X-Frame-Options` dan chiqarildi.** Telegram Web
+  (`web.telegram.org`) Mini App'ni `<iframe>` ichida ochadi — `/mini-app/` ga `DENY`
+  qo'yilsa brauzerdan kirgan foydalanuvchida ilova **bo'sh oq ekran** bo'lardi.
+  Telefondagi Telegram va Telegram Desktop'da muammo ko'rinmasdi (u yerda native
+  WebView), ya'ni nuqson foydalanuvchilarning faqat bir qismida chiqib, sezilmay
+  yuraverardi. `X-Frame-Options` bir nechta manbaga ruxsat bera olmaydi — `ALLOW-FROM`
+  brauzerlar tomonidan tashlab yuborilgan. Buni CSP hal qildi:
+  `frame-ancestors 'self' https://telegram.org https://*.telegram.org`.
+
+  **Kuzatuv (Report-Only) bosqichi bitta haqiqiy buzilish topdi:**
+  `static.cloudflareinsights.com/beacon.min.js` — Cloudflare Web Analytics beacon'i.
+  Uni sahifaga **Cloudflare O'ZI qo'shadi**, repodagi kodda yo'q, shuning uchun kodni
+  qidirib topib bo'lmaydi — faqat jonli brauzerda ko'rinadi. `script-src` ga qo'shildi.
+  Report-Only bosqichisiz to'g'ridan-to'g'ri majburlanganda sayt sinmagan, lekin
+  **tashrif statistikasi jimgina o'lgan** bo'lardi. Bosqichning butun qiymati shu.
+  Beacon ma'lumotni `lolamarket.uz/cdn-cgi/rum` ga, ya'ni o'z domenimizga yozadi —
+  `connect-src 'self'` ga qo'shimcha kerak emas.
+
+  **`X-Frame-Options` qoidasi CSP kuchga kirgach ham O'CHIRILMADI.** Zamonaviy
+  brauzerda `frame-ancestors` ustun turadi va XFO e'tiborga olinmaydi; `frame-ancestors`
+  ni tushunmaydigan eski brauzerda esa XFO yagona qolgan himoya bo'ladi. Ikkalasi
+  qarama-qarshi emas — hujjatning dastlabki rejasida "3-qadamda XFO o'chiriladi"
+  deb yozilgandi, amalda undan voz kechildi.
+
+  **Jonli tasdiq (majburlash rejimida):** `/`, `/admin/`, `/mini-app/` — bloklangan
+  manba 0 ta, rasm xatosi 0 ta, katalogda 85 kartochka chizildi, `window.Telegram`
+  joyida; Mini App Telegram'da ochildi, bu `frame-ancestors` ishlayotganining dalili.
+
+  ⚠️ **Ochiq qolgan qarz — `'unsafe-inline'`.** Inventarizatsiya: `telegram-app/app.js`
+  da 76 ta inline `onclick=` va 455 ta `style=`, `script.js` da 24 va 15. `script-src`
+  dan `'unsafe-inline'` olib tashlansa Mini App'dagi hamma tugma o'lik bo'lib qoladi;
+  hash bilan ruxsat berish ham ishlamaydi, chunki hodisalar dinamik yaratiladi
+  (`onclick="openProduct('ik-1402')"` — har mahsulotda boshqa hash). Bu CSP'ni
+  **sezilarli zaiflashtiradi**: saytga kod kirib qolsa u baribir ishga tushadi.
+  Kelajakdagi ish: ~120 ta inline hodisani `addEventListener` ga o'tkazish, keyin
+  `'unsafe-inline'` olib tashlanadi.
 
 - [2026-08-01] **HTTPS majburiy qilindi va HSTS yoqildi — 31-iyulda ochilgan ikkala teshik
   yopildi; yo'l-yo'lakay uchinchisi ochildi.**
@@ -148,6 +211,40 @@ LolaMarket ni rasmiy ishga tushirish. Birinchi haqiqiy xaridorlar va ishlab chiq
 
 ## Qarorlar
 
+- [2026-08-02] Qaror: **CSP avval `Content-Security-Policy-Report-Only` bilan yoqiladi,
+  majburlash faqat konsol toza bo'lgandan keyin.** Sabab: CSP noto'g'ri yozilsa saytni
+  **jimgina** sindiradi — skript yuklanmaydi, xato faqat brauzer konsolida ko'rinadi,
+  HTTP kodi esa 200 bo'lib qolaveradi. Bu qaror o'zini o'sha kuni oqladi: kuzatuv rejimi
+  `static.cloudflareinsights.com` ni topdi — u Cloudflare sahifaga o'zi qo'shadigan
+  analitika beacon'i, repodagi kodda YO'Q, ya'ni hech qanday grep uni topa olmasdi.
+  Report-Only'siz majburlaganimizda sayt ishlab turaverib, tashrif statistikasi o'lardi
+- [2026-08-02] Qaror: **`/mini-app` `X-Frame-Options` dan ATAYLAB chiqariladi, freym
+  himoyasi u yerda CSP `frame-ancestors` bilan beriladi.** Sabab: Telegram Web Mini
+  App'ni `<iframe>` ichida ochadi — `DENY` qo'yilsa brauzerdan kirgan foydalanuvchida
+  oq ekran bo'lardi, telefondagi Telegram'da esa hammasi joyida ko'rinib turardi
+  (nuqson foydalanuvchilarning bir qismida, sezilmay yuraverardi). `X-Frame-Options`
+  bir nechta manbaga ruxsat bera olmaydi: `ALLOW-FROM` brauzerlar tomonidan tashlab
+  yuborilgan. `frame-ancestors` esa ro'yxat qabul qiladi
+- [2026-08-02] Qaror: **CSP kuchga kirgach ham `X-Frame-Options` qoidasi o'chirilmaydi.**
+  Zamonaviy brauzerda `frame-ancestors` ustun turadi va XFO e'tiborga olinmaydi, ya'ni
+  ziyoni yo'q; `frame-ancestors` ni tushunmaydigan eski brauzerda esa XFO yagona qolgan
+  himoya bo'ladi. Hujjatning dastlabki rejasidagi "3-qadamda XFO o'chiriladi" bandidan
+  ataylab voz kechildi
+- [2026-08-02] Qaror: **CSP hozircha `'unsafe-inline'` bilan yoziladi va bu QARZ deb
+  qayd etiladi.** Sabab: `telegram-app/app.js` da 76 ta inline `onclick=` va 455 ta
+  `style=`, `script.js` da 24 va 15 — `'unsafe-inline'` olib tashlansa Mini App'dagi
+  hamma tugma o'lik bo'lib qoladi. Hash bilan ruxsat berish ham imkonsiz: hodisalar
+  dinamik yaratiladi, har mahsulotda boshqa hash chiqadi va ro'yxat cheksiz bo'lardi.
+  Buning narxi ochiq yozildi — saytga kod kirib qolsa CSP uni to'xtata olmaydi; qolgan
+  himoyalar (begona domendan skript yo'q, `connect-src 'self'`, `frame-ancestors`)
+  kuchida qoladi. Yopilishi: ~120 ta inline hodisa `addEventListener` ga o'tkazilgach
+- [2026-08-02] Qaror: **sarlavhalar nginx'da emas, Cloudflare Transform Rules'da
+  qo'yiladi.** Sabab: nginx'da `add_header` **meros olinmaydi** — biror `location`
+  bloki o'zining `add_header`ini e'lon qilsa tepadagi hammasini tashlab yuboradi, ya'ni
+  sarlavhalarni har blokda takrorlash kerak va bittasi esdan chiqsa o'sha yo'l jimgina
+  himoyasiz qoladi. Cloudflare'da qoida bitta joyda va hamma javobga (statik fayl ham,
+  `/api/` ham) tegadi. Narxi: qoida git'da yashamaydi — shuning uchun kanonik nusxa
+  `docs/xavfsizlik-sarlavhalari.md` da saqlanadi
 - [2026-08-01] Qaror: **HSTS avval 30 kunlik `max-age` bilan yoqiladi, `preload` esa
   ATAYLAB yoqilmaydi.** Sabab: HSTS — bu QAYTARIB BO'LMAYDIGAN tomonga qarab ishlaydigan
   sozlama. Brauzer sarlavhani bir marta ko'rgach, muddat tugagunicha saytga faqat HTTPS

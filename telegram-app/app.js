@@ -396,6 +396,11 @@ function step(p) { return 1; }
 
 function byId(id) { return PRODUCTS.find(x => x.id === id); }
 
+// Bosh sahifadagi "Tanlangan" bloki. Bu ID'lar bazaga bog'liq EMAS — biror
+// mahsulot o'chirilsa ro'yxat jimgina eskiradi, shuning uchun `renderHome()`
+// yo'q ID'ni tashlab ketadi va o'rnini katalogdan to'ldiradi.
+const FEATURED_IDS = ['ik-1402','ik-9001','sz-3310','hb-7740'];
+
 const BADGE_COLORS = {
   primary: ['var(--color-primary)','#fff'],
   teal:    ['var(--teal-50)','var(--teal-700)'],
@@ -449,6 +454,10 @@ const STATUS_TONE = {
 const STATUS_STAGES = ['pending','confirmed','shipped','delivered'];
 
 function vm(p) {
+  // Mahsulot topilmasa `null` qaytariladi, xato tashlanmaydi. `byId()` bazadan
+  // o'chirilgan yoki yashirilgan mahsulotda `undefined` beradi va ilgari shu yer
+  // butun ekranni qulatardi (2026-08-02: bosh sahifa `ik-9001` ga bog'liq edi).
+  if (!p) return null;
   const [bbg,bfg] = BADGE_COLORS[p.badgeTone] || BADGE_COLORS.neutral;
   const L = S.lang;
   return {
@@ -687,7 +696,13 @@ function updateNav() {
 // ============ EKRAN: BOSH SAHIFA ============
 function renderHome() {
   const T = STR[S.lang];
-  const featured = ['ik-1402','ik-9001','sz-3310','hb-7740'].map(id => vm(byId(id)));
+  // Tanlangan mahsulotlar ID bo'yicha qo'lda tanlangan, lekin katalog BAZADAN
+  // keladi — ID bazada bo'lmasligi mumkin (mahsulot o'chirilgan, yashirilgan yoki
+  // hech qachon qo'shilmagan). Yo'qlari tashlab yuboriladi va bosh sahifa bo'sh
+  // ko'rinmasligi uchun o'rni katalogdagi boshqa mahsulotlar bilan to'ldiriladi.
+  const picked = FEATURED_IDS.map(byId).filter(Boolean);
+  const filler = PRODUCTS.filter(p => !picked.includes(p));
+  const featured = picked.concat(filler).slice(0, 4).map(vm);
   return `
   <div style="padding:10px 16px 28px;display:flex;flex-direction:column;gap:14px">
     <div>
@@ -2010,7 +2025,26 @@ function render() {
     's-profile': renderSellerProfile, 's-form': renderProductForm,
   };
   const fn = map[S.screen];
-  if (fn) document.getElementById('screen-wrap').innerHTML = fn();
+  const wrap = document.getElementById('screen-wrap');
+  if (fn && wrap) {
+    // `updateHeader()` va `updateNav()` ALLAQACHON yangi ekranni ko'rsatib
+    // bo'ldi. Agar chizish funksiyasi xato tashlasa, `innerHTML` yangilanmay
+    // qoladi va ekranda ESKI ekran turaveradi — sarlavhada "Bosh sahifa"
+    // yozilgan holda katalog ko'rinadi. Foydalanuvchi buni "tugma ishlamadi"
+    // deb tushunadi va nuqson hech qayerda ko'rinmaydi (2026-08-02).
+    try {
+      wrap.innerHTML = fn();
+    } catch (e) {
+      console.error('render() xatosi, ekran:', S.screen, e);
+      wrap.innerHTML = `
+      <div style="padding:48px 20px;text-align:center;color:var(--text-muted);font-size:14px;line-height:1.5">
+        Ekranni ochib bo'lmadi.
+        <div style="margin-top:14px">
+          <button onclick="location.reload()" style="height:40px;padding:0 20px;border:none;border-radius:var(--radius-md);background:var(--color-primary);color:#fff;font-size:14px;font-weight:600;cursor:pointer">Qayta yuklash</button>
+        </div>
+      </div>`;
+    }
+  }
   // Ekran almashsa ochiq sheet qolib ketmasin
   if (S.screen !== 'checkout') S.btsSheet = false;
   if (S.screen !== 'catalog') S.priceSheet = false;
