@@ -182,6 +182,39 @@ LolaMarket ni rasmiy ishga tushirish. Birinchi haqiqiy xaridorlar va ishlab chiq
 
 ## Qilingan ishlar
 
+- [2026-08-05] **Backend fayllari diskdan yo'qolganini JARAYONNING O'ZI sezadigan
+  qorovul qo'shildi** (`2512c6b`, `server/lib/self-check.js`).
+
+  Bu o'sha kuni topilgan nosozlikning DAVOMI: papka o'chgan, jarayon esa kodni
+  xotiradan ishlatib tirik qolgan va nosozlik ~24 soat KO'RINMAGAN edi. Qorovul
+  soatiga bir marta to'rtta narsani tekshiradi — `server.js`, `config.js`,
+  `.env`, `node_modules`. Bittasi yo'q bo'lsa `console.error` chaqiriladi va
+  xato o'sha kuni tuzatilgan alert yo'lidan Telegram'ga o'zi boradi.
+
+  **Nega cron EMAS, balki jarayonning ichida** (bu asosiy qaror):
+  - papka ichidagi skript papka bilan BIRGA o'chadi — o'sha kuni `pg-backup.sh`
+    bilan aynan shu bo'ldi va kunlik zaxira ikki kun jimgina ishlamadi;
+  - papkadan tashqaridagi skript esa `BOT_TOKEN` ning IKKINCHI nusxasini talab
+    qilardi, ya'ni sirni yana bir joyga ko'chirish kerak bo'lardi.
+  Jarayonning o'zi esa yangi sirsiz, yangi cronsiz tekshira oladi.
+
+  **Cheklovi ochiq yozildi:** bu FAQAT "papka yo'q, jarayon tirik" holatini
+  tutadi. Jarayon o'lgan bo'lsa qorovul ham ishlamaydi — lekin u holat jimgina
+  emas (sayt javob bermaydi), ya'ni boshqacha yo'l bilan ko'rinadi.
+
+  **Dalil.** Test 13 mantiqni vaqtinchalik papkalar bilan sinaydi: hammasi
+  joyida → bo'sh ro'yxat; bitta fayl yo'q → aynan o'sha qaytadi; papkaning
+  O'ZI yo'q → maxsus yozuv. Qorovul xatosining birinchi argumenti qat'iy
+  ekani ham tekshiriladi (alert guruhlash kaliti). `npm test` — 30 PASS
+  (29 → 30). Production'da ham sinaldi: haqiqiy papkada `missingFiles()` → `[]`,
+  mavjud bo'lmagan papkada → `["(papkaning O'ZI yo'q)"]`, fayllari yo'q
+  papkada → to'rtalasi sanaldi. Servis restartdan keyin `active`, jurnalda
+  ogohlantirish yo'q — ya'ni qorovul jim, demak hammasi joyida.
+
+  ⚠️ **Bu yozuv keyinroq qo'shildi.** Commit `hisobotchi` SIZ qilingan
+  (foydalanuvchi qarori), shuning uchun sprint fayli va panel o'sha paytda
+  yangilanmay qolgandi — qarz keyin yopildi.
+
 - [2026-08-05] **Alert tizimi BIRINCHI MARTA haqiqatan tasdiqlandi, va shu tasdiqlash
   yo'l-yo'lakay alertning O'ZIDA yangi nuqson ochib berdi.**
 
@@ -227,10 +260,12 @@ LolaMarket ni rasmiy ishga tushirish. Birinchi haqiqiy xaridorlar va ishlab chiq
   **HALI OCHIQ (bugun ham yopilmadi):**
   - **Backend papkasi NEGA o'chgani ANIQLANMAGAN.** Sabab topilmagani uchun
     takrorlanmasligiga hech qanday kafolat yo'q — bugungi tiklash oqibatni
-    tuzatdi, sababni emas. **Taklif (BAJARILMAGAN):** cron har kuni papka va
-    `.env` joyidaligini tekshirsin, yo'q bo'lsa Telegram'ga yozsin. Diqqat:
-    bugungi tajriba ko'rsatdiki tashqi belgilar (`/api/products`, `/api/version`)
-    bu holatni UMUMAN ko'rsatmaydi — tekshiruv fayl tizimiga qarashi shart.
+    tuzatdi, sababni emas. Diqqat: bugungi tajriba ko'rsatdiki tashqi belgilar
+    (`/api/products`, `/api/version`) bu holatni UMUMAN ko'rsatmaydi —
+    tekshiruv fayl tizimiga qarashi shart.
+    ✅ **Sezish qismi yopildi** (`2512c6b`, pastdagi yozuvga qarang) — endi
+    takrorlansa bir soat ichida Telegram'ga xabar keladi. **Lekin band OCHIQ
+    qoladi:** qorovul sezadi, OLDINI OLMAYDI, va sabab hamon noma'lum.
   - **4-avgust zaxira nusxasi butunlay yo'qolgan** va uni qayta yaratib bo'lmaydi
 
 - [2026-08-05] **Backend papkasi serverdan O'CHIB KETGANI topildi va tiklandi — sayt
