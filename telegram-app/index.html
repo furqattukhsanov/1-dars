@@ -32,7 +32,7 @@
 
     <!-- ===== HEADER ===== -->
     <header id="app-header">
-      <button id="btn-back" class="icon-btn hidden" onclick="goBack()">
+      <button id="btn-back" class="icon-btn hidden" data-action="goBack">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
       <div id="header-brand" class="header-brand">
@@ -45,10 +45,10 @@
         <span id="header-sub" class="header-sub">Telegram Mini App</span>
       </div>
       <div class="header-spacer"></div>
-      <button id="btn-header-search" class="icon-btn hidden" onclick="navigate('search')">
+      <button id="btn-header-search" class="icon-btn hidden" data-action="navigate" data-arg="search">
         <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M20 20l-3.5-3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
       </button>
-      <button class="icon-btn notif-btn" onclick="tab('notifications')">
+      <button class="icon-btn notif-btn" data-action="tab" data-arg="notifications">
         <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M18 8.5a6 6 0 0 0-12 0c0 6-2.5 7.5-2.5 7.5h17S18 14.5 18 8.5z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M10.2 19.5a2 2 0 0 0 3.6 0" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
       </button>
     </header>
@@ -62,7 +62,7 @@
 
     <!-- ===== MAIN ACTION BUTTON (detail / checkout) ===== -->
     <div id="main-btn-bar" class="main-btn-bar hidden">
-      <button class="main-action-btn" id="main-btn" onclick="mainBtnAction()">
+      <button class="main-action-btn" id="main-btn" data-action="mainBtnAction">
         <span id="main-btn-label">Savatga qo'shish</span>
         <span id="main-btn-sub" class="main-btn-sub">0 so'm</span>
       </button>
@@ -72,18 +72,18 @@
     <nav id="seller-nav" class="app-nav-wrap hidden">
       <div class="nav-pill">
         <div id="snav-lens" class="nav-lens snav-lens"></div>
-        <button id="snav-products" class="nav-tab" onclick="sTab('s-products')">
+        <button id="snav-products" class="nav-tab" data-action="sTab" data-arg="s-products">
           <svg width="21" height="21" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.6l8.5 4.2v10.4L12 21.4 3.5 17.2V6.8L12 2.6zm0 2.3L6.2 7.8 12 10.7l5.8-2.9L12 4.9zM5.5 9.4v6.6l5.5 2.7v-6.6L5.5 9.4zm7.5 9.3l5.5-2.7V9.4L13 12.1v6.6z"/></svg>
           <span class="nav-label">Mahsulot</span>
         </button>
-        <button id="snav-orders" class="nav-tab" onclick="sTab('s-orders')">
+        <button id="snav-orders" class="nav-tab" data-action="sTab" data-arg="s-orders">
           <span class="nav-icon-wrap">
             <svg width="21" height="21" viewBox="0 0 24 24" fill="currentColor"><path d="M6 3.5h9.5a1 1 0 0 1 .7.3l2.5 2.5a1 1 0 0 1 .3.7V19a1.5 1.5 0 0 1-1.5 1.5H6A1.5 1.5 0 0 1 4.5 19V5A1.5 1.5 0 0 1 6 3.5zM8 9.5h8a.75.75 0 0 0 0-1.5H8a.75.75 0 0 0 0 1.5zm0 4h8a.75.75 0 0 0 0-1.5H8a.75.75 0 0 0 0 1.5zm0 4h5a.75.75 0 0 0 0-1.5H8a.75.75 0 0 0 0 1.5z"/></svg>
             <span id="snav-badge" class="cart-badge hidden">0</span>
           </span>
           <span class="nav-label">Buyurtma</span>
         </button>
-        <button id="snav-profile" class="nav-tab" onclick="sTab('s-profile')">
+        <button id="snav-profile" class="nav-tab" data-action="sTab" data-arg="s-profile">
           <svg width="21" height="21" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="8" r="4"/><path d="M12 13.5c-4.4 0-7.5 2.7-7.5 6a1 1 0 0 0 1 1h13a1 1 0 0 0 1-1c0-3.3-3.1-6-7.5-6z"/></svg>
           <span class="nav-label">Profil</span>
         </button>
@@ -97,17 +97,17 @@
         <!-- sliding white glass lens -->
         <div id="nav-lens" class="nav-lens"></div>
         <!-- Home -->
-        <button id="nav-home" class="nav-tab" onclick="tab('home')">
+        <button id="nav-home" class="nav-tab" data-action="tab" data-arg="home">
           <svg width="21" height="21" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.2a1 1 0 0 1 .64.23l7.5 6.2a1 1 0 0 1 .36.77V19a1.5 1.5 0 0 1-1.5 1.5H15a.75.75 0 0 1-.75-.75V15a2.25 2.25 0 0 0-4.5 0v4.75A.75.75 0 0 1 9 20.5H5.5A1.5 1.5 0 0 1 4 19v-8.6a1 1 0 0 1 .36-.77l7.5-6.2a1 1 0 0 1 .64-.23z"/></svg>
           <span class="nav-label">Bosh</span>
         </button>
         <!-- Catalog -->
-        <button id="nav-catalog" class="nav-tab" onclick="tab('catalog')">
+        <button id="nav-catalog" class="nav-tab" data-action="tab" data-arg="catalog">
           <svg width="21" height="21" viewBox="0 0 24 24" fill="currentColor"><rect x="3.5" y="3.5" width="7.5" height="7.5" rx="2"/><rect x="13" y="3.5" width="7.5" height="7.5" rx="2"/><rect x="3.5" y="13" width="7.5" height="7.5" rx="2"/><rect x="13" y="13" width="7.5" height="7.5" rx="2"/></svg>
           <span class="nav-label">Katalog</span>
         </button>
         <!-- Cart -->
-        <button id="nav-cart" class="nav-tab" onclick="tab('cart')">
+        <button id="nav-cart" class="nav-tab" data-action="tab" data-arg="cart">
           <span class="nav-icon-wrap">
             <svg width="21" height="21" viewBox="0 0 24 24" fill="currentColor"><path d="M7.5 8V6.5a4.5 4.5 0 0 1 9 0V8h1.3a1.5 1.5 0 0 1 1.5 1.38l.9 10.5a1.5 1.5 0 0 1-1.5 1.62H5.3a1.5 1.5 0 0 1-1.5-1.62l.9-10.5A1.5 1.5 0 0 1 6.2 8H7.5zm2-1.5V8h5V6.5a2.5 2.5 0 0 0-5 0z"/></svg>
             <span id="cart-badge" class="cart-badge hidden">0</span>
@@ -115,14 +115,14 @@
           <span class="nav-label">Savat</span>
         </button>
         <!-- Orders -->
-        <button id="nav-orders" class="nav-tab" onclick="tab('orders')">
+        <button id="nav-orders" class="nav-tab" data-action="tab" data-arg="orders">
           <svg width="21" height="21" viewBox="0 0 24 24" fill="currentColor"><path d="M6 3.5h9.5a1 1 0 0 1 .7.3l2.5 2.5a1 1 0 0 1 .3.7V19a1.5 1.5 0 0 1-1.5 1.5H6A1.5 1.5 0 0 1 4.5 19V5A1.5 1.5 0 0 1 6 3.5zM8 9.5h8a.75.75 0 0 0 0-1.5H8a.75.75 0 0 0 0 1.5zm0 4h8a.75.75 0 0 0 0-1.5H8a.75.75 0 0 0 0 1.5zm0 4h5a.75.75 0 0 0 0-1.5H8a.75.75 0 0 0 0 1.5z"/></svg>
           <span class="nav-label">Buyurtma</span>
         </button>
       </div>
 
       <!-- Separate profile pill button -->
-      <button id="nav-profile" class="nav-profile-btn" onclick="tab('profile')">
+      <button id="nav-profile" class="nav-profile-btn" data-action="tab" data-arg="profile">
         <svg width="21" height="21" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="8" r="4"/><path d="M12 13.5c-4.4 0-7.5 2.7-7.5 6a1 1 0 0 0 1 1h13a1 1 0 0 0 1-1c0-3.3-3.1-6-7.5-6z"/></svg>
       </button>
     </nav>
@@ -132,7 +132,7 @@
   <!-- Toast -->
   <div id="toast" class="toast hidden"></div>
 
-  <script defer src="app.js?v=59"></script>
+  <script defer src="app.js?v=60"></script>
   <script defer src="pwa.js?v=6"></script>
 </body>
 </html>

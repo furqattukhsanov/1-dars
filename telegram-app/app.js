@@ -2,6 +2,42 @@
    LolaMarket Telegram Mini App — dizayndan to'liq implement
    ============================================================ */
 
+/* ── data-action / data-input delegatsiyasi ──
+   Shartnoma `script.js` dagi bilan AYNI — ikki sahifa bitta naqshda bo'lsin:
+     data-action="fn"              → fn()
+     data-action="fn" data-arg="x" → fn('x')   (butun son bo'lsa Number)
+     data-input="fn"               → fn(maydon qiymati)
+   Ko'p argument `|` bilan kodlanadi va ingichka o'ram uni ajratadi.
+
+   NEGA inline `onclick` o'rniga: CSP `script-src` dagi `'unsafe-inline'`
+   shu hodisalar tufayli turibdi. U olib tashlanmaguncha CSP ikkinchi qatlam
+   bo'la olmaydi — kelajakda biror joyda `esc()` unutilsa, xatoni HECH NARSA
+   tutmaydi.
+
+   ⚠️ `stopPropagation` KERAK EMAS: `closest` eng ICHKARIGI `[data-action]`
+   elementni topadi, ya'ni kartochka ichidagi tugma bosilganda kartochkaning
+   o'z amali umuman chaqirilmaydi. Faqat BO'SH o'ramlar (ilgari yolg'iz
+   `event.stopPropagation()` turgan joylar) `data-action="noop"` oladi —
+   aks holda ularning bo'sh joyiga bosilsa klik kartochkagacha ko'tarilardi. */
+function noop() {}
+
+document.addEventListener('click', (e) => {
+  const el = e.target.closest('[data-action]');
+  if (!el) return;
+  const fn = window[el.dataset.action];
+  if (typeof fn !== 'function') return;
+  const arg = el.dataset.arg;
+  if (arg === undefined) { fn(); return; }
+  fn(/^-?\d+$/.test(arg) ? Number(arg) : arg);
+});
+
+document.addEventListener('input', (e) => {
+  const el = e.target.closest('[data-input]');
+  if (!el) return;
+  const fn = window[el.dataset.input];
+  if (typeof fn === 'function') fn(e.target.value, el.dataset.arg);
+});
+
 // ============ TO'QIMA PATTERNLAR (CSS gradient) ============
 const PATTERNS = {
   adras:      "repeating-linear-gradient(96deg,#E84B40 0 16px,#EFA91F 16px 27px,#119DAB 27px 42px,#FBF6EC 42px 48px,#571814 48px 58px,#54D7E1 58px 70px)",
@@ -733,18 +769,18 @@ function renderHome() {
     </div>
 
     <div style="display:flex;align-items:center;gap:9px;margin-top:2px">
-      <button onclick="tab('search')" style="flex:1;min-width:0;display:flex;align-items:center;gap:10px;height:48px;padding:0 16px;border:1px solid rgba(255,255,255,.7);border-radius:var(--radius-md);background:rgba(255,255,255,.55);backdrop-filter:blur(20px) saturate(170%);-webkit-backdrop-filter:blur(20px) saturate(170%);box-shadow:0 8px 22px -10px rgba(81,1,0,.22),0 1px 2px rgba(23,26,48,.06),inset 0 1px 0 rgba(255,255,255,.9);cursor:pointer;color:var(--text-subtle);font-size:14.5px;font-family:var(--font-sans)">
+      <button data-action="tab" data-arg="search" style="flex:1;min-width:0;display:flex;align-items:center;gap:10px;height:48px;padding:0 16px;border:1px solid rgba(255,255,255,.7);border-radius:var(--radius-md);background:rgba(255,255,255,.55);backdrop-filter:blur(20px) saturate(170%);-webkit-backdrop-filter:blur(20px) saturate(170%);box-shadow:0 8px 22px -10px rgba(81,1,0,.22),0 1px 2px rgba(23,26,48,.06),inset 0 1px 0 rgba(255,255,255,.9);cursor:pointer;color:var(--text-subtle);font-size:14.5px;font-family:var(--font-sans)">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M20 20l-3.5-3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
         <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${T.searchPh}</span>
       </button>
-      <button onclick="tab('catalog')" style="flex:none;width:48px;height:48px;border-radius:var(--radius-md);background:linear-gradient(150deg,#7a140d,#510100);border:1px solid rgba(255,229,210,.25);box-shadow:0 6px 16px -6px rgba(81,1,0,.6),inset 0 1px 0 rgba(255,229,210,.22);display:flex;align-items:center;justify-content:center;color:#ffe5d2">
+      <button data-action="tab" data-arg="catalog" style="flex:none;width:48px;height:48px;border-radius:var(--radius-md);background:linear-gradient(150deg,#7a140d,#510100);border:1px solid rgba(255,229,210,.25);box-shadow:0 6px 16px -6px rgba(81,1,0,.6),inset 0 1px 0 rgba(255,229,210,.22);display:flex;align-items:center;justify-content:center;color:#ffe5d2">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M4 6h16M7 12h10M10 18h4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
       </button>
     </div>
 
     <div style="display:flex;align-items:center;justify-content:space-between;margin-top:2px">
       <span style="font-family:var(--font-display);font-size:17px;font-weight:700;color:var(--text-strong)">${T.featured}</span>
-      <button onclick="tab('catalog')" style="font-size:13px;font-weight:600;color:var(--teal-600);background:none;border:none;cursor:pointer">${T.all} ›</button>
+      <button data-action="tab" data-arg="catalog" style="font-size:13px;font-weight:600;color:var(--teal-600);background:none;border:none;cursor:pointer">${T.all} ›</button>
     </div>
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
@@ -762,7 +798,7 @@ function renderCatalog() {
   return `
   <div style="padding:14px 16px 28px;display:flex;flex-direction:column;gap:14px">
     <div style="display:flex;gap:9px">
-      <button onclick="openPriceSheet()" style="flex:1;display:flex;align-items:center;justify-content:center;gap:7px;height:40px;border-radius:var(--radius-md);cursor:pointer;border:1px solid ${priceOn ? '#7a140d' : 'rgba(255,255,255,.7)'};background:${priceOn ? 'var(--pom-100)' : 'rgba(255,255,255,.55)'};backdrop-filter:blur(20px) saturate(170%);-webkit-backdrop-filter:blur(20px) saturate(170%);font-size:13.5px;font-weight:600;font-family:var(--font-sans);color:${priceOn ? '#7a140d' : 'var(--text-body)'};box-shadow:0 8px 22px -10px rgba(81,1,0,.18),inset 0 1px 0 rgba(255,255,255,.9)">
+      <button data-action="openPriceSheet" style="flex:1;display:flex;align-items:center;justify-content:center;gap:7px;height:40px;border-radius:var(--radius-md);cursor:pointer;border:1px solid ${priceOn ? '#7a140d' : 'rgba(255,255,255,.7)'};background:${priceOn ? 'var(--pom-100)' : 'rgba(255,255,255,.55)'};backdrop-filter:blur(20px) saturate(170%);-webkit-backdrop-filter:blur(20px) saturate(170%);font-size:13.5px;font-weight:600;font-family:var(--font-sans);color:${priceOn ? '#7a140d' : 'var(--text-body)'};box-shadow:0 8px 22px -10px rgba(81,1,0,.18),inset 0 1px 0 rgba(255,255,255,.9)">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M4 6h16M7 12h10M10 18h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>${T.filter}
         ${priceOn ? `<span style="width:7px;height:7px;border-radius:50%;background:#7a140d;flex:none"></span>` : ''}
       </button>
@@ -773,7 +809,7 @@ function renderCatalog() {
 
     ${priceOn ? `<div style="display:flex;align-items:center;gap:8px;align-self:flex-start;max-width:100%;height:34px;padding:0 6px 0 13px;border-radius:999px;background:var(--pom-100);border:1px solid rgba(122,20,13,.25)">
       <span style="font-size:12.5px;font-weight:600;color:#7a140d;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${priceFilterLabel()}</span>
-      <button onclick="clearPriceFilter()" aria-label="${T.priceRemove}" style="flex:none;width:24px;height:24px;border-radius:50%;border:none;background:rgba(122,20,13,.12);color:#7a140d;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0">
+      <button data-action="clearPriceFilter" aria-label="${T.priceRemove}" style="flex:none;width:24px;height:24px;border-radius:50%;border:none;background:rgba(122,20,13,.12);color:#7a140d;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
       </button>
     </div>` : ''}
@@ -781,13 +817,13 @@ function renderCatalog() {
     <div style="display:flex;gap:9px;overflow-x:auto;margin:0 -16px;padding:7px 16px;scrollbar-width:none">
       ${CATS.map(c => {
         const active = c.key === S.cat;
-        return `<button onclick="selectCat('${c.key}')" style="flex:none;height:34px;padding:0 15px;border-radius:999px;font-size:13px;font-weight:600;white-space:nowrap;cursor:pointer;border:1px solid ${active ? 'transparent' : 'var(--border-hair)'};background:${active ? 'var(--ink-900)' : 'var(--glass-fill)'};color:${active ? '#fff' : 'var(--text-body)'}">${c.label[S.lang]}</button>`;
+        return `<button data-action="selectCat" data-arg="${c.key}" style="flex:none;height:34px;padding:0 15px;border-radius:999px;font-size:13px;font-weight:600;white-space:nowrap;cursor:pointer;border:1px solid ${active ? 'transparent' : 'var(--border-hair)'};background:${active ? 'var(--ink-900)' : 'var(--glass-fill)'};color:${active ? '#fff' : 'var(--text-body)'}">${c.label[S.lang]}</button>`;
       }).join('')}
     </div>
 
     ${prods.length === 0
       ? `<div style="text-align:center;padding:40px;color:var(--text-muted)">${priceOn ? T.noProductsPrice : T.noProducts}
-          ${priceOn ? `<div><button onclick="clearPriceFilter()" style="margin-top:14px;cursor:pointer;height:40px;padding:0 18px;border-radius:var(--radius-md);border:1px solid #7a140d;background:none;color:#7a140d;font-family:var(--font-sans);font-size:13.5px;font-weight:600">${T.priceClear}</button></div>` : ''}
+          ${priceOn ? `<div><button data-action="clearPriceFilter" style="margin-top:14px;cursor:pointer;height:40px;padding:0 18px;border-radius:var(--radius-md);border:1px solid #7a140d;background:none;color:#7a140d;font-family:var(--font-sans);font-size:13.5px;font-weight:600">${T.priceClear}</button></div>` : ''}
          </div>`
       : `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">${prods.map(p => productCard(p)).join('')}</div>`}
   </div>`;
@@ -839,6 +875,16 @@ function closePriceSheet() {
   S.priceSheet = false;
   paintSheet();
 }
+/* `data-input` uchun o'ramlar. Delegatsiya `fn(qiymat, arg)` tartibida
+   chaqiradi (qiymat asosiy), bu funksiya esa `(which, v)` kutadi — shuning
+   uchun tartibni shu yerda almashtiramiz. Asl imzo tegilmadi. */
+function priceDraftInput(v, which) { onPriceDraft(which, v); }
+
+/* Checkout izohi ilgari atributda TO'G'RIDAN-TO'G'RI o'zlashtirish edi
+   (`S.comment` ga `this.value`). Delegatsiya esa funksiya chaqiradi, shuning
+   uchun unga nom berildi. */
+function setComment(v) { S.comment = v; }
+
 function onPriceDraft(which, v) {
   if (which === 'min') S.priceDraftMin = v; else S.priceDraftMax = v;
   // Xato yozuvi yo'qoladi, lekin sheet QAYTA CHIZILMAYDI — paintSheet() bu yerda
@@ -883,7 +929,7 @@ function renderDetail() {
   <div style="display:flex;flex-direction:column">
     <div style="position:relative;height:248px;${p.bgStyle}">
       ${p.badgeShow ? `<span style="position:absolute;top:14px;left:16px;display:inline-flex;align-items:center;height:26px;padding:0 12px;border-radius:999px;font-size:12px;font-weight:600;background:${p.badgeBg};color:${p.badgeFg}">${p.badge}</span>` : ''}
-      <button onclick="toggleLike('${p.id}')" style="position:absolute;top:12px;right:14px;width:38px;height:38px;border-radius:50%;border:1px solid var(--glass-border);background:var(--glass-fill-strong);backdrop-filter:var(--blur-md);-webkit-backdrop-filter:var(--blur-md);display:flex;align-items:center;justify-content:center;color:${p.heartStroke};box-shadow:var(--glass-highlight)">
+      <button data-action="toggleLike" data-arg="${p.id}" style="position:absolute;top:12px;right:14px;width:38px;height:38px;border-radius:50%;border:1px solid var(--glass-border);background:var(--glass-fill-strong);backdrop-filter:var(--blur-md);-webkit-backdrop-filter:var(--blur-md);display:flex;align-items:center;justify-content:center;color:${p.heartStroke};box-shadow:var(--glass-highlight)">
         <svg width="19" height="19" viewBox="0 0 24 24" fill="${p.heartFill}"><path d="M12 20.8s-6.9-4.3-9-8a5.2 5.2 0 0 1-.5-3.7A4.8 4.8 0 0 1 6.3 5.5c1.9 0 3.4 1 4.3 2.3.4.6 1 .6 1.4 0 .9-1.3 2.4-2.3 4.3-2.3a4.8 4.8 0 0 1 3.8 3.6 5.2 5.2 0 0 1-.5 3.7c-2.1 3.7-9 8-9 8z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
       </button>
     </div>
@@ -933,11 +979,11 @@ function renderDetail() {
       <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border-radius:var(--radius-md);background:rgba(255,255,255,.6);backdrop-filter:blur(16px) saturate(160%);-webkit-backdrop-filter:blur(16px) saturate(160%);border:1px solid rgba(255,255,255,.55);box-shadow:0 5px 16px -12px rgba(81,1,0,.14)">
         <span style="font-size:14px;font-weight:700;color:var(--text-strong)">${T.qty}</span>
         <div style="display:flex;align-items:center;gap:14px">
-          <button onclick="decQty()" style="width:36px;height:36px;border-radius:50%;border:1px solid var(--glass-border);background:var(--glass-fill-strong);display:flex;align-items:center;justify-content:center;color:var(--text-strong);box-shadow:var(--glass-highlight);cursor:pointer">
+          <button data-action="decQty" style="width:36px;height:36px;border-radius:50%;border:1px solid var(--glass-border);background:var(--glass-fill-strong);display:flex;align-items:center;justify-content:center;color:var(--text-strong);box-shadow:var(--glass-highlight);cursor:pointer">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
           </button>
           <span id="detail-qty" style="font-family:var(--font-mono);font-size:16px;font-weight:600;color:var(--text-strong);min-width:80px;text-align:center">${num(S.qty)} ${uShort(byId(S.selectedId).unit)}</span>
-          <button onclick="incQty()" style="width:36px;height:36px;border-radius:50%;border:1px solid transparent;background:linear-gradient(150deg,#8f1a10,#510100);display:flex;align-items:center;justify-content:center;color:#fff;box-shadow:var(--shadow-sm);cursor:pointer">
+          <button data-action="incQty" style="width:36px;height:36px;border-radius:50%;border:1px solid transparent;background:linear-gradient(150deg,#8f1a10,#510100);display:flex;align-items:center;justify-content:center;color:#fff;box-shadow:var(--shadow-sm);cursor:pointer">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
           </button>
         </div>
@@ -1011,8 +1057,8 @@ function renderSearch() {
   <div style="padding:16px 16px 28px;display:flex;flex-direction:column;gap:16px">
     <div style="display:flex;align-items:center;gap:10px;height:48px;padding:0 16px;border:1px solid #7a140d;border-radius:var(--radius-md);background:var(--glass-fill-strong);backdrop-filter:var(--blur-md);-webkit-backdrop-filter:var(--blur-md);box-shadow:0 0 0 4px rgba(122,20,13,.2),var(--glass-highlight)">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style="color:var(--text-subtle)"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M20 20l-3.5-3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-      <input id="search-inp" type="text" value="${S.search}" placeholder="${T.searchPh}" oninput="onSearch(this.value)" autocomplete="off" style="flex:1;align-self:stretch;border:none;outline:none;background:transparent;font-family:var(--font-sans);font-size:16px;color:var(--text-strong)">
-      ${S.search ? `<button onclick="clearSearch()" style="color:var(--text-subtle);background:none;border:none;display:flex;align-items:center;cursor:pointer"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>` : ''}
+      <input id="search-inp" type="text" value="${S.search}" placeholder="${T.searchPh}" data-input="onSearch" autocomplete="off" style="flex:1;align-self:stretch;border:none;outline:none;background:transparent;font-family:var(--font-sans);font-size:16px;color:var(--text-strong)">
+      ${S.search ? `<button data-action="clearSearch" style="color:var(--text-subtle);background:none;border:none;display:flex;align-items:center;cursor:pointer"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>` : ''}
     </div>
 
     ${hasSearch ? `
@@ -1033,7 +1079,7 @@ function renderSearch() {
         <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-subtle);margin-bottom:11px">${T.recent}</div>
         <div style="display:flex;flex-wrap:wrap;gap:9px;margin-bottom:24px">
           ${RECENT_SEARCHES[S.lang].map(r => `
-            <button onclick="pickSearch('${r}')" style="display:flex;align-items:center;gap:7px;height:36px;padding:0 14px;border-radius:999px;border:1px solid var(--glass-border-soft);background:var(--glass-fill);font-family:var(--font-sans);font-size:13.5px;font-weight:500;color:var(--text-body);cursor:pointer">
+            <button data-action="pickSearch" data-arg="${r}" style="display:flex;align-items:center;gap:7px;height:36px;padding:0 14px;border-radius:999px;border:1px solid var(--glass-border-soft);background:var(--glass-fill);font-family:var(--font-sans);font-size:13.5px;font-weight:500;color:var(--text-body);cursor:pointer">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style="color:var(--text-subtle)"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 7v5l3 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>${r}
             </button>
           `).join('')}
@@ -1047,7 +1093,7 @@ function renderSearch() {
 
 function searchRow(p) {
   return `
-  <div onclick="openProduct('${p.id}')" style="display:flex;gap:12px;align-items:center;cursor:pointer;padding:10px;border-radius:var(--radius-md);background:rgba(255,255,255,.62);backdrop-filter:blur(16px) saturate(160%);-webkit-backdrop-filter:blur(16px) saturate(160%);border:1px solid rgba(255,255,255,.55);box-shadow:0 5px 16px -12px rgba(81,1,0,.12)">
+  <div data-action="openProduct" data-arg="${p.id}" style="display:flex;gap:12px;align-items:center;cursor:pointer;padding:10px;border-radius:var(--radius-md);background:rgba(255,255,255,.62);backdrop-filter:blur(16px) saturate(160%);-webkit-backdrop-filter:blur(16px) saturate(160%);border:1px solid rgba(255,255,255,.55);box-shadow:0 5px 16px -12px rgba(81,1,0,.12)">
     <span style="flex:none;width:60px;height:60px;border-radius:var(--radius-sm);${p.bgStyle}"></span>
     <div style="flex:1;min-width:0">
       <div style="font-family:var(--font-display);font-size:14.5px;font-weight:700;color:var(--text-strong);line-height:1.2">${p.name}</div>
@@ -1068,7 +1114,7 @@ function renderCart() {
     </span>
     <div style="font-size:16px;font-weight:700;color:var(--text-strong)">${T.cartEmpty}</div>
     <div style="font-size:13px;color:var(--text-muted)">${T.cartEmptySub}</div>
-    <button onclick="tab('catalog')" style="margin-top:6px;height:42px;padding:0 22px;border-radius:var(--radius-md);border:none;background:linear-gradient(135deg,#8f1a10,#510100);color:#ffe9db;font-size:14px;font-weight:600;cursor:pointer;box-shadow:var(--shadow-sm)">${T.browse}</button>
+    <button data-action="tab" data-arg="catalog" style="margin-top:6px;height:42px;padding:0 22px;border-radius:var(--radius-md);border:none;background:linear-gradient(135deg,#8f1a10,#510100);color:#ffe9db;font-size:14px;font-weight:600;cursor:pointer;box-shadow:var(--shadow-sm)">${T.browse}</button>
   </div>`;
 
   return `
@@ -1081,18 +1127,18 @@ function renderCart() {
         <div style="flex:1;min-width:0;display:flex;flex-direction:column">
           <div style="display:flex;justify-content:space-between;gap:8px">
             <div style="font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--text-strong);line-height:1.2">${p.name}</div>
-            <button onclick="removeCart('${p.id}')" style="flex:none;color:var(--text-subtle);background:none;border:none;cursor:pointer;width:22px;height:22px;display:flex;align-items:center;justify-content:center">
+            <button data-action="removeCart" data-arg="${p.id}" style="flex:none;color:var(--text-subtle);background:none;border:none;cursor:pointer;width:22px;height:22px;display:flex;align-items:center;justify-content:center">
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
             </button>
           </div>
           <div style="font-size:11.5px;color:var(--text-muted);margin-top:1px">${p.supplier}</div>
           <div style="display:flex;align-items:center;justify-content:space-between;margin-top:auto;padding-top:8px">
             <div style="display:flex;align-items:center;gap:10px">
-              <button onclick="decCart('${p.id}')" style="width:28px;height:28px;border-radius:8px;border:1px solid var(--glass-border);background:var(--glass-fill-strong);display:flex;align-items:center;justify-content:center;color:var(--text-strong);cursor:pointer">
+              <button data-action="decCart" data-arg="${p.id}" style="width:28px;height:28px;border-radius:8px;border:1px solid var(--glass-border);background:var(--glass-fill-strong);display:flex;align-items:center;justify-content:center;color:var(--text-strong);cursor:pointer">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
               </button>
               <span style="font-family:var(--font-mono);font-size:13px;font-weight:600;color:var(--text-strong);min-width:60px;text-align:center">${num(c.qty)} ${uShort(p.unit)}</span>
-              <button onclick="incCart('${p.id}')" style="width:28px;height:28px;border-radius:8px;border:1px solid var(--glass-border);background:var(--glass-fill-strong);display:flex;align-items:center;justify-content:center;color:var(--text-strong);cursor:pointer">
+              <button data-action="incCart" data-arg="${p.id}" style="width:28px;height:28px;border-radius:8px;border:1px solid var(--glass-border);background:var(--glass-fill-strong);display:flex;align-items:center;justify-content:center;color:var(--text-strong);cursor:pointer">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
               </button>
             </div>
@@ -1109,7 +1155,7 @@ function renderCart() {
         <span style="font-size:15px;font-weight:700;color:var(--text-strong)">${T.total}</span>
         <span style="font-family:var(--font-mono);font-size:21px;font-weight:600;color:var(--text-strong)">${money(cartTotal())}</span>
       </div>
-      <button onclick="navigate('checkout')" style="margin-top:14px;width:100%;height:50px;border-radius:var(--radius-md);border:none;background:linear-gradient(135deg,#8f1a10,#510100);color:#ffe9db;font-size:15px;font-weight:600;cursor:pointer;box-shadow:0 10px 26px -10px rgba(81,1,0,.55),inset 0 1px 0 rgba(255,229,210,.2)">${T.checkout}</button>
+      <button data-action="navigate" data-arg="checkout" style="margin-top:14px;width:100%;height:50px;border-radius:var(--radius-md);border:none;background:linear-gradient(135deg,#8f1a10,#510100);color:#ffe9db;font-size:15px;font-weight:600;cursor:pointer;box-shadow:0 10px 26px -10px rgba(81,1,0,.55),inset 0 1px 0 rgba(255,229,210,.2)">${T.checkout}</button>
     </div>
   </div>`;
 }
@@ -1154,10 +1200,10 @@ function renderCheckout() {
         <div style="flex:1">
           <div style="font-size:14px;font-weight:700;color:var(--text-strong)">${point.name[S.lang]}</div>
           <div style="font-size:12.5px;color:var(--text-muted);line-height:1.45;margin-top:2px">${point.addr[S.lang]}<br>${T.workHours} ${point.hours}</div>
-          <button onclick="openBtsSheet()" style="font-size:12.5px;font-weight:700;color:var(--teal-600);background:none;border:none;cursor:pointer;padding:6px 0 0">${T.changePoint}</button>
+          <button data-action="openBtsSheet" style="font-size:12.5px;font-weight:700;color:var(--teal-600);background:none;border:none;cursor:pointer;padding:6px 0 0">${T.changePoint}</button>
         </div>
       </div>` : `
-      <button onclick="openBtsSheet()" style="display:flex;align-items:center;gap:11px;width:100%;text-align:left;cursor:pointer;padding:15px 13px;border-radius:var(--radius-md);border:1.5px dashed var(--ink-200);background:rgba(255,255,255,.4)">
+      <button data-action="openBtsSheet" style="display:flex;align-items:center;gap:11px;width:100%;text-align:left;cursor:pointer;padding:15px 13px;border-radius:var(--radius-md);border:1.5px dashed var(--ink-200);background:rgba(255,255,255,.4)">
         <span style="flex:none;width:34px;height:34px;border-radius:11px;background:var(--ink-100);display:flex;align-items:center;justify-content:center;color:var(--ink-400)">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 21s-6-5.7-6-10a6 6 0 0 1 12 0c0 4.3-6 10-6 10z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="11" r="2.2" stroke="currentColor" stroke-width="2"/></svg>
         </span>
@@ -1171,7 +1217,7 @@ function renderCheckout() {
       <div style="display:flex;flex-direction:column;gap:9px">
         ${PAY.map(o => {
           const sel = S.pay === o.key;
-          return `<button onclick="setPay('${o.key}')" style="display:flex;align-items:center;gap:12px;width:100%;text-align:left;cursor:pointer;padding:11px 13px;border-radius:var(--radius-md);background:${sel ? '#fff' : 'rgba(255,255,255,.55)'};backdrop-filter:blur(16px) saturate(160%);-webkit-backdrop-filter:blur(16px) saturate(160%);border:1.5px solid ${sel ? '#7a140d' : 'var(--border-hair)'};transition:border-color 200ms">
+          return `<button data-action="setPay" data-arg="${o.key}" style="display:flex;align-items:center;gap:12px;width:100%;text-align:left;cursor:pointer;padding:11px 13px;border-radius:var(--radius-md);background:${sel ? '#fff' : 'rgba(255,255,255,.55)'};backdrop-filter:blur(16px) saturate(160%);-webkit-backdrop-filter:blur(16px) saturate(160%);border:1.5px solid ${sel ? '#7a140d' : 'var(--border-hair)'};transition:border-color 200ms">
             <div style="flex:none;width:20px;height:20px;border-radius:50%;border:2px solid ${sel ? '#7a140d' : 'var(--ink-300)'};display:flex;align-items:center;justify-content:center">
               <div style="width:9px;height:9px;border-radius:50%;background:${sel ? '#7a140d' : 'transparent'}"></div>
             </div>
@@ -1184,7 +1230,7 @@ function renderCheckout() {
 
     <div>
       ${secHead(4, T.commentL)}
-      <textarea id="checkout-comment" oninput="S.comment=this.value" placeholder="${T.commentPh}" rows="3" style="width:100%;resize:none;padding:12px 14px;border:1px solid var(--border-hair);border-radius:var(--radius-md);background:var(--glass-fill-strong);font-family:var(--font-sans);font-size:16px;color:var(--text-strong);outline:none;box-shadow:var(--glass-highlight)">${S.comment || ''}</textarea>
+      <textarea id="checkout-comment" data-input="setComment" placeholder="${T.commentPh}" rows="3" style="width:100%;resize:none;padding:12px 14px;border:1px solid var(--border-hair);border-radius:var(--radius-md);background:var(--glass-fill-strong);font-family:var(--font-sans);font-size:16px;color:var(--text-strong);outline:none;box-shadow:var(--glass-highlight)">${S.comment || ''}</textarea>
     </div>
 
     <div style="padding-top:2px">
@@ -1219,20 +1265,20 @@ function renderBtsSheet() {
   });
 
   return `
-  <div onclick="closeBtsSheet()" style="position:absolute;inset:0;background:rgba(23,26,48,.34);z-index:60;animation:fade var(--dur-base) var(--ease-out)"></div>
+  <div data-action="closeBtsSheet" style="position:absolute;inset:0;background:rgba(23,26,48,.34);z-index:60;animation:fade var(--dur-base) var(--ease-out)"></div>
   <div style="position:absolute;left:0;right:0;bottom:0;z-index:61;max-height:80%;display:flex;flex-direction:column;border-radius:var(--radius-xl) var(--radius-xl) 0 0;padding:10px 14px calc(18px + env(safe-area-inset-bottom));backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);background:var(--glass-tint);box-shadow:var(--glass-spec),0 -12px 40px -8px rgba(81,1,0,.28);animation:sheetUp var(--dur-base) var(--ease-out)">
     <div style="width:38px;height:4px;border-radius:99px;background:var(--ink-200);margin:0 auto 12px;flex:none"></div>
     <div style="font-family:var(--font-display);font-size:17px;font-weight:800;color:var(--text-strong);letter-spacing:-.02em;margin-bottom:11px;flex:none">${T.pickSheetT}</div>
 
     <div style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.8);border-radius:999px;height:44px;padding:0 14px;flex:none;box-shadow:var(--shadow-sm)">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style="flex:none;color:var(--ink-400)"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M20 20l-3.5-3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-      <input id="bts-search" value="${S.btsQuery}" oninput="onBtsSearch(this.value)" placeholder="${T.pickSearchPh}" style="flex:1;align-self:stretch;border:none;background:none;outline:none;font-family:var(--font-sans);font-size:16px;color:var(--text-strong)">
+      <input id="bts-search" value="${S.btsQuery}" data-input="onBtsSearch" placeholder="${T.pickSearchPh}" style="flex:1;align-self:stretch;border:none;background:none;outline:none;font-family:var(--font-sans);font-size:16px;color:var(--text-strong)">
     </div>
 
     ${q ? '' : `<div style="display:flex;gap:7px;margin:5px 0 3px;padding:6px 0;overflow-x:auto;flex:none;scrollbar-width:none">
       ${BTS_REGIONS.map(r => {
         const on = S.btsRegion === r.key;
-        return `<button onclick="setBtsRegion('${r.key}')" style="flex:none;cursor:pointer;font-size:12.5px;font-weight:600;padding:7px 13px;border-radius:999px;background:${on ? 'var(--ink-900)' : 'rgba(255,255,255,.66)'};color:${on ? '#fff' : 'var(--ink-700)'};border:1px solid ${on ? 'var(--ink-900)' : 'rgba(255,255,255,.8)'}">${r.name[S.lang]}</button>`;
+        return `<button data-action="setBtsRegion" data-arg="${r.key}" style="flex:none;cursor:pointer;font-size:12.5px;font-weight:600;padding:7px 13px;border-radius:999px;background:${on ? 'var(--ink-900)' : 'rgba(255,255,255,.66)'};color:${on ? '#fff' : 'var(--ink-700)'};border:1px solid ${on ? 'var(--ink-900)' : 'rgba(255,255,255,.8)'}">${r.name[S.lang]}</button>`;
       }).join('')}
     </div>`}
 
@@ -1241,7 +1287,7 @@ function renderBtsSheet() {
     <div style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch">
       ${list.map(p => {
         const sel = S.btsPoint === p.id;
-        return `<button onclick="pickBts('${p.id}')" style="display:flex;align-items:center;gap:11px;width:100%;text-align:left;cursor:pointer;padding:12px;border-radius:var(--radius-md);margin-bottom:7px;border:none;background:${sel ? '#fff' : 'rgba(255,255,255,.6)'};box-shadow:${sel ? '0 0 0 1.5px #7a140d' : 'none'}">
+        return `<button data-action="pickBts" data-arg="${p.id}" style="display:flex;align-items:center;gap:11px;width:100%;text-align:left;cursor:pointer;padding:12px;border-radius:var(--radius-md);margin-bottom:7px;border:none;background:${sel ? '#fff' : 'rgba(255,255,255,.6)'};box-shadow:${sel ? '0 0 0 1.5px #7a140d' : 'none'}">
           <div style="flex:1">
             <div style="font-size:13.5px;font-weight:700;color:var(--text-strong)">${p.name[S.lang]}</div>
             <div style="font-size:12px;color:var(--text-muted);margin-top:2px">${p.addr[S.lang]} · ${p.hours}</div>
@@ -1253,7 +1299,7 @@ function renderBtsSheet() {
       }).join('')}
     </div>
 
-    <button onclick="closeBtsSheet()" style="flex:none;margin-top:10px;width:100%;height:50px;border:none;border-radius:var(--radius-md);background:linear-gradient(135deg,#8f1a10,#510100);color:#ffe9db;font-family:var(--font-sans);font-size:15px;font-weight:600;cursor:pointer;box-shadow:var(--shadow-sm)">${T.pickSelect}</button>
+    <button data-action="closeBtsSheet" style="flex:none;margin-top:10px;width:100%;height:50px;border:none;border-radius:var(--radius-md);background:linear-gradient(135deg,#8f1a10,#510100);color:#ffe9db;font-family:var(--font-sans);font-size:15px;font-weight:600;cursor:pointer;box-shadow:var(--shadow-sm)">${T.pickSelect}</button>
   </div>`;
 }
 
@@ -1271,7 +1317,7 @@ function renderPriceSheet() {
   const lblSt = 'font-size:11.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--text-muted);padding-left:2px';
 
   return `
-  <div onclick="closePriceSheet()" style="position:absolute;inset:0;background:rgba(23,26,48,.34);z-index:60;animation:fade var(--dur-base) var(--ease-out)"></div>
+  <div data-action="closePriceSheet" style="position:absolute;inset:0;background:rgba(23,26,48,.34);z-index:60;animation:fade var(--dur-base) var(--ease-out)"></div>
   <div style="position:absolute;left:0;right:0;bottom:0;z-index:61;display:flex;flex-direction:column;border-radius:var(--radius-xl) var(--radius-xl) 0 0;padding:10px 14px calc(18px + env(safe-area-inset-bottom));backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);background:var(--glass-tint);box-shadow:var(--glass-spec),0 -12px 40px -8px rgba(81,1,0,.28);animation:sheetUp var(--dur-base) var(--ease-out)">
     <div style="width:38px;height:4px;border-radius:99px;background:var(--ink-200);margin:0 auto 12px;flex:none"></div>
     <div style="font-family:var(--font-display);font-size:17px;font-weight:800;color:var(--text-strong);letter-spacing:-.02em;margin-bottom:4px">${T.priceT}</div>
@@ -1280,12 +1326,12 @@ function renderPriceSheet() {
     <div style="display:flex;gap:10px;align-items:flex-end">
       <label style="${inputBox}">
         <span style="${lblSt}">${T.priceMinPh}</span>
-        <input id="price-min" type="text" inputmode="numeric" value="${S.priceDraftMin}" oninput="onPriceDraft('min', this.value)" placeholder="${lo === null ? '' : priceNum(lo)}" style="${inputSt}">
+        <input id="price-min" type="text" inputmode="numeric" value="${S.priceDraftMin}" data-input="priceDraftInput" data-arg="min" placeholder="${lo === null ? '' : priceNum(lo)}" style="${inputSt}">
       </label>
       <div style="flex:none;height:48px;display:flex;align-items:center;color:var(--text-muted);font-weight:700">–</div>
       <label style="${inputBox}">
         <span style="${lblSt}">${T.priceMaxPh}</span>
-        <input id="price-max" type="text" inputmode="numeric" value="${S.priceDraftMax}" oninput="onPriceDraft('max', this.value)" placeholder="${hi === null ? '' : priceNum(hi)}" style="${inputSt}">
+        <input id="price-max" type="text" inputmode="numeric" value="${S.priceDraftMax}" data-input="priceDraftInput" data-arg="max" placeholder="${hi === null ? '' : priceNum(hi)}" style="${inputSt}">
       </label>
     </div>
 
@@ -1294,8 +1340,8 @@ function renderPriceSheet() {
     ${lo === null ? '' : `<div style="font-size:12px;color:var(--text-muted);margin-bottom:14px">${T.priceRangeHint}: ${priceNum(lo)} – ${priceNum(hi)} ${T.somU}</div>`}
 
     <div style="display:flex;gap:10px">
-      <button onclick="clearPriceFilter()" style="flex:none;padding:0 18px;height:50px;border-radius:var(--radius-md);border:1px solid rgba(122,20,13,.3);background:none;color:#7a140d;font-family:var(--font-sans);font-size:15px;font-weight:600;cursor:pointer">${T.priceClear}</button>
-      <button onclick="applyPriceFilter()" style="flex:1;height:50px;border:none;border-radius:var(--radius-md);background:linear-gradient(135deg,#8f1a10,#510100);color:#ffe9db;font-family:var(--font-sans);font-size:15px;font-weight:600;cursor:pointer;box-shadow:var(--shadow-sm)">${T.priceApply}</button>
+      <button data-action="clearPriceFilter" style="flex:none;padding:0 18px;height:50px;border-radius:var(--radius-md);border:1px solid rgba(122,20,13,.3);background:none;color:#7a140d;font-family:var(--font-sans);font-size:15px;font-weight:600;cursor:pointer">${T.priceClear}</button>
+      <button data-action="applyPriceFilter" style="flex:1;height:50px;border:none;border-radius:var(--radius-md);background:linear-gradient(135deg,#8f1a10,#510100);color:#ffe9db;font-family:var(--font-sans);font-size:15px;font-weight:600;cursor:pointer;box-shadow:var(--shadow-sm)">${T.priceApply}</button>
     </div>
   </div>`;
 }
@@ -1792,7 +1838,7 @@ function renderProfile() {
 // ============ MAHSULOT KARTA — KATALOG (badge + supplier/verified + meta) ============
 function productCard(p) {
   return `
-  <div onclick="openProduct('${p.id}')" style="cursor:pointer;background:var(--glass-fill);backdrop-filter:var(--blur-lg);-webkit-backdrop-filter:var(--blur-lg);border:1px solid var(--glass-border-soft);border-radius:var(--radius-lg);box-shadow:0 6px 16px -12px rgba(81,1,0,.16),0 1px 2px rgba(23,26,48,.04);overflow:hidden;display:flex;flex-direction:column">
+  <div data-action="openProduct" data-arg="${p.id}" style="cursor:pointer;background:var(--glass-fill);backdrop-filter:var(--blur-lg);-webkit-backdrop-filter:var(--blur-lg);border:1px solid var(--glass-border-soft);border-radius:var(--radius-lg);box-shadow:0 6px 16px -12px rgba(81,1,0,.16),0 1px 2px rgba(23,26,48,.04);overflow:hidden;display:flex;flex-direction:column">
     <div style="position:relative;height:230px;${p.bgStyle}">
       ${p.badgeShow ? `<span style="position:absolute;top:8px;left:8px;display:inline-flex;align-items:center;height:21px;padding:0 8px;border-radius:999px;font-size:10.5px;font-weight:600;background:${p.badgeBg};color:${p.badgeFg}">${p.badge}</span>` : ''}
     </div>
@@ -1818,18 +1864,18 @@ function catalogQtyControl(p) {
   if (!line) {
     return `
     <div style="width:100%;height:36px;display:flex;align-items:center;justify-content:flex-end">
-      <button onclick="event.stopPropagation();catalogInc('${p.id}')" style="flex:none;width:32px;height:32px;border-radius:10px;border:none;${btnBg};color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 10px -4px rgba(81,1,0,.55);cursor:pointer">
+      <button data-action="catalogInc" data-arg="${p.id}" style="flex:none;width:32px;height:32px;border-radius:10px;border:none;${btnBg};color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 10px -4px rgba(81,1,0,.55);cursor:pointer">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
       </button>
     </div>`;
   }
   return `
-  <div onclick="event.stopPropagation()" style="width:100%;height:36px;box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;padding:3px;border-radius:11px;background:var(--pom-100);border:1px solid rgba(122,20,13,.12)">
-    <button onclick="catalogDec('${p.id}')" style="flex:none;width:30px;height:30px;border-radius:8px;border:none;${btnBg};color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer">
+  <div data-action="noop" style="width:100%;height:36px;box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;padding:3px;border-radius:11px;background:var(--pom-100);border:1px solid rgba(122,20,13,.12)">
+    <button data-action="catalogDec" data-arg="${p.id}" style="flex:none;width:30px;height:30px;border-radius:8px;border:none;${btnBg};color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
     </button>
     <span style="font-family:var(--font-mono);font-size:13px;font-weight:700;color:var(--pom-800)">${num(line.qty)} ${uShort(p.unit)}</span>
-    <button onclick="catalogInc('${p.id}')" style="flex:none;width:30px;height:30px;border-radius:8px;border:none;${btnBg};color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer">
+    <button data-action="catalogInc" data-arg="${p.id}" style="flex:none;width:30px;height:30px;border-radius:8px;border:none;${btnBg};color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
     </button>
   </div>`;
@@ -1853,10 +1899,10 @@ function catalogDec(id) {
 // ============ MAHSULOT KARTA — BOSH SAHIFA (badge + like, supplier/meta yo'q) ============
 function homeCard(p) {
   return `
-  <div onclick="openProduct('${p.id}')" style="cursor:pointer;background:var(--glass-fill);backdrop-filter:var(--blur-lg);-webkit-backdrop-filter:var(--blur-lg);border:1px solid var(--glass-border-soft);border-radius:var(--radius-lg);box-shadow:0 6px 16px -12px rgba(81,1,0,.16),0 1px 2px rgba(23,26,48,.04);overflow:hidden;display:flex;flex-direction:column">
+  <div data-action="openProduct" data-arg="${p.id}" style="cursor:pointer;background:var(--glass-fill);backdrop-filter:var(--blur-lg);-webkit-backdrop-filter:var(--blur-lg);border:1px solid var(--glass-border-soft);border-radius:var(--radius-lg);box-shadow:0 6px 16px -12px rgba(81,1,0,.16),0 1px 2px rgba(23,26,48,.04);overflow:hidden;display:flex;flex-direction:column">
     <div style="position:relative;height:230px;${p.bgStyle}">
       ${p.badgeShow ? `<span style="position:absolute;top:9px;left:9px;display:inline-flex;align-items:center;height:22px;padding:0 9px;border-radius:999px;font-size:11px;font-weight:600;background:${p.badgeBg};color:${p.badgeFg}">${p.badge}</span>` : ''}
-      <button onclick="event.stopPropagation();toggleLike('${p.id}')" style="position:absolute;top:9px;right:9px;width:32px;height:32px;border-radius:50%;border:1px solid rgba(255,255,255,.6);background:rgba(255,255,255,.42);backdrop-filter:blur(10px) saturate(160%);-webkit-backdrop-filter:blur(10px) saturate(160%);display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px -2px rgba(23,26,48,.28),inset 0 1px 0 rgba(255,255,255,.8)">
+      <button data-action="toggleLike" data-arg="${p.id}" style="position:absolute;top:9px;right:9px;width:32px;height:32px;border-radius:50%;border:1px solid rgba(255,255,255,.6);background:rgba(255,255,255,.42);backdrop-filter:blur(10px) saturate(160%);-webkit-backdrop-filter:blur(10px) saturate(160%);display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px -2px rgba(23,26,48,.28),inset 0 1px 0 rgba(255,255,255,.8)">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="${p.heartFill}" style="color:${p.heartStroke}"><path d="M12 20.8s-6.9-4.3-9-8a5.2 5.2 0 0 1-.5-3.7A4.8 4.8 0 0 1 6.3 5.5c1.9 0 3.4 1 4.3 2.3.4.6 1 .6 1.4 0 .9-1.3 2.4-2.3 4.3-2.3a4.8 4.8 0 0 1 3.8 3.6 5.2 5.2 0 0 1-.5 3.7c-2.1 3.7-9 8-9 8z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
       </button>
     </div>
