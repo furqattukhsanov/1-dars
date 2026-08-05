@@ -89,6 +89,21 @@
   bitta nosozlik Telegram'ni yuzlab xabar bilan to'ldiradi. To'g'ri shakl:
   `console.error('createOrder xatosi:', e.message)` — belgi birinchi, o'zgaruvchan
   qism ikkinchi argumentda.
+- **Sozlama qiymati BO'SH EMASLIGI uni haqiqiy qilmaydi** (2026-08-05).
+  `.env` dan keladigan har bir qiymat `config.js` da SHAKLI bo'yicha
+  tekshirilsin — `process.env.X || ZAXIRA` naqshining o'zi YETARLI EMAS.
+  Sabab: `.env` da `ALERT_CHAT_ID=<chat_id>` namunasi to'ldirilmay qolgandi.
+  U bo'sh emas, shuning uchun `||` uni haqiqiy qiymat deb qabul qildi va
+  server xatolari haqidagi alertlar mavjud bo'lmagan chatga ketaverdi.
+  `sendAlert` xatoni ATAYLAB yutgani uchun jurnalda ham iz qolmadi:
+  **xato monitoringi ikki kun o'lik turdi va buni HECH NARSA ko'rsatmadi** —
+  ustiga sprintda "production'da tasdiqlandi" deb yozib ham qo'yilgandi.
+  Namuna: `chatId()` (`server/config.js`) — chat_id butun son bo'lishi
+  tekshiriladi, yaroqsizi zaxiraga qaytadi VA jurnalda qichqiradi. Oxirgi
+  zaxiraning o'zi (`ADMIN_CHAT_ID`) yaroqsiz bo'lsa — `process.exit(1)`,
+  chunki uning ortida hech narsa yo'q. Qorovul Test 2c bilan qulflangan.
+  Bu `NULL` reyting va tarix qoidalari bilan bitta oilada: **jimgina yolg'on
+  yo'qlikdan yomonroq** — yo'qlik ko'rinadi, yolg'on esa ko'rinmaydi.
 - **Frontendda `window.addEventListener('load', ...)` ishlatilmasin** (2026-07-31,
   ikki marta kuyganimizdan keyin). `load` BARCHA rasm va shrift yuklanib bo'lgandan
   keyin otiladi — sekin tarmoqda bu soniyalar. Ikki marta zarar keltirdi:

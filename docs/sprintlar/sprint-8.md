@@ -81,6 +81,15 @@ Platformaning barcha funksiyalarini real foydalanuvchilar bilan sinovdan o'tkazi
 
 ## Qilingan ishlar
 
+- [2026-08-05] **Test 2c qo'shildi — "bo'sh emas, lekin yaroqsiz" sozlama qiymati
+  qo'riqlanadi (`server/test.js`).** Test `chatId()` qorovulini tekshiradi: butun son
+  o'zgarmaydi, manfiy guruh id qabul qilinadi, bo'shliq kesiladi, bo'sh/berilmagan
+  qiymat zaxiraga qaytadi. Asosiy bandi esa `<chat_id>` va `abc` kabi qiymatlar —
+  ular ham zaxiraga qaytishi, ham `console.error` bilan IZ qoldirishi shart, va
+  guruhlash kaliti (1-argument) o'zgarmasligi alohida tekshiriladi. `npm test` — 28
+  test PASS. Sabab va tafsilot Sprint 9 dagi 2026-08-05 yozuvida: aynan shu tekshiruv
+  yo'qligi xato monitoringini ikki kun jimgina o'lik qilib qo'ygan edi
+
 - [2026-08-03] **B4 — buyurtma holati tarixi (`order_status_history`) qo'shildi: endi har bir
   o'tish "qachon, qaysi holatdan qaysisiga, KIM" bo'lib yoziladi.**
 

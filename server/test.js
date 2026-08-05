@@ -823,6 +823,41 @@ function testStatusGuardsSurviveCte() {
   console.log('✅ Test 12c: Atomik qorovullar CTE dan keyin ham joyida — PASS');
 }
 
+// ============ TEST 2c: Yaroqsiz chat_id JIMGINA qabul qilinmaydi ============
+// 2026-08-05: `.env` da `ALERT_CHAT_ID=<chat_id>` namunasi to'ldirilmay qolgandi.
+// U bo'sh emas, shuning uchun eski `process.env.X || ADMIN_CHAT_ID` zaxirasi uni
+// haqiqiy deb qabul qildi — alertlar mavjud bo'lmagan chatga ketdi va
+// `sendAlert` xatoni yutgani uchun jurnalda ham iz qolmadi. Ya'ni xato
+// monitoringi ikki kun o'lik turdi va buni hech narsa ko'rsatmadi.
+// Shu sabab bu test aynan "bo'sh emas, lekin yaroqsiz" holatni qo'riqlaydi.
+function testChatIdValidation() {
+  const { chatId } = require('./config');
+  const FB = '111';
+
+  assert.strictEqual(chatId('123456789', 'X', FB), '123456789', 'butun son o\'zgarmasin');
+  assert.strictEqual(chatId('-1001234567890', 'X', FB), '-1001234567890', 'guruh id manfiy bo\'ladi');
+  assert.strictEqual(chatId('  123  ', 'X', FB), '123', 'bo\'shliq kesilsin');
+  assert.strictEqual(chatId('', 'X', FB), FB, 'bo\'sh qiymat zaxiraga qaytsin');
+  assert.strictEqual(chatId(undefined, 'X', FB), FB, 'berilmagan qiymat zaxiraga qaytsin');
+
+  // Asosiy band: bo'sh EMAS, lekin yaroqsiz.
+  const errs = [];
+  const realError = console.error;
+  console.error = (...a) => errs.push(a[0]);
+  try {
+    assert.strictEqual(chatId('<chat_id>', 'ALERT_CHAT_ID', FB), FB,
+      'to\'ldirilmagan namuna zaxiraga qaytsin — jimgina qabul qilinmasin');
+    assert.strictEqual(chatId('abc', 'ALERT_CHAT_ID', FB), FB, 'matn zaxiraga qaytsin');
+  } finally {
+    console.error = realError;
+  }
+  assert.strictEqual(errs.length, 2, 'yaroqsiz qiymat jurnalda IZ qoldirishi kerak');
+  assert.ok(errs.every((k) => k === errs[0]),
+    'alert guruhlash kaliti (1-argument) o\'zgarmas bo\'lishi kerak');
+
+  console.log('✅ Test 2c: Yaroqsiz chat_id qorovuli — PASS');
+}
+
 // ============ TEST RUNNER ============
 async function runTests() {
   console.log('\n🧪 LolaMarket Server Testlari\n');
@@ -839,6 +874,7 @@ async function runTests() {
     // uchun uni talab qiladigan testlar testRouteTable'dan KEYIN, u soxta
     // sirlarni process.env'ga yozgandan keyin ishga tushirilishi kerak.
     testDeliveryFeeConfig();
+    testChatIdValidation();
     await testDecrementStock();
     await testRecalcRating();
     testReviewAllowedStatus();

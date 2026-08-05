@@ -84,13 +84,26 @@ LolaMarket ni rasmiy ishga tushirish. Birinchi haqiqiy xaridorlar va ishlab chiq
   qo'shishdan oldin shu o'ylansin. Skript repoda saqlanmaydi (serverda yashaydi, tokenni
   `.env` dan o'qiydi)
 - [ ] Xato monitoring ulash (Sentry yoki shunga o'xshash)
-  — **KOD YOZILDI (2026-08-03), lekin band OCHIQ: hali deploy qilinmagan.** Sentry
-  bloklangan edi (tashqi akkaunt kerak), shuning uchun boshqa yo'l tanlandi: server
-  xatosi Telegram'ga xabar bo'lib boradi (`server/lib/alert.js`) — bildirishnoma relayi
-  allaqachon ishlab turibdi, yangi hisob kerak emas. Band `[x]` QILINMADI, chunki
-  2026-07-30 qaroriga ko'ra dalil jonli tekshiruvdan keladi: alert hali production'da
-  bir marta ham otilmagan. Yopilishi: deploy + servis restarti (founder), keyin
-  ataylab bitta xato chiqarib alert Telegram'ga yetib borgani ko'rilishi
+  — **KOD YOZILDI (2026-08-03), deploy ham qilindi, lekin band OCHIQ va 2026-08-05 da
+  ma'lum bo'ldiki alert ikki kun MUTLAQO ishlamagan.** Sentry bloklangan edi (tashqi
+  akkaunt kerak), shuning uchun boshqa yo'l tanlandi: server xatosi Telegram'ga xabar
+  bo'lib boradi (`server/lib/alert.js`) — bildirishnoma relayi allaqachon ishlab turibdi,
+  yangi hisob kerak emas.
+
+  ⚠️ **YOLG'ON DA'VO TO'G'RILANDI (2026-08-05).** Bu band haqida boshqa joylarda
+  "2026-08-03 da production'da TASDIQLANDI (`b6e6b7d`)" deb yozilgan edi — bu
+  NOTO'G'RI. O'sha kunning O'ZIDA serverdagi `.env` ning 11-qatorida
+  `ALERT_CHAT_ID=<chat_id>` — to'ldirilmay qolgan NAMUNA turgan. U bo'sh emas,
+  shuning uchun `config.js` dagi `|| ADMIN_CHAT_ID` zaxirasi uni haqiqiy qiymat deb
+  qabul qilgan va alertlar mavjud bo'lmagan chatga ketavergan; `sendAlert` esa xatoni
+  ATAYLAB yutadi, ya'ni jurnalda ham iz qolmagan. Jonli jarayonning muhiti tekshirib
+  tasdiqlandi. **Dars:** "tasdiqlandi" deb yozishdan oldin dalil qaysi kanaldan
+  kelganini ayt — bu yerda xabar ko'rilmagan, faqat kod yozilgani ko'rilgan.
+
+  Band `[x]` QILINMAYDI. Yopilishi: servis restarti (founder), keyin ataylab bitta
+  xato chiqarib alert Telegram'ga HAQIQATAN yetib borgani ko'rilishi. Restartgacha
+  alert HAMON o'lik — jarayon eski muhitni ushlab turibdi, ya'ni `.env` tuzatilgani
+  ham, yangi `config.js` qorovuli ham hali kuchga kirmagan
 - [ ] Payme va Click production akkauntlarga o'tish — **bloklangan:** merchant kalitlari kerak.
   Launch'ning YAGONA haqiqiy to'sig'i — platformaning qolgan qismi uchidan-uchiga ishlaydi
 
@@ -119,6 +132,66 @@ LolaMarket ni rasmiy ishga tushirish. Birinchi haqiqiy xaridorlar va ishlab chiq
 ---
 
 ## Qilingan ishlar
+
+- [2026-08-05] **Backend papkasi serverdan O'CHIB KETGANI topildi va tiklandi — sayt
+  tashqaridan mutlaqo sog'lom ko'rinib turgan holda ikki kun "o'lgan odam yurgan"
+  holatda ishlagan.**
+
+  **1. Eng jiddiy topilma: `/opt/lolamarket-notify/` mavjud emasdi.**
+  `/proc/604099/cwd -> /opt/lolamarket-notify (deleted)` — Node jarayoni 3-avgust
+  04:32 dan beri butun kodni FAQAT xotiradan ishlatib turgan. Tashqi belgilar
+  hammasi yashil edi: `/api/products` javob berardi, `/api/version` → `665c9fb`.
+  Xavf esa to'liq edi — har qanday `systemctl restart` yoki server reboot'ida
+  backend qayta ko'tarilmasdi: kod ham, `.env` ham, `node_modules` ham yo'q edi.
+  Server uptime 6 hafta 5 kun, ya'ni portlash faqat vaqt masalasi edi.
+  Sodir bo'lgan oyna: 3-avgust 04:32 (order-history deployi, `665c9fb`) bilan
+  4-avgust 03:30 orasi. **Nega o'chgani ANIQLANMAGAN** — bu ochiq savol.
+
+  Tiklash: `.bak-20260803-042350` dan `cp -a` bilan (sirlar `root:root 600/700`
+  huquqi saqlangan holda) — `.env` (10 kalit), `node_modules` (14 paket),
+  `pg-backup.sh`, `contacts.json` qaytdi. Keyin kod `b6e6b7d` dan `665c9fb` ga
+  tenglashtirildi: repodagi `server/` dan `rsync`, `server/README.md` dagi exclude
+  ro'yxati bilan (`.env`, `node_modules`, `contacts.json`, `.mcp-db-url`,
+  `pg-backup.sh`, `*.bak-*` tegilmadi). `lib/order-history.js` shu bilan keldi.
+  Fayl egaligi FAQAT kod fayllariga qo'yildi — `chown -R` ATAYLAB ishlatilmadi
+  (2026-07-30 darsi: u sirlarning huquqini ham o'zgartirib yuborardi).
+
+  **2. Kunlik zaxira ikki kundan beri JIMGINA ishlamayotgan edi.** `backup.log` da
+  `/bin/sh: 1: /opt/lolamarket-notify/pg-backup.sh: not found` — 4 va 5-avgustda.
+  Cron ishlab turgan, skript yo'q edi. Oxirgi muvaffaqiyatli nusxa: 3-avgust 03:30.
+  **4-avgust nusxasi BUTUNLAY yo'qoldi va uni qayta yaratib bo'lmaydi.** Tiklangandan
+  keyin skript qo'lda yurgizildi: chiqish kodi `0`,
+  `lolamarket-20260805-145559.sql.gz` (9578 bayt — 3-avgustnikidan katta),
+  `telegram: yuborildi`.
+
+  **3. `.env` da to'ldirilmagan namuna ikki narsani birdan o'ldirgan.** 11-qator
+  `ALERT_CHAT_ID=<chat_id>`. Birinchi oqibat: bash uni `source` qila olmasdi
+  (`syntax error near unexpected token 'newline'` — `<` qayta yo'naltirish belgisi),
+  ya'ni papka tiklangandan keyin ham zaxira ishlamas edi. Ikkinchi oqibat:
+  `config.js:85` dagi `process.env.ALERT_CHAT_ID || ADMIN_CHAT_ID` zaxirasi
+  ISHLAMASDI, chunki placeholder BO'SH EMAS — alertlar mavjud bo'lmagan chatga
+  ketardi va `sendAlert` xatoni ataylab yutgani uchun jurnalda iz qolmasdi.
+  Qator o'chirildi (vaqt tamg'ali nusxa olingan holda), natija tekshirildi:
+  10 qator, `bash -n` toza, huquq `600 root:root`.
+
+  **Kodda tuzatilgani (`server/config.js`, `server/test.js`).** Placeholder'ni
+  serverda o'chirish yetarli emas — u yana yozilishi mumkin, shuning uchun qorovul
+  KODGA qo'yildi. Yangi `chatId(raw, name, fallback)`: Telegram chat_id har doim
+  butun son (guruhlarniki manfiy); bo'sh — zaxiraga qaytadi; **bo'sh EMAS lekin
+  yaroqsiz** (`<chat_id>`, matn) — zaxiraga qaytadi VA `console.error` bilan
+  jurnalda IZ qoldiradi. `console.error` ning birinchi argumenti o'zgarmas
+  (alert guruhlash kaliti qoidasi). `ADMIN_CHAT_ID` butun son bo'lmasa esa endi
+  `process.exit(1)` — u hamma narsaning oxirgi zaxirasi (alert, moderatsiya,
+  backup) va zaxiraning zaxirasi yo'q, ya'ni bu ogohlantirish emas, TO'XTASH sababi.
+  **Test 2c** aynan "bo'sh emas, lekin yaroqsiz" holatni qo'riqlaydi va
+  `console.error` chaqirilganini hamda guruhlash kaliti o'zgarmasligini ham
+  tekshiradi. `npm test` — 28 test PASS.
+
+  ⚠️ **HALI BAJARILMAGAN:** servis `restart` qilinmagan (foydalanuvchi bosadigan
+  amal). Restartgacha: (a) papka tiklangani AMALDA sinalmagan, (b) alert HAMON
+  o'lik — jarayon eski muhitni ushlab turibdi, (c) yangi `config.js` qorovuli
+  ishga tushmagan. Ya'ni "alert ishlayapti" deb yozib bo'lmaydi — dalil restartdan
+  keyin keladi.
 
 - [2026-08-03] **Xato monitoringi yozildi (Sentry o'rniga Telegram alerti), va shu ish
   yo'l-yo'lakay JIDDIYROQ nuqson ochib berdi: bitta so'rovdagi baza uzilishi BUTUN
@@ -378,6 +451,25 @@ LolaMarket ni rasmiy ishga tushirish. Birinchi haqiqiy xaridorlar va ishlab chiq
 ---
 
 ## Qarorlar
+
+- [2026-08-05] Qaror: **`.env` dan keladigan chat_id JIMGINA qabul qilinmaydi — yaroqsiz
+  qiymat zaxiraga qaytadi va jurnalda IZ qoldiradi; `ADMIN_CHAT_ID` yaroqsiz bo'lsa esa
+  server umuman ko'tarilmaydi.** Sabab: `X || FALLBACK` naqshi faqat BO'SH qiymatni
+  ushlaydi, to'ldirilmay qolgan `<chat_id>` namunasini esa haqiqiy deb qabul qiladi —
+  aynan shu xato monitoringini ikki kun o'lik qilib qo'ydi va buni HECH NARSA
+  ko'rsatmadi. Ya'ni nuqson sozlamada emas, uni tekshirmaslikda edi. `ALERT_CHAT_ID`
+  uchun `console.error` + zaxira yetarli (alert yo'qolsa xizmat ishlayveradi),
+  `ADMIN_CHAT_ID` uchun esa `process.exit(1)` tanlandi: u alert, moderatsiya va
+  zaxira nusxaning oxirgi tayanchi — qaytadigan joyi yo'q, shuning uchun jimgina
+  buzuq ishlagandan ko'ra ochiq to'xtagani yaxshi
+
+- [2026-08-05] Qaror: **"production'da tasdiqlandi" deb yozish uchun DALIL qaysi
+  kanaldan kelgani aytilsin.** 2026-08-03 da xato monitoringi haqida "production'da
+  TASDIQLANDI" deb yozilgan edi, holbuki ko'rilgani faqat kod yozilgani — Telegram
+  chatida bironta alert xabari KO'RILMAGAN. Yozuv ikki kun yolg'on ishonch berdi.
+  Bundan keyin band yopilishi uchun "deploy qildim" ham, "test yashil" ham yetarli
+  emas: natija KO'RINGAN kanal (Telegram xabari, jonli javob, jurnal qatori) aniq
+  ko'rsatilsin — 2026-07-30 qoidasining kuchaytirilgan shakli
 
 - [2026-08-03] Qaror: **xato monitoringi Sentry emas, Telegram alerti bo'ladi, va ushlash
   BITTA joyda — `console.error` ning o'zida.** Sentry bandi tashqi akkaunt talab qilgani

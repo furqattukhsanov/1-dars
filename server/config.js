@@ -78,11 +78,30 @@ const DELIVERY_FEE_ESTIMATE = (() => {
   return Number.isFinite(v) && v >= 0 ? v : 25000;
 })();
 
+// Telegram chat_id HAR DOIM butun son (guruhlarniki manfiy). Boshqa har qanday
+// qiymat — ayniqsa `.env` da to'ldirilmay qolgan `<chat_id>` kabi namuna —
+// JIMGINA qabul qilinmaydi.
+//
+// Sabab (2026-08-05 da aynan shu tishladi): `.env` da `ALERT_CHAT_ID=<chat_id>`
+// turardi. U bo'sh EMAS, shuning uchun pastdagi `||` zaxirasi uni haqiqiy
+// qiymat deb qabul qildi va alertlar mavjud bo'lmagan chatga ketaverdi.
+// `sendAlert` xatoni ataylab yutgani uchun jurnalda ham iz qolmadi —
+// xato monitoringi ikki kun o'lik turdi va buni HECH NARSA ko'rsatmadi.
+// Endi yaroqsiz qiymat zaxiraga qaytadi VA jurnalda qichqiradi.
+function chatId(raw, name, fallback) {
+  const v = String(raw || '').trim();
+  if (!v) return fallback;
+  if (/^-?\d+$/.test(v)) return v;
+  // Birinchi argument — alert guruhlash kaliti, o'zgaruvchan qism ikkinchida.
+  console.error('Chat ID yaroqsiz, zaxira qiymat ishlatiladi:', name, v);
+  return fallback;
+}
+
 // Server xatolari haqidagi alertlar shu chatga boradi. Berilmasa —
 // ADMIN_CHAT_ID (zaxira nusxadagi BACKUP_CHAT_ID bilan bir xil naqsh).
 // Alohida chat ajratish tavsiya etiladi: alert oqimi buyurtma xabarlarini
 // ko'mib yubormasin.
-const ALERT_CHAT_ID = process.env.ALERT_CHAT_ID || ADMIN_CHAT_ID;
+const ALERT_CHAT_ID = chatId(process.env.ALERT_CHAT_ID, 'ALERT_CHAT_ID', ADMIN_CHAT_ID);
 
 // Moderatsiya ruxsati bor Telegram ID'lari (vergul bilan ajratilgan).
 // Berilmasa — ADMIN_CHAT_ID (admin shaxsiy chati = uning Telegram user id'si).
@@ -95,6 +114,13 @@ if (!BOT_TOKEN || !ADMIN_CHAT_ID) {
   console.error('BOT_TOKEN yoki ADMIN_CHAT_ID .env da topilmadi');
   process.exit(1);
 }
+// ADMIN_CHAT_ID — hamma narsaning oxirgi zaxirasi (alert, moderatsiya, backup),
+// shuning uchun uning yaroqsizligi ogohlantirish emas, TO'XTASH sababi:
+// zaxiraning zaxirasi yo'q. Yuqoridagi `chatId()` izohiga qara.
+if (!/^-?\d+$/.test(String(ADMIN_CHAT_ID).trim())) {
+  console.error('ADMIN_CHAT_ID butun son emas — .env da namuna to\'ldirilmay qolganmi?');
+  process.exit(1);
+}
 if (!process.env.DATABASE_URL) {
   console.error('DATABASE_URL .env da topilmadi');
   process.exit(1);
@@ -104,4 +130,5 @@ module.exports = {
   PORT, BOT_TOKEN, ADMIN_CHAT_ID, ALLOWED_ORIGIN, WEBHOOK_SECRET,
   MINI_APP_URL, BOT_USERNAME, CONTACTS_FILE, GIT_SHA, ALERT_CHAT_ID,
   ADMIN_PANEL_TOKEN, PREPAY_RATE, COMMISSION_RATE, ADMIN_TG_IDS, DELIVERY_FEE_ESTIMATE,
+  chatId,
 };
