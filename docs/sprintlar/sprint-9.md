@@ -182,6 +182,49 @@ LolaMarket ni rasmiy ishga tushirish. Birinchi haqiqiy xaridorlar va ishlab chiq
 
 ## Qilingan ishlar
 
+- [2026-08-05] **TERGOV: backend papkasi nega o'chgani ANIQLANDI — aybdor
+  `server/README.md` dagi orqaga qaytarish buyrug'ining o'zi edi.**
+
+  **Dalillar zanjiri.** `/opt` ning `mtime` i (tiklashdan OLDIN olingan
+  ro'yxatda) — `Aug 3 04:32`, ya'ni papka ichidagi oxirgi o'zgarish o'sha
+  daqiqada. Servis esa `04:32:17` da o'sha papkadan MUVAFFAQIYATLI ko'tarilgan,
+  ya'ni o'shanda papka bor edi. Keyingi SSH ulanishi 4-avgust ertalabigacha
+  yo'q — oyna **43 soniyaga** qisqardi. O'sha oynada faqat bitta manba faol
+  edi (`94.158.61.70`, qisqa `ssh host 'buyruq'` sessiyalari); GitHub Actions
+  runner `04:35:34` da, ya'ni oynadan KEYIN ulangan va CI `/opt` ga umuman
+  tegmaydi (`deploy.yml` faqat `/var/www/lolamarket` ga yozadi).
+
+  **Mexanizm.** Hujjatdagi buyruq shunday edi:
+  `rm -rf /opt/lolamarket-notify && mv /opt/lolamarket-notify.bak-<sana> ... && systemctl restart`.
+  `rm -rf` BIRINCHI bajariladi. `mv` yiqilsa — `<sana>` namunasi to'ldirilmasa
+  yoki nom xato bo'lsa — papka allaqachon o'chgan bo'ladi va `&&` zanjiri
+  uziladi, ya'ni ortidagi `systemctl restart` HAM ishlamaydi. Aynan shu sabab
+  nosozlik jimgina qoldi: restart bo'lmagani uchun o'chgan holat oshkor
+  bo'lmadi, jarayon esa `rm -rf` dan o'lmaydi.
+
+  **Hal qiluvchi dalil — ikkala `.bak` omon qolgan.** Agar `mv` ishlaganda,
+  ulardan biri iste'mol qilinib jonli papka nomiga o'tgan bo'lardi. Ikkalasi
+  ham joyida turibdi, ya'ni `mv` bajarilmagan va `rm -rf` bajarilgan.
+  Serverda bu yo'lni o'chiradigan boshqa hech qanday skript yoki cron yo'q —
+  `grep` faqat `README.md` ning o'zini topdi.
+
+  ⚠️ **Halol chegara:** buyruq MATNI hech qayerda yozilmaydi
+  (`ssh host 'cmd'` `bash_history` ga tushmaydi, `auditd` o'rnatilmagan).
+  Ya'ni "aynan shu buyruq ishlatilgan" deb 100% aytib bo'lmaydi. Aytilishi
+  mumkin bo'lgani: o'sha 43 soniyada faqat bitta manba faol edi, loyihada shu
+  yo'lni o'chiradigan yagona ma'lum buyruq shu, va uning nosozlik holati
+  kuzatilgan yakuniy holatni AYNAN takrorlaydi.
+
+  **Tuzatildi.** `server/README.md` dagi buyruq xavfsiz tartibga o'tkazildi:
+  `test -d` bilan zaxira borligi tekshiriladi, jonli papka o'chirilmaydi
+  balki `mv` bilan chetga suriladi, va deploydan keyin `/proc/PID/cwd` ni
+  ko'rish qadami qo'shildi. Eski shakl o'chirilmadi — nima uchun xato ekani
+  bilan birga qoldirildi. Qoida CLAUDE.md ga yozildi.
+
+  **Yon kuzatuv:** `<sana>` — to'ldirilmagan NAMUNA. Bu o'sha kungi
+  `ALERT_CHAT_ID=<chat_id>` bilan bir xil sinf: shablon to'ldirilgandek
+  ko'rinadi, aslida yo'q. Bir kunda ikkinchi marta.
+
 - [2026-08-05] **Backend fayllari diskdan yo'qolganini JARAYONNING O'ZI sezadigan
   qorovul qo'shildi** (`2512c6b`, `server/lib/self-check.js`).
 
@@ -258,14 +301,15 @@ LolaMarket ni rasmiy ishga tushirish. Birinchi haqiqiy xaridorlar va ishlab chiq
   PASS (28 → 29).
 
   **HALI OCHIQ (bugun ham yopilmadi):**
-  - **Backend papkasi NEGA o'chgani ANIQLANMAGAN.** Sabab topilmagani uchun
-    takrorlanmasligiga hech qanday kafolat yo'q — bugungi tiklash oqibatni
-    tuzatdi, sababni emas. Diqqat: bugungi tajriba ko'rsatdiki tashqi belgilar
-    (`/api/products`, `/api/version`) bu holatni UMUMAN ko'rsatmaydi —
-    tekshiruv fayl tizimiga qarashi shart.
-    ✅ **Sezish qismi yopildi** (`2512c6b`, pastdagi yozuvga qarang) — endi
-    takrorlansa bir soat ichida Telegram'ga xabar keladi. **Lekin band OCHIQ
-    qoladi:** qorovul sezadi, OLDINI OLMAYDI, va sabab hamon noma'lum.
+  - ✅ ~~**Backend papkasi NEGA o'chgani ANIQLANMAGAN**~~ — **SABAB TOPILDI
+    (2026-08-05 kechqurun), pastdagi tergov yozuviga qarang.** Aybdor —
+    `server/README.md` dagi orqaga qaytarish buyrug'ining O'ZI:
+    `rm -rf /opt/lolamarket-notify && mv ...bak-<sana>... && systemctl restart`.
+    `rm` birinchi bajariladi, `mv` yiqilsa papka allaqachon yo'q. Buyruq
+    tuzatildi, qoida CLAUDE.md ga yozildi. Sezish qismi esa `2512c6b` bilan
+    yopilgan edi. Diqqat, bu kuzatuv kuchida qoladi: tashqi belgilar
+    (`/api/products`, `/api/version`, `systemctl is-active`) bu holatni UMUMAN
+    ko'rsatmaydi — tekshiruv fayl tizimiga qarashi shart.
   - **4-avgust zaxira nusxasi butunlay yo'qolgan** va uni qayta yaratib bo'lmaydi
 
 - [2026-08-05] **Backend papkasi serverdan O'CHIB KETGANI topildi va tiklandi — sayt

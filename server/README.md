@@ -96,9 +96,47 @@ ssh root@65.21.180.44 "journalctl -u lolamarket-notify -n 20 --no-pager"
 
 **Orqaga qaytarish** (5-qadam kutilmagan SHA bersa yoki servis ko'tarilmasa):
 
+⚠️ **Bu buyruq 2026-08-05 da QAYTA YOZILDI — eski shakli production'ni
+o'ldirishiga bir qadam qolgandi.** Eskisi shunday edi:
+
 ```bash
-ssh root@65.21.180.44 "rm -rf /opt/lolamarket-notify && mv /opt/lolamarket-notify.bak-<sana> /opt/lolamarket-notify && systemctl restart lolamarket-notify"
+# ❌ ISHLATMANG — nima uchun ekani pastda
+rm -rf /opt/lolamarket-notify && mv /opt/lolamarket-notify.bak-<sana> /opt/lolamarket-notify && ...
 ```
+
+`rm -rf` BIRINCHI turadi. `mv` bajarilmasa — `<sana>` o'rniga haqiqiy sana
+qo'yilmasa yoki nom xato bo'lsa — papka ALLAQACHON o'chgan bo'ladi va zanjir
+`&&` da uziladi, ya'ni `systemctl restart` ham ishlamaydi. 2026-08-03 da aynan
+shu bo'ldi: papka o'chdi, jarayon esa `rm -rf` dan o'lmagani uchun (ochiq fayl
+deskriptorlari va xotiradagi kod bilan) ishlayverdi va nosozlik **~24 soat
+ko'rinmadi**. Sayt sog'lom ko'rinardi, `/api/version` to'g'ri SHA qaytarardi.
+Har qanday restart yoki reboot backendni butunlay o'ldirardi.
+
+**To'g'ri shakl — avval almashtirishni QO'LGA KIRIT, keyin eskisini surib
+qo'y (o'chirma):**
+
+```bash
+# 1. Zaxira nomini ANIQ ko'rish — namuna qoldirmang
+ssh root@65.21.180.44 "ls -d /opt/lolamarket-notify.bak-*"
+
+# 2. Qaytarish. `test -d` zaxira yo'q bo'lsa hech narsa qilmaydi;
+#    jonli papka O'CHIRILMAYDI, faqat chetga suriladi.
+BAK=/opt/lolamarket-notify.bak-20260803-042350   # ← aniq nom qo'ying
+ssh root@65.21.180.44 "test -d $BAK \
+  && mv /opt/lolamarket-notify /opt/lolamarket-notify.broken-\$(date +%s) \
+  && mv $BAK /opt/lolamarket-notify \
+  && systemctl restart lolamarket-notify && systemctl is-active lolamarket-notify"
+
+# 3. Tasdiqlash — jarayon papkadan ko'tarilganini ko'rish.
+#    `(deleted)` yozuvi CHIQMASLIGI kerak.
+ssh root@65.21.180.44 'ls -l /proc/$(systemctl show lolamarket-notify -p MainPID --value)/cwd'
+```
+
+`/proc/PID/cwd` tekshiruvi bejiz emas: 2026-08-03 dagi holatni tashqi belgilar
+(`/api/products`, `/api/version`, `systemctl is-active`) UMUMAN ko'rsatmagan —
+faqat shu yo'l `(deleted)` deb turgandi. Endi buni `lib/self-check.js` soatiga
+bir marta o'zi tekshiradi va Telegram'ga yozadi, lekin deploydan keyin qo'lda
+ko'rish ham arzon.
 
 ## nginx: `/api` yo'llari (⚠️ 2026-07-29 da muammo topildi)
 

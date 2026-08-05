@@ -97,6 +97,20 @@
   da buzilgan holda qolgan edi (birinchi argumentda `${req.method} ${path}`,
   ~26 xil kalit). Ya'ni **yozilgan qoida himoya emas — uni tekshiradigan test
   himoya.**
+- **Almashtirishni QO'LGA KIRITMASDAN eskisini o'chirma** (2026-08-05).
+  `rm -rf X && mv Y X` naqshi TAQIQLANADI: `rm` birinchi bajariladi va `mv`
+  yiqilsa (nom xato, `<sana>` kabi namuna to'ldirilmagan, zaxira yo'q) —
+  qaytib bo'lmaydigan yo'qotish qoladi, ustiga `&&` zanjiri uzilgani uchun
+  ortidagi `systemctl restart` ham ishlamaydi va nosozlik JIMGINA qoladi.
+  To'g'ri tartib: (1) `test -d` bilan almashtirish borligini tekshir,
+  (2) eskisini `mv` bilan CHETGA SUR — o'chirma, (3) yangisini joyiga qo'y.
+  Sabab: `server/README.md` dagi orqaga qaytarish buyrug'i aynan taqiqlangan
+  naqshda yozilgan edi va 2026-08-03 da `/opt/lolamarket-notify/` ni
+  o'chirib yubordi. Jarayon `rm -rf` dan O'LMAYDI (ochiq deskriptorlar va
+  xotiradagi kod bilan ishlayveradi), shuning uchun sayt sog'lom ko'rinardi va
+  nosozlik **~24 soat sezilmadi** — har qanday restart backendni butunlay
+  o'ldiradigan holatda turib. Ikkala `.bak` omon qolgani `mv` bajarilmaganini
+  isbotladi. Qorovul: `server/lib/self-check.js` (Test 13).
 - **Sozlama qiymati BO'SH EMASLIGI uni haqiqiy qilmaydi** (2026-08-05).
   `.env` dan keladigan har bir qiymat `config.js` da SHAKLI bo'yicha
   tekshirilsin — `process.env.X || ZAXIRA` naqshining o'zi YETARLI EMAS.
