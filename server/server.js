@@ -290,6 +290,11 @@ if (require.main === module) {
   // testlar esa console.error'ni o'zi ushlaydi (test.js → testNoBrokenReferences).
   require('./lib/alert').install();
 
+  // Alertdan KEYIN: qorovul xatosi alert yo'liga tushishi kerak, aks holda
+  // u faqat jurnalga yozilib jimgina qolardi — aynan qorovul qo'riqlayotgan
+  // nosozlikning o'zi kabi.
+  require('./lib/self-check').install();
+
   http.createServer(handleRequest)
     .listen(PORT, '127.0.0.1', () => console.log(`lolamarket-notify listening on ${PORT}`));
 

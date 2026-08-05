@@ -902,6 +902,69 @@ function testAlertKeyIsConstant() {
   console.log(`✅ Test 10c: Alert guruhlash kaliti qat'iy — PASS (${checked} ta console.error)`);
 }
 
+// ============ TEST 13: O'z-o'zini tekshirish qorovuli ============
+// 2026-08-05: `/opt/lolamarket-notify/` serverdan o'chib ketgan, lekin Node
+// jarayoni kodni xotiradan ishlatib turgani uchun sayt SOG'LOM ko'rinardi.
+// Nosozlik ~24 soat ko'rinmadi. Qorovul aynan shu holatni tutadi.
+// Test haqiqiy papkaga emas, vaqtinchalik papkaga qaraydi — shunda u
+// joylashuv o'zgarsa ham ishlaydi va tekshirilayotgan MANTIQ sinaladi.
+function testSelfCheck() {
+  const fs = require('fs');
+  const os = require('os');
+  const path = require('path');
+  const { missingFiles, REQUIRED } = require('./lib/self-check');
+
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'lm-selfcheck-'));
+  try {
+    // 1. Hammasi joyida → bo'sh ro'yxat
+    for (const f of REQUIRED) {
+      const p = path.join(tmp, f);
+      if (f === 'node_modules') fs.mkdirSync(p);
+      else fs.writeFileSync(p, 'x');
+    }
+    assert.deepStrictEqual(missingFiles(tmp), [],
+      'hamma fayl joyida bo\'lsa ro\'yxat bo\'sh bo\'lishi kerak');
+
+    // 2. Bittasi yo'qolsa — AYNAN o'sha qaytsin
+    fs.unlinkSync(path.join(tmp, '.env'));
+    assert.deepStrictEqual(missingFiles(tmp), ['.env'],
+      'yo\'q fayl aniq ko\'rsatilishi kerak');
+
+    // 3. Papkaning O'ZI yo'q bo'lsa — bu ASOSIY holat (2026-08-05 dagi)
+    const yoq = path.join(tmp, 'umuman-yoq');
+    const r = missingFiles(yoq);
+    assert.strictEqual(r.length, 1, 'papka yo\'qligi bitta yozuv bilan aytilsin');
+    assert.ok(/papka/i.test(r[0]), 'xabar papka yo\'qligini bildirishi kerak');
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+
+  // 4. Qorovul xatosi ALERT yo'liga tushsin va kaliti QAT'IY bo'lsin.
+  //    (Test 10c manba kodini skanerlaydi; bu esa chaqiruvni haqiqatan
+  //    kuzatadi — qorovul jimgina o'tib ketmasin.)
+  const { runCheck } = require('./lib/self-check');
+  const errs = [];
+  const realError = console.error;
+  console.error = (...a) => errs.push(a);
+  let ok;
+  try { ok = runCheck(); } finally { console.error = realError; }
+
+  if (ok) {
+    assert.strictEqual(errs.length, 0, 'hammasi joyida bo\'lsa jurnalga yozilmasin');
+  } else {
+    // Bu repo'da `.env` yo'q (u faqat serverda yashaydi) — shuning uchun
+    // lokal ishga tushirishda qorovul ishlab ketishi KUTILGAN holat.
+    assert.strictEqual(errs.length, 1, 'nosozlikda aynan bitta yozuv bo\'lsin');
+    assert.strictEqual(typeof errs[0][0], 'string', 'kalit satr bo\'lishi kerak');
+    assert.ok(!/\$\{|\+/.test(errs[0][0]),
+      'birinchi argument QAT\'IY bo\'lsin — alert guruhlash kaliti');
+    assert.ok(errs[0].length > 1, 'o\'zgaruvchan qism ikkinchi argumentda bo\'lsin');
+  }
+
+  console.log(`✅ Test 13: O'z-o'zini tekshirish qorovuli — PASS ` +
+    `(${REQUIRED.length} ta fayl kuzatiladi)`);
+}
+
 // ============ TEST RUNNER ============
 async function runTests() {
   console.log('\n🧪 LolaMarket Server Testlari\n');
@@ -930,6 +993,7 @@ async function runTests() {
     await testRecordStatusChange();
     testEveryStatusWriteIsRecorded();
     testStatusGuardsSurviveCte();
+    testSelfCheck();
 
     console.log('\n✅ Hammasi PASS — pul hisobi, imzo, route jadvali, xato alerti va buyurtma tarixi joyida\n');
     process.exit(0);
