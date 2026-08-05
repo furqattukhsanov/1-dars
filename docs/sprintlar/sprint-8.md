@@ -66,7 +66,11 @@ Platformaning barcha funksiyalarini real foydalanuvchilar bilan sinovdan o'tkazi
 - [ ] Xato va shikoyatlarni yig'ish
 
 ### Ishlash tekshiruvi
-- [ ] Sahifalar yuklanish tezligi (3 soniyadan kam)
+- [x] Sahifalar yuklanish tezligi (3 soniyadan kam)
+  — **YOPILDI (2026-08-05), PRODUCTION O'LCHOVI BILAN.** Dalil pastda, "Yakuniy
+  o'lchov" sarlavhasi ostida. Quyidagi ikki yozuv sinov tarixi sifatida
+  ATAYLAB saqlanmoqda — band nima uchun ikki marta ochiq qoldirilgani va
+  qaysi raqamlar bilan yopilgani ko'rinib tursin.
   — **QISMAN (2026-07-31):** birinchi marta HAQIQATAN o'lchandi va uchta sabab topib
   tuzatildi (pastdagi yozuvga qarang). Band OCHIQ qoladi, chunki o'lchov lokal va Wi-Fi
   bo'yicha — **sekin mobil internetda (O'zbekistondagi haqiqiy 3G/4G) hali sinalmagan**
@@ -112,6 +116,36 @@ Platformaning barcha funksiyalarini real foydalanuvchilar bilan sinovdan o'tkazi
   **Band HAMON `[x]` QILINMAYDI:** 88 KB raqami LOKAL hisob — production'da
   qayta o'lchash deploy'dan KEYIN qilinadi, dalil hali yo'q. Bundan tashqari
   yuqoridagi ikki band ochiq.
+
+  — **YAKUNIY O'LCHOV (2026-08-05, `a6962d1` deploy qilingandan KEYIN) — BAND
+  YOPILDI.** Yuqoridagi "88 KB" lokal hisob edi; endi raqam production'dan
+  olindi. Usul BAZAVIY O'LCHOV BILAN AYNI: `curl --limit-rate`, ya'ni
+  solishtirish adolatli.
+
+  | Tarmoq | Oldin (2026-08-05 ertalab) | Keyin (deploydan so'ng) |
+  |---|---|---|
+  | Sekin 3G (50 KB/s) | **10.14 s** | **2.0 / 2.6 / 2.5 / 1.6 / 2.0 / 2.5 s** |
+  | Tez 3G (200 KB/s) | 2.66 s | 1.4–2.4 s |
+
+  Sekin 3G'da OLTI o'lchov olindi va OLTALASI ham 3 soniyadan past — ya'ni
+  natija bitta omadli urinish emas. Mezon ("3 soniyadan kam") ikkala tarmoqda
+  ham o'tdi, shuning uchun band `[x]`.
+
+  **⚠️ O'LCHOVNING HALOL CHEGARASI.** Bu ketma-ket `curl` — u brauzerning
+  PARALLEL yuklashini ham, JS bajarilishini ham qamramaydi, ya'ni haqiqiy
+  brauzerdagi "ko'z bilan ko'rinadigan" vaqt bundan farq qilishi mumkin.
+  Raqamga ishonish mumkin bo'lgan sabab bitta: bazaviy 10.14 s ham AYNAN shu
+  usulda olingan, ya'ni **o'zgarishning kattaligi** to'g'ri o'lchangan.
+
+  **Muhim xulosa — keyingi optimizatsiya uchun.** Endi sekin 3G va tez 3G
+  natijalari USTMA-UST tushdi (2.0–2.6 va 1.4–2.4). Bu landing tarmoq
+  kengligiga bog'liq bo'lishdan CHIQQANINI bildiradi: vaqtni endi bayt emas,
+  ULANISH KECHIKISHI belgilaydi — ya'ni landing 5-avgust ertalabida Mini App
+  qanday holatda bo'lsa, o'sha holatga o'tdi. Amaliy oqibati: **kritik yo'ldan
+  yana bayt qirqishning foydasi keskin kamaydi.** Quyidagi ikki ochiq band
+  (shriftlar, `preconnect`) endi TEZLIK MEZONI uchun emas, boshqa sabablar
+  uchun bajariladi — `preconnect` aynan kechikishga tegadi, shrift esa
+  ko'proq Mini App tomonida og'irlik.
 - [ ] Mobil da barcha funksiyalar ishlashi
 - [ ] To'lov webhook larning ishonchliligi
 
@@ -122,6 +156,80 @@ Platformaning barcha funksiyalarini real foydalanuvchilar bilan sinovdan o'tkazi
 ---
 
 ## Qilingan ishlar
+
+- [2026-08-05] **Tezlik bandi YOPILDI: production'da sekin 3G'da 10.14 s → 2.0–2.6 s.
+  Qolgan 11 ta mato rasmi WebP ga o'tkazildi va yo'l-yo'lakay IKKITA TIZIMLI
+  nuqson topib tuzatildi — ikkalasi ham optimizatsiyani o'z ichidan yeb turgan edi.**
+
+  **1. Bandning yopilishi (asosiy natija).** `a6962d1` (banner WebP) production'ga
+  chiqqandan keyin qayta o'lchandi. Usul bazaviy o'lchov bilan AYNI (`curl
+  --limit-rate`), sekin 3G'da OLTI marta: **2.0 / 2.6 / 2.5 / 1.6 / 2.0 / 2.5 s** —
+  oltalasi ham 3 soniyadan past, oldin 10.14 s edi. Tez 3G: 1.4–2.4 s (oldin 2.66 s).
+  Chegara va xulosalar bandning o'z yonida yozilgan. Qisqasi: landing endi tarmoq
+  kengligiga bog'liq emas, vaqtni ulanish kechikishi belgilaydi.
+
+  **2. Qolgan 11 ta mato rasmi WebP ga o'tkazildi.** `cwebp -q 72 -m 6`; kengligi
+  900px dan katta bo'lgan yagona rasm (`9933cd…`, 1152px) 900 ga kichraytirildi.
+  Natija: **2 831 445 → 1 604 168 bayt, ya'ni 1.2 MB (−43%).** Bu rasmlar `lazy`,
+  ya'ni kritik yo'lda emas — foydalanuvchi aylantirganda yuklanadi. `index.html` da
+  11 ta kartochka `<picture>` ga o'raldi (`script.js?v=23 → v=24`).
+
+  **Sifat q=72 — ASOSLANGAN tanlov, taxmin emas.** Avval q=80 sinaldi va mayda
+  naqshli mato suratlarida deyarli foyda bermadi (`7a30c608` −3%, `c20cdf0e` −11%):
+  bunday rasmlarning entropiyasi yuqori, ya'ni siqib bo'lmaydigan tafsilot ko'p.
+  q=72 da −21% gacha yaxshilandi. Sifat KO'Z BILAN solishtirildi — asl JPEG va
+  q=72 yonma-yon ko'rildi: mato tolasi, naqsh qirralari, fon — farq sezilmadi.
+  Bu qadam ataylab tashlab ketilmadi, chunki **xaridor matoni aynan rasmga qarab
+  baholaydi**, ya'ni bu yerda "bir necha KB" sifatdan muhimroq emas.
+
+  900px chegarasining sababi: rasm eng katta holda mahsulot tafsiloti oynasida
+  ko'rsatiladi (`.pd-img`, konteyner kengligining 100%i), ya'ni DPR 2 da ~750–1000px
+  kerak. Kartochkada esa atigi ~262px, savatda 62px — undan kattasi isrof.
+
+  **3. TIZIMLI NUQSON — `script.js` → `product()` WebP ni ko'rmasdi.** Funksiya
+  `el.querySelector('img')?.getAttribute('src')` qilardi, ya'ni HAR DOIM `.jpg`
+  ZAXIRASINI olardi. Bu qiymat uch joyda ishlatiladi: mahsulot tafsiloti oynasi
+  (`.pd-img`), savat qatori (`.cart-line-img`), saralanganlar qatori
+  (`.fav-line-img`). Natijada kartochka WebP ko'rsatardi, lekin foydalanuvchi
+  mahsulotni ochsa yoki savatga solsa — AYNAN O'SHA rasm ikkinchi formatda
+  qaytadan yuklanardi. Ya'ni WebP ga o'tish o'sha yo'llarda holatni
+  YOMONLASHTIRARDI. Tuzatish: `img.currentSrc || img.getAttribute('src')` —
+  `currentSrc` brauzer `<picture>` dan HAQIQATAN tanlagan manba. `getAttribute('src')`
+  zaxira bo'lib qoldi, chunki `loading="lazy"` rasmda `currentSrc` yuklana
+  boshlagunicha bo'sh bo'ladi.
+
+  Bu `a6962d1` dagi "bir rasm ikki joyda" nuqsonining AYNAN O'SHA OILASI: format
+  o'zgarishi rasm CHIZILADIGAN har bir yo'lni qamrashi kerak, aks holda qolgan yo'l
+  eski faylni tortib, tejashni bekor qiladi.
+
+  **4. IKKINCHI NUQSON — service worker keshi eski `.jpg` larni ushlab turardi.**
+  Sinovda toza yuklanishda ham 11 ta ortiqcha JPEG tortilardi. Sabab: `sw.js`
+  `cacheFirst` strategiyasida ishlaydi va eski `.jpg` yozuvlari keshda qolgandi.
+  Qo'lda tozalangach — 0 ta JPEG, 14 ta WebP. `CACHE_VERSION` `v1` → `v2`.
+
+  **Buning darsi nuqsondan muhimroq:** `sw.js` faylining O'ZIDA "Har deploy'da bu
+  raqamni oshiring — eski kesh butunlay tozalanadi" deb yozib qo'yilgan, lekin
+  `CACHE_VERSION` hamon `v1` edi — ya'ni bu ko'rsatma oldingi deploy'larda
+  BAJARILMAGAN. Faylda yozilgan ko'rsatma ham, CLAUDE.md dagi qoida kabi,
+  tekshirilmasa bajarilmay qolar ekan. Bu bugungi Test 10c darsining (qoidani
+  yozgan odam o'sha faylda uni buzdi) to'g'ridan-to'g'ri takrori.
+
+  **Brauzerda tekshirildi (dalillar):** 15 ta `<picture>` (3 banner slaydi + 12
+  kartochka) va `script.js?v=24` yuklanyapti; 12 ta kartochkaning HAMMASI `.webp`
+  tanlagan va yopilgan (balandligi 0) blok 0 ta — ya'ni `a6962d1` dagi `<picture>`
+  CSS tuzog'i bu yerda takrorlanmadi; SW keshi tozalangan TOZA yuklanishda **0 ta
+  JPEG, 14 ta WebP**; `product('ik-1402')` `.webp` qaytardi; kartochka bosilib
+  tafsilot oynasi ochildi — `.pd-img` `.webp` va ochilishda YANGI JPEG
+  SO'RALMADI (0 → 0), ya'ni 3-banddagi tuzatish amalda tasdiqlandi; banner
+  ekran suratida to'g'ri chizilgan. Konsoldagi yagona xato — `/api/auth/web/me`
+  404, lokal statik serverda backend yo'qligidan (regressiya emas).
+
+  **Eski `.jpg` fayllar O'CHIRILMADI** — ular `<img>` da zaxira bo'lib qoladi
+  (eski Safari), `a6962d1` dagi qaror bilan bir xil.
+
+  **Hali qilinmagani:** shriftlar (250 KB, 13 ta `woff2`, 3 oila / 10 qalinlik) va
+  `telegram.org` ga `preconnect` — ikkalasi ham OCHIQ. Lekin ular endi tezlik
+  MEZONI uchun emas (mezon o'tdi), boshqa sabablar uchun bajariladi.
 
 - [2026-08-05] **Banner rasmlari WebP ga o'tkazildi — landing kritik yo'li mobilda
   342 KB → 88 KB (A1 o'lchovi ko'rsatgan ENG KATTA yutuq olindi).** Ertalabki A1
@@ -549,6 +657,45 @@ Platformaning barcha funksiyalarini real foydalanuvchilar bilan sinovdan o'tkazi
 ---
 
 ## Qarorlar
+
+- [2026-08-05] Qaror: **rasm sifati foizga emas, KO'ZGA qarab tanlanadi — mato
+  suratida bu sozlama biznes qarori.** q=80 mayda naqshli matolarda deyarli foyda
+  bermadi (`7a30c608` −3%), q=72 esa −21% gacha berdi; ikkalasi asl JPEG bilan
+  yonma-yon ko'rildi va tola/naqsh qirralarida farq sezilmadi, shundan keyingina
+  q=72 tanlandi. Sabab: LolaMarket xaridori matoni QO'LDA ushlab ko'rmaydi, u faqat
+  rasmga qarab baholaydi — ya'ni "bir necha KB tejash" bu yerda sifatdan ustun
+  QO'YILMAYDI. Qoida: yangi rasm to'plami qo'shilganda sifat kamida ikki qiymatda
+  sinalsin va ko'z bilan solishtirilsin
+
+- [2026-08-05] Qaror: **rasm formati o'zgarganda rasm CHIZILADIGAN HAR BIR YO'L
+  qamraladi — bittasi qolsa optimizatsiya o'z ichidan yeyiladi.** `script.js` dagi
+  `product()` `getAttribute('src')` bilan har doim JPEG zaxirasini olardi, ya'ni
+  kartochka WebP ko'rsatsa ham mahsulot ochilganda / savatga solinganda AYNAN
+  o'sha rasm ikkinchi formatda qaytadan yuklanardi. `<picture>` bilan ishlaganda
+  JS tomonda `currentSrc` olinadi (`src` faqat zaxira, chunki `lazy` rasmda
+  `currentSrc` boshida bo'sh). Bu `a6962d1` dagi "bir xil rasm ikki joyda" qarorining
+  kengaytmasi: u yerda ikkinchi yo'l HTML'da edi, bu yerda JS'da
+
+- [2026-08-05] Qaror: **service worker keshi versiyasi rasm/statik fayl formati
+  o'zgarganda MAJBURIY oshiriladi (`sw.js` → `CACHE_VERSION`).** `cacheFirst`
+  strategiyasida eski `.jpg` yozuvlari keshda qolib, qaytgan foydalanuvchida
+  butun optimizatsiyani bekor qilardi — sinovda aynan shu ko'rindi (11 ta ortiqcha
+  JPEG). Muhimi shundaki, bu ko'rsatma `sw.js` faylining O'ZIDA yozib qo'yilgan
+  edi, lekin `v1` hamon turgan — ya'ni **faylga yozilgan ko'rsatma, xuddi CLAUDE.md
+  qoidasi kabi, tekshirilmasa bajarilmaydi.** Bu bugungi Test 10c darsining takrori.
+  Hozircha qorovul QO'YILMADI (ochiq qarz): deploy'da versiya oshganini tekshiradigan
+  test yo'q, ya'ni bu qaror hozir niyat darajasida
+
+- [2026-08-05] Qaror: **tezlik bandi production o'lchovi bilan YOPILDI, lekin
+  o'lchovning chegarasi hujjatda ochiq yozildi.** Sekin 3G'da olti o'lchov
+  (2.0–2.6 s) mezondan o'tdi, shuning uchun band `[x]`. Chegara: ketma-ket `curl`
+  brauzerning parallel yuklashini va JS bajarilishini qamramaydi — raqamga
+  ishonish sababi shuki, bazaviy 10.14 s ham AYNI usulda olingan, ya'ni
+  o'zgarishning KATTALIGI to'g'ri o'lchangan. Bitta o'lchov emas, oltitasi
+  olindi — aks holda "omadli urinish" bilan band yopilgan bo'lardi. Bu 5-avgust
+  ertalabidagi "qulay o'lchovni tanlab band yopilmaydi" qarorining teskari
+  tomoni: o'sha kuni qulay raqam RAD ETILGAN edi, bugun esa noqulay usul
+  ATAYLAB saqlanib qolindi
 
 - [2026-08-05] Qaror: **rasm AVIF emas, WebP ga o'tkaziladi va eski JPEG
   O'CHIRILMAYDI — `<picture>` ichida zaxira bo'lib qoladi.** AVIF kichikroq bo'lardi,

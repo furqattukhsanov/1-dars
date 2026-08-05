@@ -7,7 +7,11 @@
    ==================================================== */
 
 // Har deploy'da bu raqamni oshiring — eski kesh butunlay tozalanadi.
-const CACHE_VERSION = 'v1';
+// v2 (2026-08-05): rasmlar WebP ga o'tdi. Bu raqam ko'tarilmasa qaytgan
+// foydalanuvchida eski `.jpg` yozuvlari keshda qolib ketardi — sinovda aynan
+// shu ko'rindi: kesh tozalanmagan holatda 11 ta ortiqcha JPEG tortildi,
+// tozalangandan keyin 0 ta.
+const CACHE_VERSION = 'v2';
 const CACHE_NAME = `lolamarket-web-${CACHE_VERSION}`;
 
 // Faqat offline holat uchun kerak bo'lgan minimal to'plam.

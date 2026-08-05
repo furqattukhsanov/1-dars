@@ -940,7 +940,13 @@ function product(id) {
     name: el.dataset.name,
     price: Number(el.dataset.price) || 0,
     supplier: el.dataset.supplier,
-    img: el.querySelector('img')?.getAttribute('src') || '',
+    // `currentSrc` — brauzer <picture> dan HAQIQATAN tanlagan manba (WebP),
+    // `src` esa har doim JPEG zaxirasi. `src` olinsa tafsilot oynasi, savat va
+    // saralanganlar AYNAN bir rasmni ikkinchi formatda qaytadan yuklardi.
+    // `currentSrc` rasm yuklana boshlaguncha bo'sh bo'ladi (`loading="lazy"`),
+    // shuning uchun zaxira sifatida `src` qoladi.
+    img: el.querySelector('img')?.currentSrc
+      || el.querySelector('img')?.getAttribute('src') || '',
   };
 }
 
