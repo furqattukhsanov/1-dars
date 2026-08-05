@@ -264,6 +264,28 @@ LolaMarket ni rasmiy ishga tushirish. Birinchi haqiqiy xaridorlar va ishlab chiq
   **Navbatdagi ish — C3:** CSP `script-src` dan `'unsafe-inline'` olib tashlash
   (Cloudflare Transform Rules, kanonik nusxa `docs/xavfsizlik-sarlavhalari.md`).
 
+  **DEPLOY DALILI (commit `86c9b5d`, deploy 31 s, birinchi urinishda).** Yuqoridagi
+  yozuv commit'dan OLDIN yozilgani uchun dalil qismi keyin to'ldirildi — bu sprint
+  faylining o'z qoidasi (`[2026-07-31]` — "band `[x]` qilinmaydi, dalil ko'rsatilsin").
+  CI yashil belgisiga emas, javobning O'ZIGA qaraldi:
+  - `/mini-app/offline.js` → HTTP 200 va `content-type: application/javascript`
+    (ya'ni nginx fallback tuzog'i emas — yo'q fayl ham 200 + `text/html` qaytaradi)
+  - jonli fayllarda yangi kod bor: `mini-app/app.js` da `setDispReason`,
+    `script.js` da `data-submit`, `mini-app/offline.js` da `retry`
+  - to'rtala jonli HTML'da (`index.html`, `admin/`, `mini-app/`, `mini-app/offline.html`)
+    inline hodisa **0 ta**
+  - `?v=` jonli holatda: `script.js?v=26`, `app.js?v=61`, `admin.js?v=20`
+
+  **OFLAYN SAHIFA HAQIQIY OFLAYN HOLATDA SINALDI.** Mahalliy server ATAYLAB
+  o'chirildi va sahifa qayta yuklandi: service worker `offline.html` va `offline.js`
+  ni keshdan berdi, "Qayta urinish" tugmasi ishladi. Bu shunchaki qulaylik emas —
+  aynan shu sinov `CACHE_VERSION` va `PRECACHE` qadamlari bajarilganini isbotlaydi;
+  ularsiz tuzatish O'ZI TUZATAYOTGAN holatda ishlamas edi va buni boshqa hech
+  qanday tekshiruv ko'rsatmasdi.
+  ⚠️ `offline.js` ATAYLAB `?v=` SIZ: `sw.js` → `networkFirst` keshdan
+  `ignoreSearch` siz qidiradi, ya'ni versiya qo'shilsa so'rov keshdagi yozuvga
+  mos kelmay qolardi — va nuqson aynan oflayn holatda chiqardi.
+
 - [2026-08-05] **TERGOV: backend papkasi nega o'chgani ANIQLANDI — aybdor
   `server/README.md` dagi orqaga qaytarish buyrug'ining o'zi edi.**
 
