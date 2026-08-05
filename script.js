@@ -291,6 +291,20 @@ function clearSearch() {
   inp?.focus();
 }
 
+/* ── `input` delegatsiyasi ──
+   Yuqoridagi delegatsiya faqat `click` ni ushlaydi. `input` alohida hodisa,
+   shuning uchun o'z tinglovchisi bor. Nima uchun to'g'ridan-to'g'ri
+   `addEventListener` emas: sharh matni maydoni DINAMIK chiziladi (oyna har
+   ochilganda qaytadan), ya'ni bir marta biriktirilgan tinglovchi keyingi
+   nusxada yo'q bo'lardi. `data-input` qiymati — global funksiya nomi,
+   unga maydon qiymati uzatiladi. */
+document.addEventListener('input', (e) => {
+  const el = e.target.closest('[data-input]');
+  if (!el) return;
+  const fn = window[el.dataset.input];
+  if (typeof fn === 'function') fn(e.target.value);
+});
+
 /* ====================================================
    TELEGRAM ORQALI KIRISH
 
@@ -513,7 +527,7 @@ function loginHtml() {
         ${loginSession
           ? `<a class="btn-tg" href="${loginSession.url}" target="_blank" rel="noopener">Telegramni ochish</a>`
           : ''}
-        <button class="auth-ghost" onclick="cancelLogin()">Bekor qilish</button>
+        <button class="auth-ghost" data-action="cancelLogin">Bekor qilish</button>
       </div>`;
   }
 
@@ -528,7 +542,7 @@ function loginHtml() {
         va holat o'zgarishi haqidagi xabar Telegram'ga keladi.
       </div>
       ${loginErr ? `<div class="co-err" style="margin-top:2px">${esc(loginErr)}</div>` : ''}
-      <button class="btn-tg" onclick="startLogin()">
+      <button class="btn-tg" data-action="startLogin">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M21.7 4.2 2.9 11.4c-1 .4-1 1.2-.1 1.5l4.7 1.5 1.8 5.4c.2.6.4.8 1 .4l2.6-2.1 4.7 3.5c.9.5 1.4.2 1.6-.8l3-14c.2-1-.4-1.4-1.5-1.1zM8.7 14.1 17.3 8c.4-.3.8-.1.5.2l-7.1 6.5-.3 3z"/></svg>
         Telegram orqali kirish
       </button>
@@ -573,7 +587,7 @@ function profileHtml() {
     <div class="profile-sec-title">Mening buyurtmalarim</div>
     ${orders}
 
-    <button class="auth-ghost" style="margin-top:18px;width:100%" onclick="logout()">Hisobdan chiqish</button>`;
+    <button class="auth-ghost" style="margin-top:18px;width:100%" data-action="logout">Hisobdan chiqish</button>`;
 }
 
 // Sharh faqat mato yetib kelgandan keyin — server bilan bir xil ro'yxat
@@ -727,15 +741,15 @@ function detailHtml(id) {
       <div class="pd-act" id="pd-act">
         ${qty
           ? `<div class="qty-row">
-               <button class="qty-circle qty-minus" onclick="setQtyDetail('${esc(id)}',-1)" aria-label="Kamaytirish">
+               <button class="qty-circle qty-minus" data-action="qtyStepDetail" data-arg="${esc(id)}|-1" aria-label="Kamaytirish">
                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 12h14"/></svg>
                </button>
                <span class="qty-num">${qty} dona</span>
-               <button class="qty-circle qty-plus" onclick="setQtyDetail('${esc(id)}',1)" aria-label="Ko'paytirish">
+               <button class="qty-circle qty-plus" data-action="qtyStepDetail" data-arg="${esc(id)}|1" aria-label="Ko'paytirish">
                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
                </button>
              </div>`
-          : `<button class="pd-add" onclick="addFromDetail('${esc(id)}')">Savatga qo'shish</button>`}
+          : `<button class="pd-add" data-action="addFromDetail" data-arg="${esc(id)}">Savatga qo'shish</button>`}
       </div>
 
       <div class="pd-sec-title">Sharhlar</div>
@@ -765,6 +779,22 @@ function addFromDetail(id) {
 function setQtyDetail(id, d) {
   setQty(id, d);
   if (drawerView === 'detail') renderDrawer();
+}
+
+/* ── data-action uchun ingichka o'ramlar ──
+   Delegatsiya BITTA argument uzatadi, bu funksiyalar esa ikkitasini oladi
+   (id va qadam). Shuning uchun ular `id|delta` shaklida kodlanadi — xuddi
+   `openReview` dagi `orderId|productId` kabi, ya'ni yangi konvensiya emas.
+   Asl funksiyalar imzosi ATAYLAB o'zgarmadi: ular domen amali, o'ram esa
+   faqat transport. */
+function qtyStep(arg) {
+  const [id, d] = String(arg).split('|');
+  setQty(id, Number(d));
+}
+
+function qtyStepDetail(arg) {
+  const [id, d] = String(arg).split('|');
+  setQtyDetail(id, Number(d));
 }
 
 /* ── Sharh yozish (saytda) ──
@@ -816,15 +846,15 @@ function reviewFormHtml() {
 
       <div class="rv-stars">
         ${[1, 2, 3, 4, 5].map((n) => `
-        <button class="rv-star ${n <= reviewStars ? 'on' : ''}" onclick="setReviewStars(${n})" aria-label="${n} yulduz">★</button>`).join('')}
+        <button class="rv-star ${n <= reviewStars ? 'on' : ''}" data-action="setReviewStars" data-arg="${n}" aria-label="${n} yulduz">★</button>`).join('')}
       </div>
 
       <textarea class="rv-text" rows="4" placeholder="Sifati haqida qisqacha yozing (ixtiyoriy)"
-        oninput="onReviewBody(this.value)">${esc(reviewBody)}</textarea>
+        data-input="onReviewBody">${esc(reviewBody)}</textarea>
 
       <div class="rv-btns">
-        <button class="auth-ghost" onclick="backToProfile()">Bekor</button>
-        <button class="pd-add" onclick="submitReview()" ${reviewSending ? 'disabled' : ''}>${reviewSending ? 'Yuborilmoqda…' : 'Yuborish'}</button>
+        <button class="auth-ghost" data-action="backToProfile">Bekor</button>
+        <button class="pd-add" data-action="submitReview" ${reviewSending ? 'disabled' : ''}>${reviewSending ? 'Yuborilmoqda…' : 'Yuborish'}</button>
       </div>
     </div>`;
 }
@@ -988,7 +1018,7 @@ function renderCardAction(id) {
 
   if (!qty) {
     box.innerHTML = `
-      <button class="add-btn" onclick="addToCart('${id}')">
+      <button class="add-btn" data-action="addToCart" data-arg="${esc(id)}">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
         Savatga
       </button>`;
@@ -997,11 +1027,11 @@ function renderCardAction(id) {
 
   box.innerHTML = `
     <div class="qty-row">
-      <button class="qty-circle qty-minus" onclick="setQty('${id}',-1)" aria-label="Kamaytirish">
+      <button class="qty-circle qty-minus" data-action="qtyStep" data-arg="${esc(id)}|-1" aria-label="Kamaytirish">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 12h14"/></svg>
       </button>
       <span class="qty-num">${qty} dona</span>
-      <button class="qty-circle qty-plus" onclick="setQty('${id}',1)" aria-label="Ko'paytirish">
+      <button class="qty-circle qty-plus" data-action="qtyStep" data-arg="${esc(id)}|1" aria-label="Ko'paytirish">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
       </button>
     </div>`;
@@ -1248,18 +1278,18 @@ function lineHtml(id) {
       <div class="cart-line-main">
         <div class="cart-line-top">
           <div class="cart-line-name">${esc(p.name)}</div>
-          <button class="line-x" onclick="removeLine('${id}')" aria-label="O'chirish">
+          <button class="line-x" data-action="removeLine" data-arg="${esc(id)}" aria-label="O'chirish">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
           </button>
         </div>
         <div class="cart-line-sup">${esc(p.supplier)}</div>
         <div class="cart-line-bot">
           <div class="qty">
-            <button class="qty-btn" onclick="setQty('${id}',-1)" aria-label="Kamaytirish">
+            <button class="qty-btn" data-action="qtyStep" data-arg="${esc(id)}|-1" aria-label="Kamaytirish">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 12h14"/></svg>
             </button>
             <span class="qty-val">${qty} dona</span>
-            <button class="qty-btn" onclick="setQty('${id}',1)" aria-label="Ko'paytirish">
+            <button class="qty-btn" data-action="qtyStep" data-arg="${esc(id)}|1" aria-label="Ko'paytirish">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
             </button>
           </div>
@@ -1279,7 +1309,7 @@ function favLineHtml(id) {
       <div class="fav-line-main">
         <div class="cart-line-top">
           <div class="cart-line-name">${esc(p.name)}</div>
-          <button class="line-x" onclick="toggleFav('${id}')" aria-label="Saralanganlardan olib tashlash">
+          <button class="line-x" data-action="toggleFav" data-arg="${esc(id)}" aria-label="Saralanganlardan olib tashlash">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
           </button>
         </div>
@@ -1287,8 +1317,8 @@ function favLineHtml(id) {
         <div class="fav-line-price">${money(p.price)}</div>
         <div class="fav-line-act">
           ${inCart
-            ? `<button class="fav-add in-cart" onclick="openCart()">Savatda — ${inCart} dona</button>`
-            : `<button class="fav-add" onclick="favToCart('${id}')">
+            ? `<button class="fav-add in-cart" data-action="openCart">Savatda — ${inCart} dona</button>`
+            : `<button class="fav-add" data-action="favToCart" data-arg="${esc(id)}">
                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
                  Savatga
                </button>`}
@@ -1319,7 +1349,7 @@ function checkoutHtml() {
   }).join('');
 
   return `
-    <button class="co-back" onclick="backToCart()">
+    <button class="co-back" data-action="backToCart">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 6l-6 6 6 6"/></svg>
       Savatga qaytish
     </button>
@@ -1341,7 +1371,7 @@ function checkoutHtml() {
           <b>Telegram orqali kiring</b> — ism va telefon o'zi to'ladi, buyurtma
           holati esa botga xabar bo'lib keladi.
         </div>
-        <button type="button" class="co-login-btn" onclick="loginFromCheckout()">Kirish</button>
+        <button type="button" class="co-login-btn" data-action="loginFromCheckout">Kirish</button>
       </div>`}
 
     <form id="co-form" onsubmit="submitOrder(event)" style="margin-top:16px" novalidate>
@@ -1459,7 +1489,7 @@ function doneHtml() {
           : "Tez orada ko'rsatilgan telefon raqamingizga bog'lanamiz. Buyurtma holatini Telegram bot orqali ham kuzatishingiz mumkin."}
       </div>
       ${me
-        ? `<button class="cta-bot-btn" style="margin-top:16px;height:44px;font-size:14px;background:var(--grad-pom);color:var(--pom-100)" onclick="onLogin()">
+        ? `<button class="cta-bot-btn" style="margin-top:16px;height:44px;font-size:14px;background:var(--grad-pom);color:var(--pom-100)" data-action="onLogin">
              Buyurtmalarim
            </button>`
         : `<a class="cta-bot-btn" style="margin-top:16px;height:44px;font-size:14px;background:var(--grad-pom);color:var(--pom-100)" href="https://t.me/lolamarketbot" target="_blank" rel="noopener">
