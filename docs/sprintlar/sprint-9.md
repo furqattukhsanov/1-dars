@@ -59,11 +59,34 @@ LolaMarket ni rasmiy ishga tushirish. Birinchi haqiqiy xaridorlar va ishlab chiq
   kelajakda yangi bir joyda `esc()` unutilsa, CSP xatoni TUTMAYDI. Shu sababli
   himoyaning butun og'irligi hozir `esc()` ning izchil qo'llanishida. Yopilishi
   o'zgarmadi: ~120 ta inline hodisani `addEventListener` ga o'tkazish
-- [ ] Muhit o'zgaruvchilari (env vars) production uchun sozlash
-  — **AMALDA BAJARILGAN, lekin bugun qayta tasdiqlanmadi.** `/opt/lolamarket-notify/.env`
-  (600 huquq, git'ga kirmaydi) Sprint 2/3 da to'ldirilgan; bilvosita dalil — jonli
-  `GET /api/products` bazadan haqiqiy ma'lumot qaytaryapti, ya'ni `DATABASE_URL` va bot
-  tokeni joyida. To'g'ridan-to'g'ri tekshirish SSH talab qiladi va bu sessiyada bloklandi
+- [x] Muhit o'zgaruvchilari (env vars) production uchun sozlash
+  — **YOPILDI (2026-08-05), TO'G'RIDAN-TO'G'RI TEKSHIRUV BILAN.** Oldingi yozuv
+  bilvosita dalilga tayanardi ("`/api/products` ishlayapti, demak `.env` joyida")
+  va SSH bloklangan deb hisoblardi. Bugun `.env` SSH orqali bevosita ko'rildi —
+  va bilvosita dalil YOLG'ON bo'lib chiqdi: fayl "ishlayotgan"dek ko'rinsa ham
+  ichida to'ldirilmagan namuna turgan edi.
+  1. **Kalitlar sanaldi** — 11 ta: `BOT_TOKEN`, `ADMIN_CHAT_ID`, `ALLOWED_ORIGIN`,
+     `PORT`, `WEBHOOK_SECRET`, `MINI_APP_URL`, `DATABASE_URL`, `ADMIN_PANEL_TOKEN`,
+     `COMMISSION_RATE`, `BOT_USERNAME`, `ALERT_CHAT_ID`.
+  2. **Nuqson topildi va tuzatildi** — `ALERT_CHAT_ID=<chat_id>`, ya'ni
+     to'ldirilmay qolgan NAMUNA. U bo'sh emas, shuning uchun `config.js` dagi
+     `|| ADMIN_CHAT_ID` zaxirasi uni haqiqiy deb qabul qilardi va xato alertlari
+     mavjud bo'lmagan chatga ketardi. Qator o'chirildi (nusxa olingan holda),
+     endi 10 ta kalit. Bash `source` ham shu qatorda qulardi — kunlik zaxira
+     ikki kun aynan shuning ustiga ishlamadi.
+  3. **Huquqlar tekshirildi** — `.env` `600 root:root`, `pg-backup.sh` `700
+     root:root`, `.mcp-db-url` `600 root:root` (`server/README.md` jadvaliga mos).
+     `bash -n` toza.
+  4. **Kod darajasida qulflandi** — `config.js` → `chatId()` endi chat_id ning
+     SHAKLINI tekshiradi; yaroqsizi zaxiraga qaytadi va jurnalda iz qoldiradi.
+     `ADMIN_CHAT_ID` yaroqsiz bo'lsa `process.exit(1)`. Qorovul Test 2c bilan
+     qulflangan (`5e9bb11`).
+
+  ⚠️ **Tekshirilmagani (ataylab):** kalitlarning QIYMATLARI o'qilmadi — faqat
+  nomlari sanaldi, chunki sirlarni chiqarishdan qochildi. Ya'ni "har bir qiymat
+  to'g'ri" deb aytilmaydi; aytiladigani shu: kalitlar bor, fayl tahlil qilinadi,
+  huquqlar to'g'ri, va shakli tekshirilishi mumkin bo'lgan yagona tur (chat_id)
+  endi kod tomonidan qo'riqlanadi.
 - [x] Ma'lumotlar bazasi zaxira nusxasi (backup) sozlash
   — **BAJARILDI (2026-08-01): ishlayotgani tekshirildi, TIKLANISHI birinchi marta sinaldi,
   va nusxa serverdan tashqariga chiqarildi.**
