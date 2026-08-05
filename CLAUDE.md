@@ -121,6 +121,19 @@
   to'g'ri chaqir). Haqiqatan `load` kerak bo'lsa — hodisa ALLAQACHON o'tgan
   bo'lishi mumkinligini hisobga ol: avval `document.readyState` tekshirilsin,
   aks holda listener hech qachon otilmaydi (`pwa.js` → `whenReady()` namunasi).
+- **Rasmni `<picture>` ga o'rasangiz, konteynerini CSS ro'yxatiga qo'shing**
+  (2026-08-05). `<picture>` rasm bilan uni o'rab turgan quti ORASIGA kiradi va
+  u odatda `display: inline`, balandligi `auto`. Shuning uchun `img { height:
+  100% }` tayanadigan narsasini yo'qotadi va **blok balandligi nolga tushadi**.
+  Nuqson JIMGINA chiqadi: rasm yo'qolmaydi, konsolda xato yo'q, shunchaki blok
+  yopiladi. Yechim `style.css` da: `.ad-slide picture, .product-media picture
+  { display: block; width: 100%; height: 100% }` — yangi joy qo'shilsa shu
+  selektorlar ro'yxatiga ham qo'shilsin.
+  ⚠️ **Bir xil rasm ikki joyda ishlatilsa — ikkalasi BIRGA o'tkazilsin.**
+  Bittasini `<picture>` ga o'rab, ikkinchisini `.jpg` qoldirsangiz brauzer
+  AYNAN BIR rasmni ikki formatda ikki marta yuklaydi va o'zgarishingiz
+  holatni yomonlashtiradi. 2026-08-05 da `d7928cec...` rasmi bilan aynan shu
+  bo'lay dedi (banner slaydi + `tx-4402` kartochkasi).
 - **Tashqi skript hech qachon `<head>`da `defer`siz turmasin.** `telegram.org`dan
   keladigan `telegram-web-app.js` 114 KB va HTML tahlilini ~613 ms to'xtatardi.
   Sahifadagi skriptlar `defer` bo'lsa — **HAMMASI birdan** `defer` bo'lsin:

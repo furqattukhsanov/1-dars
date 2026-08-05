@@ -19,7 +19,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=35" />
+  <link rel="stylesheet" href="style.css?v=36" />
   <!-- DIQQAT: uchala skript ham `defer` — TARTIB shu sababli saqlanadi
        (telegram → script.js → pwa.js). Bittasidan `defer` olib tashlansa,
        u tananing ichida parse paytida ishlaydi va DEFER'liklardan OLDIN
@@ -84,7 +84,15 @@
       <div class="ad-track">
 
         <article class="ad-slide is-active" data-pos="left" aria-hidden="false">
-          <img src="Photo/Main/banner-mato.jpg" alt="Osilgan gulli naqshli matolar" width="1400" height="781" fetchpriority="high" />
+          <!-- WebP asosiy, JPEG zaxira (eski Safari). Mobil uchun alohida 800px
+               nusxa: banner konteyneri 1180px, telefonda esa ~400 CSS px —
+               1400px rasm u yerda ortiqcha edi. Sekin 3G'da 305 KB → 51 KB. -->
+          <picture>
+            <source type="image/webp"
+                    srcset="Photo/Main/banner-mato-800.webp 800w, Photo/Main/banner-mato.webp 1400w"
+                    sizes="(max-width: 1220px) 100vw, 1180px" />
+            <img src="Photo/Main/banner-mato.jpg" alt="Osilgan gulli naqshli matolar" width="1400" height="781" fetchpriority="high" />
+          </picture>
           <div class="ad-shade"></div>
           <div class="ad-content">
             <h2 class="ad-title">Tasdiqlangan fabrikalardan to'g'ridan-to'g'ri</h2>
@@ -97,7 +105,10 @@
         </article>
 
         <article class="ad-slide" data-pos="center" aria-hidden="true">
-          <img src="Photo/Main/banner-mato-2.jpg" alt="Osilgan naqshli ipak matolar" width="900" height="500" loading="lazy" />
+          <picture>
+            <source type="image/webp" srcset="Photo/Main/banner-mato-2.webp" />
+            <img src="Photo/Main/banner-mato-2.jpg" alt="Osilgan naqshli ipak matolar" width="900" height="500" loading="lazy" />
+          </picture>
           <div class="ad-shade"></div>
           <div class="ad-content">
             <h2 class="ad-title">Gulli naqsh — ipak kolleksiya</h2>
@@ -110,7 +121,10 @@
         </article>
 
         <article class="ad-slide" data-pos="right" aria-hidden="true">
-          <img src="Photo/textile/d7928cec4d1373dfd77b18311ebdca10.jpg" alt="Gulli ipak — lola matosi" width="850" height="1360" loading="lazy" />
+          <picture>
+            <source type="image/webp" srcset="Photo/textile/d7928cec4d1373dfd77b18311ebdca10.webp" />
+            <img src="Photo/textile/d7928cec4d1373dfd77b18311ebdca10.jpg" alt="Gulli ipak — lola matosi" width="850" height="1360" loading="lazy" />
+          </picture>
           <div class="ad-shade"></div>
           <div class="ad-content">
             <h2 class="ad-title">Telegram orqali ham buyurtma bering</h2>
@@ -411,7 +425,13 @@
 
       <article class="product-card fade-up" data-id="tx-4402" data-name="Gulli ipak — lola" data-price="860000" data-supplier="Andijon Ipak Uyi" data-cat="silk">
         <div class="product-media">
-          <img src="Photo/textile/d7928cec4d1373dfd77b18311ebdca10.jpg" alt="Gulli ipak — lola" loading="lazy" />
+          <!-- Banner karuselining 3-slaydi ham AYNAN shu rasmni ishlatadi.
+               Bu yerda `.jpg` qolsa brauzer bitta rasmni ikki formatda ikki
+               marta yuklab olardi. -->
+          <picture>
+            <source type="image/webp" srcset="Photo/textile/d7928cec4d1373dfd77b18311ebdca10.webp" />
+            <img src="Photo/textile/d7928cec4d1373dfd77b18311ebdca10.jpg" alt="Gulli ipak — lola" loading="lazy" />
+          </picture>
           <button class="fav-btn" id="fav-tx-4402" data-action="toggleFav" data-arg="tx-4402" aria-label="Saralanganlarga qo'shish" aria-pressed="false">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 20.8s-6.9-4.3-9-8a5.2 5.2 0 0 1-.5-3.7A4.8 4.8 0 0 1 6.3 5.5c1.9 0 3.4 1 4.3 2.3.4.6 1 .6 1.4 0 .9-1.3 2.4-2.3 4.3-2.3a4.8 4.8 0 0 1 3.8 3.6 5.2 5.2 0 0 1-.5 3.7c-2.1 3.7-9 8-9 8z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
           </button>

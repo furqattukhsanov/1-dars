@@ -412,6 +412,19 @@ body {
   opacity: 1;
   visibility: visible;
 }
+/* `<picture>` rasm bilan uni o'rab turgan quti orasiga kiradi (WebP + JPEG
+   zaxira). U odatda `inline` va balandligi `auto` — shuning uchun rasmdagi
+   `height: 100%` tayanadigan narsasini yo'qotadi va blok yopilib qoladi.
+   Quyidagi qoida `<picture>` ni shaffof qutiga aylantiradi.
+   ⚠️ Rasmni `<picture>` ga o'rasangiz, uning konteynerini shu ro'yxatga
+   qo'shing — aks holda nuqson JIMGINA chiqadi: rasm yo'qolmaydi, blok
+   balandligi nolga tushadi. */
+.ad-slide picture,
+.product-media picture {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
 /* Har slayd o'z rasmiga ega; faol slaydda sekin yaqinlashish (Ken Burns).
    Zum kuchli bo'lmasin — rasm xiralashib qolmasligi kerak. */
 .ad-slide img {

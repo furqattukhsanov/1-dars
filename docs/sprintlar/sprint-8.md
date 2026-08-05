@@ -102,9 +102,16 @@ Platformaning barcha funksiyalarini real foydalanuvchilar bilan sinovdan o'tkazi
   4. Yaxshi tomoni: barcha skriptlar `defer` (2026-07-31 qoidasi bajarilyapti),
      17 rasmdan 14 tasi `lazy`.
 
-  **Keyingi ishlar (BAJARILMAGAN, shu bandni yopish uchun):** banner rasmni
-  WebP/AVIF ga o'tkazish + `srcset`; shrift qalinliklarini kamaytirish;
-  `telegram.org` ga `preconnect` qo'shish
+  **Keyingi ishlar (shu bandni yopish uchun):**
+  - [x] banner rasmlarni WebP ga o'tkazish + `srcset` — **BAJARILDI (2026-08-05),
+    tafsilot "Qilingan ishlar"da.** Kritik yo'l mobilda **342 KB → 88 KB**, lokal
+    hisob bo'yicha sekin 3G'da ~10.1 s → ~1.8 s
+  - [ ] shrift qalinliklarini kamaytirish (250 KB, 13 ta `woff2`)
+  - [ ] `telegram.org` ga `preconnect` qo'shish
+
+  **Band HAMON `[x]` QILINMAYDI:** 88 KB raqami LOKAL hisob — production'da
+  qayta o'lchash deploy'dan KEYIN qilinadi, dalil hali yo'q. Bundan tashqari
+  yuqoridagi ikki band ochiq.
 - [ ] Mobil da barcha funksiyalar ishlashi
 - [ ] To'lov webhook larning ishonchliligi
 
@@ -115,6 +122,62 @@ Platformaning barcha funksiyalarini real foydalanuvchilar bilan sinovdan o'tkazi
 ---
 
 ## Qilingan ishlar
+
+- [2026-08-05] **Banner rasmlari WebP ga o'tkazildi — landing kritik yo'li mobilda
+  342 KB → 88 KB (A1 o'lchovi ko'rsatgan ENG KATTA yutuq olindi).** Ertalabki A1
+  tashxisi bitta faylni ayblagan edi: `banner-mato.jpg` 305 KB, kritik yo'lning 78%i.
+  Shu band bajarildi.
+
+  **Vosita:** `cwebp 1.6.0` (Homebrew orqali o'rnatildi — mashinada hech qanday
+  konvertor yo'q edi: `sips` WebP yoza olmaydi, Pillow ham yo'q). Sifat `q=80 -m 6`.
+
+  | Fayl | JPEG | WebP | Tejash |
+  |---|---|---|---|
+  | `banner-mato` (1400px) | 305 349 | 132 732 | −57% |
+  | `banner-mato-800` (mobil, 800px) | — | 50 858 | **−83%** asl hajmdan |
+  | `banner-mato-2` (900px) | 123 311 | 57 306 | −54% |
+  | `d7928cec…` (3-slayd, 850×1360) | 147 072 | 96 976 | −34% |
+
+  **Eng katta yutuq faqat WebP dan emas, `srcset` dan keldi.** Banner konteyneri
+  eng ko'pi 1180px, telefonda esa ~400 CSS px — 1400px rasm u yerda ORTIQCHA edi.
+  Shuning uchun mobil uchun alohida 800px nusxa qo'shildi. Natija: kritik yo'l
+  mobilda **342 KB → 88 KB**, ya'ni sekin 3G'da (50 KB/s) taxminan
+  **10.1 s → ~1.8 s**. `<picture>` ishlatildi — WebP asosiy manba, JPEG esa `<img>`
+  da zaxira (eski Safari uchun); eski rasmlar O'CHIRILMADI.
+
+  **MAJBURIY CSS tuzatishi — aks holda nuqson JIMGINA chiqadi.** `<picture>` rasm
+  bilan uni o'rab turgan quti orasiga KIRADI va u odatda `display: inline`,
+  balandligi `auto`. Shuning uchun `.ad-slide img { height: 100% }` va
+  `.product-media img { height: 100% }` tayanadigan narsasini yo'qotadi: rasm
+  yo'qolmaydi, BLOK balandligi nolga tushadi — ya'ni buzilish xato bermaydi,
+  shunchaki ekranda bo'sh joy qoladi. `style.css` ga `<picture>` ni shaffof qutiga
+  aylantiruvchi qoida qo'shildi va izohda "rasmni `<picture>` ga o'rasangiz
+  konteynerini shu ro'yxatga qo'shing" deb ogohlantirildi.
+
+  **Yo'l-yo'lakay topilgan va tuzatilgan nuqson — O'ZIM KIRITGAN.**
+  `Photo/textile/d7928cec…` rasmi IKKI joyda ishlatiladi: banner karuselining
+  3-slaydi VA `tx-4402` mahsulot kartochkasi. Faqat bannerni `<picture>` ga o'rasam,
+  brauzer AYNAN BIR rasmni ikki formatda ikki marta yuklab olardi (96 KB webp +
+  147 KB jpg = 243 KB, avvalgi 147 KB o'rniga) — ya'ni o'zgarishim o'sha rasm uchun
+  holatni YOMONLASHTIRARDI. Kartochka ham `<picture>` ga o'raldi va brauzerda
+  tasdiqlandi: toza yuklanishda `d7928cec….jpg` UMUMAN so'ralmaydi.
+
+  **Brauzerda tekshirildi (dalillar):** mobil 375px / DPR 2 da brauzer
+  `banner-mato-800.webp` ni tanladi, desktop 1280px da `banner-mato.webp` (1400px) —
+  ya'ni `srcset` ikki tomonga ham to'g'ri ishlaydi; `getComputedStyle(picture).display
+  === 'block'`, `.ad-track` balandligi 250px va `.product-media` 327.5px (ichidagi
+  `picture` va `img` ham aynan shuncha) — hech qayerda blok yopilmagan; uchala slayd
+  `complete: true` va `currentSrc` uchalasida ham `.webp`. Konsoldagi yagona xatolar —
+  `/api/auth/web/me` 404, lokal statik serverda backend yo'qligidan (regressiya emas).
+
+  **Deploy:** `deploy.yml` dagi `source` ro'yxatida `Photo/` PAPKA sifatida turibdi,
+  shuning uchun yangi `.webp` fayllar avtomatik chiqadi — CLAUDE.md dagi "yangi fayl
+  qo'lda qo'shilsin" tuzog'i faqat yangi ILDIZ fayllariga tegishli.
+
+  **Hali qilinmagani:** qolgan 11 ta `Photo/textile/*.jpg` (~2.7 MB) hamon JPEG —
+  ular `lazy`, ya'ni kritik yo'lda emas, lekin aylantirganda yuklanadi. Shriftlar va
+  `telegram.org` `preconnect` bandlari ham ochiq. Tezlik bandi `[x]` QILINMADI:
+  88 KB — LOKAL hisob, production o'lchovi deploy'dan keyin.
 
 - [2026-08-05] **Sahifa yuklanish tezligi SEKIN MOBIL TARMOQDA birinchi marta
   o'lchandi (A1) — kod o'zgartirilmadi, bu tashxis.** 31-iyulda qolgan bo'shliq
@@ -486,6 +549,30 @@ Platformaning barcha funksiyalarini real foydalanuvchilar bilan sinovdan o'tkazi
 ---
 
 ## Qarorlar
+
+- [2026-08-05] Qaror: **rasm AVIF emas, WebP ga o'tkaziladi va eski JPEG
+  O'CHIRILMAYDI — `<picture>` ichida zaxira bo'lib qoladi.** AVIF kichikroq bo'lardi,
+  lekin ikkinchi format ikkinchi fayl to'plami degani va foyda WebP ustiga oz
+  qo'shadi, holbuki eng katta yutuq formatdan emas, `srcset` dan keldi: banner
+  konteyneri 1180px, telefonda ~400 CSS px, ya'ni asosiy isrof 1400px rasmni
+  telefonga yuborish edi. Shu sabab mobil uchun alohida 800px nusxa qo'shildi
+  (342 KB → 88 KB). JPEG zaxira eski Safari uchun qoldirildi — u yerda WebP `<source>`
+  e'tiborsiz qolib, `<img>` ishlaydi
+
+- [2026-08-05] Qaror: **rasmni `<picture>` ga o'rasangiz, uning konteynerini
+  `style.css` dagi `picture { display:block; height:100% }` ro'yxatiga QO'SHISH shart.**
+  Sabab: `<picture>` rasm bilan quti orasiga kiradi va `inline` / `height:auto` bo'ladi,
+  ya'ni rasmdagi `height: 100%` tayanchini yo'qotadi va blok balandligi nolga tushadi.
+  Bu turdagi buzilish xato bermaydi va rasm ham yo'qolmaydi — ekranda shunchaki bo'sh
+  joy qoladi, ya'ni JIMGINA chiqadi. Qoida izoh sifatida `style.css` ning o'ziga,
+  o'sha qoidaning ustiga yozildi
+
+- [2026-08-05] Qaror: **bir xil rasm ikki joyda ishlatilsa, ikkalasi ham birga
+  `<picture>` ga o'tkaziladi — bittasi qolsa optimizatsiya TESKARI ishlaydi.**
+  `d7928cec…` rasmi banner slaydi va `tx-4402` kartochkasida bir xil; faqat bannerni
+  o'ragan bo'lsak, brauzer aynan bir rasmni ikki formatda ikki marta yuklab olardi
+  (243 KB, avvalgi 147 KB o'rniga) va o'zgarish o'sha rasm uchun holatni
+  yomonlashtirardi
 
 - [2026-08-05] Qaror: **tezlik mezoni endi "tez 3G" emas, SEKIN 3G bo'yicha
   baholanadi, va o'lchov tarmoq darajasida (`curl --limit-rate`) olinadi.** Sabab:
