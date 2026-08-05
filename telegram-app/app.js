@@ -21,6 +21,10 @@
    aks holda ularning bo'sh joyiga bosilsa klik kartochkagacha ko'tarilardi. */
 function noop() {}
 
+// `location.reload()` — usul chaqiruvi, ya'ni delegatsiya topa oladigan
+// global nom emas. Shuning uchun nomli o'ram.
+function reloadApp() { location.reload(); }
+
 document.addEventListener('click', (e) => {
   const el = e.target.closest('[data-action]');
   if (!el) return;
@@ -1407,7 +1411,7 @@ function disputeFor(orderId) {
 function renderDisputeSheet() {
   const T = STR[S.lang];
   return `
-  <div onclick="closeDisputeSheet()" style="position:fixed;inset:0;z-index:60;background:rgba(24,10,8,.42);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)"></div>
+  <div data-action="closeDisputeSheet" style="position:fixed;inset:0;z-index:60;background:rgba(24,10,8,.42);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)"></div>
   <div style="position:fixed;left:0;right:0;bottom:0;z-index:61;max-height:82vh;display:flex;flex-direction:column;padding:18px 16px calc(18px + env(safe-area-inset-bottom));border-radius:22px 22px 0 0;background:var(--surface-solid);box-shadow:0 -12px 40px -12px rgba(81,1,0,.3)">
     <span style="flex:none;width:38px;height:4px;border-radius:999px;background:var(--ink-100);margin:0 auto 14px"></span>
 
@@ -1417,7 +1421,7 @@ function renderDisputeSheet() {
     <div style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;margin-top:14px;display:flex;flex-direction:column;gap:7px">
       ${DISP_REASONS.map(r => {
         const on = S.dispReason === r.key;
-        return `<button onclick="setDispReason('${r.key}')" style="display:flex;align-items:center;gap:10px;text-align:left;padding:13px;border-radius:var(--radius-sm);cursor:pointer;border:1.5px solid ${on ? '#8f1a10' : 'var(--border-hair)'};background:${on ? 'rgba(143,26,16,.05)' : 'transparent'}">
+        return `<button data-action="setDispReason" data-arg="${r.key}" style="display:flex;align-items:center;gap:10px;text-align:left;padding:13px;border-radius:var(--radius-sm);cursor:pointer;border:1.5px solid ${on ? '#8f1a10' : 'var(--border-hair)'};background:${on ? 'rgba(143,26,16,.05)' : 'transparent'}">
           <span style="flex:none;width:18px;height:18px;border-radius:50%;border:1.5px solid ${on ? '#8f1a10' : 'var(--ink-200)'};display:flex;align-items:center;justify-content:center">
             ${on ? '<span style="width:9px;height:9px;border-radius:50%;background:#8f1a10"></span>' : ''}
           </span>
@@ -1425,13 +1429,13 @@ function renderDisputeSheet() {
         </button>`;
       }).join('')}
 
-      <textarea oninput="S.dispComment=this.value" placeholder="${T.dispCommentPh}" rows="3"
+      <textarea data-input="setDispComment" placeholder="${T.dispCommentPh}" rows="3"
         style="margin-top:6px;width:100%;padding:12px;border:1px solid var(--border-hair);border-radius:var(--radius-sm);background:var(--glass-fill-strong);font-family:var(--font-sans);font-size:16px;color:var(--text-strong);outline:none;resize:none">${S.dispComment}</textarea>
     </div>
 
     <div style="flex:none;display:flex;gap:9px;margin-top:12px">
-      <button onclick="closeDisputeSheet()" style="flex:1;height:50px;border-radius:var(--radius-md);border:1px solid var(--border-hair);background:transparent;font-family:var(--font-sans);font-size:15px;font-weight:600;color:var(--text-muted);cursor:pointer">${T.dispCancel}</button>
-      <button onclick="submitDispute()" style="flex:1.4;height:50px;border:none;border-radius:var(--radius-md);background:linear-gradient(135deg,#8f1a10,#510100);color:#ffe9db;font-family:var(--font-sans);font-size:15px;font-weight:600;cursor:pointer;box-shadow:var(--shadow-sm)">${T.dispSend}</button>
+      <button data-action="closeDisputeSheet" style="flex:1;height:50px;border-radius:var(--radius-md);border:1px solid var(--border-hair);background:transparent;font-family:var(--font-sans);font-size:15px;font-weight:600;color:var(--text-muted);cursor:pointer">${T.dispCancel}</button>
+      <button data-action="submitDispute" style="flex:1.4;height:50px;border:none;border-radius:var(--radius-md);background:linear-gradient(135deg,#8f1a10,#510100);color:#ffe9db;font-family:var(--font-sans);font-size:15px;font-weight:600;cursor:pointer;box-shadow:var(--shadow-sm)">${T.dispSend}</button>
     </div>
   </div>`;
 }
@@ -1450,6 +1454,7 @@ function setDispReason(k) {
   S.dispReason = k;
   paintSheet();
 }
+function setDispComment(v) { S.dispComment = v; }
 
 async function submitDispute() {
   const T = STR[S.lang];
@@ -1484,7 +1489,7 @@ function disputeBlock(o) {
 
   if (!d) {
     if (!DISP_ALLOWED.includes(o.statusKey)) return '';
-    return `<button onclick="openDisputeSheet('${o.id}')" style="width:100%;margin-top:9px;height:36px;border-radius:var(--radius-sm);border:1px solid var(--danger-500);background:transparent;font-size:12.5px;font-weight:600;color:var(--danger-500);cursor:pointer">${T.dispProblem}</button>`;
+    return `<button data-action="openDisputeSheet" data-arg="${o.id}" style="width:100%;margin-top:9px;height:36px;border-radius:var(--radius-sm);border:1px solid var(--danger-500);background:transparent;font-size:12.5px;font-weight:600;color:var(--danger-500);cursor:pointer">${T.dispProblem}</button>`;
   }
 
   const open = d.status === 'open';
@@ -1520,7 +1525,7 @@ function renderReviewSheet() {
   const p = sel && byId(sel.productId);
   if (!p) return '';
   return `
-  <div onclick="closeReviewSheet()" style="position:fixed;inset:0;z-index:60;background:rgba(24,10,8,.42);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)"></div>
+  <div data-action="closeReviewSheet" style="position:fixed;inset:0;z-index:60;background:rgba(24,10,8,.42);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)"></div>
   <div style="position:fixed;left:0;right:0;bottom:0;z-index:61;max-height:82vh;display:flex;flex-direction:column;padding:18px 16px calc(18px + env(safe-area-inset-bottom));border-radius:22px 22px 0 0;background:var(--surface-solid);box-shadow:0 -12px 40px -12px rgba(81,1,0,.3)">
     <span style="flex:none;width:38px;height:4px;border-radius:999px;background:var(--ink-100);margin:0 auto 14px"></span>
 
@@ -1534,16 +1539,16 @@ function renderReviewSheet() {
 
     <div style="flex:none;display:flex;justify-content:center;gap:6px;margin-top:18px">
       ${[1,2,3,4,5].map(n => `
-      <button onclick="setRevStars(${n})" aria-label="${n}" style="width:52px;height:52px;border:none;background:transparent;cursor:pointer;font-size:34px;line-height:1;color:${n <= S.revStars ? '#EFA91F' : 'var(--ink-200)'}">★</button>`).join('')}
+      <button data-action="setRevStars" data-arg="${n}" aria-label="${n}" style="width:52px;height:52px;border:none;background:transparent;cursor:pointer;font-size:34px;line-height:1;color:${n <= S.revStars ? '#EFA91F' : 'var(--ink-200)'}">★</button>`).join('')}
     </div>
     <div style="flex:none;text-align:center;font-size:12px;color:var(--text-muted);margin-top:4px">${T.revStarsHint}</div>
 
-    <textarea oninput="S.revBody=this.value" placeholder="${T.revPh}" rows="3"
+    <textarea data-input="setRevBody" placeholder="${T.revPh}" rows="3"
       style="flex:none;margin-top:14px;width:100%;padding:12px;border:1px solid var(--border-hair);border-radius:var(--radius-sm);background:var(--glass-fill-strong);font-family:var(--font-sans);font-size:16px;color:var(--text-strong);outline:none;resize:none">${esc(S.revBody)}</textarea>
 
     <div style="flex:none;display:flex;gap:9px;margin-top:12px">
-      <button onclick="closeReviewSheet()" style="flex:1;height:50px;border-radius:var(--radius-md);border:1px solid var(--border-hair);background:transparent;font-family:var(--font-sans);font-size:15px;font-weight:600;color:var(--text-muted);cursor:pointer">${T.revCancel}</button>
-      <button onclick="submitReview()" style="flex:1.4;height:50px;border:none;border-radius:var(--radius-md);background:linear-gradient(135deg,#8f1a10,#510100);color:#ffe9db;font-family:var(--font-sans);font-size:15px;font-weight:600;cursor:pointer;box-shadow:var(--shadow-sm)">${T.revSend}</button>
+      <button data-action="closeReviewSheet" style="flex:1;height:50px;border-radius:var(--radius-md);border:1px solid var(--border-hair);background:transparent;font-family:var(--font-sans);font-size:15px;font-weight:600;color:var(--text-muted);cursor:pointer">${T.revCancel}</button>
+      <button data-action="submitReview" style="flex:1.4;height:50px;border:none;border-radius:var(--radius-md);background:linear-gradient(135deg,#8f1a10,#510100);color:#ffe9db;font-family:var(--font-sans);font-size:15px;font-weight:600;cursor:pointer;box-shadow:var(--shadow-sm)">${T.revSend}</button>
     </div>
   </div>`;
 }
@@ -1554,6 +1559,12 @@ function openReviewSheet(orderId, productId) {
   S.revBody = '';
   paintSheet();
 }
+// Ikki argument bitta `data-arg` ga sig'maydi — `|` bilan kodlanadi va
+// shu ingichka o'ram uni ajratadi (`script.js` dagi `openReview` naqshi).
+function openReviewArg(arg) {
+  const [orderId, productId] = String(arg).split('|');
+  openReviewSheet(orderId, productId);
+}
 function closeReviewSheet() {
   S.revSheet = null;
   paintSheet();
@@ -1562,6 +1573,7 @@ function setRevStars(n) {
   S.revStars = n;
   paintSheet();
 }
+function setRevBody(v) { S.revBody = v; }
 
 async function submitReview() {
   const T = STR[S.lang];
@@ -1629,7 +1641,7 @@ function reviewBlock(o) {
         <span style="flex:1;min-width:0;font-size:12.5px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.name[S.lang]}</span>
         ${done
           ? `<span style="flex:none;display:inline-flex;align-items:center;gap:5px;font-size:11.5px;color:var(--text-subtle)">${starsRow(done.stars, 11)} ${T.rated}</span>`
-          : `<button onclick="openReviewSheet('${o.id}','${it.id}')" style="flex:none;height:30px;padding:0 13px;border-radius:999px;border:1px solid #7a140d;background:transparent;font-size:12px;font-weight:600;color:#7a140d;cursor:pointer">★ ${T.rateIt}</button>`}
+          : `<button data-action="openReviewArg" data-arg="${o.id}|${it.id}" style="flex:none;height:30px;padding:0 13px;border-radius:999px;border:1px solid #7a140d;background:transparent;font-size:12px;font-weight:600;color:#7a140d;cursor:pointer">★ ${T.rateIt}</button>`}
       </div>`;
     }).join('')}
   </div>`;
@@ -1647,8 +1659,8 @@ function renderSuccess() {
     <div style="font-size:14px;color:var(--text-muted);line-height:1.55;max-width:280px">${T.orderPlacedSub}</div>
     <div style="font-family:var(--font-mono);font-size:14px;font-weight:600;color:var(--text-strong);padding:8px 16px;border-radius:999px;background:rgba(255,255,255,.62);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.55)">${ORDERS[0]?.id || '#LM-—'}</div>
     <div style="display:flex;flex-direction:column;gap:10px;width:100%;max-width:300px;margin-top:14px">
-      <button onclick="tab('orders')" style="height:50px;border-radius:var(--radius-md);border:none;background:linear-gradient(135deg,#8f1a10,#510100);color:#ffe9db;font-size:15px;font-weight:600;cursor:pointer;box-shadow:var(--shadow-sm)">${T.viewOrders}</button>
-      <button onclick="tab('home')" style="height:50px;border-radius:var(--radius-md);border:1px solid var(--glass-border);background:var(--glass-fill-strong);color:var(--text-strong);font-size:15px;font-weight:600;cursor:pointer">${T.continue}</button>
+      <button data-action="tab" data-arg="orders" style="height:50px;border-radius:var(--radius-md);border:none;background:linear-gradient(135deg,#8f1a10,#510100);color:#ffe9db;font-size:15px;font-weight:600;cursor:pointer;box-shadow:var(--shadow-sm)">${T.viewOrders}</button>
+      <button data-action="tab" data-arg="home" style="height:50px;border-radius:var(--radius-md);border:1px solid var(--glass-border);background:var(--glass-fill-strong);color:var(--text-strong);font-size:15px;font-weight:600;cursor:pointer">${T.continue}</button>
     </div>
   </div>`;
 }
@@ -1665,8 +1677,8 @@ function renderOrders() {
   return `
   <div style="padding:16px 16px 28px;display:flex;flex-direction:column;gap:14px">
     <div style="display:flex;gap:4px;padding:4px;border-radius:var(--radius-md);background:rgba(255,255,255,.62);backdrop-filter:blur(16px) saturate(160%);-webkit-backdrop-filter:blur(16px) saturate(160%);border:1px solid rgba(255,255,255,.55)">
-      <button onclick="setOrdersTab('active')" style="flex:1;height:36px;border:none;border-radius:var(--radius-sm);font-size:13.5px;font-weight:600;cursor:pointer;background:${S.ordersTab==='active'?'var(--surface-solid)':'transparent'};color:${S.ordersTab==='active'?'var(--text-strong)':'var(--text-muted)'};box-shadow:${S.ordersTab==='active'?'0 3px 8px -3px rgba(81,1,0,.3)':'none'}">${T.active}</button>
-      <button onclick="setOrdersTab('past')" style="flex:1;height:36px;border:none;border-radius:var(--radius-sm);font-size:13.5px;font-weight:600;cursor:pointer;background:${S.ordersTab==='past'?'var(--surface-solid)':'transparent'};color:${S.ordersTab==='past'?'var(--text-strong)':'var(--text-muted)'};box-shadow:${S.ordersTab==='past'?'0 3px 8px -3px rgba(81,1,0,.3)':'none'}">${T.past}</button>
+      <button data-action="setOrdersTab" data-arg="active" style="flex:1;height:36px;border:none;border-radius:var(--radius-sm);font-size:13.5px;font-weight:600;cursor:pointer;background:${S.ordersTab==='active'?'var(--surface-solid)':'transparent'};color:${S.ordersTab==='active'?'var(--text-strong)':'var(--text-muted)'};box-shadow:${S.ordersTab==='active'?'0 3px 8px -3px rgba(81,1,0,.3)':'none'}">${T.active}</button>
+      <button data-action="setOrdersTab" data-arg="past" style="flex:1;height:36px;border:none;border-radius:var(--radius-sm);font-size:13.5px;font-weight:600;cursor:pointer;background:${S.ordersTab==='past'?'var(--surface-solid)':'transparent'};color:${S.ordersTab==='past'?'var(--text-strong)':'var(--text-muted)'};box-shadow:${S.ordersTab==='past'?'0 3px 8px -3px rgba(81,1,0,.3)':'none'}">${T.past}</button>
     </div>
 
     ${list.length === 0 ? `<div style="text-align:center;padding:40px;color:var(--text-muted)">${T.noActive}</div>` :
@@ -1693,8 +1705,8 @@ function renderOrders() {
           <span style="font-family:var(--font-mono);font-size:14px;font-weight:600;color:var(--text-strong)">${money(total)}</span>
         </div>
         <div style="display:flex;gap:9px;margin-top:13px">
-          <button onclick="toggleTrack('${o.id}')" style="flex:1;height:38px;border-radius:var(--radius-sm);border:1px solid var(--glass-border);background:var(--glass-fill-strong);font-size:13px;font-weight:600;color:var(--text-strong);cursor:pointer">${T.track}</button>
-          <button onclick="reorderOrder('${o.id}')" style="flex:1;height:38px;border-radius:var(--radius-sm);border:1px solid var(--border-hair);background:transparent;font-size:13px;font-weight:600;color:var(--teal-600);cursor:pointer">${T.reorder}</button>
+          <button data-action="toggleTrack" data-arg="${o.id}" style="flex:1;height:38px;border-radius:var(--radius-sm);border:1px solid var(--glass-border);background:var(--glass-fill-strong);font-size:13px;font-weight:600;color:var(--text-strong);cursor:pointer">${T.track}</button>
+          <button data-action="reorderOrder" data-arg="${o.id}" style="flex:1;height:38px;border-radius:var(--radius-sm);border:1px solid var(--border-hair);background:transparent;font-size:13px;font-weight:600;color:var(--teal-600);cursor:pointer">${T.reorder}</button>
         </div>
         ${S.trackOpen[o.id] ? (() => {
           const stageIdx = STATUS_STAGES.indexOf(o.statusKey);
@@ -1779,7 +1791,7 @@ function renderProfile() {
       <div style="display:flex;align-items:center;gap:12px;padding:14px;border-bottom:1px solid var(--border-hair)">
         <svg width="19" height="19" viewBox="0 0 24 24" fill="none" style="flex:none;color:var(--text-muted)"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3-8.6A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8.1 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
         <span style="flex:1;font-size:14px;color:var(--text-body)">${S.tgPhone || COMPANY.phone}</span>
-        ${(!S.tgPhone && inTelegram) ? `<button onclick="shareContact()" style="flex:none;font-size:12px;font-weight:600;color:var(--teal-600);background:none;border:none;cursor:pointer">${T.shareContact}</button>` : ''}
+        ${(!S.tgPhone && inTelegram) ? `<button data-action="shareContact" style="flex:none;font-size:12px;font-weight:600;color:var(--teal-600);background:none;border:none;cursor:pointer">${T.shareContact}</button>` : ''}
       </div>
       <div style="display:flex;align-items:center;gap:12px;padding:14px">
         <svg width="19" height="19" viewBox="0 0 24 24" fill="none" style="flex:none;color:var(--text-muted)"><rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" stroke-width="2"/><path d="M4 7l8 6 8-6" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
@@ -1788,7 +1800,7 @@ function renderProfile() {
     </div>
 
     ${S.role === 'seller' ? `
-    <button onclick="enterSellerMode()" style="display:flex;align-items:center;gap:12px;width:100%;text-align:left;cursor:pointer;padding:15px;border-radius:var(--radius-md);border:1px solid rgba(17,157,171,.25);background:var(--teal-50)">
+    <button data-action="enterSellerMode" style="display:flex;align-items:center;gap:12px;width:100%;text-align:left;cursor:pointer;padding:15px;border-radius:var(--radius-md);border:1px solid rgba(17,157,171,.25);background:var(--teal-50)">
       <span style="flex:none;width:36px;height:36px;border-radius:11px;background:#fff;display:flex;align-items:center;justify-content:center;color:var(--teal-700)">
         <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.6l8.5 4.2v10.4L12 21.4 3.5 17.2V6.8L12 2.6zm0 2.3L6.2 7.8 12 10.7l5.8-2.9L12 4.9z"/></svg>
       </span>
@@ -1805,14 +1817,14 @@ function renderProfile() {
         <svg width="19" height="19" viewBox="0 0 24 24" fill="none" style="flex:none;color:var(--text-muted)"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18A14 14 0 0 1 12 3z" stroke="currentColor" stroke-width="2"/></svg>
         <span style="flex:1;font-size:14px;font-weight:600;color:var(--text-strong)">${T.language}</span>
         <span style="display:flex;align-items:center;background:var(--ink-50,var(--ink-100));border-radius:999px;padding:3px;gap:2px">
-          <button onclick="setLangUi('uz')" style="border:none;cursor:pointer;height:26px;padding:0 12px;border-radius:999px;font-size:12px;font-weight:700;font-family:var(--font-mono);background:${S.lang==='uz'?'var(--ink-900)':'transparent'};color:${S.lang==='uz'?'#fff':'var(--text-muted)'}">UZ</button>
-          <button onclick="setLangUi('ru')" style="border:none;cursor:pointer;height:26px;padding:0 12px;border-radius:999px;font-size:12px;font-weight:700;font-family:var(--font-mono);background:${S.lang==='ru'?'var(--ink-900)':'transparent'};color:${S.lang==='ru'?'#fff':'var(--text-muted)'}">RU</button>
+          <button data-action="setLangUi" data-arg="uz" style="border:none;cursor:pointer;height:26px;padding:0 12px;border-radius:999px;font-size:12px;font-weight:700;font-family:var(--font-mono);background:${S.lang==='uz'?'var(--ink-900)':'transparent'};color:${S.lang==='uz'?'#fff':'var(--text-muted)'}">UZ</button>
+          <button data-action="setLangUi" data-arg="ru" style="border:none;cursor:pointer;height:26px;padding:0 12px;border-radius:999px;font-size:12px;font-weight:700;font-family:var(--font-mono);background:${S.lang==='ru'?'var(--ink-900)':'transparent'};color:${S.lang==='ru'?'#fff':'var(--text-muted)'}">RU</button>
         </span>
       </div>
       <div style="display:flex;align-items:center;gap:12px;padding:13px 14px;border-bottom:1px solid var(--border-hair)">
         <svg width="19" height="19" viewBox="0 0 24 24" fill="none" style="flex:none;color:var(--text-muted)"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M10 21a2 2 0 0 0 4 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
         <span style="flex:1;font-size:14px;font-weight:600;color:var(--text-strong)">${T.notifications}</span>
-        <span class="tap44" onclick="toggleNotif()" style="cursor:pointer;width:44px;height:26px;border-radius:999px;background:${S.notif?'#7a140d':'var(--ink-200)'};position:relative;flex:none;transition:background var(--dur-base) var(--ease-out)"><span style="position:absolute;top:3px;${S.notif?'right':'left'}:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:var(--shadow-sm);transition:left var(--dur-base) var(--ease-out),right var(--dur-base) var(--ease-out)"></span></span>
+        <span class="tap44" data-action="toggleNotif" style="cursor:pointer;width:44px;height:26px;border-radius:999px;background:${S.notif?'#7a140d':'var(--ink-200)'};position:relative;flex:none;transition:background var(--dur-base) var(--ease-out)"><span style="position:absolute;top:3px;${S.notif?'right':'left'}:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:var(--shadow-sm);transition:left var(--dur-base) var(--ease-out),right var(--dur-base) var(--ease-out)"></span></span>
       </div>
       <div style="display:flex;align-items:center;gap:12px;padding:13px 14px;border-bottom:1px solid var(--border-hair)">
         <svg width="19" height="19" viewBox="0 0 24 24" fill="none" style="flex:none;color:var(--text-muted)"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M9.5 9a2.5 2.5 0 0 1 4.5 1.5c0 1.7-2.5 2-2.5 2M12 17h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
@@ -2122,7 +2134,7 @@ function render() {
       <div style="padding:48px 20px;text-align:center;color:var(--text-muted);font-size:14px;line-height:1.5">
         Ekranni ochib bo'lmadi.
         <div style="margin-top:14px">
-          <button onclick="location.reload()" style="height:40px;padding:0 20px;border:none;border-radius:var(--radius-md);background:var(--color-primary);color:#fff;font-size:14px;font-weight:600;cursor:pointer">Qayta yuklash</button>
+          <button data-action="reloadApp" style="height:40px;padding:0 20px;border:none;border-radius:var(--radius-md);background:var(--color-primary);color:#fff;font-size:14px;font-weight:600;cursor:pointer">Qayta yuklash</button>
         </div>
       </div>`;
     }
@@ -2243,7 +2255,7 @@ function segTabs(items, current, fn) {
   return `<div style="display:flex;gap:4px;background:rgba(255,255,255,.55);border-radius:999px;padding:4px;margin-bottom:13px;box-shadow:var(--shadow-sm)">
     ${items.map(t => {
       const on = current === t.k;
-      return `<button onclick="${fn}('${t.k}')" style="flex:1;cursor:pointer;border:none;text-align:center;font-family:var(--font-sans);font-size:12.5px;font-weight:700;padding:8px 4px;border-radius:999px;background:${on ? 'linear-gradient(135deg,#8f1a10,#510100)' : 'transparent'};color:${on ? '#ffe9db' : 'var(--ink-500)'}">${t.label}</button>`;
+      return `<button data-action="${fn}" data-arg="${t.k}" style="flex:1;cursor:pointer;border:none;text-align:center;font-family:var(--font-sans);font-size:12.5px;font-weight:700;padding:8px 4px;border-radius:999px;background:${on ? 'linear-gradient(135deg,#8f1a10,#510100)' : 'transparent'};color:${on ? '#ffe9db' : 'var(--ink-500)'}">${t.label}</button>`;
     }).join('')}
   </div>`;
 }
@@ -2289,17 +2301,17 @@ function renderSellerProducts() {
         ${p.status === 'rejected' && p.rejectReason ? `<div style="margin-top:9px;padding:9px 11px;border-radius:var(--radius-sm);background:var(--danger-100);font-size:12px;color:#a3181c;line-height:1.45">${esc(p.rejectReason)}</div>` : ''}
         ${!p.img ? `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:9px;padding:8px 11px;border-radius:var(--radius-sm);background:var(--saffron-50);font-size:12px;color:var(--saffron-700)">
           <span>${p.awaitingImage ? T.sImgWaiting : ''}</span>
-          ${p.awaitingImage ? '' : `<button onclick="requestProductImage('${p.id}')" style="flex:none;cursor:pointer;padding:6px 11px;border-radius:999px;border:none;background:var(--saffron-500);font-family:var(--font-sans);font-size:11.5px;font-weight:700;color:#fff">${T.sImgAdd}</button>`}
+          ${p.awaitingImage ? '' : `<button data-action="requestProductImage" data-arg="${p.id}" style="flex:none;cursor:pointer;padding:6px 11px;border-radius:999px;border:none;background:var(--saffron-500);font-family:var(--font-sans);font-size:11.5px;font-weight:700;color:#fff">${T.sImgAdd}</button>`}
         </div>` : ''}
         <div style="display:flex;gap:8px;margin-top:11px">
-          <button onclick="openProductForm('${p.id}')" style="flex:1;cursor:pointer;padding:9px;border-radius:var(--radius-sm);border:1px solid var(--border-hair);background:rgba(255,255,255,.7);font-family:var(--font-sans);font-size:13px;font-weight:600;color:var(--text-strong)">${T.sEdit}</button>
-          <button onclick="toggleProduct('${p.id}','${p.status === 'draft' ? 'show' : 'hide'}')" style="flex:1;cursor:pointer;padding:9px;border-radius:var(--radius-sm);border:1px solid var(--border-hair);background:rgba(255,255,255,.7);font-family:var(--font-sans);font-size:13px;font-weight:600;color:var(--text-muted)">${p.status === 'draft' ? T.sShow : T.sHide}</button>
+          <button data-action="editProduct" data-arg="${p.id}" style="flex:1;cursor:pointer;padding:9px;border-radius:var(--radius-sm);border:1px solid var(--border-hair);background:rgba(255,255,255,.7);font-family:var(--font-sans);font-size:13px;font-weight:600;color:var(--text-strong)">${T.sEdit}</button>
+          <button data-action="toggleProductArg" data-arg="${p.id}|${p.status === 'draft' ? 'show' : 'hide'}" style="flex:1;cursor:pointer;padding:9px;border-radius:var(--radius-sm);border:1px solid var(--border-hair);background:rgba(255,255,255,.7);font-family:var(--font-sans);font-size:13px;font-weight:600;color:var(--text-muted)">${p.status === 'draft' ? T.sShow : T.sHide}</button>
         </div>
       </div>`;
     }).join('') : emptyState(T.sNoProducts, S.sProdTab === 'active' ? T.sNoProductsSub : ''))}
   </div>
 
-  <button onclick="openProductForm(null)" aria-label="${T.sAdd}" style="position:absolute;right:16px;bottom:calc(var(--dock-h) + 12px);z-index:22;width:52px;height:52px;border-radius:50%;border:none;cursor:pointer;background:linear-gradient(135deg,#8f1a10,#510100);color:#ffe9db;font-size:27px;line-height:1;display:flex;align-items:center;justify-content:center;box-shadow:0 12px 28px -8px rgba(81,1,0,.55)">+</button>`;
+  <button data-action="newProductForm" aria-label="${T.sAdd}" style="position:absolute;right:16px;bottom:calc(var(--dock-h) + 12px);z-index:22;width:52px;height:52px;border-radius:50%;border:none;cursor:pointer;background:linear-gradient(135deg,#8f1a10,#510100);color:#ffe9db;font-size:27px;line-height:1;display:flex;align-items:center;justify-content:center;box-shadow:0 12px 28px -8px rgba(81,1,0,.55)">+</button>`;
 }
 
 // ---- Mahsulot formasi (qo'shish / tahrirlash) ----
@@ -2334,7 +2346,7 @@ function renderProductForm() {
 
     ${p ? '' : `<div><label style="${lbl}">${T.sCat}</label>
       <div style="display:flex;flex-wrap:wrap;gap:7px">
-        ${P_CATS.map((c,i) => `<button onclick="pickPfCat('${c.k}')" id="pf-cat-${c.k}" data-cat="${c.k}" style="cursor:pointer;font-size:12.5px;font-weight:600;padding:8px 14px;border-radius:999px;background:${i===0?'var(--ink-900)':'rgba(255,255,255,.66)'};color:${i===0?'#fff':'var(--ink-700)'};border:1px solid ${i===0?'var(--ink-900)':'rgba(255,255,255,.8)'}">${c[S.lang]}</button>`).join('')}
+        ${P_CATS.map((c,i) => `<button data-action="pickPfCat" data-arg="${c.k}" id="pf-cat-${c.k}" data-cat="${c.k}" style="cursor:pointer;font-size:12.5px;font-weight:600;padding:8px 14px;border-radius:999px;background:${i===0?'var(--ink-900)':'rgba(255,255,255,.66)'};color:${i===0?'#fff':'var(--ink-700)'};border:1px solid ${i===0?'var(--ink-900)':'rgba(255,255,255,.8)'}">${c[S.lang]}</button>`).join('')}
       </div></div>`}
 
     <div><label style="${lbl}">${T.sComp}</label>
@@ -2364,6 +2376,16 @@ function openProductForm(id) {
   S.pfCat = 'silk';
   navigate('s-form');
 }
+// "+" tugmasi — yangi e'lon. `data-arg` siz chaqiruv `undefined` berardi,
+// bu yerda esa ATAYLAB `null`: `saveProduct()` shu bo'yicha POST/PATCH ajratadi.
+function newProductForm() { openProductForm(null); }
+
+// ⚠️ `String()` ataylab: delegatsiya sof raqamli `data-arg` ni Number ga
+// aylantiradi, `renderProductForm` esa `x.id === S.sEditId` bilan qidiradi.
+// Bugungi id lar `p-…` prefiksli, ya'ni xavf yo'q — lekin raqamli id paydo
+// bo'lgan kuni forma JIMGINA bo'sh ochilardi (PATCH esa to'g'ri id bilan
+// ketaverardi), ya'ni nuqson hech qayerda ko'rinmasdi.
+function editProduct(arg) { openProductForm(String(arg)); }
 
 async function saveProduct() {
   const T = STR[S.lang];
@@ -2396,6 +2418,11 @@ async function saveProduct() {
     S.history = [];
     render();
   } catch (e) { showToast(e.message); }
+}
+
+function toggleProductArg(arg) {
+  const [id, action] = String(arg).split('|');
+  toggleProduct(id, action);
 }
 
 async function toggleProduct(id, action) {
@@ -2469,13 +2496,13 @@ function renderSellerOrders() {
         </div>
 
         ${isNew ? `<div style="display:flex;gap:8px;margin-top:11px">
-          <button onclick="sellerOrder('${o.id}','reject')" style="flex:1;cursor:pointer;padding:11px;border-radius:var(--radius-sm);border:1.5px solid var(--danger-500);background:transparent;font-family:var(--font-sans);font-size:13.5px;font-weight:700;color:var(--danger-500)">${T.sReject}</button>
-          <button onclick="sellerOrder('${o.id}','accept')" style="flex:1;cursor:pointer;padding:11px;border-radius:var(--radius-sm);border:none;background:linear-gradient(135deg,#8f1a10,#510100);font-family:var(--font-sans);font-size:13.5px;font-weight:700;color:#ffe9db">${T.sAccept}</button>
+          <button data-action="sellerOrderArg" data-arg="${o.id}|reject" style="flex:1;cursor:pointer;padding:11px;border-radius:var(--radius-sm);border:1.5px solid var(--danger-500);background:transparent;font-family:var(--font-sans);font-size:13.5px;font-weight:700;color:var(--danger-500)">${T.sReject}</button>
+          <button data-action="sellerOrderArg" data-arg="${o.id}|accept" style="flex:1;cursor:pointer;padding:11px;border-radius:var(--radius-sm);border:none;background:linear-gradient(135deg,#8f1a10,#510100);font-family:var(--font-sans);font-size:13.5px;font-weight:700;color:#ffe9db">${T.sAccept}</button>
         </div>` : ''}
 
         ${canShip ? `<div style="margin-top:11px">
-          <input id="trk-${o.id}" value="${S.sTracking[o.id] || ''}" oninput="S.sTracking['${o.id}']=this.value" placeholder="${T.sTrackingPh}" style="width:100%;padding:11px 13px;border:1px solid var(--border-hair);border-radius:var(--radius-sm);background:var(--glass-fill-strong);font-family:var(--font-mono);font-size:16px;color:var(--text-strong);outline:none">
-          <button onclick="sellerOrder('${o.id}','ship')" style="width:100%;margin-top:8px;cursor:pointer;padding:11px;border-radius:var(--radius-sm);border:none;background:linear-gradient(135deg,#8f1a10,#510100);font-family:var(--font-sans);font-size:13.5px;font-weight:700;color:#ffe9db">${T.sShip}</button>
+          <input id="trk-${o.id}" value="${S.sTracking[o.id] || ''}" data-input="setSTracking" data-arg="${o.id}" placeholder="${T.sTrackingPh}" style="width:100%;padding:11px 13px;border:1px solid var(--border-hair);border-radius:var(--radius-sm);background:var(--glass-fill-strong);font-family:var(--font-mono);font-size:16px;color:var(--text-strong);outline:none">
+          <button data-action="sellerOrderArg" data-arg="${o.id}|ship" style="width:100%;margin-top:8px;cursor:pointer;padding:11px;border-radius:var(--radius-sm);border:none;background:linear-gradient(135deg,#8f1a10,#510100);font-family:var(--font-sans);font-size:13.5px;font-weight:700;color:#ffe9db">${T.sShip}</button>
         </div>` : ''}
 
         ${o.dispute ? sellerDisputeBlock(o.dispute) : ''}
@@ -2497,12 +2524,14 @@ function sellerDisputeBlock(d) {
     ${d.sellerResponse
       ? `<div style="margin-top:8px;font-size:12px;color:var(--text-muted);line-height:1.5"><b>${T.sDisputeYours}:</b> ${esc(d.sellerResponse)}</div>`
       : `<div style="margin-top:9px">
-           <textarea oninput="S.sDispReply[${d.id}]=this.value" placeholder="${T.sDisputeReplyPh}" rows="3"
+           <textarea data-input="setSDispReply" data-arg="${d.id}" placeholder="${T.sDisputeReplyPh}" rows="3"
              style="width:100%;padding:10px;border:1px solid var(--border-hair);border-radius:var(--radius-sm);background:var(--surface-solid);font-family:var(--font-sans);font-size:16px;color:var(--text-strong);outline:none;resize:none">${esc(S.sDispReply[d.id] || '')}</textarea>
-           <button onclick="sendDisputeReply(${d.id})" style="width:100%;margin-top:7px;cursor:pointer;padding:10px;border-radius:var(--radius-sm);border:none;background:linear-gradient(135deg,#8f1a10,#510100);font-family:var(--font-sans);font-size:13px;font-weight:700;color:#ffe9db">${T.sDisputeSend}</button>
+           <button data-action="sendDisputeReply" data-arg="${d.id}" style="width:100%;margin-top:7px;cursor:pointer;padding:10px;border-radius:var(--radius-sm);border:none;background:linear-gradient(135deg,#8f1a10,#510100);font-family:var(--font-sans);font-size:13px;font-weight:700;color:#ffe9db">${T.sDisputeSend}</button>
          </div>`}
   </div>`;
 }
+
+function setSDispReply(v, disputeId) { S.sDispReply[disputeId] = v; }
 
 async function sendDisputeReply(disputeId) {
   const T = STR[S.lang];
@@ -2525,6 +2554,14 @@ function askConfirm(text) {
   const tg = window.Telegram?.WebApp;
   if (tg?.showConfirm) return new Promise((res) => tg.showConfirm(text, (okd) => res(!!okd)));
   return Promise.resolve(window.confirm(text));
+}
+
+// Kuzatuv raqami maydoni — ilgari atributda to'g'ridan-to'g'ri o'zlashtirilardi
+function setSTracking(v, orderId) { S.sTracking[orderId] = v; }
+
+function sellerOrderArg(arg) {
+  const [orderId, action] = String(arg).split('|');
+  sellerOrder(orderId, action);
 }
 
 async function sellerOrder(orderId, action) {
@@ -2574,7 +2611,7 @@ function renderSellerProfile() {
 
     ${sellerReviewsCard()}
 
-    <button onclick="exitSellerMode()" style="width:100%;cursor:pointer;padding:14px;border-radius:var(--radius-md);border:1px solid var(--glass-border);background:var(--glass-fill-strong);font-family:var(--font-sans);font-size:15px;font-weight:600;color:var(--text-strong)">${T.buyerMode}</button>
+    <button data-action="exitSellerMode" style="width:100%;cursor:pointer;padding:14px;border-radius:var(--radius-md);border:1px solid var(--glass-border);background:var(--glass-fill-strong);font-family:var(--font-sans);font-size:15px;font-weight:600;color:var(--text-strong)">${T.buyerMode}</button>
   </div>`;
 }
 

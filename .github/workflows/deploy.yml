@@ -104,6 +104,10 @@ jobs:
             check /pwa.js             application/javascript
             check /script.js          application/javascript
             check /mini-app/app.js    application/javascript
+            # 2026-08-06 da qo'shildi: oflayn sahifaning skripti inline `<script>`
+            # blokidan shu faylga chiqarildi. U yetib bormasa nuqson AYNAN oflayn
+            # holatda chiqadi, ya'ni kundalik tekshiruvda hech qachon ko'rinmaydi.
+            check /mini-app/offline.js application/javascript
 
             # HTML fayllar uchun Content-Type YARAMAYDI: nginx yo'q faylga ham
             # `try_files ... /index.html` bilan text/html qaytaradi. Shuning uchun

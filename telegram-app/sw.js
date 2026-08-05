@@ -7,13 +7,14 @@
    ==================================================== */
 
 // Har deploy'da bu raqamni oshiring — eski kesh butunlay tozalanadi.
-const CACHE_VERSION = 'v2';
+const CACHE_VERSION = 'v3';
 const CACHE_NAME = `lolamarket-mini-${CACHE_VERSION}`;
 
 // Faqat offline holat uchun kerak bo'lgan minimal to'plam.
 // Ro'yxat qisqa: bittasi yuklanmasa ham SW o'rnatilishi buzilmasin.
 const PRECACHE = [
   './offline.html',
+  './offline.js',
   './assets/lola-mark.png',
   './assets/pwa/icon-192.png',
 ];

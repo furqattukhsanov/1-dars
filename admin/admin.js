@@ -143,6 +143,7 @@ async function checkPassword() {
 document.getElementById('passwordInput').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') checkPassword();
 });
+document.getElementById('loginBtn').addEventListener('click', checkPassword);
 
 function logout() {
   sessionStorage.removeItem('adminToken');
@@ -151,6 +152,8 @@ function logout() {
   document.getElementById('loginScreen').classList.remove('hidden');
   document.getElementById('passwordInput').value = '';
 }
+
+document.querySelector('.sidebar-logout').addEventListener('click', logout);
 
 function showDashboard() {
   document.getElementById('loginScreen').classList.add('hidden');

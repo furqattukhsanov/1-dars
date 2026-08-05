@@ -28,6 +28,16 @@ document.addEventListener('click', (e) => {
   fn(/^-?\d+$/.test(arg) ? Number(arg) : arg);
 });
 
+/* Forma yuborish uchun alohida qatlam: `submit` `click` emas, ya'ni yuqoridagi
+   tinglovchi uni ko'rmaydi. Funksiya HODISANING O'ZINI oladi — `submitOrder`
+   ichida `preventDefault()` chaqiriladi, aks holda sahifa qayta yuklanardi. */
+document.addEventListener('submit', (e) => {
+  const form = e.target.closest('[data-submit]');
+  if (!form) return;
+  const fn = window[form.dataset.submit];
+  if (typeof fn === 'function') fn(e);
+});
+
 /* ── Page loader ──
    DIQQAT: bu yerda ilgari `window.addEventListener('load', ...)` turardi.
    `load` hodisasi BARCHA rasm/shrift yuklanib bo'lgandan keyin otiladi, loader
@@ -1374,7 +1384,7 @@ function checkoutHtml() {
         <button type="button" class="co-login-btn" data-action="loginFromCheckout">Kirish</button>
       </div>`}
 
-    <form id="co-form" onsubmit="submitOrder(event)" style="margin-top:16px" novalidate>
+    <form id="co-form" data-submit="submitOrder" style="margin-top:16px" novalidate>
       <div class="co-field">
         <label class="co-label" for="co-name">Ismingiz *</label>
         <input class="co-input" id="co-name" type="text" autocomplete="name" placeholder="Ism familiya" value="${me && me.name ? esc(me.name) : ''}" required />

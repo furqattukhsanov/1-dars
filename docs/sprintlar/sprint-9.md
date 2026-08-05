@@ -59,6 +59,14 @@ LolaMarket ni rasmiy ishga tushirish. Birinchi haqiqiy xaridorlar va ishlab chiq
   kelajakda yangi bir joyda `esc()` unutilsa, CSP xatoni TUTMAYDI. Shu sababli
   himoyaning butun og'irligi hozir `esc()` ning izchil qo'llanishida. Yopilishi
   o'zgarmadi: ~120 ta inline hodisani `addEventListener` ga o'tkazish
+
+  ✅ **QARZNING KOD TOMONI YOPILDI (2026-08-06).** Yuqoridagi inventarizatsiya
+  endi eskirgan: ~120 ta inline hodisa uch bosqichda (C1, C2 1-qism, C2 2-qism)
+  delegatsiyaga o'tkazildi va landing, Mini App, admin panelda inline hodisa
+  qolmadi (batafsil — pastdagi 2026-08-06 yozuvi). **Lekin band hali TUGAMADI:**
+  `'unsafe-inline'` CSP'ning O'ZIDA hamon turibdi. Uni Cloudflare Transform
+  Rule'dan olib tashlash — C3, founder panelda qo'llaydi. Shu qadamgacha
+  qarzning amaldagi ta'siri o'zgarmagan
 - [x] Muhit o'zgaruvchilari (env vars) production uchun sozlash
   — **YOPILDI (2026-08-05), TO'G'RIDAN-TO'G'RI TEKSHIRUV BILAN.** Oldingi yozuv
   bilvosita dalilga tayanardi ("`/api/products` ishlayapti, demak `.env` joyida")
@@ -181,6 +189,80 @@ LolaMarket ni rasmiy ishga tushirish. Birinchi haqiqiy xaridorlar va ishlab chiq
 ---
 
 ## Qilingan ishlar
+
+- [2026-08-06] **INLINE HODISALAR TUGADI — `'unsafe-inline'` qarzining KOD tomoni
+  yopildi, C3 (CSP'ni qattiqlashtirish) uchun zamin tayyor** (C1, C2 1-qism,
+  C2 2-qism).
+
+  **Nima qilindi.** Uch bosqichda ~120 ta inline hodisa `addEventListener` va
+  hodisa delegatsiyasiga o'tkazildi: `C1` landing (26 ta), `C2` 1-qism Mini
+  App'ning xaridor yo'li (53 ta), `C2` 2-qism qolgani (37 ta app.js da +
+  admin 2 ta + landing formasi + oflayn sahifa). Yakuniy sweep bilan
+  tasdiqlandi: **landing, Mini App va admin panelda inline hodisa UMUMAN
+  qolmadi**, inline `<script>` bloki va `javascript:` URL ham yo'q.
+
+  **Shartnoma uch sahifada AYNI:** `data-action` / `data-arg` / `data-input`.
+  Ko'p argument `|` bilan kodlanadi va ingichka o'ram ajratadi (`openReviewArg`,
+  `toggleProductArg`, `sellerOrderArg`). 2-qismda 9 ta yordamchi qo'shildi —
+  yuqoridagi uchtasi va `setDispComment`, `setRevBody`, `setSTracking`,
+  `setSDispReply`, `newProductForm`, `editProduct`, `reloadApp`.
+
+  **`submit` `click` EMAS.** Landing to'lov formasidagi `onsubmit` ko'chirilganda
+  ma'lum bo'ldiki mavjud delegatsiya uni umuman ko'rmaydi — `click` tinglovchisi
+  `submit` hodisasini eshitmaydi. Shuning uchun `script.js` da ALOHIDA
+  `data-submit` qatlami qurildi va u funksiyaga HODISANING O'ZINI uzatadi
+  (`submitOrder` ichida `preventDefault()` chaqiriladi, aks holda sahifa qayta
+  yuklanardi).
+
+  **Oflayn sahifa — inline `<script>` bloki ham chiqarildi** (`telegram-app/offline.js`).
+  `sw.js` da `PRECACHE` ga `./offline.js` qo'shildi va `CACHE_VERSION` `v2` → `v3`
+  ga oshirildi. Bu ikkinchi qadam MAJBURIY: keshda eski ro'yxat qolsa oflayn
+  holatda aynan oflayn sahifaning skripti yuklanmay qolardi, ya'ni tuzatish
+  o'zi tuzatayotgan holatda ishlamas edi. `deploy.yml` dagi tekshiruv ro'yxatiga
+  ham `/mini-app/offline.js` qo'shildi — fayl `telegram-app/*` bilan avtomatik
+  ko'chadi, lekin yetib bormaganda nuqson AYNAN oflayn holatda chiqadi va
+  kundalik tekshiruvda hech qachon ko'rinmaydi (2026-07-30 darsi).
+
+  **Yo'l-yo'lakay yopilgan yashirin tuzoq.** Delegatsiya sof raqamli `data-arg` ni
+  `Number` ga aylantiradi, `renderProductForm` esa mahsulotni `x.id === S.sEditId`
+  bilan qidiradi. Bugungi ma'lumotda id lar matnli (`ik-1402`), lekin RAQAMLI id
+  paydo bo'lgan kuni tahrirlash formasi **jimgina bo'sh ochilardi** — xato ham,
+  belgi ham bermay. `editProduct()` o'rami turini `String()` bilan qulfladi.
+
+  **Dalil (brauzerda, haqiqiy hodisalar bilan).** Eski yozuvdagi "bu qismni
+  brauzerda sinab bo'lmaydi" da'vosi NOTO'G'RI bo'lib chiqdi: server javobi emas,
+  aynan SIMLASH o'zgargani uchun uni o'lchash mumkin. Har bir render funksiyasi
+  chizildi, har bir `[data-action]`/`[data-input]` elementiga haqiqiy klik/kiritish
+  yuborildi, chaqirilgan funksiya josus bilan almashtirildi — **66 ta element,
+  66 tasi otildi, o'lik tugma yo'q, argumentlar to'g'ri.** Yashirin yorliq ostidagi
+  bloklar birinchi o'tishda chizilmagani uchun `S.ordersTab='past'`,
+  `S.sOrdTab='progress'`, `S.sProdTab='hidden'` bilan ikkinchi o'tish qilindi.
+  Admin panelda josus usuli ISHLAMAYDI (`addEventListener` havolani ro'yxatga olish
+  paytida oladi), shuning uchun u yerda TA'SIR o'lchandi: kirish tugmasi matni `...`
+  ga o'zgardi, chiqish panelni yopib `sessionStorage` tokenini tozaladi. Oflayn
+  sahifada `offline.js` HTTP 200 bilan keldi va tugma sahifani yangiladi.
+  `node --check` uchala JS faylda ham toza.
+
+  ⚠️ **`?v=` versiyalari commit oldidan tuzatildi** (`hisobotchi` tutdi):
+  `app.js?v=60→61`, `script.js?v=25→26`, `admin.js?v=19→20`. Admin'da bu
+  kosmetik emas edi — `index.html` `onclick` ni yo'qotgan, `admin.js` esa eski
+  versiya raqami bilan keshda qolardi, ya'ni qaytib kelgan adminda **kirish tugmasi
+  o'lik** bo'lardi. Yangi HTML + eski JS birikmasi aynan shu o'zgarish sinfida
+  eng xavfli holat.
+
+  ⚠️ **`sayt-eski/index.html:69` dagi `onsubmit` ATAYLAB qoldirildi** — founder
+  qarori (pastdagi qarorlar bo'limiga qara). CSP butun domen bo'ylab ishlaydi,
+  ya'ni C3 dan keyin o'sha formadagi tugma jimgina o'ladi. Bu bilib qilingan
+  tanlov, nuqson emas.
+
+  ⚠️ **QOROVUL HALI YO'Q — bu ochiq qarz.** Inline hodisa qaytib kelsa buni hech
+  narsa ushlamaydi, C3 esa o'shanda jimgina tugma o'ldiradi. Loyihaning o'z darsi
+  ("yozilgan qoida himoya emas — test himoya") bu yerda hali bajarilmagan:
+  C3 bilan BIRGA `index.html` / `script.js` / `telegram-app/` / `admin/` ni
+  skanerlaydigan qorovul qo'shilsin.
+
+  **Navbatdagi ish — C3:** CSP `script-src` dan `'unsafe-inline'` olib tashlash
+  (Cloudflare Transform Rules, kanonik nusxa `docs/xavfsizlik-sarlavhalari.md`).
 
 - [2026-08-05] **TERGOV: backend papkasi nega o'chgani ANIQLANDI — aybdor
   `server/README.md` dagi orqaga qaytarish buyrug'ining o'zi edi.**
@@ -630,6 +712,24 @@ LolaMarket ni rasmiy ishga tushirish. Birinchi haqiqiy xaridorlar va ishlab chiq
 ---
 
 ## Qarorlar
+
+- [2026-08-06] Qaror: **`sayt-eski/` inline hodisadan TOZALANMAYDI — u C3 dan keyin
+  jimgina o'ladi va bu qabul qilinadi** (founder: "kerakmas, unut"). `sayt-eski/index.html:69`
+  dagi `onsubmit="handleSubmit(event)"` — butun loyihada qolgan yagona inline hodisa.
+  CSP domen bo'ylab ishlaydi, ya'ni `'unsafe-inline'` olib tashlangach o'sha formadagi
+  email tugmasi ishlamay qoladi. Sabab: eski sayt ishlatilmaydi va faqat `style.css`
+  uchun turibdi (`demo/` va `admin/` unga bog'liq), ya'ni papkani o'chirib ham
+  bo'lmaydi. **Yozib qo'yilishining sababi qarordan muhimroq:** C3 da bu satr yana
+  topiladi va "tuzataymi?" degan savol qayta tug'iladi — javob shu yerda turibdi,
+  qayta so'ralmasin
+
+- [2026-08-06] Qaror: **inline hodisa ko'chirilganda uch sahifa BITTA shartnomadan
+  foydalanadi** — `data-action` / `data-arg` / `data-input`, ko'p argument `|` bilan.
+  Sabab: landing, Mini App va admin panel har biri o'z naqshini o'ylab topsa, keyingi
+  o'zgarish har birida boshqacha yoziladi va qorovul test yozish uch marta qiyinlashadi.
+  `submit` uchun esa ALOHIDA qatlam kerak bo'ldi (`data-submit`) — `click`
+  tinglovchisi `submit` hodisasini eshitmaydi, ya'ni bitta tinglovchi bilan
+  "hammasini qamradim" deb bo'lmaydi
 
 - [2026-08-05] Qaror: **CLAUDE.md dagi qoida test bilan qo'riqlanmasa, u qoida emas —
   niyat. Shuning uchun "yozilgan qoida" turkumidagi har bir band uchun manba kodini
