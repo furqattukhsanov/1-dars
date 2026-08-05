@@ -89,6 +89,14 @@
   bitta nosozlik Telegram'ni yuzlab xabar bilan to'ldiradi. To'g'ri shakl:
   `console.error('createOrder xatosi:', e.message)` — belgi birinchi, o'zgaruvchan
   qism ikkinchi argumentda.
+  ⚠️ **Bu qoidani endi test qo'riqlaydi** (2026-08-05): `server/test.js` → Test 10c
+  `server/`, `server/lib/`, `server/routes/` dagi hamma faylni skanerlab birinchi
+  argument interpolatsiyali shablon satri (`` `...${x}` ``) yoki `'matn' + x`
+  emasligini tekshiradi. Test qo'shilishining sababi qoidaning o'zidan muhimroq:
+  qoida `b6e6b7d` bilan yozilgan va O'SHA commitdagi `server.js` →`requestCrashed`
+  da buzilgan holda qolgan edi (birinchi argumentda `${req.method} ${path}`,
+  ~26 xil kalit). Ya'ni **yozilgan qoida himoya emas — uni tekshiradigan test
+  himoya.**
 - **Sozlama qiymati BO'SH EMASLIGI uni haqiqiy qilmaydi** (2026-08-05).
   `.env` dan keladigan har bir qiymat `config.js` da SHAKLI bo'yicha
   tekshirilsin — `process.env.X || ZAXIRA` naqshining o'zi YETARLI EMAS.

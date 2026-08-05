@@ -83,10 +83,36 @@ LolaMarket ni rasmiy ishga tushirish. Birinchi haqiqiy xaridorlar va ishlab chiq
   ID). O'sha chatdagi HAR KIM butun bazani yuklab olishi mumkin — `BACKUP_CHAT_ID` ga odam
   qo'shishdan oldin shu o'ylansin. Skript repoda saqlanmaydi (serverda yashaydi, tokenni
   `.env` dan o'qiydi)
-- [ ] Xato monitoring ulash (Sentry yoki shunga o'xshash)
-  — **KOD YOZILDI (2026-08-03), deploy ham qilindi, lekin band OCHIQ va 2026-08-05 da
-  ma'lum bo'ldiki alert ikki kun MUTLAQO ishlamagan.** Sentry bloklangan edi (tashqi
-  akkaunt kerak), shuning uchun boshqa yo'l tanlandi: server xatosi Telegram'ga xabar
+- [x] Xato monitoring ulash (Sentry yoki shunga o'xshash)
+  — **BAJARILDI (2026-08-05): alert BIRINCHI MARTA HAQIQATAN uchidan-uchiga
+  tasdiqlandi.** Kod 2026-08-03 da yozilgan edi, lekin quyidagi yozuvda ko'rsatilgani
+  kabi u ikki kun MUTLAQO ishlamagan — 3-avgustdagi "tasdiqlandi" da'vosi yolg'on
+  edi. Bugungi dalil zanjiri (tarix ATAYLAB o'chirilmadi, quyida turibdi):
+  1. Founder servisni restart qildi (deploy qoidasi bo'yicha bu foydalanuvchi
+     bosadigan amal). `systemctl is-active` → `active`, PID 642342,
+     `ActiveEnterTimestamp=2026-08-05 15:07:47`.
+  2. `/api/version` → `5e9bb11` — ya'ni jonli jarayon YANGI kodni ishlatyapti.
+  3. `/proc/642342/cwd -> /opt/lolamarket-notify` — `(deleted)` yozuvisiz. Ya'ni
+     papka haqiqatan tiklangan va servis undan ko'tarilgan; "xotiradan yuruvchi
+     jarayon" holati tugadi.
+  4. Jarayon muhitida `ALERT_CHAT_ID` UMUMAN YO'Q → `config.js` `ADMIN_CHAT_ID`
+     ga qaytdi, ya'ni placeholder ketgani amalda tasdiqlandi. Jurnalda yangi
+     `chatId()` qorovulining "Chat ID yaroqsiz" ogohlantirishi ham chiqmadi.
+  5. ATAYLAB xato chiqarildi:
+     `GET /api/auth/web/poll?code=%00sinov&verifier=sinov` — faqat-o'qish `SELECT`,
+     NUL bayt Postgres'ni yiqitadi va hech narsa YOZILMAYDI (production bazasida
+     iz qoldirmaslik uchun ataylab shunday tanlandi). Natija: HTTP 500, jurnalda
+     `webLoginPoll xatosi: invalid byte sequence for encoding "UTF8": 0x00`,
+     server esa tirik qoldi (ya'ni 3-avgustdagi `handleRequest` o'rami ham ishladi).
+  6. **Founder Telegram'da alert xabarini KO'RDI va tasdiqladi.** Dalil aynan
+     shu — kod emas, ko'rilgan xabar.
+
+  ⚠️ Quyidagi tarix ATAYLAB saqlanadi: "2026-08-03 da tasdiqlandi" degan yozuv
+  yolg'on bo'lgan va uni takrorlamaslik uchun sabab ko'rinib turishi kerak.
+
+  — **KOD YOZILDI (2026-08-03), deploy ham qilindi, lekin band 2026-08-05 gacha
+  OCHIQ turdi va o'sha kuni ma'lum bo'ldiki alert ikki kun MUTLAQO ishlamagan.**
+  Sentry bloklangan edi (tashqi akkaunt kerak), shuning uchun boshqa yo'l tanlandi: server xatosi Telegram'ga xabar
   bo'lib boradi (`server/lib/alert.js`) — bildirishnoma relayi allaqachon ishlab turibdi,
   yangi hisob kerak emas.
 
@@ -100,10 +126,10 @@ LolaMarket ni rasmiy ishga tushirish. Birinchi haqiqiy xaridorlar va ishlab chiq
   tasdiqlandi. **Dars:** "tasdiqlandi" deb yozishdan oldin dalil qaysi kanaldan
   kelganini ayt — bu yerda xabar ko'rilmagan, faqat kod yozilgani ko'rilgan.
 
-  Band `[x]` QILINMAYDI. Yopilishi: servis restarti (founder), keyin ataylab bitta
-  xato chiqarib alert Telegram'ga HAQIQATAN yetib borgani ko'rilishi. Restartgacha
-  alert HAMON o'lik — jarayon eski muhitni ushlab turibdi, ya'ni `.env` tuzatilgani
-  ham, yangi `config.js` qorovuli ham hali kuchga kirmagan
+  O'sha kuni yozilgani: "Band `[x]` QILINMAYDI. Yopilishi: servis restarti (founder),
+  keyin ataylab bitta xato chiqarib alert Telegram'ga HAQIQATAN yetib borgani
+  ko'rilishi. Restartgacha alert HAMON o'lik — jarayon eski muhitni ushlab turibdi."
+  **Aynan shu shart bajarildi va band yuqoridagi dalil bilan yopildi.**
 - [ ] Payme va Click production akkauntlarga o'tish — **bloklangan:** merchant kalitlari kerak.
   Launch'ning YAGONA haqiqiy to'sig'i — platformaning qolgan qismi uchidan-uchiga ishlaydi
 
@@ -132,6 +158,57 @@ LolaMarket ni rasmiy ishga tushirish. Birinchi haqiqiy xaridorlar va ishlab chiq
 ---
 
 ## Qilingan ishlar
+
+- [2026-08-05] **Alert tizimi BIRINCHI MARTA haqiqatan tasdiqlandi, va shu tasdiqlash
+  yo'l-yo'lakay alertning O'ZIDA yangi nuqson ochib berdi.**
+
+  **1. Uchidan-uchiga dalil (`server/` kodida o'zgarish yo'q).** Founder servisni
+  restart qildi, keyin ataylab bitta xato chiqarildi va Telegram'ga alert yetib
+  bordi. To'liq zanjir yuqoridagi band yonida yozilgan; qisqasi: `/api/version` →
+  `5e9bb11`, `/proc/642342/cwd` `(deleted)` yozuvisiz, jarayon muhitida
+  `ALERT_CHAT_ID` yo'q (ya'ni `ADMIN_CHAT_ID` zaxirasi ishladi),
+  `GET /api/auth/web/poll?code=%00sinov&verifier=sinov` → HTTP 500 +
+  `webLoginPoll xatosi: invalid byte sequence for encoding "UTF8": 0x00`, server
+  tirik qoldi, **founder xabarni Telegram'da ko'rdi**.
+
+  Sinov so'rovi ATAYLAB faqat-o'qish `SELECT` yo'lidan tanlandi: NUL bayt Postgres'ni
+  yiqitadi, lekin hech narsa yozilmaydi — production bazasida sinov chiqindisi
+  qolmasligi kerak edi (30-iyul qarori).
+
+  **2. YANGI NUQSON: alert guruhlash kaliti buzilgan edi** (`server/server.js`).
+  `requestCrashed` birinchi argumentga yo'lni qo'yardi:
+  `` console.error(`so'rov qulashi ${req.method} ${path}:`, ...) ``. `lib/alert.js`
+  guruhlash kalitini aynan `args[0]` dan oladi (`argsToKeyAndDetail`), ya'ni har
+  endpoint ALOHIDA alert bo'lardi — bitta nosozlik ~26 xil kalit hosil qilardi va
+  10 daqiqalik bosish tomi aynan shu yerda ishlamay qolardi. Falokat emas: soatlik
+  tom (`MAX_PER_HOUR = 20`) Telegram'ni to'lib ketishdan saqlardi. Tuzatildi —
+  belgi qat'iy, o'zgaruvchan qism ikkinchi argumentda:
+  `console.error('so\'rov qulashi:', `${req.method} ${path}`, ...)`.
+
+  ⚠️ **Darsi nuqsonning o'zidan muhimroq:** bu CLAUDE.md dagi qoidaning buzilishi
+  edi va qoida o'sha commitning O'ZIDA yozilgan (`b6e6b7d`, 2026-08-03) — ya'ni
+  qoidani yozgan odam o'sha faylda uni buzib qo'ygan. **Qoidaning o'zi himoya
+  emas; uni test qo'riqlamasa, u qoida emas, niyat.** Bu 2026-08-03 dagi Test 11
+  darsining (kod to'g'ri, ULANISH tekshirilmagan) aynan takrori.
+
+  **3. Qulflandi: Test 10c — "Alert guruhlash kaliti qat'iy"** (`server/test.js`).
+  `server/`, `server/lib/`, `server/routes/` dagi hamma `.js` faylni skanerlab
+  `console.error` ning birinchi argumenti interpolatsiyali shablon satri
+  (`` `...${x}` ``) yoki `'matn' + x` birikmasi emasligini tekshiradi. 64 ta
+  `console.error` ko'rildi (skaner haqiqatan fayl o'qiganini `checked > 50`
+  ta'minlaydi — aks holda `readdirSync` yo'li buzilsa test bo'sh ro'yxat ustida
+  yashil qolardi). Qorovul haqiqiyligi alohida sinaldi: eski shakl ham,
+  `'matn' + x` birikmasi ham TUTILDI, yangi shakl esa o'tdi. `npm test` — 29 test
+  PASS (28 → 29).
+
+  **HALI OCHIQ (bugun ham yopilmadi):**
+  - **Backend papkasi NEGA o'chgani ANIQLANMAGAN.** Sabab topilmagani uchun
+    takrorlanmasligiga hech qanday kafolat yo'q — bugungi tiklash oqibatni
+    tuzatdi, sababni emas. **Taklif (BAJARILMAGAN):** cron har kuni papka va
+    `.env` joyidaligini tekshirsin, yo'q bo'lsa Telegram'ga yozsin. Diqqat:
+    bugungi tajriba ko'rsatdiki tashqi belgilar (`/api/products`, `/api/version`)
+    bu holatni UMUMAN ko'rsatmaydi — tekshiruv fayl tizimiga qarashi shart.
+  - **4-avgust zaxira nusxasi butunlay yo'qolgan** va uni qayta yaratib bo'lmaydi
 
 - [2026-08-05] **Backend papkasi serverdan O'CHIB KETGANI topildi va tiklandi — sayt
   tashqaridan mutlaqo sog'lom ko'rinib turgan holda ikki kun "o'lgan odam yurgan"
@@ -451,6 +528,26 @@ LolaMarket ni rasmiy ishga tushirish. Birinchi haqiqiy xaridorlar va ishlab chiq
 ---
 
 ## Qarorlar
+
+- [2026-08-05] Qaror: **CLAUDE.md dagi qoida test bilan qo'riqlanmasa, u qoida emas —
+  niyat. Shuning uchun "yozilgan qoida" turkumidagi har bir band uchun manba kodini
+  skanerlaydigan test yoziladi.** Sabab jonli misolda ko'rindi: "alert guruhlash
+  kalitiga o'zgaruvchan ma'lumot qo'yilmasin" qoidasi `b6e6b7d` (2026-08-03) bilan
+  yozilgan va O'SHA commitning o'zida `server.js` da buzilgan holda qolgan. Ya'ni
+  qoidani bilgan, yozgan va yonidagi kodni tahrirlagan odam ham uni buzdi — bu
+  e'tiborsizlik emas, naqsh. Yechim: qoidani qo'lda eslab qolish o'rniga
+  `server/test.js` da skaner test (Test 10c). Bu 12b (tarix qamrovi) va 11
+  (ULANISH tekshiruvi) bilan bitta oiladagi uchinchi test — himoya kodda emas,
+  **kod haqidagi tekshiruvda** turadi
+
+- [2026-08-05] Qaror: **jonli tizimni sinash uchun ATAYLAB chiqariladigan xato
+  faqat-o'qish yo'ldan tanlanadi.** Alert tasdiqlashda `%00` NUL bayti bilan
+  `GET /api/auth/web/poll` ishlatildi — u `SELECT` ga boradi, Postgres uni rad
+  etadi va bazaga hech narsa yozilmaydi. Sabab: production bazasida sinov chiqindisi
+  qolmasligi kerak (30-iyul qarori), lekin sinovning o'zidan voz kechib ham
+  bo'lmaydi — "kod yozildi" dalil emasligi shu bandning o'zida ikki kun davomida
+  isbotlangan. Yozuvchi yo'ldan (masalan soxta buyurtma) xato chiqarish keyin
+  tozalashni talab qilardi va tozalash unutilishi mumkin
 
 - [2026-08-05] Qaror: **`.env` dan keladigan chat_id JIMGINA qabul qilinmaydi — yaroqsiz
   qiymat zaxiraga qaytadi va jurnalda IZ qoldiradi; `ADMIN_CHAT_ID` yaroqsiz bo'lsa esa

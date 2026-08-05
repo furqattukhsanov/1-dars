@@ -858,6 +858,50 @@ function testChatIdValidation() {
   console.log('✅ Test 2c: Yaroqsiz chat_id qorovuli — PASS');
 }
 
+// ============ TEST 10c: Alert guruhlash kaliti QAT'IY ============
+// `console.error` ning birinchi argumenti alert kaliti bo'lib ishlaydi
+// (`lib/alert.js` → `argsToKeyAndDetail(args)` uni aynan `args[0]` dan oladi).
+// Unga o'zgaruvchan qism kirsa — yo'l, ID, buyurtma raqami — har chaqiruv
+// ALOHIDA alert bo'ladi va bosish tomi ishlamay qoladi.
+//
+// 2026-08-05 da aynan shu topildi: `server.js` dagi `requestCrashed`
+// birinchi argumentga `${req.method} ${path}` ni qo'yardi, ya'ni bitta
+// nosozlik ~26 endpoint bo'ylab 26 xil kalit hosil qilardi. Qoida o'sha
+// paytda CLAUDE.md da ikki kundan beri yozilgan edi — ya'ni qoidaning O'ZI
+// yetarli emas, uni test qo'riqlashi kerak.
+function testAlertKeyIsConstant() {
+  const fs = require('fs');
+  const path = require('path');
+
+  const files = [];
+  for (const dir of [__dirname, path.join(__dirname, 'lib'), path.join(__dirname, 'routes')]) {
+    for (const f of fs.readdirSync(dir).filter((n) => n.endsWith('.js'))) {
+      if (f === 'test.js' || f === 'eslint.config.js') continue;
+      files.push(path.join(dir, f));
+    }
+  }
+
+  // Birinchi argument: interpolatsiyali shablon satri, yoki `'...' +` birikma.
+  const TEMPLATE_ARG = /console\.error\(\s*`[^`]*\$\{/;
+  const CONCAT_ARG = /console\.error\(\s*'[^']*'\s*\+/;
+
+  const bad = [];
+  let checked = 0;
+  for (const file of files) {
+    const src = fs.readFileSync(file, 'utf8');
+    checked += (src.match(/console\.error\(/g) || []).length;
+    if (TEMPLATE_ARG.test(src) || CONCAT_ARG.test(src)) bad.push(path.basename(file));
+  }
+
+  assert.strictEqual(bad.join(', '), '',
+    'console.error ning BIRINCHI argumenti qat\'iy belgi bo\'lishi kerak — ' +
+    'o\'zgaruvchan qism ikkinchi argumentga o\'tsin (alert guruhlash kaliti). ' +
+    `Buzilgan fayllar: ${bad.join(', ')}`);
+  assert.ok(checked > 50, 'skaner haqiqatan fayllarni ko\'rgan bo\'lishi kerak');
+
+  console.log(`✅ Test 10c: Alert guruhlash kaliti qat'iy — PASS (${checked} ta console.error)`);
+}
+
 // ============ TEST RUNNER ============
 async function runTests() {
   console.log('\n🧪 LolaMarket Server Testlari\n');
@@ -881,6 +925,7 @@ async function runTests() {
     testReviewSchema();
     testAlertThrottle();
     testAlertTextEscaping();
+    testAlertKeyIsConstant();
     await testHideReviewRecalculates();
     await testRecordStatusChange();
     testEveryStatusWriteIsRecorded();

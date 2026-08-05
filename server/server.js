@@ -270,7 +270,11 @@ function handleRequest(req, res) {
 
 function requestCrashed(req, res, e) {
   const path = String(req.url || '').split('?')[0];
-  console.error(`so'rov qulashi ${req.method} ${path}:`, (e && e.message) || e);
+  // Belgi QAT'IY, yo'l esa ikkinchi argumentda: birinchi argument alert
+  // guruhlash kaliti va unga yo'l qo'yilsa har endpoint ALOHIDA alert bo'lardi
+  // (bitta nosozlik ~26 xil kalit) — bosish tomi aynan shu yerda ishlamay
+  // qolardi. 2026-08-05 da topildi, qoida esa 2026-08-03 da yozilgan edi.
+  console.error('so\'rov qulashi:', `${req.method} ${path}`, (e && e.message) || e);
   // Handler javobni allaqachon boshlagan bo'lishi mumkin — u holda status
   // qo'yib bo'lmaydi, faqat ulanishni yopamiz (aks holda klient osilib qoladi).
   try {

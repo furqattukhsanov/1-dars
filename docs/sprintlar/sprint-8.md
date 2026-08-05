@@ -70,6 +70,41 @@ Platformaning barcha funksiyalarini real foydalanuvchilar bilan sinovdan o'tkazi
   — **QISMAN (2026-07-31):** birinchi marta HAQIQATAN o'lchandi va uchta sabab topib
   tuzatildi (pastdagi yozuvga qarang). Band OCHIQ qoladi, chunki o'lchov lokal va Wi-Fi
   bo'yicha — **sekin mobil internetda (O'zbekistondagi haqiqiy 3G/4G) hali sinalmagan**
+
+  — **SEKIN TARMOQDA O'LCHANDI (2026-08-05), band HAMON OCHIQ — mezon o'tmadi.**
+  Usul: `curl --limit-rate` bilan HAQIQIY throttling. Brauzer panelidagi FCP ATAYLAB
+  ishlatilmadi — tab `hidden` bo'lganda u yolg'on ko'rsatadi (bu allaqachon yozilgan
+  dars). Kod BU O'LCHOVDA O'ZGARTIRILMADI — bu tashxis, tuzatish emas.
+
+  | | Landing | Mini App |
+  |---|---|---|
+  | Chizish uchun kerak bo'lgan qism | 342 KB | 73 KB |
+  | Sekin 3G (50 KB/s) | **10.1 s** | ~1.5–2.5 s |
+  | Tez 3G (200 KB/s) | **2.66 s** | ~1.6–3.4 s |
+  | Birinchi tashrif jami | ~634 KB | ~356 KB |
+  | Aylantirganda (14 ta lazy rasm) | ~2.87 MB | — |
+
+  **Mezon bo'yicha hukm:** tez 3G'da landing 2.66 s — o'tadi, lekin ZO'RG'A; sekin
+  3G'da 10.1 s — **O'TMAYDI**. Shu sabab band `[x]` QILINMAYDI.
+
+  **Topilganlar:**
+  1. `Photo/Main/banner-mato.jpg` — **305 KB**, ya'ni kritik yo'lning **78%i**.
+     Sekin 3G'da yolg'iz o'zi ~6 s. WebP/AVIF + `srcset` bilan ~60 KB ga tushsa
+     ~5 s tejaladi. **ENG KATTA YUTUQ AYNAN SHU** — qolgan hamma narsa shu bitta
+     fayl yonida shovqin.
+  2. Shriftlar — 250 KB, 13 ta `woff2`, 3 oila / 10 qalinlik. Mini App uchun
+     nomutanosib: butun kritik yo'ldan (73 KB) **3.4 barobar** katta.
+     `display=swap` to'g'ri qo'yilgan, ya'ni matn ko'rinmay turmaydi.
+  3. **Mini App tarmoq kengligiga BOG'LIQ EMAS.** Ikkala tezlikda ham natija
+     1.5–3.5 s oralig'ida sochildi — ya'ni o'lchovni bayt emas, ULANISH KECHIKISHI
+     boshqaradi (uchta tashqi domenga ulanish). `fonts.googleapis.com` va
+     `fonts.gstatic.com` ga `preconnect` bor, **`telegram.org` ga YO'Q.**
+  4. Yaxshi tomoni: barcha skriptlar `defer` (2026-07-31 qoidasi bajarilyapti),
+     17 rasmdan 14 tasi `lazy`.
+
+  **Keyingi ishlar (BAJARILMAGAN, shu bandni yopish uchun):** banner rasmni
+  WebP/AVIF ga o'tkazish + `srcset`; shrift qalinliklarini kamaytirish;
+  `telegram.org` ga `preconnect` qo'shish
 - [ ] Mobil da barcha funksiyalar ishlashi
 - [ ] To'lov webhook larning ishonchliligi
 
@@ -80,6 +115,32 @@ Platformaning barcha funksiyalarini real foydalanuvchilar bilan sinovdan o'tkazi
 ---
 
 ## Qilingan ishlar
+
+- [2026-08-05] **Sahifa yuklanish tezligi SEKIN MOBIL TARMOQDA birinchi marta
+  o'lchandi (A1) — kod o'zgartirilmadi, bu tashxis.** 31-iyulda qolgan bo'shliq
+  ("o'lchov lokal va Wi-Fi bo'yicha") yopildi: `curl --limit-rate` bilan haqiqiy
+  throttling qo'llanib, 50 KB/s (sekin 3G) va 200 KB/s (tez 3G) da o'lchandi.
+  Raqamlar va to'liq jadval yuqoridagi band yonida.
+
+  Qisqasi: **landing sekin 3G'da 10.1 s** — sprint mezoni "3 soniyadan kam"
+  O'TMAYDI; tez 3G'da 2.66 s bilan zo'rg'a o'tadi. Sabab bitta faylda to'plangan —
+  `Photo/Main/banner-mato.jpg` **305 KB**, kritik yo'lning 78%i, yolg'iz o'zi sekin
+  3G'da ~6 s. Shriftlar 250 KB (13 ta `woff2`, 3 oila / 10 qalinlik) —
+  Mini App'ning butun kritik yo'lidan 3.4 barobar og'ir.
+
+  **Kutilmagan topilma:** Mini App tarmoq kengligiga deyarli BOG'LIQ EMAS — 50 KB/s
+  va 200 KB/s da natija bir xil oraliqda (1.5–3.5 s) sochildi, ya'ni uni bayt emas,
+  uchta tashqi domenga ULANISH KECHIKISHI boshqaradi. Shu yerdan aniq qarz chiqdi:
+  `fonts.googleapis.com` va `fonts.gstatic.com` ga `preconnect` bor,
+  **`telegram.org` ga yo'q** — holbuki `telegram-web-app.js` aynan o'shandan keladi.
+
+  Usul haqida: brauzer panelidagi FCP ATAYLAB ishlatilmadi — tab `hidden` bo'lganda
+  u yolg'on ko'rsatadi va bu allaqachon bir marta chalg'itgan. O'lchov tashqi
+  vositadan, tarmoq darajasida olindi.
+
+  Band `[x]` QILINMADI. Yopilishi uchun kerak (BAJARILMAGAN): banner rasm →
+  WebP/AVIF + `srcset` (~305 KB → ~60 KB, ~5 s tejaydi), shrift qalinliklarini
+  kamaytirish, `telegram.org` ga `preconnect`
 
 - [2026-08-05] **Test 2c qo'shildi — "bo'sh emas, lekin yaroqsiz" sozlama qiymati
   qo'riqlanadi (`server/test.js`).** Test `chatId()` qorovulini tekshiradi: butun son
@@ -425,6 +486,15 @@ Platformaning barcha funksiyalarini real foydalanuvchilar bilan sinovdan o'tkazi
 ---
 
 ## Qarorlar
+
+- [2026-08-05] Qaror: **tezlik mezoni endi "tez 3G" emas, SEKIN 3G bo'yicha
+  baholanadi, va o'lchov tarmoq darajasida (`curl --limit-rate`) olinadi.** Sabab:
+  tez 3G'da landing 2.66 s bilan mezondan o'tadi, sekin 3G'da esa 10.1 s — ya'ni
+  qulay o'lchovni tanlab band `[x]` qilinsa, hujjat rost gapirib turib yolg'on
+  xulosa berardi. LolaMarket foydalanuvchisi Marg'ilon/Namangandagi ustaxonada
+  telefondan kiradi, ofis Wi-Fi'sidan emas. Brauzer paneli FCP'si esa o'lchov
+  MANBAI sifatida rad etildi — tab `hidden` bo'lganda u yolg'on ko'rsatadi
+  (xotiradagi "tezlik o'lchash usuli" darsi)
 
 - [2026-08-03] Qaror: **himoya faqat FUNKSIYAda emas, QAMROVda ham bo'lsin — inventar test
   bilan qotiriladi.** Test 12b manba kodini skanerlab, har bir `UPDATE orders SET status`
