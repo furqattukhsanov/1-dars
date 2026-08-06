@@ -18,7 +18,14 @@ jobs:
           host: ${{ secrets.SERVER_IP }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          # sayt-eski/ — demo/ va admin/ shu papkadagi eski style.css'ga bog'liq, tushirib qoldirilmasin
+          # 2026-08-06: `sayt-eski/` va `demo/` ro'yxatdan OLIB TASHLANDI.
+          # Ilgari bu yerda "sayt-eski/ — demo/ va admin/ shu papkadagi eski
+          # style.css'ga bog'liq" deb yozilgandi va bu YOLG'ON edi: `demo/`
+          # repoda umuman yo'q, `admin/` esa ILDIZDAGI `style.css` ni ishlatadi
+          # (`admin/index.html:13` → `../style.css`). Ya'ni papkani saqlab
+          # turgan sabab tekshirilmagan da'vo bo'lib chiqdi.
+          # ⚠️ Serverdagi `/var/www/lolamarket/sayt-eski/` rsync bilan
+          # O'CHMAYDI — u qo'lda olib tashlanadi.
           #
           # ⚠️ Bu ro'yxat AYNAN sanab o'tadi — repoda yangi ildiz fayli paydo
           # bo'lsa, uni shu yerga QO'LDA qo'shish kerak. 2026-07-30 da landing
@@ -37,7 +44,7 @@ jobs:
           # CSP `'unsafe-inline'`siz ishlagan kuni offline sahifadagi tugma va
           # butun sprint paneli JIMGINA o'lardi — nginx yo'q faylga HTML + 200
           # qaytaradi, ya'ni HTTP kodiga qarab buni sezib ham bo'lmasdi.
-          source: "index.html,style.css,script.js,manifest.json,sw.js,pwa.js,offline.html,offline.js,loyiha-panel.html,panel.js,assets/,Photo/,sayt-eski/,demo/,admin/"
+          source: "index.html,style.css,script.js,manifest.json,sw.js,pwa.js,offline.html,offline.js,loyiha-panel.html,panel.js,assets/,Photo/,admin/"
           target: /var/www/lolamarket
 
       # Mini App ALOHIDA qadam: repoda `telegram-app/`, serverda esa `mini-app/`

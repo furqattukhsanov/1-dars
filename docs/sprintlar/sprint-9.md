@@ -203,6 +203,74 @@ LolaMarket ni rasmiy ishga tushirish. Birinchi haqiqiy xaridorlar va ishlab chiq
 
 ## Qilingan ishlar
 
+- [2026-08-06] **`?v=` kesh qorovuli (Test 16) qo'shildi va `sayt-eski/` papkasi
+  o'chirildi. C3 ning bevosita davomi.**
+
+  **1. Test 16 — kesh versiyasi fayl bilan BIRGA oshadi.** Qoida shu paytgacha
+  faqat ODAT edi va aynan shu kuni buzilgan edi: uchala JS o'zgargan, `?v=`
+  esa qolgan. Bu kosmetik emas — yangi HTML + keshdagi eski JS admin panelda
+  **o'lik kirish tugmasi** degani bo'lardi. O'sha safar `hisobotchi` tutdi,
+  lekin odamga tayangan qorovul qorovul emas.
+
+  Ishlash usuli git tarixiga QARAMAYDI (tarix `npm test` ishlaydigan hamma
+  sharoitda mavjud emas). O'rniga 6 ta HTML skanerlanadi va topilgan har bir
+  `?v=` havolasi uchun faylning `sha256` i jadvaldagi qiymat bilan
+  solishtiriladi. Havolalar ro'yxati QO'LDA yozilmaydi — yangi versiyalangan
+  fayl avtomatik qamraladi (Test 10c bilan bitta naqsh: qorovulning o'zi
+  kengayadi). Jadval kaliti — SAHIFA emas FAYL, chunki bitta fayl bir necha
+  sahifadan chaqirilganda versiya hamma joyda bir xil bo'lishi shart.
+
+  Uch xil buzilishni tutadi: (a) fayl o'zgardi, versiya qolgan; (b) bitta fayl
+  ikki sahifada TURLI versiya bilan chaqirilgan; (c) jadvalga kirmagan yangi
+  versiyalangan fayl. **Uch mutatsiya bilan sinaldi, uchalasi ham qizil.**
+
+  **2. Qorovul DARROV haqiqiy nuqson topdi.** `admin/index.html:13` ildizdagi
+  `style.css` ni **`?v=21`** bilan chaqirardi, `index.html` esa AYNI faylni
+  **`?v=36`** bilan. Brauzer keshining kaliti — to'liq URL, ya'ni admin panelni
+  ilgari ochgan odamda **15 versiya orqadagi CSS keshda cheksiz qotib qolgan**
+  edi va buni hech narsa ko'rsatmasdi. `?v=36` ga tuzatildi va lokal
+  tekshirildi (600 ta CSS qoidasi yuklandi, sahifa joyida chizildi).
+
+  **3. `sayt-eski/` papkasi O'CHIRILDI (founder qarori: "eski saytni o'chirvor,
+  kerakmas").** O'chirishdan OLDIN bog'liqlik tekshirildi va **CLAUDE.md dagi
+  saqlash sababi YOLG'ON bo'lib chiqdi:**
+  - CLAUDE.md derdi: "o'chirilmasin — `demo/` va `admin/` uning `style.css`'iga
+    bog'liq"
+  - Haqiqat: **`demo/` repoda umuman yo'q** (lekin `deploy.yml` `source`
+    ro'yxatida turgan), `admin/` esa **ildizdagi** `style.css` ni ishlatadi
+    (`admin/index.html:13` → `../style.css`)
+  - `sayt-eski/style.css` ni FAQAT `sayt-eski/index.html` ishlatardi
+  - Papka ishlatadigan hamma rasm boshqa joyda ham ishlatiladi — yetim fayl
+    qolmadi
+
+  Ya'ni papkani saqlab turgan sabab **hech qachon tekshirilmagan da'vo** edi.
+  Eski sayt git tarixida qoladi (`git show 99fd084:sayt-eski/index.html`).
+  Birga yangilangan joylar: `deploy.yml` (`source` dan `sayt-eski/` VA o'lik
+  `demo/` olib tashlandi), `server/test.js` (Test 15 nishonlari va Test 16
+  jadvali), `CLAUDE.md`, `docs/xavfsizlik-sarlavhalari.md`.
+
+  **4. NATIJA: Test 15 ning istisnolar ro'yxati BO'SH.** Ilgari bitta istisno
+  bor edi — `sayt-eski/index.html:69` dagi `onsubmit`, founder qarori bilan
+  tegilmagan va C3 dan keyin jimgina o'lishi qabul qilingan edi. Papka
+  o'chirilishi bilan istisno **o'z-o'zidan yopildi**. Endi deploy qilinadigan
+  kodda inline hodisa, inline `<script>` va `javascript:` URL **UMUMAN yo'q**.
+
+  **DALIL:** `npm test` — **32 test PASS**. Test 15: 16 fayl / 551 KB /
+  **0 istisno**. Test 16: 9 versiyalangan fayl / 6 sahifa. Admin sahifasi lokal
+  brauzerda chizilib tekshirildi.
+
+  ⚠️ **OCHIQ QOLGANI — serverdagi `/var/www/lolamarket/sayt-eski/` rsync bilan
+  O'CHMAYDI.** Hozir `https://lolamarket.uz/sayt-eski/` **HTTP 200** qaytaradi
+  (eski "Tez Kunda" sahifasi). Repodan olib tashlash uni jonli saytdan
+  yo'qotmaydi — papka serverda **qo'lda** olib tashlanishi kerak va bu founder
+  tasdig'ini kutyapti.
+
+  **DARS:** ikkala topilma ham bitta oiladan — **tekshirilmagan da'vo hujjatga
+  yozilsa, u haqiqatdek ko'rinadi va qaror shunga qarab qabul qilinadi.**
+  `sayt-eski/` yillar davomida yolg'on sabab bilan saqlanib turgan; `admin/`
+  dagi eskirgan versiya esa hech kimga ko'rinmagan, chunki uni tekshiradigan
+  narsa yo'q edi. Ikkalasini ham **qorovul topdi, odam emas.**
+
 - [2026-08-06] **C3 — CSP `script-src` dan `'unsafe-inline'` OLIB TASHLANDI (kod
   tomoni). C1/C2 ning davomi va YAKUNI.**
 
@@ -832,6 +900,38 @@ LolaMarket ni rasmiy ishga tushirish. Birinchi haqiqiy xaridorlar va ishlab chiq
 ---
 
 ## Qarorlar
+
+- [2026-08-06] Qaror: **statik fayl o'zgarsa `?v=` HAM oshadi, va bitta fayl
+  HAMMA sahifada BIR XIL versiya bilan chaqiriladi.** Brauzer keshining kaliti
+  — to'liq URL, ya'ni raqam o'zgarmasa qaytib kelgan foydalanuvchida "yangi
+  HTML + eski JS" birikmasi hosil bo'ladi va tugma jimgina o'ladi. Qoida
+  shu kungacha faqat ODAT edi va aynan shu kuni buzildi, shuning uchun
+  `server/test.js` → **Test 16** yozildi: HTML larni O'ZI skanerlaydi (ro'yxat
+  qo'lda yozilmaydi) va har bir versiyalangan faylning `sha256` ini jadvaldagi
+  qiymat bilan solishtiradi. Istisno — service worker `PRECACHE` ro'yxatidagi
+  fayllar (`offline.js`): ular ATAYLAB `?v=` siz yuradi, chunki `sw.js` keshdan
+  `ignoreSearch`siz qidiradi; ular `CACHE_VERSION` orqali eskiradi.
+  Bu `console.error` kaliti va Test 15 bilan bitta oila: **yozilgan qoida
+  himoya emas, uni tekshiradigan test himoya**
+
+- [2026-08-06] Qaror: **`sayt-eski/` papkasi o'chirildi** (founder: "eski
+  saytni o'chirvor, kerakmas"). Muhimi qarorning O'ZI emas, uni qabul qilish
+  yo'li: papkani ushlab turgan sabab CLAUDE.md da "demo/ va admin/ uning
+  style.css'iga bog'liq" deb yozilgandi va tekshirilganda **YOLG'ON** bo'lib
+  chiqdi — `demo/` repoda umuman yo'q edi, `admin/` esa ildizdagi `style.css`
+  ni ishlatadi. Ya'ni papka yillar davomida **tekshirilmagan da'vo** bilan
+  saqlanib turgan. Kod git tarixida qoladi
+  (`git show 99fd084:sayt-eski/index.html`), ya'ni o'chirish qaytarib
+  bo'lmaydigan emas. Yon natija: Test 15 ning istisnolar ro'yxati BO'SHADI —
+  deploy qilinadigan kodda inline kod umuman qolmadi
+
+- [2026-08-06] Qaror: **repodan olib tashlash serverdan o'chirish EMAS.**
+  Deploy rsync `--delete` ishlatmaydi, shuning uchun
+  `/var/www/lolamarket/sayt-eski/` jonli saytda qolaveradi va hozir
+  `https://lolamarket.uz/sayt-eski/` HTTP 200 qaytaradi. Papkani **founder
+  qo'lda** olib tashlaydi — bu deploy'da bloklanadigan amallar oilasidan.
+  Umumiy qoida: "repodan o'chirdim" deyish "saytdan yo'qoldi" degani emas,
+  ikkinchisi ALOHIDA tekshiriladi
 
 - [2026-08-06] Qaror: **qamrovni ro'yxat emas TEST belgilaydi — supurish
   natijasiga "tugadi" deb ishonilmaydi.** C3 da uchta topilma ham "TUGADI" deb

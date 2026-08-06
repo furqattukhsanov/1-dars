@@ -990,7 +990,6 @@ function testNoInlineFrontendCode() {
     'telegram-app/index.html', 'telegram-app/offline.html',
     'telegram-app/app.js', 'telegram-app/pwa.js',
     'telegram-app/sw.js', 'telegram-app/offline.js',
-    'sayt-eski/index.html', 'sayt-eski/script.js',
   ];
 
   // `on[a-z]{3,}` — eng qisqa haqiqiy hodisa `oncut` (3 harf). Ikki harfli
@@ -1005,15 +1004,14 @@ function testNoInlineFrontendCode() {
     { nom: 'javascript: URL', re: /(?:href|src|action)\s*=\s*["']?\s*javascript:/gi },
   ];
 
-  // ⚠️ ATAYLAB ruxsat berilgan YAGONA istisno — founder qarori (2026-08-06:
-  // "kerakmas, unut"). `sayt-eski/` ishlatilmaydi va faqat `style.css` uchun
-  // turibdi (`demo/` va `admin/` unga bog'liq), shuning uchun o'sha formadagi
-  // email tugmasi C3 dan keyin jimgina o'lishi BILIB QILINGAN tanlov.
-  // Ro'yxat AYNAN solishtiriladi: istisno yo'qolsa ham test qizil bo'ladi —
-  // ya'ni eski sayt tozalangan kuni bu qatorni o'chirish esdan chiqmaydi.
-  const ALLOWED = [
-    'sayt-eski/index.html:69 — inline hodisa',
-  ];
+  // Istisnolar ro'yxati — HOZIR BO'SH, ya'ni deploy qilinadigan kodda inline
+  // kod UMUMAN qolmadi. Ilgari bu yerda bitta yozuv turardi
+  // (`sayt-eski/index.html:69`, founder qarori bilan tegilmagan `onsubmit`);
+  // 2026-08-06 da founder butun `sayt-eski/` papkasini o'chirtirdi va istisno
+  // o'z-o'zidan yopildi.
+  // Ro'yxat AYNAN solishtiriladi (`deepStrictEqual`) — ya'ni yangi istisno
+  // JIMGINA qo'shib bo'lmaydi, u shu yerda ko'rinishi va sababi yozilishi shart.
+  const ALLOWED = [];
 
   const topilgan = [];
   let bayt = 0;
@@ -1052,6 +1050,92 @@ function testNoInlineFrontendCode() {
   console.log(`✅ Test 15: Frontendda inline kod yo'q — PASS ` +
     `(${TARGETS.length} ta fayl, ${Math.round(bayt / 1024)} KB, ` +
     `${ALLOWED.length} ta ataylab qoldirilgan istisno)`);
+}
+
+// ============ TEST 16: Kesh versiyasi (?v=) fayl bilan BIRGA oshadi ============
+// Qoida shu paytgacha faqat ODAT edi va 2026-08-06 da aynan shu odat buzildi:
+// uchala JS o'zgargan, `?v=` esa qolgan. Admin'da bu kosmetik emas — yangi
+// HTML + keshdagi eski JS = O'LIK KIRISH TUGMASI. O'sha safar `hisobotchi`
+// tutdi, lekin odamga tayangan qorovul qorovul emas.
+//
+// Test git tarixiga QARAMAYDI (u `npm test` ishlaydigan hamma sharoitda
+// mavjud emas). O'rniga har bir versiyalangan faylning sha256 i jadvalda
+// yozilgan qiymat bilan solishtiriladi: fayl o'zgarsa hash mos kelmaydi va
+// test AYTADI — "`?v=` ni oshir va jadvalni yangila".
+//
+// Havolalar ro'yxati QO'LDA yozilmaydi — HTML larning O'ZI skanerlanadi,
+// ya'ni yangi versiyalangan fayl qo'shilsa u avtomatik qamraladi (Test 10c
+// bilan bitta naqsh: qorovulning o'zi kengayadi).
+function testAssetVersionsAreFresh() {
+  const fs = require('fs');
+  const path = require('path');
+  const crypto = require('crypto');
+  const root = path.join(__dirname, '..');
+
+  const HTML = [
+    'index.html', 'loyiha-panel.html', 'offline.html', 'admin/index.html',
+    'telegram-app/index.html', 'telegram-app/offline.html',
+  ];
+
+  // Kalit — FAYL, sahifa emas. Sabab: bitta fayl bir necha sahifadan
+  // chaqirilishi mumkin va o'shanda versiya HAMMA joyda bir xil bo'lishi
+  // SHART. 2026-08-06 da aynan shu buzilgani topildi: `admin/index.html`
+  // ildizdagi `style.css` ni `?v=21` bilan chaqirardi, `index.html` esa
+  // AYNI faylni `?v=36` bilan — ya'ni admin panel 15 versiya orqada
+  // qotib qolgan keshni cheksiz ushlab turardi.
+  const KUTILGAN = {
+    'style.css': { v: 36, hash: 'c4e8e763789f' },
+    'script.js': { v: 27, hash: 'b729d38501fe' },
+    'pwa.js': { v: 2, hash: 'f46683d58662' },
+    'panel.js': { v: 2, hash: '19202dfec91a' },
+    'admin/admin.css': { v: 17, hash: 'dbefeb6757ff' },
+    'admin/admin.js': { v: 20, hash: 'ff157289e9d0' },
+    'telegram-app/styles.css': { v: 17, hash: 'c741190115b1' },
+    'telegram-app/app.js': { v: 62, hash: 'faf54650c9d6' },
+    'telegram-app/pwa.js': { v: 6, hash: '798ab85e1cde' },
+  };
+
+  const YORDAM = '\n→ Faylni o\'zgartirgan bo\'lsangiz: (1) uni chaqiradigan HAMMA ' +
+    'HTML da `?v=` ni oshiring, (2) shu jadvaldagi `v` va `hash` ni yangilang.\n' +
+    '→ Hash: `shasum -a 256 <fayl> | cut -c1-12`';
+
+  const korilgan = new Set();
+  for (const h of HTML) {
+    const src = fs.readFileSync(path.join(root, h), 'utf8');
+    for (const m of src.matchAll(/(?:src|href)="([^"]+?)\?v=(\d+)"/g)) {
+      const [, ref, ver] = m;
+      if (/^(https?:)?\/\//.test(ref)) continue;
+      const rel = path.posix.normalize(path.posix.join(path.posix.dirname(h), ref));
+      korilgan.add(rel);
+
+      const kutilgan = KUTILGAN[rel];
+      assert.ok(kutilgan,
+        `\`${h}\` da versiyalangan yangi fayl bor: \`${rel}?v=${ver}\` — ` +
+        `uni KUTILGAN jadvaliga qo'shing.${YORDAM}`);
+
+      assert.strictEqual(Number(ver), kutilgan.v,
+        `\`${h}\` \`${rel}\` ni \`?v=${ver}\` bilan chaqiryapti, jadvalda esa ` +
+        `\`v=${kutilgan.v}\`. Bitta fayl hamma sahifada BIR XIL versiya bilan ` +
+        `chaqirilsin — aks holda bir sahifa eskirgan keshda qotib qoladi.${YORDAM}`);
+    }
+  }
+
+  for (const [rel, { v, hash }] of Object.entries(KUTILGAN)) {
+    assert.ok(korilgan.has(rel),
+      `KUTILGAN jadvalidagi \`${rel}\` hech qaysi HTML da chaqirilmayapti — ` +
+      'havola o\'chgan yoki nomi o\'zgargan bo\'lsa jadvaldan ham olib tashlansin.');
+
+    const bor = crypto.createHash('sha256')
+      .update(fs.readFileSync(path.join(root, rel))).digest('hex').slice(0, 12);
+    assert.strictEqual(bor, hash,
+      `\`${rel}\` O'ZGARGAN (hash ${hash} → ${bor}), lekin kesh versiyasi ` +
+      `hamon \`?v=${v}\`. Qaytib kelgan foydalanuvchi ESKI faylni keshdan oladi: ` +
+      'yangi HTML + eski JS birikmasi tugmani JIMGINA o\'ldirishi mumkin ' +
+      `(2026-08-06 da admin panelda aynan shunga oz qolgandi).${YORDAM}`);
+  }
+
+  console.log(`✅ Test 16: Kesh versiyalari fayl bilan mos — PASS ` +
+    `(${Object.keys(KUTILGAN).length} ta versiyalangan fayl, ${HTML.length} ta sahifa)`);
 }
 
 // ============ TEST 14: Kesh mahsulot MATNI bo'yicha eskiradi ============
@@ -1264,6 +1348,7 @@ async function runTests() {
     testStatusGuardsSurviveCte();
     testSelfCheck();
     testNoInlineFrontendCode();
+    testAssetVersionsAreFresh();
     testSourceHash();
     testParseIdeas();
     await testAiQuotaAtomic();

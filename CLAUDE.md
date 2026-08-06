@@ -126,6 +126,31 @@
   chunki uning ortida hech narsa yo'q. Qorovul Test 2c bilan qulflangan.
   Bu `NULL` reyting va tarix qoidalari bilan bitta oilada: **jimgina yolg'on
   yo'qlikdan yomonroq** — yo'qlik ko'rinadi, yolg'on esa ko'rinmaydi.
+- **Statik fayl o'zgarsa `?v=` HAM oshadi** (2026-08-06). `script.js`, `app.js`,
+  `style.css` kabi versiyalangan fayl tahrirlansa, uni chaqiradigan **HAMMA**
+  HTML da `?v=` raqami ko'tarilishi shart. Sabab: brauzer keshining kaliti —
+  to'liq URL, ya'ni raqam o'zgarmasa qaytib kelgan foydalanuvchida **yangi HTML
+  + eski JS** birikmasi hosil bo'ladi. Bu kosmetik emas: 2026-08-06 da admin
+  panelda `index.html` inline `onclick` dan mahrum bo'lgan holda `admin.js`
+  keshda eski versiyada qolardi va **kirish tugmasi butunlay o'lik** bo'lardi.
+  ⚠️ **Bitta fayl hamma sahifada BIR XIL versiya bilan chaqirilsin.** Xuddi shu
+  kuni topilgan holat: `admin/index.html` ildizdagi `style.css` ni `?v=21` bilan
+  chaqirardi, `index.html` esa AYNI faylni `?v=36` bilan — ya'ni admin panel
+  15 versiya orqadagi keshni cheksiz ushlab turardi va buni hech narsa
+  ko'rsatmasdi.
+  **Istisno — service worker `PRECACHE` ro'yxatidagi fayllar** (`offline.js`):
+  ular ATAYLAB `?v=` siz yuradi, chunki `sw.js` keshdan `ignoreSearch`siz
+  qidiradi va versiya qo'shilsa so'rov keshdagi yozuvga mos kelmay qolardi.
+  U yerda eskirish `CACHE_VERSION` orqali boshqariladi — u ham har deploy'da
+  oshiriladi.
+  **Qorovul: `server/test.js` → Test 16.** HTML larni O'ZI skanerlaydi (ro'yxat
+  qo'lda yozilmaydi), har bir versiyalangan faylning `sha256` ini jadvaldagi
+  qiymat bilan solishtiradi. Fayl o'zgarib versiya qolsa test QIZIL bo'ladi va
+  nima qilish kerakligini aytadi. Yangi versiyalangan fayl qo'shilsa u ham
+  avtomatik qamraladi. Bu qoida `console.error` va inline hodisa qoidalari
+  bilan bitta oilada: **yozilgan qoida himoya emas — uni tekshiradigan test
+  himoya**, va aynan bu qoida 2026-08-06 gacha faqat odat bo'lgani uchun
+  buzilgan edi.
 - **Frontendda `window.addEventListener('load', ...)` ishlatilmasin** (2026-07-31,
   ikki marta kuyganimizdan keyin). `load` BARCHA rasm va shrift yuklanib bo'lgandan
   keyin otiladi — sekin tarmoqda bu soniyalar. Ikki marta zarar keltirdi:
@@ -166,16 +191,20 @@ LolaMarket — O'zbekistonda to'qima materiallar uchun B2B web platforma.
 ```
 1-dars/
 ├── index.html, style.css, script.js  — landing (lolamarket.uz), Mini App dizayn tizimida
-├── sayt-eski/                         — eski landing zaxirasi; ⚠️ o'chirilmasin —
-│                                        demo/ va admin/ uning style.css'iga bog'liq
 ├── telegram-app/                      — Telegram Mini App (serverda `mini-app/`)
-├── demo/                              — katalog demo (eski stilda)
-├── admin/                             — admin panel (eski stilda)
+├── admin/                             — admin panel; ILDIZDAGI style.css + admin.css
 ├── docs/
 │   ├── prd.md                         — Founder PRD
 │   ├── prd-lolamarket.md              — Texnik PRD
 │   └── sprintlar/sprint-0..9.md      — Sprint fayllar
 ├── lolamarket-next/                   — Next.js loyihasi (alohida repo)
+│
+│   ⚠️ 2026-08-06 da `sayt-eski/` va `demo/` OLIB TASHLANDI. Bu yerda ilgari
+│   "sayt-eski/ o'chirilmasin — demo/ va admin/ uning style.css'iga bog'liq"
+│   deb yozilgandi va TEKSHIRILGANDA YOLG'ON bo'lib chiqdi: `demo/` repoda
+│   allaqachon yo'q edi, `admin/` esa ildizdagi `style.css` ni ishlatadi.
+│   Ya'ni papkani saqlab turgan sabab hech qachon tekshirilmagan da'vo edi.
+│   Eski sayt git tarixida qoladi (`git show 99fd084:sayt-eski/index.html`).
 ├── loyiha-panel.html                  — Sprint progress paneli
 └── Photo/                             — Rasmlar
 ```

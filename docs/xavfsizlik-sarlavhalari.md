@@ -312,12 +312,25 @@ o'zgartirish) — beshtasida ham qizil bo'ldi.
 Istisnolar ro'yxati **AYNAN** solishtiriladi: istisno yo'qolsa ham test qizil
 bo'ladi, ya'ni eski sayt tozalangan kuni ro'yxatni yangilash esdan chiqmaydi.
 
-### ⚠️ Bilib qilingan tanlov — `sayt-eski/index.html:69`
+### Istisno QOLMADI — `sayt-eski/` o'chirildi
 
-`onsubmit="handleSubmit(event)"` ATAYLAB tegilmadi (founder qarori 2026-08-06:
-"kerakmas, unut"). CSP butun domen bo'ylab ishlaydi, ya'ni C3 dan keyin o'sha
-formadagi email tugmasi **jimgina o'ladi**. Eski sayt ishlatilmaydi —
-`sayt-eski/` faqat `style.css` uchun turibdi (`admin/` unga bog'liq).
+Dastlab bitta istisno bor edi: `sayt-eski/index.html:69` dagi
+`onsubmit="handleSubmit(event)"` — founder qarori bilan tegilmagan
+("kerakmas, unut"), ya'ni C3 dan keyin o'sha formadagi email tugmasi jimgina
+o'lishi qabul qilingan edi.
+
+**O'sha kuni founder butun papkani o'chirtirdi** va istisno o'z-o'zidan
+yopildi. Papkani saqlab turgan sabab tekshirilganda YOLG'ON bo'lib chiqdi:
+CLAUDE.md "demo/ va admin/ uning style.css'iga bog'liq" derdi, aslida `demo/`
+repoda umuman yo'q edi va `admin/` ildizdagi `style.css` ni ishlatadi
+(`admin/index.html:13` → `../style.css`).
+
+Natija: Test 15 ning istisnolar ro'yxati **BO'SH** — deploy qilinadigan kodda
+inline hodisa, inline `<script>` va `javascript:` URL **umuman qolmadi**.
+
+⚠️ **Serverdagi `/var/www/lolamarket/sayt-eski/` rsync bilan O'CHMAYDI.**
+Repodan olib tashlash uni `https://lolamarket.uz/sayt-eski/` manzilidan
+yo'qotmaydi — papka qo'lda olib tashlanishi kerak.
 
 ### Yo'l-yo'lakay topilgan alohida nuqson
 
