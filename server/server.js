@@ -34,6 +34,7 @@ const {
 const {
   handleCreateReview, handleGetReviews, handleSellerReviews,
 } = require('./routes/reviews');
+const { handleAiIdeas } = require('./routes/ai');
 const { handleTelegramWebhook } = require('./routes/webhook');
 
 
@@ -162,6 +163,16 @@ function routeRequest(req, res) {
     if (req.method === 'GET') return handleGetReviews(req, res, ip);
     if (req.method === 'POST') return handleCreateReview(req, res, ip);
     return fail(res, 'method not allowed', 405);
+  }
+
+  // AI kiyim g'oyalari (Sprint 10). POST — chunki generatsiya YOZUV amali
+  // (kesh va kunlik limit yoziladi), GET esa keshlanadigan o'qish deb
+  // tushunilardi va Cloudflare uni jimgina keshlab qo'yishi mumkin edi.
+  if (path === '/api/ai/ideas') {
+    cors(res, 'POST, OPTIONS');
+    if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
+    if (req.method !== 'POST') return fail(res, 'method not allowed', 405);
+    return handleAiIdeas(req, res, ip);
   }
 
   if (path === '/api/orders') {

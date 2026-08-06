@@ -1,7 +1,7 @@
 const https = require('https');
 const crypto = require('crypto');
 const { pool } = require('../db');
-const { BOT_TOKEN, ADMIN_PANEL_TOKEN } = require('../config');
+const { BOT_TOKEN, ADMIN_PANEL_TOKEN, AI_ENABLED } = require('../config');
 const { verifyInitData, authUser, isAdmin, currentSeller } = require('../lib/auth');
 const { escapeHtml, money, safeEqual } = require('../lib/format');
 const { validate } = require('../lib/validate');
@@ -29,7 +29,12 @@ async function handleAuthTelegram(req, res, ip) {
        RETURNING id, tg_user_id, full_name, role, created_at`,
       [String(tgUser.id), fullName]
     );
-    sendJson(res, 200, { ok: true, user: rows[0] });
+    // `aiEnabled` — AI tugmasi chizilsinmi. Kalit yaroqsiz bo'lsa (config.js
+    // qorovuli) frontend tugmani UMUMAN ko'rsatmaydi: bosilgach "xato" chiqadigan
+    // tugma sozlama buzilganini yashirardi (Sprint 10, 9-qaror).
+    // ⚠️ Bu KO'RINISH belgisi, himoya EMAS — endpointning o'zi ham mustaqil
+    // tekshiradi (tugmani yashirish hech qachon yagona qorovul bo'lmaydi).
+    sendJson(res, 200, { ok: true, user: rows[0], aiEnabled: AI_ENABLED });
   } catch (e) {
     console.error('auth xatosi:', e.message);
     fail(res, 'server error', 500);

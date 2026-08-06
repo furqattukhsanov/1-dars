@@ -73,6 +73,16 @@ const STR = {
     day: "kun", addCart: "Savatga qo'shish", order: "Buyurtma berish", specs: "Tafsilotlar", width: "Eni", weight: "Zichlik",
     comp: "Tarkibi", leadTime: "Yetkazish muddati", minOrder: "Minimal buyurtma (MOQ)", supplierL: "Yetkazib beruvchi",
     verified: "Tasdiqlangan", reviews: "sharh", message: "Xabar yuborish", qty: "Miqdor", cart: "Savat", cartEmpty: "Savat bo'sh",
+    // — AI kiyim g'oyalari (Sprint 10) —
+    // ⚠️ G'oyalarning O'ZI faqat o'zbekcha (7-qaror) — ruscha keyingi sprintga.
+    // Bu yerdagi kalitlar faqat ramka (tugma, holat, xato) uchun.
+    aiT: "AI g'oyalari", aiBtn: "AI bilan g'oya olish",
+    aiSub: "Bu matodan nima tikish mumkin?",
+    aiLoading: "AI o'ylayapti…", aiRetry: "Qayta urinish",
+    aiErr: "Hozir generatsiya qilib bo'lmadi, birozdan keyin urinib ko'ring",
+    aiLimit: "Bugungi {n} ta g'oya tugadi. Ertaga 00:00 da yangilanadi.",
+    aiSarf: "Sarfi", aiNeed: "Qo'shimcha kerak bo'ladi",
+    aiNote: "AI yozgan — sarf taxminiy, kesishdan oldin o'lchab tasdiqlang",
     // — Sharhlar —
     reviewsT: "Sharhlar", noReviews: "Hali sharh yo'q", noReviewsSub: "Birinchi sharhni siz yozishingiz mumkin",
     rateIt: "Baholash", rated: "Baholandi", revTitle: "Matoni baholang",
@@ -151,6 +161,15 @@ const STR = {
     day: "дн.", addCart: "В корзину", order: "Оформить заказ", specs: "Характеристики", width: "Ширина", weight: "Плотность",
     comp: "Состав", leadTime: "Срок поставки", minOrder: "Мин. заказ (MOQ)", supplierL: "Поставщик",
     verified: "Проверен", reviews: "отзыв.", message: "Написать", qty: "Количество", cart: "Корзина", cartEmpty: "Корзина пуста",
+    // — AI-идеи (Sprint 10) —
+    // Сами идеи пока только на узбекском (решение 7) — об этом говорит aiNote.
+    aiT: "AI-идеи", aiBtn: "Получить идеи с AI",
+    aiSub: "Что можно сшить из этой ткани?",
+    aiLoading: "AI думает…", aiRetry: "Повторить",
+    aiErr: "Сейчас не удалось сгенерировать, попробуйте чуть позже",
+    aiLimit: "Сегодняшние {n} идей закончились. Обновится завтра в 00:00.",
+    aiSarf: "Расход", aiNeed: "Дополнительно понадобится",
+    aiNote: "Написано AI, пока на узбекском — расход примерный, перепроверьте замером",
     // — Отзывы —
     reviewsT: "Отзывы", noReviews: "Отзывов пока нет", noReviewsSub: "Вы можете оставить первый отзыв",
     rateIt: "Оценить", rated: "Оценено", revTitle: "Оцените ткань",
@@ -394,6 +413,14 @@ const S = {
   btsSheet: false,
   btsQuery: '',
   ordersTab: 'active',
+  // — AI kiyim g'oyalari (Sprint 10) —
+  // Serverdan keladi (`/api/auth/telegram` javobi): kalit yaroqsiz bo'lsa
+  // tugma UMUMAN chizilmaydi. Boshlang'ich qiymat `false` — javob kelmaguncha
+  // tugma ko'rinmaydi, ya'ni bosilib xato beradigan tugma bo'lmaydi.
+  aiEnabled: false,
+  // productId -> { state: 'loading' | 'done' | 'error' | 'limit', ideas, limit }
+  // Kalit YO'Q bo'lsa — hali so'ralmagan (boshlang'ich holat).
+  aiIdeas: {},
   // — Bahsli holatlar (xaridor tomoni) —
   disputes: [],          // /api/disputes dan — o'z bahslari
   dispSheet: null,       // ochiq sheet: { orderId }
@@ -993,6 +1020,8 @@ function renderDetail() {
         </div>
       </div>
 
+      ${aiSection(p.id)}
+
       ${reviewsSection(p.id)}
 
     </div>
@@ -1002,6 +1031,150 @@ function renderDetail() {
 // ============ SHARHLAR (mahsulot sahifasidagi bo'lim) ============
 function starsRow(n, size = 13) {
   return `<span style="letter-spacing:1px;font-size:${size}px;color:#EFA91F;line-height:1">${'★'.repeat(n)}<span style="color:var(--ink-200)">${'☆'.repeat(5 - n)}</span></span>`;
+}
+
+// ============ AI KIYIM G'OYALARI (Sprint 10) ============
+// Joyi: tarkib/xususiyatlar ostida, sharhlardan tepada (11-qaror) — xaridor
+// mato tavsifini o'qib bo'lgan payt aynan "bundan nima tikilardi?" savoli
+// tug'iladigan payt.
+//
+// ⚠️ AVTOMATIK YUKLASH ATAYLAB QILINMADI. Vasvasa: sahifa ochilishi bilan
+// keshdagi g'oyalarni ko'rsatish ("keyingi hamma darrov ko'radi"). Lekin
+// endpoint kesh bo'lmaganda GENERATSIYA qiladi, ya'ni katalogni kezib yurgan
+// foydalanuvchi kunlik limitini o'zi bilmagan holda yeb qo'yardi — har ochilgan
+// yangi mato bitta birlik. Shuning uchun kirish nuqtasi — TUGMA. Keshdagi
+// natija baribir "darrov" chiqadi (generatsiya kutilmaydi), farqi bitta bosish.
+//
+// ⚠️ Bu yerdagi HAR BIR maydon `esc()` dan o'tadi. AI matni `vm()` chegarasidan
+// O'TMAYDI (u faqat mahsulot maydonlari uchun), ya'ni CLAUDE.md qoidasi bo'yicha
+// tozalash CHIZISH joyida bo'lishi shart.
+function aiIdeaCard(it) {
+  const T = STR[S.lang];
+  const recs = Array.isArray(it.tavsiyalar) ? it.tavsiyalar : [];
+  return `
+  <div style="padding:13px 14px;border:1px solid var(--border-hair);border-radius:var(--radius-md);background:var(--glass-fill)">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:9px">
+      <div style="font-size:14px;font-weight:700;color:var(--text-strong);line-height:1.3">${esc(it.nom)}</div>
+      <span style="flex:none;display:inline-flex;align-items:center;height:22px;padding:0 9px;border-radius:999px;font-size:11px;font-weight:700;background:var(--ink-100);color:var(--ink-500)">${esc(it.qiyinlik)}</span>
+    </div>
+    <div style="font-size:13px;color:var(--text-body);line-height:1.5;margin-top:6px">${esc(it.izoh)}</div>
+    <div style="font-size:12px;color:var(--text-muted);margin-top:7px">${T.aiSarf}: <span style="font-family:var(--font-mono);font-weight:600;color:var(--text-body)">${esc(it.sarf)}</span></div>
+    ${recs.length === 0 ? '' : `
+    <div style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--border-hair)">
+      <div style="font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--text-subtle);margin-bottom:7px">${T.aiNeed}</div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        ${recs.map(r => `
+        <div data-action="openProduct" data-arg="${esc(r.id)}" style="display:flex;align-items:center;gap:9px;cursor:pointer;padding:7px 9px;border-radius:var(--radius-sm);background:rgba(255,255,255,.6);border:1px solid var(--border-hair)">
+          <span style="flex:1;min-width:0;font-size:12.5px;font-weight:600;color:var(--text-strong);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.name)}</span>
+          <span style="flex:none;font-family:var(--font-mono);font-size:12px;color:var(--text-body)">${money(r.price)}</span>
+        </div>`).join('')}
+      </div>
+    </div>`}
+  </div>`;
+}
+
+function aiSection(productId) {
+  const T = STR[S.lang];
+  // Sozlama yaroqsiz bo'lsa server `aiEnabled:false` qaytaradi va bo'lim
+  // UMUMAN chizilmaydi — bosilgach xato beradigan tugma sozlama buzilganini
+  // yashirardi (9-qaror).
+  if (!S.aiEnabled) return '';
+
+  const st = S.aiIdeas[productId];
+  const head = `<div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#7a140d;margin-bottom:10px">${T.aiT}</div>`;
+
+  // Holat 1 — hali so'ralmagan
+  if (!st) {
+    return `<div>${head}
+      <button data-action="askAi" data-arg="${esc(productId)}" style="width:100%;display:flex;align-items:center;gap:11px;text-align:left;cursor:pointer;padding:14px 15px;border-radius:var(--radius-md);border:1.5px dashed #7a140d;background:rgba(255,255,255,.5)">
+        <span style="flex:none;width:34px;height:34px;border-radius:10px;background:linear-gradient(150deg,#8f1a10,#510100);color:#ffe9db;display:flex;align-items:center;justify-content:center;font-size:16px">✦</span>
+        <span style="flex:1;min-width:0">
+          <span style="display:block;font-size:13.5px;font-weight:700;color:var(--text-strong)">${T.aiBtn}</span>
+          <span style="display:block;font-size:12px;color:var(--text-muted);margin-top:2px">${T.aiSub}</span>
+        </span>
+      </button>
+    </div>`;
+  }
+
+  // Holat 2 — yuklanmoqda
+  if (st.state === 'loading') {
+    return `<div>${head}
+      <div style="display:flex;align-items:center;gap:10px;padding:16px 15px;border:1px solid var(--border-hair);border-radius:var(--radius-md);background:var(--glass-fill)">
+        <span style="flex:none;width:16px;height:16px;border-radius:50%;border:2px solid var(--ink-200);border-top-color:#7a140d;animation:spin .8s linear infinite"></span>
+        <span style="font-size:13px;color:var(--text-body)">${T.aiLoading}</span>
+      </div>
+    </div>`;
+  }
+
+  // Holat 3 — limit tugadi. Foydalanuvchi QACHON qaytishini ham biladi:
+  // shunchaki "limit tugadi" deyish uni nima qilishni bilmay qoldirardi.
+  if (st.state === 'limit') {
+    return `<div>${head}
+      <div style="padding:14px 15px;border:1px solid var(--saffron-500);border-radius:var(--radius-md);background:var(--saffron-50)">
+        <div style="font-size:13px;color:var(--text-body);line-height:1.5">${esc(T.aiLimit.replace('{n}', st.limit))}</div>
+      </div>
+    </div>`;
+  }
+
+  // Holat 4 — texnik xato. Tugma QAYTA FAOLLASHADI.
+  // ⚠️ Zaxira sifatida qo'lda yozilgan "umumiy g'oyalar" ATAYLAB
+  // ko'rsatilmaydi: u AI ishlamayotganini yashirardi va bu loyihaning
+  // "jimgina yolg'on yo'qlikdan yomonroq" darsining aynan takrori bo'lardi.
+  if (st.state === 'error') {
+    return `<div>${head}
+      <div style="padding:14px 15px;border:1px solid var(--danger-500);border-radius:var(--radius-md);background:var(--danger-100)">
+        <div style="font-size:13px;color:var(--text-body);line-height:1.5">${T.aiErr}</div>
+        <button data-action="askAi" data-arg="${esc(productId)}" style="margin-top:10px;height:34px;padding:0 15px;border-radius:var(--radius-sm);border:1px solid #7a140d;background:transparent;font-size:12.5px;font-weight:600;color:#7a140d;cursor:pointer">${T.aiRetry}</button>
+      </div>
+    </div>`;
+  }
+
+  // Holat 5 — natija
+  return `<div>${head}
+    <div style="display:flex;flex-direction:column;gap:9px">
+      ${st.ideas.map(aiIdeaCard).join('')}
+    </div>
+    <div style="font-size:11.5px;color:var(--text-subtle);margin-top:9px;line-height:1.45">${T.aiNote}</div>
+  </div>`;
+}
+
+// Tugma bosilganda. Kimlik header'dagi imzolangan initData'dan — mahsulot
+// id'sidan boshqa hech narsa yuborilmaydi (CLAUDE.md: `tg_user_id` klientdan
+// olinmaydi).
+async function askAi(productId) {
+  const id = String(productId);
+  const initData = tgInitData();
+  if (!initData) { S.aiIdeas[id] = { state: 'error' }; repaintDetail(id); return; }
+
+  S.aiIdeas[id] = { state: 'loading' };
+  repaintDetail(id);
+
+  try {
+    const r = await fetch('/api/ai/ideas', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Telegram-Init-Data': initData },
+      body: JSON.stringify({ productId: id }),
+    });
+    const j = await r.json().catch(() => null);
+    if (r.status === 429 && j && j.error === 'limit') {
+      S.aiIdeas[id] = { state: 'limit', limit: j.limit };
+    } else if (j && j.ok && j.data && Array.isArray(j.data.ideas) && j.data.ideas.length) {
+      S.aiIdeas[id] = { state: 'done', ideas: j.data.ideas };
+    } else {
+      S.aiIdeas[id] = { state: 'error' };
+    }
+  } catch (e) {
+    S.aiIdeas[id] = { state: 'error' };
+  }
+  repaintDetail(id);
+}
+
+// Detal ekranini qayta chizish — `loadProductReviews` dagi bilan bir xil
+// naqsh. Foydalanuvchi boshqa ekranga o'tib ketgan bo'lsa hech narsa qilmaydi.
+function repaintDetail(productId) {
+  if (S.screen !== 'detail' || S.selectedId !== productId) return;
+  const w = document.getElementById('screen-wrap');
+  if (w) w.innerHTML = renderDetail();
 }
 
 function reviewsSection(productId) {
@@ -2226,7 +2399,15 @@ async function loginTelegram() {
       body: JSON.stringify({ initData }),
     });
     const d = await r.json().catch(() => null);
-    if (d && d.ok) S.authUser = d.user;
+    if (d && d.ok) {
+      S.authUser = d.user;
+      // AI tugmasi chizilsinmi — qaror SERVERDA (config.js qorovuli).
+      // Javob kelmasa `false` bo'lib qoladi, ya'ni tugma ko'rinmaydi.
+      S.aiEnabled = !!d.aiEnabled;
+      // Javob kech kelsa foydalanuvchi allaqachon mahsulot sahifasida
+      // bo'lishi mumkin — o'shanda tugma o'zi paydo bo'lsin.
+      repaintDetail(S.selectedId);
+    }
   } catch (e) {}
 }
 

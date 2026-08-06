@@ -408,6 +408,13 @@ body {
   from { transform: translateY(100%); }
   to   { transform: translateY(0); }
 }
+/* AI g'oyalari yuklanayotganda aylanadigan halqa (app.js -> aiSection).
+   ⚠️ Bu animatsiya app.js dagi `animation: spin ...` ga BOG'LIQ — nomi
+   o'zgartirilsa halqa jimgina qotib qoladi (xato bermaydi, shunchaki
+   aylanmaydi), shuning uchun nom shu ikki joyda birga o'zgarsin. */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
 
 /* ===== TOAST ===== */
 .toast {

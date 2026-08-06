@@ -103,6 +103,69 @@ function chatId(raw, name, fallback) {
 // ko'mib yubormasin.
 const ALERT_CHAT_ID = chatId(process.env.ALERT_CHAT_ID, 'ALERT_CHAT_ID', ADMIN_CHAT_ID);
 
+// ============ AI G'OYALARI (Sprint 10) ============
+// `chatId()` bilan AYNI mulohaza: qiymatning BO'SH EMASLIGI uni haqiqiy
+// qilmaydi. `.env` da `AI_API_KEY=<key>` namunasi qolib ketsa, `||` uni
+// haqiqiy kalit deb qabul qiladi va funksiya jimgina o'lik turaverardi —
+// aynan `ALERT_CHAT_ID` bilan 2026-08-05 da bo'lgani kabi (u yerda xato
+// monitoringi ikki kun o'lik turdi va buni HECH NARSA ko'rsatmadi).
+//
+// ⚠️ FARQI `ADMIN_CHAT_ID` DAN: bu yerda `process.exit(1)` QILINMAYDI.
+// AI — ixtiyoriy funksiya; kalitsiz sayt, buyurtma va bot to'liq ishlayveradi.
+// Sozlama yaroqsiz bo'lsa funksiya O'CHADI (tugma umuman chizilmaydi) va
+// jurnalda qichqiriladi. To'xtash faqat ortida zaxira qolmagan sozlama uchun.
+
+// Provayder ro'yxati SHU YERDA tug'iladi va boshqa joyda takrorlanmaydi —
+// `server/lib/ai.js` shu ro'yxatga qarab yo'l tanlaydi (db/014 darsi: bir xil
+// ro'yxat ikki joyda yashasa, ikkinchisini yangilash unutiladi).
+const AI_PROVIDERS = new Set(['gemini', 'openai']);
+
+// Kalit shakli. Aniq formatga (masalan `AIza…` yoki `sk-…`) BOG'LANMAYDI:
+// provayderlar prefikslarini o'zgartiradi va o'shanda haqiqiy kalit rad
+// etilardi. Tekshiriladigani — namuna qolib ketganini ochib beradigan
+// belgilar: burchak qavslar, bo'sh joy, va aql bovar qilmas qisqalik.
+function aiKey(raw) {
+  const v = String(raw || '').trim();
+  if (!v) return '';
+  if (/[<>]/.test(v) || /\s/.test(v) || v.length < 20) {
+    // Birinchi argument — alert guruhlash kaliti, o'zgaruvchan qism ikkinchida.
+    // ⚠️ KALITNING O'ZI hech qachon jurnalga yozilmaydi — faqat uzunligi.
+    console.error('AI_API_KEY yaroqsiz, AI funksiyasi o\'chirildi:', `uzunlik=${v.length}`);
+    return '';
+  }
+  return v;
+}
+
+const AI_PROVIDER = (() => {
+  const v = String(process.env.AI_PROVIDER || '').trim().toLowerCase();
+  if (!v) return '';
+  if (AI_PROVIDERS.has(v)) return v;
+  console.error('AI_PROVIDER noma\'lum, AI funksiyasi o\'chirildi:', v);
+  return '';
+})();
+
+const AI_API_KEY = aiKey(process.env.AI_API_KEY);
+
+// Model nomi provayderga qarab zaxiraga tushadi. Sprint 10 qarori bo'yicha
+// haqiqatan SINALADIGAN provayder — Gemini Flash.
+const AI_MODEL = String(process.env.AI_MODEL || '').trim()
+  || (AI_PROVIDER === 'openai' ? 'gpt-5-mini' : 'gemini-flash-latest');
+
+// Funksiya YOQILGANMI — chaqiruvchi kod faqat shu bayroqqa qaraydi, sozlama
+// tafsilotini bilmaydi. Frontend tugmani shu qiymatga qarab chizadi.
+const AI_ENABLED = !!(AI_PROVIDER && AI_API_KEY);
+if (!AI_ENABLED) {
+  console.error('AI funksiyasi o\'chiq — sozlama to\'liq emas:',
+    `provider=${AI_PROVIDER || 'yo\'q'} key=${AI_API_KEY ? 'bor' : 'yo\'q'}`);
+}
+
+// Ro'yxatdan o'tgan foydalanuvchiga kuniga nechta YANGI generatsiya
+// (keshdan o'qish limitga TEGMAYDI — Sprint 10, 4-qaror).
+const AI_DAILY_LIMIT = (() => {
+  const v = Number(process.env.AI_DAILY_LIMIT);
+  return Number.isInteger(v) && v > 0 ? v : 10;
+})();
+
 // Moderatsiya ruxsati bor Telegram ID'lari (vergul bilan ajratilgan).
 // Berilmasa — ADMIN_CHAT_ID (admin shaxsiy chati = uning Telegram user id'si).
 const ADMIN_TG_IDS = new Set(
@@ -130,5 +193,6 @@ module.exports = {
   PORT, BOT_TOKEN, ADMIN_CHAT_ID, ALLOWED_ORIGIN, WEBHOOK_SECRET,
   MINI_APP_URL, BOT_USERNAME, CONTACTS_FILE, GIT_SHA, ALERT_CHAT_ID,
   ADMIN_PANEL_TOKEN, PREPAY_RATE, COMMISSION_RATE, ADMIN_TG_IDS, DELIVERY_FEE_ESTIMATE,
-  chatId,
+  AI_PROVIDERS, AI_PROVIDER, AI_API_KEY, AI_MODEL, AI_ENABLED, AI_DAILY_LIMIT,
+  chatId, aiKey,
 };

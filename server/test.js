@@ -965,6 +965,186 @@ function testSelfCheck() {
     `(${REQUIRED.length} ta fayl kuzatiladi)`);
 }
 
+// ============ TEST 14: Kesh mahsulot MATNI bo'yicha eskiradi ============
+// Sprint 10, 3-qaror. Xavf konkret: mato tarkibi tahrirlansa (masalan
+// "100% ipak" → "70% ipak, 30% paxta"), eski tarkibga qarab yozilgan g'oyalar
+// sahifada QOLIB KETARDI va buni hech kim sezmasdi — reyting `NULL` va
+// `ALERT_CHAT_ID` bilan bitta oiladagi JIMGINA YOLG'ON.
+function testSourceHash() {
+  const { sourceHash } = require('./lib/ai');
+
+  const asl = { name_uz: 'Ipak ikat', comp_uz: '100% ipak', cat_key: 'silk', width: '0.9 m', weight: '90 g/m²' };
+  const h = sourceHash(asl);
+
+  // Bir xil kirish — bir xil hash (kesh keraksiz yerda buzilmasin)
+  assert.strictEqual(sourceHash({ ...asl }), h, 'bir xil mato bir xil hash berishi kerak');
+
+  // HAR BIR maydon hashga ta'sir qilishi shart. Bittasi tushib qolsa,
+  // o'sha maydon tahrirlanganda kesh jimgina eskirmay qolardi.
+  for (const k of ['name_uz', 'comp_uz', 'cat_key', 'width', 'weight']) {
+    assert.notStrictEqual(sourceHash({ ...asl, [k]: 'boshqa' }), h,
+      `${k} o'zgarsa hash ham o'zgarishi kerak — aks holda eskirgan g'oya qolib ketadi`);
+  }
+
+  // `null` va bo'sh satr ATAYLAB bir xil: "tarkib yozilmagan" va "tarkib bo'sh"
+  // bir xil g'oya beradi, ya'ni ular orasida farq keshni buzishi shart emas.
+  assert.strictEqual(
+    sourceHash({ ...asl, comp_uz: null }),
+    sourceHash({ ...asl, comp_uz: '' }),
+    'null va bo\'sh satr bir xil qaralishi kerak'
+  );
+
+  // Maydon chegarasi surilib ketmasin: "a|b" va "a" + "|b" chalkashmasligi kerak
+  assert.notStrictEqual(
+    sourceHash({ ...asl, name_uz: 'A', comp_uz: 'B' }),
+    sourceHash({ ...asl, name_uz: 'A B', comp_uz: '' }),
+    'maydonlar chegarasi hashda saqlanishi kerak'
+  );
+
+  console.log('✅ Test 14: Kesh hash mahsulot matniga bog\'langan — PASS');
+}
+
+// ============ TEST 14b: AI javobi sxemasi ============
+// Sprint 10, 6-qaror: mos kelmasa javob RAD ETILADI (keshga yozilmaydi).
+// Bu tekshiruv bezak emas — Gemini'ning JSON rejimi bo'sh, ya'ni bu YAGONA
+// qorovul. Shu bilan birga 5-qaror: NOTANISH kategoriya jimgina tashlanadi,
+// butun javob rad etilMAYDI (bitta yomon tavsiya uchun uchta yaxshi g'oyani
+// yo'qotish foydalanuvchiga zarar).
+function testParseIdeas() {
+  const { parseIdeas, MIN_IDEAS, MAX_IDEAS } = require('./lib/ai');
+  const CATS = ['cotton', 'silk', 'linen'];
+
+  const yaxshi = (n) => Array.from({ length: n }, (_, i) => ({
+    nom: `G'oya ${i}`, izoh: 'izoh matni', sarf: '2.5 m',
+    qiyinlik: 'oson', kerakli_kategoriyalar: ['cotton'],
+  }));
+
+  // 1) To'g'ri javob o'tadi
+  const ok = parseIdeas(JSON.stringify(yaxshi(MIN_IDEAS)), CATS);
+  assert.strictEqual(ok.length, MIN_IDEAS);
+  assert.deepStrictEqual(ok[0].kerakli_kategoriyalar, ['cotton']);
+
+  // 2) Markdown ramkasi — MAZMUN emas, TRANSPORT artefakti. Uni ochish
+  //    "tuzatish" emas: modellar JSON rejimida ham ba'zan ramka qo'shadi.
+  const ramkali = '```json\n' + JSON.stringify(yaxshi(MIN_IDEAS)) + '\n```';
+  assert.strictEqual(parseIdeas(ramkali, CATS).length, MIN_IDEAS,
+    'markdown ramkasi ichidagi JSON o\'qilishi kerak');
+
+  // 3) Notanish kategoriya JIMGINA tushadi, javob esa BARIBIR chiqadi
+  const aralash = yaxshi(MIN_IDEAS);
+  aralash[0].kerakli_kategoriyalar = ['astar', 'cotton', 'tugma'];
+  const f = parseIdeas(JSON.stringify(aralash), CATS);
+  assert.deepStrictEqual(f[0].kerakli_kategoriyalar, ['cotton'],
+    'oq ro\'yxatda yo\'q kalit tashlanishi kerak');
+  assert.strictEqual(f.length, MIN_IDEAS, 'notanish kalit butun javobni rad etmasligi kerak');
+
+  // 4) Sxemaga mos kelmagan javoblar — HAMMASI rad etiladi
+  const yomon = [
+    ['JSON emas', 'salom dunyo'],
+    ['massiv emas', '{"nom":"x"}'],
+    ['juda kam', JSON.stringify(yaxshi(MIN_IDEAS - 1))],
+    ['juda ko\'p', JSON.stringify(yaxshi(MAX_IDEAS + 1))],
+    ['nom yo\'q', JSON.stringify(yaxshi(MIN_IDEAS).map((x, i) => (i ? x : { ...x, nom: '' })))],
+    ['izoh yo\'q', JSON.stringify(yaxshi(MIN_IDEAS).map((x, i) => (i ? x : { ...x, izoh: null })))],
+    ['sarf yo\'q', JSON.stringify(yaxshi(MIN_IDEAS).map((x, i) => (i ? x : { ...x, sarf: 42 })))],
+    ['qiyinlik notanish', JSON.stringify(yaxshi(MIN_IDEAS).map((x, i) => (i ? x : { ...x, qiyinlik: 'juda qiyin' })))],
+    ['g\'oya obyekt emas', JSON.stringify([...yaxshi(MIN_IDEAS - 1), 'satr'])],
+  ];
+  for (const [nom, kirish] of yomon) {
+    assert.throws(() => parseIdeas(kirish, CATS), undefined,
+      `sxemaga mos kelmagan javob rad etilishi kerak: ${nom}`);
+  }
+
+  // 5) Matn uzunligi chegarasi — cheksiz matn sahifani buzmasin
+  const uzun = yaxshi(MIN_IDEAS);
+  uzun[0].izoh = 'a'.repeat(401);
+  assert.throws(() => parseIdeas(JSON.stringify(uzun), CATS),
+    undefined, 'juda uzun izoh rad etilishi kerak');
+
+  console.log('✅ Test 14b: AI javobi sxemasi qat\'iy tekshiriladi — PASS');
+}
+
+// ============ TEST 14c: Kunlik limit ATOMIK ============
+// `decrementStock` bilan AYNI sabab (CLAUDE.md, zaxira qoidasi): tekshiruv va
+// oshirish alohida `SELECT` + `UPDATE` ga bo'linsa, bir vaqtda kelgan ikki
+// so'rov IKKALASI ham "hali limit tugamagan" deb o'qib o'tib ketardi.
+async function testAiQuotaAtomic() {
+  const fs = require('fs');
+  const path = require('path');
+  const src = fs.readFileSync(path.join(__dirname, 'routes', 'ai.js'), 'utf8');
+
+  // 1) Shakl: shart INSERT ... ON CONFLICT ning WHERE qismida bo'lsin
+  const m = src.match(/INSERT INTO ai_usage[\s\S]*?RETURNING used/);
+  assert.ok(m, 'limit INSERT ... ON CONFLICT ... RETURNING naqshida bo\'lishi kerak');
+  assert.ok(/ON CONFLICT[\s\S]*DO UPDATE SET used = ai_usage\.used \+ 1[\s\S]*WHERE ai_usage\.used < \$2/.test(m[0]),
+    'limit sharti DO UPDATE ning WHERE qismida bo\'lsin (atomik)');
+
+  // 2) Alohida o'qish BO'LMASIN — u qaytib kelsa poyga oynasi ochiladi
+  assert.ok(!/SELECT[^;]*FROM ai_usage/i.test(src),
+    'ai_usage dan alohida SELECT bo\'lmasin — tekshiruv va oshirish bitta gapda');
+
+  // 3) Kun MAHALLIY mintaqada — UTC bo'lsa limit Toshkent vaqti bilan 05:00 da
+  //    yangilanardi, foydalanuvchiga esa "ertaga 00:00 da" deyilardi (jimgina yolg'on)
+  assert.ok(/now\(\) AT TIME ZONE 'Asia\/Tashkent'/.test(src),
+    'kun mahalliy mintaqada hisoblanishi kerak — xabar "00:00" deydi');
+
+  // 4) XATTI-HARAKAT: baza qoidasini taqlid qilib, limit haqiqatan to'xtatadimi
+  const { takeQuota } = require('./routes/ai');
+  const { pool } = require('./db');
+  const asl = pool.query;
+  let used = 0;
+  const LIMIT = Number(process.env.AI_DAILY_LIMIT) || 10;
+  pool.query = async (sql, params) => {
+    // Postgres bitta gapda: shart bajarilsa oshiradi va qator qaytaradi
+    if (used < params[1]) { used += 1; return { rows: [{ used }] }; }
+    return { rows: [] };
+  };
+  try {
+    let berildi = 0;
+    // Parallel so'rovlar — bittasi ham chegaradan o'tib ketmasligi kerak
+    const urinishlar = await Promise.all(
+      Array.from({ length: LIMIT + 5 }, () => takeQuota('777'))
+    );
+    for (const r of urinishlar) if (r) berildi += 1;
+    assert.strictEqual(berildi, LIMIT,
+      `limitdan ortiq generatsiya berilmasligi kerak (berildi=${berildi})`);
+    assert.strictEqual(used, LIMIT, 'hisoblagich limitdan oshib ketmasligi kerak');
+  } finally {
+    pool.query = asl;
+  }
+
+  console.log(`✅ Test 14c: Kunlik limit atomik — PASS (${LIMIT} ta berildi, ortig'i rad etildi)`);
+}
+
+// ============ TEST 14d: Yaroqsiz javob keshga YOZILMAYDI ============
+// Sprint 10, 6-qaror. Bu yerda ikki narsa tekshiriladi va IKKALASI ham kerak:
+// tartib (kesh yozuvi generatsiyadan KEYIN) va xatti-harakat (yaroqsiz javob
+// xato tashlaydi, ya'ni yozuvgacha yetib bormaydi).
+function testBadAnswerNeverCached() {
+  const fs = require('fs');
+  const path = require('path');
+  const src = fs.readFileSync(path.join(__dirname, 'routes', 'ai.js'), 'utf8');
+
+  const iGen = src.indexOf('generateIdeas(');
+  const iIns = src.indexOf('INSERT INTO product_ai_ideas');
+  assert.ok(iGen > 0 && iIns > 0, 'ikkala qadam ham ai.js da bo\'lishi kerak');
+  assert.ok(iGen < iIns,
+    'keshga yozish generatsiyadan KEYIN bo\'lsin — sxema tekshiruvidan oldin yozilmasin');
+
+  // Keshga faqat SHU joyda yoziladi — ikkinchi yozuv nuqtasi paydo bo'lsa,
+  // u sxema tekshiruvini chetlab o'tishi mumkin.
+  const yozuvlar = src.match(/INSERT INTO product_ai_ideas/g) || [];
+  assert.strictEqual(yozuvlar.length, 1, 'keshga yozuv nuqtasi bitta bo\'lsin');
+
+  // Xatti-harakat: yaroqsiz javobda `parseIdeas` xato tashlaydi, ya'ni
+  // `generateIdeas` ham tashlaydi va INSERT ga umuman yetib borilmaydi.
+  const { parseIdeas } = require('./lib/ai');
+  assert.throws(() => parseIdeas('{"buzuq":true}', ['cotton']),
+    undefined, 'yaroqsiz javob xato tashlashi kerak (jimgina bo\'sh natija emas)');
+
+  console.log('✅ Test 14d: Sxemadan o\'tmagan javob keshga yozilmaydi — PASS');
+}
+
 // ============ TEST RUNNER ============
 async function runTests() {
   console.log('\n🧪 LolaMarket Server Testlari\n');
@@ -994,8 +1174,12 @@ async function runTests() {
     testEveryStatusWriteIsRecorded();
     testStatusGuardsSurviveCte();
     testSelfCheck();
+    testSourceHash();
+    testParseIdeas();
+    await testAiQuotaAtomic();
+    testBadAnswerNeverCached();
 
-    console.log('\n✅ Hammasi PASS — pul hisobi, imzo, route jadvali, xato alerti va buyurtma tarixi joyida\n');
+    console.log('\n✅ Hammasi PASS — pul hisobi, imzo, route jadvali, xato alerti, buyurtma tarixi va AI g\'oyalari joyida\n');
     process.exit(0);
   } catch (err) {
     console.error('\n❌ TEST XATOSI:\n', err.message, '\n');
