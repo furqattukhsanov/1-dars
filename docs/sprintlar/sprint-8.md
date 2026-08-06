@@ -118,7 +118,9 @@ Platformaning barcha funksiyalarini real foydalanuvchilar bilan sinovdan o'tkazi
     **96 KB / 3 fayl (−35 KB, −27%)**. Tezlik mezoni uchun sezilarli o'zgarish
     KUTILMAYDI (quyidagi "Muhim xulosa"ga qarang) — bu bayt tozaligi va
     `Geist Mono 700` ning soxta qalindan haqiqiyga o'tishi
-  - [ ] `telegram.org` ga `preconnect` qo'shish
+  - [x] `telegram.org` ga `preconnect` qo'shish — **BAJARILDI (2026-08-06),
+    tafsilot "Qilingan ishlar"da.** Shu bilan bu bo'limdagi tezlik bandlarining
+    HAMMASI yopildi — ochiq band QOLMADI
 
   **Band HAMON `[x]` QILINMAYDI:** 88 KB raqami LOKAL hisob — production'da
   qayta o'lchash deploy'dan KEYIN qilinadi, dalil hali yo'q. Bundan tashqari
@@ -153,6 +155,10 @@ Platformaning barcha funksiyalarini real foydalanuvchilar bilan sinovdan o'tkazi
   (shriftlar, `preconnect`) endi TEZLIK MEZONI uchun emas, boshqa sabablar
   uchun bajariladi — `preconnect` aynan kechikishga tegadi, shrift esa
   ko'proq Mini App tomonida og'irlik.
+
+  **— 2026-08-06 holati: BU BO'LIMDA OCHIQ TEZLIK BANDI QOLMADI.** Uchala
+  band ham yopildi: rasmlar (2026-08-05), shriftlar (2026-08-06),
+  `telegram.org` `preconnect` (2026-08-06).
 - [ ] Mobil da barcha funksiyalar ishlashi
 - [ ] To'lov webhook larning ishonchliligi
 
@@ -163,6 +169,44 @@ Platformaning barcha funksiyalarini real foydalanuvchilar bilan sinovdan o'tkazi
 ---
 
 ## Qilingan ishlar
+
+- [2026-08-06] **`telegram.org` ga `preconnect` qo'shildi — Sprint 8 ning
+  OXIRGI ochiq tezlik bandi yopildi.** O'zgarish jismonan ikkita qator:
+  `index.html` va `telegram-app/index.html` ga bittadan
+  `&lt;link rel="preconnect" href="https://telegram.org"&gt;`. `admin/` ga
+  ATAYLAB qo'shilmadi — u `telegram.org` ni umuman ishlatmaydi, ya'ni u yerda
+  preconnect faqat behuda ulanish ochardi.
+
+  **1. Asos O'LCHANGAN, taxmin emas.** Sovuq ulanish `curl` bilan 5 marta
+  o'lchandi: DNS ~4 ms, TCP ~100 ms, TLS ~100 ms — ya'ni **ulanishning O'ZI
+  ~200 ms turadi** va bu SOF KECHIKISH, bayt emas. Aynan shu sabab bandning
+  mantiqi bor: 2026-08-05 o'lchoviga ko'ra landing ham, Mini App ham tarmoq
+  kengligiga bog'liq EMAS — ikkalasining ham vaqtini ulanish kechikishi
+  belgilaydi. Ya'ni shrift bandidan farqli o'laroq, bu band TO'G'RI o'lchamga
+  tegadi.
+
+  **2. QARORNING ENG NOZIK JOYI — `crossorigin` QO'YILMADI.** Pastdagi
+  skriptda (`&lt;script defer src="https://telegram.org/js/..."&gt;`)
+  `crossorigin` atributi yo'q, ya'ni u CORS'siz olinadi. Preconnect'ga
+  `crossorigin` qo'yilsa brauzer **BOSHQA ulanish** ochadi, skript esa undan
+  foydalanmaydi va **preconnect butunlay behuda ketadi** — bu preconnect'ning
+  eng ko'p uchraydigan xatosi. Shrift preconnect'ida esa `crossorigin` BOR va
+  bu TO'G'RI, chunki shrift CORS bilan olinadi. Ikkalasi bir xil ko'rinadi,
+  lekin qarama-qarshi — shuning uchun sabab kod izohiga yozib qo'yildi.
+
+  **3. Tasdiqlangani.** Ikkala sahifada preconnect chizildi; skriptning
+  `crossorigin` i yo'qligi va preconnect'niki bilan MOS kelishi tekshirildi
+  (`mos_keladimi: true`); `window.Telegram.WebApp` mavjud; Mini App'da 27 ta
+  `[data-action]` joyida. `npm test` — 33 test PASS.
+
+  ⚠️ **HALOL CHEGARA — ATAYLAB YOZILDI: "200 ms tejaldi" DEB YOZILMAYDI.**
+  O'lchangani ulanish NARXI (~200 ms), tejovning O'ZI EMAS. Sabab: skript
+  allaqachon `&lt;head&gt;` da turibdi va brauzerning preload skaneri uni
+  baribir erta topadi, ya'ni haqiqiy yutuq 200 ms dan KICHIK bo'lishi mumkin.
+  Sovuq ulanishli oldin/keyin o'lchovini brauzerda ajratib bo'lmadi — ulanish
+  hovuzi issiq. Shuning uchun bu yerda faqat narx yozilgan, yutuq emas
+  (bugungi "hujjatdagi raqam — tekshirilmagan da'vo" qoidasi bilan bitta
+  oiladan: o'lchanmagan raqam yozilsa, ertaga u dalil bo'lib qoladi).
 
 - [2026-08-06] **Shrift bandi YOPILDI: latin subseti 131 KB → 96 KB (−27%), va
   yo'l-yo'lakay MA'LUM BO'LDIKI hujjatdagi raqamning O'ZI noto'g'ri edi.**
@@ -735,6 +779,32 @@ Platformaning barcha funksiyalarini real foydalanuvchilar bilan sinovdan o'tkazi
 ---
 
 ## Qarorlar
+
+- [2026-08-06] Qaror: **`telegram.org` preconnect'iga `crossorigin`
+  QO'YILMADI — chunki skriptning o'zida ham u yo'q.** Preconnect brauzerda
+  ulanishni CORS bo'yicha ALOHIDA hovuzda saqlaydi: `crossorigin` li
+  preconnect va `crossorigin` siz skript BOSHQA-BOSHQA ulanish ochadi, ya'ni
+  preconnect butunlay behuda ketadi (bu preconnect'ning eng ko'p uchraydigan
+  xatosi). Shu sabab shrift preconnect'ida `crossorigin` BOR va u to'g'ri —
+  shrift CORS bilan olinadi; `telegram.org` skripti esa CORS'siz olinadi.
+  Ikki qator bir xil ko'rinadi, lekin QARAMA-QARSHI, shuning uchun sabab
+  kod izohiga yozildi va kelajakda "izchillik uchun" tenglashtirilmasin.
+  Mos kelishi tekshirildi, taxmin qilinmadi (`mos_keladimi: true`).
+
+- [2026-08-06] Qaror: **`admin/` ga preconnect QO'SHILMADI.** U
+  `telegram.org` ni umuman ishlatmaydi — preconnect u yerda foydasiz
+  ulanish ochib, qolgan resurslardan ulush olardi. Umumiy qoida:
+  preconnect faqat sahifa HAQIQATAN boradigan domenga qo'yiladi.
+
+- [2026-08-06] Qaror: **preconnect uchun "200 ms tejaldi" DEB YOZILMAYDI —
+  o'lchangani ulanish NARXI, yutuq emas.** Sovuq ulanish 5 marta o'lchandi
+  (DNS ~4 + TCP ~100 + TLS ~100 ms), lekin tejovning O'ZI izolyatsiya
+  qilinmadi: skript `&lt;head&gt;` da turgani uchun preload skaneri uni baribir
+  erta topadi va oldin/keyin farqini issiq ulanish hovuzi ostida brauzerda
+  ajratib bo'lmadi. Ya'ni haqiqiy yutuq 200 ms dan kichik bo'lishi mumkin.
+  Bu bugungi «hujjatdagi raqam — tekshirilmagan da'vo» qoidasining
+  BEVOSITA qo'llanishi: bugun yozilgan o'lchanmagan raqam ertaga dalil
+  bo'lib qoladi va navbatdagi bandni noto'g'ri ustuvorlashtiradi.
 
 - [2026-08-06] Qaror: **hujjatdagi raqam ham TEKSHIRILMAGAN DA'VO bo'lishi
   mumkin — ish boshlashdan oldin o'sha raqamning O'ZI o'lchansin.** "Shriftlar

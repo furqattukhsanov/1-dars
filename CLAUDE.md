@@ -151,6 +151,24 @@
   bilan bitta oilada: **yozilgan qoida himoya emas — uni tekshiradigan test
   himoya**, va aynan bu qoida 2026-08-06 gacha faqat odat bo'lgani uchun
   buzilgan edi.
+- **Hujjatdagi raqam — TEKSHIRILMAGAN DA'VO** (2026-08-06). Optimizatsiya yoki
+  tuzatish bandi ochilganda **bazaviy raqamning O'ZI qayta o'lchansin**, undan
+  ish boshlanmasin. Sabab: raqam bandning kattaligini va navbatdagi o'rnini
+  belgilaydi, ya'ni u noto'g'ri bo'lsa **ish noto'g'ri narsaga yo'naltiriladi**.
+  Bir kunda uch marta tasdiqlandi:
+  «shriftlar 250 KB / 13 woff2» → aslida **131 KB / 3 fayl** (yozilgan raqam
+  barcha `unicode-range` subsetlarining yig'indisi edi, brauzer esa faqat
+  latinni oladi — band ikki barobar kattaroq ko'rinib turgan);
+  «`sayt-eski/` o'chirilmasin, `demo/` va `admin/` unga bog'liq» → `demo/`
+  repoda umuman yo'q, `admin/` esa ildizdagi `style.css` ni ishlatadi (papka
+  yolg'on sabab bilan saqlanib turgan);
+  «32 test» → aslida 33 ta.
+  ⚠️ Raqam ikki MUSTAQIL usul bilan olinsa ishonchli bo'ladi — shrift bandida
+  `curl` bilan yig'ish va brauzerdagi `performance` resurs yozuvlari bir xil
+  javob bergani shuni berdi.
+  Bu qoida `NULL` reyting, `ALERT_CHAT_ID` va tarix qoidalari bilan bitta
+  oilada: **jimgina yolg'on yo'qlikdan yomonroq** — yo'q raqam savol tug'diradi,
+  noto'g'ri raqam esa ishonch uyg'otadi.
 - **Frontendda `window.addEventListener('load', ...)` ishlatilmasin** (2026-07-31,
   ikki marta kuyganimizdan keyin). `load` BARCHA rasm va shrift yuklanib bo'lgandan
   keyin otiladi — sekin tarmoqda bu soniyalar. Ikki marta zarar keltirdi:

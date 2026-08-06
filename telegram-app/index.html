@@ -6,6 +6,13 @@
   <title>LolaMarket</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <!-- telegram.org: ulanishning O'ZI ~200 ms turadi (DNS 4 + TCP 100 + TLS 100,
+       2026-08-06 da o'lchandi) va bu SOF kechikish. Mini App uchun bu ayniqsa
+       muhim — u tarmoq kengligiga umuman bog'liq emas, vaqtini faqat ulanish
+       kechikishi belgilaydi (2026-08-05 o'lchovi).
+       ⚠️ `crossorigin`SIZ — pastdagi skriptda ham u yo'q. Mos kelmasa brauzer
+       ikkinchi ulanish ochadi va preconnect BEHUDA ketadi. -->
+  <link rel="preconnect" href="https://telegram.org">
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@24,600..800&family=Hanken+Grotesk:wght@400..700&family=Geist+Mono:wght@600..700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css?v=17">
 
