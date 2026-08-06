@@ -4,16 +4,82 @@
 **Sana:** rejalashtirildi 2026-08-06 (founder bilan savol-javob orqali),
 kod qismi bajarildi va production'ga chiqdi 2026-08-06
 
-⚠️ **"Jarayonda", "tugadi" EMAS.** Kod yozildi, testlar yashil va endpoint
-production'da tirik — lekin sprintning yopilish mezoni (founder 10 xil matoda
-tugmani bosib sifatni QO'LDA baholashi) HALI BAJARILMAGAN. Bu Sprint 9 ning
-"sozlandi degani uchun `[x]` qilinmaydi — dalil ko'rsatilishi kerak"
-qarorining bevosita qo'llanishi: testlar yashilligi AI **ma'noli** yozganini
-umuman isbotlamaydi, u faqat javob SHAKLI to'g'riligini isbotlaydi.
+⚠️ **"Jarayonda", "tugadi" EMAS — lekin sababi kutilganidan boshqa.**
+
+Kod yozildi, testlar yashil va endpoint production'da tirik. Yopilish mezoni
+(founder sinab, sifatni QO'LDA baholashi) ham **BAJARILDI** — founder
+2026-08-06 da sinab ko'rdi. Natija: **funksiya RAD ETILDI.**
+
+⚠️ **Aniqlik uchun:** mezonda "10 xil matoda" deb yozilgandi, amalda 10 tasini
+sanab chiqish KERAK BO'LMADI. Sabab shunda: rad etish **sifat** darajasida
+emas («g'oyalar bo'sh chiqdi»), **maqsad** darajasida bo'ldi («matn umuman
+kerak emas»). Bunday hukmda o'nta takror hech narsani o'zgartirmasdi —
+mezon o'z vazifasini birinchi sinovdayoq bajardi.
+
+> "menga umuman matn kerak emas, menga faqat rasm generatsiya qilib berishi
+> kerak" — founder, 2026-08-06
+
+Ya'ni sprint texnik jihatdan bajarildi, **maqsad jihatidan mo'ljalga
+tegmadi**. Bu nuqson emas, sinovning ISHLAGANI: shu fayl boshidanoq
+"testlar o'tishi AI **ma'noli** yozganini umuman isbotlamaydi, u faqat javob
+SHAKLI to'g'riligini isbotlaydi" deb yozgan edi. Aynan shunday bo'ldi —
+o'nta mutatsiyadan omon qolgan testlar funksiya kerakligini isbotlay olmadi.
+
+**Nima bo'ladi:** matn tugmasi production'da QOLDIRILDI (founder qarori
+2026-08-06 — o'chirish yoki yashirish kerak emas). Rasm varianti alohida
+ishga o'tdi va u **billing'ga bog'liq** (pastdagi "Rasm varianti" bo'limiga
+qara). Sprint rasm ishlagan kuni yopiladi.
+
+⚠️ **1-qaror (rasm rad etilgani) bekor qilindi.** Uning sababi "AI matoning
+haqiqiy rangi va naqshini chizmaydi" edi. Founder ko'rsatgan misol boshqa
+usulni ochdi: rasm MATNDAN emas, **mahsulot suratidan** chiqariladi
+(image-to-image), ya'ni naqsh o'ylab topilmaydi, ko'chiriladi. Eski e'tiroz
+shu bilan asosan yopiladi — lekin butunlay emas: mato haqiqiy bo'lsa ham,
+rasmda **mavjud bo'lmagan buyum** ko'rinadi, shuning uchun ostiga
+"AI tasavvuri — haqiqiy mahsulot emas" yorlig'i SHART.
+
+## Rasm varianti — BLOKLANGAN (2026-08-06)
+
+**Hajmi (founder qarori):** bitta mahsulotga **BITTA rasm** — hozircha shu.
+"Bir nechta variant" yoki "har g'oyaga alohida rasm" MVP ga kirmaydi.
+Usuli — **image-to-image**: manba mahsulotning O'Z surati, natija esa o'sha
+matodan tikilgan buyum kiygan model (studiya fotosi uslubida).
+
+⚠️ Rasm ostida **"AI tasavvuri — haqiqiy mahsulot emas"** yorlig'i SHART.
+Sabab yuqorida: naqsh ko'chirilgani bilan **buyumning o'zi mavjud emas**.
+
+**To'siq pul, kod emas.** Gemini bepul tarifida rasm modellari uchun kvota
+**`limit: 0`** — `gemini-3.1-flash-image` ham, `gemini-2.5-flash-image` ham
+birinchi so'rovdayoq HTTP 429 qaytardi. O'sha kalitda MATN modeli bemalol
+ishlayveradi (HTTP 200), ya'ni farq aynan tarifda.
+
+⚠️ **Xato xabari yo'ldan ozdiradi:** u "Please retry in 27s" deydi, holbuki
+chegara nol — kutish HECH QACHON yordam bermaydi. Bu shu loyihaning
+"jimgina yolg'on" oilasidagi tashqi namuna: xabar to'g'ri ko'rinadi va
+noto'g'ri yo'lga boshlaydi.
+
+Yechim: kalit turgan Google loyihasida billing yoqilishi (~$0.04/rasm,
+12 mahsulot ≈ $0.50, bir marta). Founder: "pulim bo'lganda qilamiz".
+
+⚠️ **Billing yoqilgan kuni AYNI sinov qaytarilsin** — serverdan jonli kalit
+bilan rasm modeliga so'rov, va **429 / `limit: 0` yo'qolgani KO'RILSIN.**
+"Billing yoqdim" o'zi dalil emas: bugun bloklanganini ham faqat haqiqiy
+so'rov ko'rsatdi, taxmin emas.
+
+**Qayta ishlatiladi (qaytadan yozilmasin):** imzo tekshiruvi, kesh +
+`sourceHash`, ATOMIK kunlik limit, oq ro'yxat — hammasi `routes/ai.js` da
+tayyor, faqat natija turi matndan rasmga o'zgaradi. Rasm saqlash uchun
+tavsiya: Telegram `file_id` + mavjud `/api/product-photo` proksisi
+(deploy'dan omon qoladi, loyihada allaqachon ishlaydigan naqsh).
 
 ---
 
 ## Maqsad
+
+⚠️ **Bu — sprint BOSHIDAGI maqsad va u o'zgardi.** Quyidagisi bajarildi va
+production'da turibdi, lekin founder qabul sinovida uni rad etdi. Bugungi
+maqsad — **rasm** (tepadagi blok va "Rasm varianti" bo'limi). Eski matn
+tarix uchun qoldirildi.
 
 Mahsulot sahifasiga **"AI bilan g'oya olish"** tugmasi qo'shiladi. Bosilganda AI
 o'sha matoning tarkibi, zichligi va turiga qarab **undan nima tikish mumkinligini**
@@ -33,7 +99,12 @@ qo'shimcha mahsulot chiqsa, bitta buyurtma o'rniga to'plam buyurtma bo'ladi.
 Har bir qaror savol-javob orqali ATAYLAB tanlangan. Muqobili va rad etilish
 sababi ham yozilgan — keyin "nega bunday qilingan?" degan savol tug'ilmasin.
 
-### 1. Natija — matn g'oyalari + katalogdan tavsiya. Rasm YO'Q
+### 1. ~~Natija — matn g'oyalari + katalogdan tavsiya. Rasm YO'Q~~ — BEKOR QILINDI
+
+⚠️ **Bu qaror 2026-08-06 da o'sha kunning O'ZIDA bekor qilindi** (tepadagi
+blokka qara). Quyidagi matn TARIX sifatida qoldirildi — o'chirilmadi, chunki
+rad etilish sababini bilmasdan turib qarorning nega ag'darilgani ham
+tushunarsiz bo'lardi.
 
 3–5 ta kiyim g'oyasi (nomi, nega bu mato mos, taxminiy sarf, qiyinlik) va har
 g'oya yoniga katalogdan mos qo'shimcha mahsulotlar.
@@ -386,6 +457,16 @@ ishlaydi" degani EMAS.
   `index.html` da `app.js?v=62`, `styles.css?v=17`
 - [2026-08-06] Production: `db/016` qo'llandi, `server/` rsync qilindi, servis
   06:33 da ko'tarildi, endpoint 401 qaytardi (avval 404), Gemini HTTP 200
+- [2026-08-06] **Founder qabul sinovi o'tkazildi — funksiya RAD ETILDI.**
+  Matn g'oyalari kerak emas ekan; kerak bo'lgani — mahsulot suratidan
+  chiqariladigan RASM (image-to-image), hozircha bitta mahsulotga bitta rasm
+- [2026-08-06] Rasm modellari serverdan JONLI KALIT bilan sinaldi:
+  `gemini-3.1-flash-image` va `gemini-2.5-flash-image` — ikkalasi ham HTTP 429,
+  sabab `limit: 0` (bepul tarifda rasm kvotasi umuman yo'q). O'SHA kalitda
+  matn modeli HTTP 200 qaytardi, ya'ni farq kalitda emas, TARIFDA
+- [2026-08-06] Hujjat to'g'rilandi: yopilish mezoni "BAJARILMAGAN" emas,
+  "BAJARILDI, natija rad etish" — va 1-qaror (rasm rad etilgani) bekor
+  qilingani uch joyda (tepa blok, qarorning o'zi, qarorlar tarixi) yozildi
 
 ---
 
@@ -400,9 +481,21 @@ kerak"** qarorining davomi. Bu funksiyada texnik yashillik yetarli emas:
 testlar o'tishi AI **ma'noli** yozganini umuman isbotlamaydi — u faqat javob
 SHAKLI to'g'riligini isbotlaydi.
 
-**Holat (2026-08-06): BAJARILMAGAN.** Backend production'da, frontend esa CI
-orqali endi chiqadi — qo'lda baholash shundan keyin bo'ladi. Shu sabab sprint
-**jarayonda**, `tugadi` emas.
+**Holat (2026-08-06): BAJARILDI — natija RAD ETISH.** Founder sinab ko'rdi va
+matn g'oyalari kerak emas degan hukmga keldi (tepadagi blokka qara). Ya'ni bu
+mezon "hali tekshirmadik" holatidan "tekshirdik va kerak emas ekan" holatiga
+o'tdi — **farqi muhim**, birinchisi ish qoldi degani, ikkinchisi ish
+noto'g'ri narsaga sarflandi degani.
+
+Sprint shunga qaramay **jarayonda**, `tugadi` emas — lekin endi sababi boshqa:
+funksiyaning founder haqiqatan so'ragan shakli (**rasm**) hali yo'q va u
+billing'ga bog'liq. Sprint o'sha rasm ishlagan kuni yopiladi.
+
+⚠️ **Mezonning O'ZI ham dars berdi.** U "sifat yaxshimi?" deb so'rardi va
+javob "sifat masalasi emas, funksiyaning O'ZI kerak emas" bo'lib chiqdi.
+Ya'ni mezon nuqsonni tutdi, lekin **o'zi kutgan turdagisini emas**. Keyingi
+sprintlarda yopilish mezoniga "bu funksiya umuman kerakmi?" degan savol ham
+kiritilsin — va u kod yozilgunga QADAR so'ralsin.
 
 ---
 
@@ -410,8 +503,12 @@ orqali endi chiqadi — qo'lda baholash shundan keyin bo'ladi. Shu sabab sprint
 
 Bu ro'yxat ataylab "bajarildi" deb yopilmadi.
 
-1. **Sprint yopilish mezoni bajarilmagan** — founder hali 10 xil matoda
-   tugmani bosib sifatni qo'lda baholamagan (yuqoriga qara). Eng muhimi shu.
+1. **Rasm varianti — BILLING'ga bog'liq.** Eng muhimi endi shu. Kod tomoni
+   deyarli tayyor (imzo, kesh, limit, oq ro'yxat qayta ishlatiladi), to'siq
+   faqat pul: bepul tarifda rasm kvotasi `limit: 0`. Sprint shu band
+   yopilmaguncha `jarayonda` turadi.
+   ~~Sprint yopilish mezoni bajarilmagan~~ — **2026-08-06 da bajarildi**,
+   natijasi rad etish bo'ldi (yuqoriga qara).
 2. **MVP da moderatsiya yo'q** — bilib qilingan tanlov (10-qaror), xavfi va
    ikkita qo'lda zaxira yo'li o'sha yerda yozilgan.
 3. **`.env` da `AI_*` qatorlari IKKI MARTA turibdi.** Qiymatlar bir xil va
@@ -438,15 +535,19 @@ Bu ro'yxat ataylab "bajarildi" deb yopilmadi.
    bugungi mato turlaridan iborat bo'ladi va bazadan olinadi (5-qarorga qara)
 3. **Oylik xarajat shifti?** Hamon raqamsiz. Lekin kattalik tartibi endi
    ma'lum: kesh + 12 mahsulot = **bir martalik 12 so'rov**, keyin faqat yangi
-   e'lonlar. Gemini Flash bepul kvotasida bu amalda nol
+   e'lonlar. Gemini Flash bepul kvotasida bu amalda nol.
+   ⚠️ **Rasmda bu javob ISHLAMAYDI:** rasmning bepul kvotasi yo'q
+   (`limit: 0`), ya'ni "amalda nol" o'rniga ~$0.04/rasm — bugungi katalogda
+   bir martalik ~$0.50. Kesh bu yerda ham asosiy qorovul bo'lib qoladi
 
 ---
 
 ## Qarorlar tarixi
 
-- [2026-08-06] Qaror: **AI rasm generatsiyasi rad etildi** — AI matoning haqiqiy
-  rangi va naqshini chiza olmaydi, xaridor esa rasmga raqamdan ko'ra ko'proq
-  ishonadi. "O'ylab topilgan raqam ko'rsatilmasin" qoidasining vizual shakli
+- [2026-08-06] ~~Qaror: **AI rasm generatsiyasi rad etildi**~~ — AI matoning
+  haqiqiy rangi va naqshini chiza olmaydi, xaridor esa rasmga raqamdan ko'ra
+  ko'proq ishonadi. "O'ylab topilgan raqam ko'rsatilmasin" qoidasining vizual
+  shakli. ⚠️ **SHU KUNNING O'ZIDA BEKOR QILINDI — pastdagi yozuvga qara**
 - [2026-08-06] Qaror: **AI aniq mahsulot `id` si qaytarmaydi, faqat kategoriya
   kaliti** — mavjud bo'lmagan mahsulotga havola chiqishi arxitektura darajasida
   imkonsiz bo'lsin, modelning "o'ylab topmasligi"ga tayanilmasin
@@ -511,3 +612,26 @@ Bu ro'yxat ataylab "bajarildi" deb yopilmadi.
   ishladi** — `f32a42c` da kerak bo'lgan ikkinchi commit bu safar kerak
   bo'lmadi. Ya'ni jarayondagi bo'shliq eslab qolish bilan emas, REJAGA
   yozilgan qadam bilan yopildi
+- [2026-08-06] Qaror (qabul sinovidan keyin): **1-qaror BEKOR QILINDI —
+  kerak bo'lgani matn emas, RASM.** Eski rad etishning sababi ("AI matoning
+  rangi va naqshini o'ylab topadi") founder ko'rsatgan usulda kuchini
+  yo'qotadi: rasm MATNDAN emas, **mahsulot suratidan** chiqariladi
+  (image-to-image), ya'ni naqsh o'ylab topilmaydi — **ko'chiriladi**.
+  Hajmi: bitta mahsulotga bitta rasm. E'tiroz butunlay yo'qolmaydi (buyumning
+  o'zi mavjud emas), shuning uchun "AI tasavvuri" yorlig'i shart
+- [2026-08-06] Qaror: **matn tugmasi production'da QOLDIRILADI** — o'chirilmaydi
+  va yashirilmaydi. Rad etilgan funksiyani darhol yulib tashlash bilan
+  shoshilinmadi: u ishlab turibdi, hech kimga zarari yo'q, rasm yo'li esa
+  uning butun qorovul qatlamini (imzo, kesh + `sourceHash`, atomik limit,
+  oq ro'yxat) qayta ishlatadi — olib tashlansa o'sha kod ham birga ketardi
+- [2026-08-06] Dars: **rad etish kod sifatida emas, MAQSAD darajasida keldi.**
+  10 ta mutatsiyadan omon qolgan testlar, 5 ta chizilgan holat, XSS sinovi,
+  piksel bilan o'lchangan joylashuv — hammasi to'g'ri edi va **hech biri
+  funksiya kerakligini isbotlay olmadi**. Bu shu faylning o'z ogohlantirishi
+  amalda ko'ringan joyi: "testlar o'tishi AI MA'NOLI yozganini isbotlamaydi".
+  Amaliy xulosa: "bu kerakmi?" savoli yopilish mezoniga emas, **kod
+  yozilishidan OLDINGI bosqichga** qo'yilsin
+- [2026-08-06] Dars (tashqi "jimgina yolg'on"): Gemini'ning 429 xatosi
+  **"Please retry in 27s" deydi, holbuki chegara nol** — kutish hech qachon
+  yordam bermaydi. Sabab faqat javob TANASIDAGI `limit: 0` da ko'rinadi.
+  Ya'ni xato xabarining tavsiyasi ham tekshirilmagan da'vo bo'lishi mumkin
