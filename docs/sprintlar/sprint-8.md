@@ -110,7 +110,14 @@ Platformaning barcha funksiyalarini real foydalanuvchilar bilan sinovdan o'tkazi
   - [x] banner rasmlarni WebP ga o'tkazish + `srcset` — **BAJARILDI (2026-08-05),
     tafsilot "Qilingan ishlar"da.** Kritik yo'l mobilda **342 KB → 88 KB**, lokal
     hisob bo'yicha sekin 3G'da ~10.1 s → ~1.8 s
-  - [ ] shrift qalinliklarini kamaytirish (250 KB, 13 ta `woff2`)
+  - [x] shrift qalinliklarini kamaytirish — **BAJARILDI (2026-08-06), tafsilot
+    "Qilingan ishlar"da.** ⚠️ Shu bandning O'ZIDAGI raqam ("250 KB, 13 ta
+    `woff2`") NOTO'G'RI edi: u barcha `unicode-range` subsetlarining yig'indisi,
+    brauzer esa faqat kerakli subsetni oladi. Haqiqiy xarajat **131 KB / 3 fayl**
+    edi, ya'ni muammo hujjatda yozilganidan IKKI BAROBAR kichik. Yangi holat:
+    **96 KB / 3 fayl (−35 KB, −27%)**. Tezlik mezoni uchun sezilarli o'zgarish
+    KUTILMAYDI (quyidagi "Muhim xulosa"ga qarang) — bu bayt tozaligi va
+    `Geist Mono 700` ning soxta qalindan haqiqiyga o'tishi
   - [ ] `telegram.org` ga `preconnect` qo'shish
 
   **Band HAMON `[x]` QILINMAYDI:** 88 KB raqami LOKAL hisob — production'da
@@ -156,6 +163,74 @@ Platformaning barcha funksiyalarini real foydalanuvchilar bilan sinovdan o'tkazi
 ---
 
 ## Qilingan ishlar
+
+- [2026-08-06] **Shrift bandi YOPILDI: latin subseti 131 KB → 96 KB (−27%), va
+  yo'l-yo'lakay MA'LUM BO'LDIKI hujjatdagi raqamning O'ZI noto'g'ri edi.**
+  O'zgarish jismonan kichkina — uchta HTML da (`index.html`,
+  `telegram-app/index.html`, `admin/index.html`) Google Fonts havolasining
+  BITTA qatori almashtirildi. Boshqa hech narsa tegilmadi.
+
+  **1. AVVAL: hujjatdagi raqam tekshirildi va YOLG'ON chiqdi.** Sprint faylida
+  ham, qoldiq ro'yxatida ham "shriftlar 250 KB / 13 ta `woff2`" deb yozilgan
+  edi. O'lchaganda bu **barcha `unicode-range` subsetlarining yig'indisi**
+  ekani aniqlandi — brauzer esa faqat kerakli subsetni (latin) oladi. Haqiqiy
+  xarajat: **3 fayl / 131 KB.** Ikki MUSTAQIL usul bir xil javob berdi:
+  (a) `curl` bilan latin subsetlarini yig'ish = 131 KB, (b) brauzerdagi
+  `performance` resurs yozuvlari = 131 KB, 3 fayl. Ya'ni muammo hujjatda
+  yozilganidan **ikki barobar kichik** edi va butun band shu raqamga qarab
+  ustuvorlashtirilgan edi.
+
+  **2. Isrofning haqiqiy manbai.** `Bricolage Grotesque` IKKI o'qli o'zgaruvchan
+  shrift sifatida so'ralardi: `opsz` (optik o'lcham) butun **12..96 oralig'i**
+  + qalinlik. Ikkinchi o'q butun oralig'i bilan bitta fayl **75 KB** turardi.
+  Yana ikkita mayda nuqson: `Geist Mono` **400 va 500** so'ralardi lekin
+  hech qayerda ishlatilmasdi; `Geist Mono 700` esa **ishlatiladi lekin
+  so'ralmasdi** — ya'ni brauzer soxta qalin (faux bold) chizardi.
+
+  **3. Qaror: `opsz` o'qi TASHLANMADI, bitta qiymatga QOTIRILDI.** Sabab va
+  o'lchov "Qarorlar" bo'limida. Qisqasi: o'qni butunlay olib tashlash ham
+  40 KB berardi, lekin ko'rinishni o'zgartirardi; qotirish AYNI tejovni beradi
+  va qaysi qiymatga qotirish TAXMIN qilinmadi, O'LCHANDI.
+
+  | | Oldin | Keyin |
+  |---|---|---|
+  | Latin subseti | 131 KB | **96 KB** (−35 KB, −27%) |
+  | Fayl | 3 ta alohida yuz (7 ta yuz e'loni) | **3 ta o'zgaruvchan fayl** |
+  | `Geist Mono 700` | soxta qalin (faux bold) | **haqiqiy** |
+
+  Yuklangan yuzlar endi oraliq: `Bricolage Grotesque 600 800`,
+  `Geist Mono 600 700`, `Hanken Grotesk 400 700`.
+
+  **4. DALIL — ko'rinish buzilmagani TAXMIN emas, O'LCHOV.** Lokal (yangi) va
+  production (eski) yonma-yon solishtirildi, 1280px va 375px da:
+
+  | Element | Production | Yangi | Farq |
+  |---|---|---|---|
+  | 34px sarlavha ("Gulli naqsh") | 438.6 px | 445.0 px | +1.5% |
+  | 34px sarlavha ("Telegram orqali") | 583.3 px | 591.5 px | +1.4% |
+  | 17px nav ("LolaMarket") | 91.1 px | 90.2 px | −1.0% |
+
+  **Eng muhim dalil — BALANDLIKLAR aynan bir xil qoldi** (mobil'da
+  18.7 / 43.3 / 21.7 / 43.3 / 16.2; desktopda 18.7 / 77.5 / 38.8). Ya'ni matn
+  hech qayerda QAYTA O'RALMAGAN va joylashuv siljimagan — kenglikdagi 1.5%
+  farq bitta sarlavhada ~6 piksel va o'ram chizig'ini o'zgartirmaydi. Mini App
+  va admin ekranlari ham chizilib ko'rildi; zaxira shriftga tushib qolgan
+  element yo'q (`Times` faqat bitta joyda, u O'ZGARISHDAN OLDIN ham shunday
+  edi — ya'ni bu regressiya emas). `npm test` — **33 test PASS.**
+  _(⚠️ Yo'l-yo'lakay: kechagi hujjatlarda "32 test" deb yozilgan edi. Sanab
+  ko'rilganda `HEAD` dagi `server/test.js` da ham 33 ta test yorlig'i bor —
+  ya'ni bugun test qo'shilmagan, kechagi raqam noto'g'ri sanalgan. Mayda, lekin
+  shu yozuvning O'Z mavzusi bilan bitta oiladan.)_
+
+  **⚠️ HALOL CHEGARA:** bu 35 KB tejov, lekin **tezlik mezoni uchun sezilarli
+  o'zgarish KUTILMAYDI va "tezlik yaxshilandi" deb YOZILMAYDI.** 2026-08-05
+  yakuniy o'lchoviga ko'ra landing tarmoq kengligiga bog'liq bo'lishdan chiqqan
+  (sekin va tez 3G natijalari ustma-ust tushgan, vaqtni ulanish kechikishi
+  belgilaydi). Ya'ni bu bayt tozaligi va `Geist Mono` sifatining tuzatilishi —
+  sekundomer raqami emas. Aks holda bu o'lchanmagan da'vo bo'lardi.
+
+  **Ochiq qolgani:** `telegram.org` ga `preconnect` — hamon ochiq, xuddi shu
+  sababdan katta foyda bermaydi.
 
 - [2026-08-05] **Tezlik bandi YOPILDI: production'da sekin 3G'da 10.14 s → 2.0–2.6 s.
   Qolgan 11 ta mato rasmi WebP ga o'tkazildi va yo'l-yo'lakay IKKITA TIZIMLI
@@ -230,6 +305,9 @@ Platformaning barcha funksiyalarini real foydalanuvchilar bilan sinovdan o'tkazi
   **Hali qilinmagani:** shriftlar (250 KB, 13 ta `woff2`, 3 oila / 10 qalinlik) va
   `telegram.org` ga `preconnect` — ikkalasi ham OCHIQ. Lekin ular endi tezlik
   MEZONI uchun emas (mezon o'tdi), boshqa sabablar uchun bajariladi.
+  _(2026-08-06 tuzatishi: shrift bandi bajarildi, va o'lchaganda yuqoridagi
+  "250 KB / 13 ta `woff2`" raqamining O'ZI noto'g'ri bo'lib chiqdi — haqiqiy
+  xarajat 131 KB / 3 fayl edi. Yozuv tarix sifatida o'zgartirilmay qolmoqda.)_
 
 - [2026-08-05] **Banner rasmlari WebP ga o'tkazildi — landing kritik yo'li mobilda
   342 KB → 88 KB (A1 o'lchovi ko'rsatgan ENG KATTA yutuq olindi).** Ertalabki A1
@@ -657,6 +735,39 @@ Platformaning barcha funksiyalarini real foydalanuvchilar bilan sinovdan o'tkazi
 ---
 
 ## Qarorlar
+
+- [2026-08-06] Qaror: **hujjatdagi raqam ham TEKSHIRILMAGAN DA'VO bo'lishi
+  mumkin — ish boshlashdan oldin o'sha raqamning O'ZI o'lchansin.** "Shriftlar
+  250 KB / 13 ta `woff2`" ikki hujjatda turgan va ustuvorlikni belgilagan edi;
+  o'lchaganda u barcha `unicode-range` subsetlarining yig'indisi ekani, brauzer
+  esa faqat latin subsetini olishi ma'lum bo'ldi — haqiqiy raqam 131 KB / 3
+  fayl, ya'ni ikki barobar kichik. Qoida: optimizatsiya bandi ochilganda
+  BIRINCHI qadam — bazaviy raqamni o'z usuling bilan qayta o'lchash, va
+  kamida IKKI mustaqil usul bilan (bu yerda `curl` bilan yig'ish va brauzer
+  `performance` yozuvlari bir xil javob berdi). Bu `sayt-eski/` darsining
+  (2026-08-06) aynan takrori: hujjatga yozilgan sabab haqiqatdek ko'rinadi
+
+- [2026-08-06] Qaror: **`opsz` o'qi TASHLANMADI, bitta qiymatga QOTIRILDI —
+  va qaysi qiymatga qotirish TAXMIN emas O'LCHOV bilan tanlandi.** O'qni
+  butunlay olib tashlash (`wght@600..800`) va bitta qiymatga qotirish
+  (`opsz,wght@24,600..800`) AYNI hajm beradi — ikkalasi ham 40 KB. Demak tanlov
+  bayt haqida emas, KO'RINISH haqida edi: o'lchov `opsz` haqiqatan ishlayotganini
+  ko'rsatdi (bir xil matnning px boshiga kengligi 14px da 11.74, 24px da 11.58,
+  48px da 11.20, 96px da 10.45 — 11% farq), ya'ni o'qni tashlash ko'rinishni
+  o'zgartirardi. Qiymat esa Bricolage HAQIQATAN qaysi o'lchamlarda chizilishini
+  sanab tanlandi: mobil'da 14–24px (belgi og'irligi bo'yicha o'rtacha 16.3px),
+  desktopda 15–38px (o'rtacha 21.9px) — ikkala uchning o'rtasi sifatida **24**.
+  Qoida: o'zgaruvchan shriftda o'qni qotirish uning qiymatini KO'ZDAN
+  KECHIRMASDAN qilinmasin
+
+- [2026-08-06] Qaror: **bayt tejovi "tezlik yaxshilandi" deb YOZILMAYDI —
+  o'lchanmagan da'vo hujjatga kirmaydi.** 35 KB tejaldi, lekin 2026-08-05
+  yakuniy o'lchovi landing tarmoq kengligiga bog'liq bo'lishdan chiqqanini
+  ko'rsatgan edi (sekin va tez 3G ustma-ust tushdi), ya'ni bayt qirqishning
+  sekundomerdagi ta'siri kutilmaydi. Shuning uchun band `[x]` qilindi, lekin
+  tezlik haqida hech narsa da'vo qilinmadi. Bu loyihaning "jimgina yolg'on"
+  oilasidan: to'g'ri raqam noto'g'ri xulosaga bog'lansa, hujjat ishonchini
+  yo'qotadi
 
 - [2026-08-05] Qaror: **rasm sifati foizga emas, KO'ZGA qarab tanlanadi — mato
   suratida bu sozlama biznes qarori.** q=80 mayda naqshli matolarda deyarli foyda
