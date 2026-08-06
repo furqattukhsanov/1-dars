@@ -6,8 +6,14 @@ Telegram'dagi Mini App: bloklangan manba 0 ta, rasm xatosi 0 ta, 85 kartochka
 chizildi, `window.Telegram` joyida).
 **Sana:** 2026-08-02
 
-⚠️ Ochiq qarz: CSP `'unsafe-inline'` bilan ishlayapti — sabab pastdagi
-"Nega `'unsafe-inline'` qo'yishga majburmiz" bo'limida.
+**Yangilanish (2026-08-06, C3):** `script-src` dagi `'unsafe-inline'` OLIB
+TASHLANDI — pastdagi "C3 — `'unsafe-inline'` olib tashlash" bo'limiga qarang.
+Kod tomoni tayyor va Test 15 bilan qulflangan; Cloudflare paneldagi qiymatni
+**founder qo'lda almashtiradi**.
+
+⚠️ `style-src` dagi `'unsafe-inline'` O'Z JOYIDA QOLADI — bu butunlay boshqa
+va ancha katta qarz (kodda yuzlab inline `style="..."` atributi bor,
+`vm()` → `bgStyle` naqshi). C3 FAQAT `script-src` haqida.
 
 ---
 
@@ -165,7 +171,10 @@ Hamma `fetch` o'z domenimizga ketadi (`/api/...`). `eval()` va `new Function`
 umuman ishlatilmaydi. `data:` yoki `blob:` URI yo'q. `unpkg.com` faqat dizayn
 tizimi `readme.md` sida eslatilgan — kodda ishlatilmaydi.
 
-### ⚠️ Nega `'unsafe-inline'` qo'yishga majburmiz
+### ⚠️ [TARIX] Nega 2026-08-02 da `'unsafe-inline'` qo'yishga majbur edik
+
+_Bu bo'lim TARIX uchun qoldirildi — qarz 2026-08-06 da yopildi, pastdagi
+"C3" bo'limiga qarang. Quyidagi raqamlar o'sha kunning holati._
 
 | Fayl | `onclick=` kabi inline hodisalar | `style="` atributi |
 |---|---|---|
@@ -190,7 +199,10 @@ tushadi. Lekin qolgan himoyalar kuchida qoladi:
 **Kelajakdagi ish:** ~120 ta inline hodisani `addEventListener` ga o'tkazish.
 Shundan keyingina `'unsafe-inline'` olib tashlanadi va CSP to'liq kuchga kiradi.
 
-### Qoida
+### Qoida (2026-08-02 dagi, ESKI — `'unsafe-inline'` bilan)
+
+⚠️ Bugungi kanonik qiymat pastdagi "C3" bo'limida. Bu nusxa faqat solishtirish
+uchun turibdi.
 
 ```
 default-src 'self'; script-src 'self' https://telegram.org https://static.cloudflareinsights.com 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; frame-ancestors 'self' https://telegram.org https://*.telegram.org; base-uri 'self'; form-action 'self'; object-src 'none'
@@ -242,3 +254,97 @@ brauzerda esa XFO yagona qolgan himoya bo'ladi. Ikkala qoida birga turadi.
 bloklagan manba 0 ta, rasm xatosi 0 ta, katalogda 85 kartochka chizildi,
 `window.Telegram` mavjud. Mini App'ning Telegram ichida ochilishi —
 `frame-ancestors` to'g'ri ishlayotganining bevosita dalili.
+
+---
+
+## C3 — `'unsafe-inline'` olib tashlash (2026-08-06)
+
+**Holat:** kod tomoni TAYYOR va test bilan qulflangan. Cloudflare paneldagi
+qiymatni **founder almashtiradi** — bu yagona qolgan qadam.
+
+### Kanonik qoida — BUGUNGI qiymat
+
+```
+default-src 'self'; script-src 'self' https://telegram.org https://static.cloudflareinsights.com; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; frame-ancestors 'self' https://telegram.org https://*.telegram.org; base-uri 'self'; form-action 'self'; object-src 'none'
+```
+
+Eskisidan farqi **bitta**: `script-src` dan `'unsafe-inline'` olib tashlandi.
+Qolgan hamma band harfma-harf o'sha-o'sha.
+
+- `https://static.cloudflareinsights.com` **SAQLANADI** — beacon `src` li tashqi
+  skript, inline emas, ya'ni `'unsafe-inline'` ga umuman bog'liq emas edi.
+- `style-src` dagi `'unsafe-inline'` ga **TEGILMADI** (yuqoridagi ogohlantirish).
+
+### Nima qilindi
+
+| Bosqich | Nima | Commit |
+|---|---|---|
+| C1 | Landing — 26 ta hodisa `data-action` delegatsiyasiga | `02654e8` |
+| C2 1-qism | Mini App xaridor yo'li — 53 ta hodisa | `6bbb64f` |
+| C2 2-qism | Mini App qolgani + admin + oflayn sahifa — 41 ta | `86c9b5d` |
+| **C3** | **Landing oflayn sahifasi, sprint paneli, narx filtri + QOROVUL** | shu ish |
+
+C3 da yopilganlari — **uchalasi ham oldingi supurishlardan o'tib ketgan edi:**
+
+1. **`offline.html`** — inline `onclick` VA inline `<script>` bloki.
+   `telegram-app/offline.html` C2 da tuzatilgan, ildizdagi egizagi esa
+   supurish ro'yxatiga umuman kirmagan. `offline.js` ga chiqarildi,
+   `sw.js` → `PRECACHE` ga qo'shildi va `CACHE_VERSION` `v2` → `v3`.
+   ⚠️ Ikkinchi qadam majburiy: keshda eski ro'yxat qolsa `offline.js` aynan
+   oflayn holatda yuklanmasdi, ya'ni tuzatish o'zi tuzatayotgan holatda
+   ishlamas edi.
+2. **`loyiha-panel.html`** — 49 qatorlik inline `<script>`. `panel.js` ga
+   chiqarildi. Bu deploy qilinadigan sahifa, ya'ni CSP unga ham tegadi.
+3. **`index.html` narx filtri** — ikkita `onkeydown="…Enter…applyPrice()"`.
+   C1 supurishi buni ko'rmagan, chunki o'sha qidiruv naqshi faqat
+   `click|input|change|submit|error` ni sanardi. `script.js` ga uchinchi
+   delegatsiya qatlami qo'shildi (`data-enter`), `data-action` va
+   `data-submit` yonига.
+
+### Qorovul — Test 15 (`server/test.js`)
+
+Qoidaning o'zi himoya emas: 18 ta deploy qilinadigan frontend faylini (593 KB)
+skanerlab uch narsani qidiradi — inline hodisa, inline `<script>` bloki,
+`javascript:` URL. Beshta mutatsiya bilan sinaldi (hodisa qaytarish, skript
+bloki qo'shish, `javascript:` URL, istisno ro'yxatini o'chirish, nishon faylni
+o'zgartirish) — beshtasida ham qizil bo'ldi.
+
+Istisnolar ro'yxati **AYNAN** solishtiriladi: istisno yo'qolsa ham test qizil
+bo'ladi, ya'ni eski sayt tozalangan kuni ro'yxatni yangilash esdan chiqmaydi.
+
+### ⚠️ Bilib qilingan tanlov — `sayt-eski/index.html:69`
+
+`onsubmit="handleSubmit(event)"` ATAYLAB tegilmadi (founder qarori 2026-08-06:
+"kerakmas, unut"). CSP butun domen bo'ylab ishlaydi, ya'ni C3 dan keyin o'sha
+formadagi email tugmasi **jimgina o'ladi**. Eski sayt ishlatilmaydi —
+`sayt-eski/` faqat `style.css` uchun turibdi (`admin/` unga bog'liq).
+
+### Yo'l-yo'lakay topilgan alohida nuqson
+
+`loyiha-panel.html` hisobot matnida XOM `"><svg onload=…` turgan edi — bu
+proza sifatida yozilgan, lekin brauzer uni **haqiqiy teg** deb ochadi va
+ortidagi butun hisobot o'sha `<svg>` ichiga tushib **ko'rinmay qoladi**.
+`&lt;` ga o'zgartirildi. Test 15 buni ham qo'riqlaydi.
+
+### Ishga tushirish tartibi (founder)
+
+1. Cloudflare → `lolamarket.uz` → **Rules** → **Overview** → CSP qoidasini ochish.
+2. `Content-Security-Policy` qiymatini yuqoridagi **kanonik qoida** bilan
+   almashtirish (`script-src` dan `'unsafe-inline'` ketadi, boshqa hech narsa
+   o'zgarmaydi).
+3. ~30 soniyadan keyin tekshirish:
+
+```bash
+curl -sI https://lolamarket.uz/ | grep -i content-security-policy
+```
+
+4. Brauzerda ochib konsolni ko'rish: `/`, `/admin/`, `/mini-app/` va
+   Telegram'dagi haqiqiy Mini App. **Kutilgan:** `Refused to execute inline
+   script` xabari 0 ta. Chiqsa — qaysi fayl ekani xabarda yozilgan bo'ladi.
+5. Amaliy sinov: narx filtriga son yozib **Enter** bosish (yangi `data-enter`
+   qatlami), oflayn sahifadagi "Qayta urinish" tugmasi, sprint panelidagi
+   kartochkalar chizilishi.
+
+⚠️ **Deploy OLDIN, CSP KEYIN.** Yangi `offline.js` va `panel.js` serverga
+chiqmasdan turib CSP almashtirilsa, oflayn sahifa va panel bir muddat
+ishlamay turadi.

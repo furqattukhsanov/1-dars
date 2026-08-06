@@ -31,7 +31,13 @@ jobs:
           # (qachondir qo'lda rsync qilingan), lekin ro'yxatda bo'lmagani uchun
           # yangilanmay qolgandi: repoda 31-iyul versiyasi, serverda 30-iyulniki.
           # Aynan yuqorida yozilgan tuzoqning takrori — endi CI o'zi yangilaydi.
-          source: "index.html,style.css,script.js,manifest.json,sw.js,pwa.js,offline.html,loyiha-panel.html,assets/,Photo/,sayt-eski/,demo/,admin/"
+          #
+          # offline.js va panel.js — 2026-08-06 da (C3) qo'shildi: ikkala fayl
+          # ham inline `<script>` blokidan chiqarildi. Ro'yxatga qo'shilmasa
+          # CSP `'unsafe-inline'`siz ishlagan kuni offline sahifadagi tugma va
+          # butun sprint paneli JIMGINA o'lardi — nginx yo'q faylga HTML + 200
+          # qaytaradi, ya'ni HTTP kodiga qarab buni sezib ham bo'lmasdi.
+          source: "index.html,style.css,script.js,manifest.json,sw.js,pwa.js,offline.html,offline.js,loyiha-panel.html,panel.js,assets/,Photo/,sayt-eski/,demo/,admin/"
           target: /var/www/lolamarket
 
       # Mini App ALOHIDA qadam: repoda `telegram-app/`, serverda esa `mini-app/`
@@ -108,6 +114,12 @@ jobs:
             # blokidan shu faylga chiqarildi. U yetib bormasa nuqson AYNAN oflayn
             # holatda chiqadi, ya'ni kundalik tekshiruvda hech qachon ko'rinmaydi.
             check /mini-app/offline.js application/javascript
+            # 2026-08-06 (C3): landing oflayn sahifasi va sprint paneli ham
+            # inline `<script>` blokidan tashqi faylga chiqdi. Ikkalasi ham
+            # `source` ro'yxatiga qo'lda qo'shilgan — shu tekshiruv o'sha
+            # qo'lda qadamning bajarilganini isbotlaydi.
+            check /offline.js         application/javascript
+            check /panel.js           application/javascript
 
             # HTML fayllar uchun Content-Type YARAMAYDI: nginx yo'q faylga ham
             # `try_files ... /index.html` bilan text/html qaytaradi. Shuning uchun

@@ -160,11 +160,11 @@
       <div class="price-filter-row">
         <input id="price-min" class="price-inp" type="text" inputmode="numeric" autocomplete="off"
                placeholder="Eng kam" aria-label="Eng kam narx"
-               onkeydown="if(event.key==='Enter')applyPrice()" />
+               data-enter="applyPrice" />
         <span class="price-dash">–</span>
         <input id="price-max" class="price-inp" type="text" inputmode="numeric" autocomplete="off"
                placeholder="Eng ko'p" aria-label="Eng ko'p narx"
-               onkeydown="if(event.key==='Enter')applyPrice()" />
+               data-enter="applyPrice" />
         <button class="price-apply" type="button" data-action="applyPrice">Qo'llash</button>
       </div>
       <div id="price-err" class="price-err" role="alert"></div>
@@ -633,7 +633,7 @@
     </button>
   </nav>
 
-  <script defer src="script.js?v=26"></script>
+  <script defer src="script.js?v=27"></script>
   <script defer src="pwa.js?v=2"></script>
 </body>
 </html>

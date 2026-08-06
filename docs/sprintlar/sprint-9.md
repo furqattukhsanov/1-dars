@@ -67,6 +67,19 @@ LolaMarket ni rasmiy ishga tushirish. Birinchi haqiqiy xaridorlar va ishlab chiq
   `'unsafe-inline'` CSP'ning O'ZIDA hamon turibdi. Uni Cloudflare Transform
   Rule'dan olib tashlash — C3, founder panelda qo'llaydi. Shu qadamgacha
   qarzning amaldagi ta'siri o'zgarmagan
+
+  ✅ **C3 KOD TOMONI HAM YOPILDI (2026-08-06 kechqurun) — "tugadi" deb yozilgan
+  ishdan keyin YANA UCHTA joy topildi.** Ya'ni yuqoridagi "inline hodisa
+  qolmadi" xulosasi ham to'liq emas edi: `offline.html` (ILDIZ — egizagi C2 da
+  tuzatilgan, ildizdagisi supurish ro'yxatiga umuman kirmagan),
+  `loyiha-panel.html` (49 qatorlik inline `<script>`) va `index.html` narx
+  filtridagi 2 ta `onkeydown` (C1 qidiruvi faqat `click|input|change|submit|
+  error` ni sanardi). Uchalasi ham `offline.js` / `panel.js` ga chiqarildi va
+  `script.js` ga uchinchi delegatsiya qatlami — `data-enter` — qo'shildi.
+  Qamrovni endi ro'yxat emas **Test 15** belgilaydi (`server/test.js`).
+  Kanonik CSP `docs/xavfsizlik-sarlavhalari.md` da yangilandi.
+  **QOLGAN YAGONA QADAM — founder Cloudflare panelida qiymatni almashtiradi;
+  tartib: DEPLOY OLDIN, CSP KEYIN.**
 - [x] Muhit o'zgaruvchilari (env vars) production uchun sozlash
   — **YOPILDI (2026-08-05), TO'G'RIDAN-TO'G'RI TEKSHIRUV BILAN.** Oldingi yozuv
   bilvosita dalilga tayanardi ("`/api/products` ishlayapti, demak `.env` joyida")
@@ -189,6 +202,91 @@ LolaMarket ni rasmiy ishga tushirish. Birinchi haqiqiy xaridorlar va ishlab chiq
 ---
 
 ## Qilingan ishlar
+
+- [2026-08-06] **C3 — CSP `script-src` dan `'unsafe-inline'` OLIB TASHLANDI (kod
+  tomoni). C1/C2 ning davomi va YAKUNI.**
+
+  **Asosiy kuzatuv nuqsonlarning o'zidan muhimroq: uchala topilma ham "TUGADI"
+  deb yozilgan ishdan keyin chiqdi va sababi bitta — qamrovni RO'YXAT belgilagan
+  edi.** Supurish qaysi fayllarni sanasa o'shalar tekshirilgan, qidiruv naqshi
+  qaysi hodisa nomlarini sanasa o'shalar topilgan. Ikkala ro'yxat ham to'liq
+  emas edi va buni HECH NARSA ko'rsatmasdi — na test, na xato, na belgi. Bu
+  loyihaning "yozilgan qoida himoya emas, uni tekshiradigan test himoya" darsi
+  (`console.error` kaliti bilan bitta oila) yana takrorlangani.
+
+  **Uchta topilma — uchalasi ham C1/C2 supurishlaridan O'TIB KETGAN:**
+  1. **`offline.html` (ILDIZ)** — inline `onclick="location.reload()"` VA inline
+     `<script>` bloki. `telegram-app/offline.html` egizagi C2 da tuzatilgan,
+     ildizdagisi supurish ro'yxatiga UMUMAN kirmagan. Yangi `offline.js` ga
+     chiqarildi; `sw.js` → `PRECACHE` ga `./offline.js` qo'shildi va
+     `CACHE_VERSION` `v2` → `v3` ga oshirildi. **Ikkinchi qadam MAJBURIY** —
+     keshda eski ro'yxat qolsa `offline.js` aynan oflayn holatda yuklanmasdi,
+     ya'ni tuzatish O'ZI TUZATAYOTGAN holatda ishlamas edi.
+  2. **`loyiha-panel.html`** — 49 qatorlik inline `<script>`. Yangi `panel.js`
+     ga chiqarildi. Bu DEPLOY QILINADIGAN sahifa, ya'ni CSP unga ham tegadi.
+  3. **`index.html` narx filtri** — 2 ta
+     `onkeydown="if(event.key==='Enter')applyPrice()"`. C1 supurishi ko'rmagan,
+     chunki o'sha qidiruv naqshi faqat `click|input|change|submit|error` ni
+     sanardi. `script.js` ga **uchinchi delegatsiya qatlami** qo'shildi —
+     `data-enter` (`data-action` va `data-submit` yonida). `keydown` ham `click`
+     EMAS: mavjud tinglovchilarning hech biri uni ko'rmasdi — bu C2 dagi
+     "submit hodisasi click emas" topilmasining aynan takrori.
+
+  **Qorovul — Test 15 (`server/test.js`).** 18 ta deploy qilinadigan frontend
+  faylini skanerlab uch narsani qidiradi: inline hodisa atributi,
+  inline `<script>` bloki, `javascript:` URL. Istisnolar ro'yxati AYNAN
+  solishtiriladi (`deepStrictEqual`) — ya'ni istisno YO'QOLSA ham test qizil
+  bo'ladi, faqat qo'shilganda emas.
+
+  **DALIL — hammasi o'lchandi, "test yashil" deb qabul qilinmadi.**
+  Qorovulning o'zi **5 mutatsiya** bilan sinaldi va beshtasida ham QIZIL berdi:
+  inline hodisa qaytarish · inline `<script>` qo'shish · `javascript:` URL ·
+  istisno ro'yxatini o'chirish (eskirgan ro'yxat) · nishon fayl nomini
+  o'zgartirish (qamrov JIMGINA qisqarishi).
+
+  **Sahifalar HAQIQIY yangi CSP sarlavhasi ostida chizildi.** Usul keyingi safar
+  asqotadi, chunki "CSP ni brauzerda sinab bo'lmaydi" degan taxmin NOTO'G'RI:
+  kanonik CSP ni javobga qo'yadigan kichik Node statik serveri yozildi va
+  beshala sahifa o'sha sarlavha ostida ochildi.
+  - **Landing:** CSP buzilishi 0, Enter ikkala narx maydonida `applyPrice` ni
+    chaqirdi (1 va 2), `'a'` bosilganda otilmadi (2 da qoldi), `[onkeydown]` 0 ta
+  - **Oflayn sahifa:** `online` hodisasi hint'ni ko'rsatdi (`hidden`
+    true→false), "Qayta urinish" tugmasi sahifani QAYTA YUKLADI (belgi
+    yo'qolishi bilan o'lchandi), inline `<script>` 0, `[onclick]` 0
+  - **Panel:** 11 kartochka, bar 45%, `panel.js?v=1` tashqi skript, begona
+    `svg[onload]` 0 ta. **Eski nusxa O'SHA CSP ostida 0 KARTOCHKA berdi** —
+    ya'ni "C3 nimani o'ldirardi" savoliga ham taxmin bilan emas o'lchov bilan
+    javob berildi
+  - **Mini App:** 27 ta `[data-action]`, 27 tasi otildi, o'lik tugma 0
+  - **Admin:** kirish tugmasi `Kirish` → `...` (josus usuli admin'da ishlamaydi,
+    shuning uchun TA'SIR o'lchandi)
+  - **Toza yorliqda beshala sahifa:** CSP buzilishi **0 ta**
+
+  `npm test` — **31 test PASS**. `node --check` uchala yangi/o'zgargan JS da toza.
+
+  **`deploy.yml`:** `source` ro'yxatiga `offline.js` va `panel.js` QO'LDA
+  qo'shildi (CI faqat sanab o'tilgan fayllarni chiqaradi) + deploy tekshiruviga
+  `check /offline.js` va `check /panel.js`. Ular yetib bormasa nuqson JIMGINA
+  chiqardi — nginx yo'q faylga `try_files` bilan HTML va **HTTP 200** qaytaradi.
+
+  **YO'L-YO'LAKAY TOPILGAN ALOHIDA NUQSON.** `loyiha-panel.html` hisobot matnida
+  xom `"&gt;&lt;svg onload=` turgan edi — proza deb yozilgan, brauzer esa
+  HAQIQIY teg deb ochgan va ortidagi butun hisobot o'sha teg ichiga tushib
+  ko'rinmay qolgan. Eski nusxa chizib O'LCHANDI va matn haqiqatan yutilgani
+  tasdiqlandi. Endi Test 15 buni ham qo'riqlaydi. Dars: **panel matni HTML
+  ichida yashaydi, ya'ni u proza emas — xom `&lt;` yozilmasin.**
+
+  **ATAYLAB QOLDIRILGANI.** `sayt-eski/index.html:69` dagi
+  `onsubmit="handleSubmit(event)"` — founder qarori (2026-08-06: "kerakmas,
+  unut"), Test 15 ning istisnolar ro'yxatidagi YAGONA yozuv.
+  `style-src` dagi `'unsafe-inline'` ga TEGILMADI — bu boshqa va ancha katta
+  qarz (kodda yuzlab inline `style="..."`).
+
+  **OCHIQ QOLGANI.** Cloudflare paneldagi CSP qiymatini **founder almashtiradi**
+  — yagona qolgan qadam, tartibi hujjatda. **DEPLOY OLDIN, CSP KEYIN**: aks
+  holda yangi fayllar yetib bormasdan oflayn sahifa va panel bir muddat
+  ishlamay turadi. Founder tasdiqlagan lekin hali bajarilmagan: `?v=` bumb
+  qoidasi CLAUDE.md ga + qorovul test.
 
 - [2026-08-06] **INLINE HODISALAR TUGADI — `'unsafe-inline'` qarzining KOD tomoni
   yopildi, C3 (CSP'ni qattiqlashtirish) uchun zamin tayyor** (C1, C2 1-qism,
@@ -734,6 +832,42 @@ LolaMarket ni rasmiy ishga tushirish. Birinchi haqiqiy xaridorlar va ishlab chiq
 ---
 
 ## Qarorlar
+
+- [2026-08-06] Qaror: **qamrovni ro'yxat emas TEST belgilaydi — supurish
+  natijasiga "tugadi" deb ishonilmaydi.** C3 da uchta topilma ham "TUGADI" deb
+  yozilgan ishdan keyin chiqdi, chunki har ikkala ro'yxat (qaysi fayllar
+  supuriladi, qaysi hodisa nomlari qidiriladi) to'liq emas edi va bu holat
+  o'zini KO'RSATMASDI. Shuning uchun `server/test.js` → **Test 15** yozildi: u
+  18 ta deploy qilinadigan faylni skanerlab inline hodisa / inline `<script>` /
+  `javascript:` URL qidiradi, istisnolar ro'yxatini esa `deepStrictEqual` bilan
+  AYNAN solishtiradi — istisno **yo'qolsa ham** qizil bo'ladi, ya'ni eskirgan
+  ro'yxat ham nuqson deb qaraladi. Qorovulning o'zi 5 mutatsiya bilan sinaldi,
+  jumladan "nishon fayl nomini o'zgartirish" — qamrov jimgina qisqarishi.
+  Bu `console.error` kaliti qoidasi bilan bitta oila: **yozilgan qoida himoya
+  emas, uni tekshiradigan test himoya**
+
+- [2026-08-06] Qaror: **CSP almashtirish tartibi — DEPLOY OLDIN, CSP KEYIN.**
+  Cloudflare paneldagi qiymat `offline.js` va `panel.js` serverga chiqishidan
+  OLDIN almashtirilsa, oflayn sahifa va sprint paneli bir muddat jimgina
+  ishlamay turadi (inline skript CSP bilan o'ldiriladi, tashqi fayl esa hali
+  yo'q). Tartib `docs/xavfsizlik-sarlavhalari.md` dagi C3 bo'limida yozilgan.
+  **Qadamni founder bajaradi** — panel sozlamasi agentga ochiq emas
+
+- [2026-08-06] Qaror: **`loyiha-panel.html` matnida xom `<` belgisi
+  ishlatilmaydi — `&lt;` / `&gt;` bilan yoziladi.** Panel matni HTML ichida
+  yashaydi, ya'ni u proza EMAS: `"><svg onload=` kabi narsa yozilsa brauzer uni
+  haqiqiy teg deb ochadi va ortidagi butun hisobot o'sha teg ichiga tushib
+  ko'rinmay qoladi. Bu 2026-08-06 da HAQIQATAN sodir bo'lgan va eski nusxa
+  chizib o'lchash bilan tasdiqlangan. Qoida Test 15 bilan qulflandi. Xuddi shu
+  sabab: **paneldagi hisobot xavfsizlik nuqsoni haqida bo'lsa ham, uni
+  ko'rsatadigan matn o'sha nuqsonni takrorlamasin**
+
+- [2026-08-06] Qaror: **`loyiha-panel.html` ga inline `<script>` bloki QAYTA
+  QO'SHILMASIN.** Sprint ma'lumotlari (massiv, foiz hisobi, `Yangilanish:`
+  matni) endi `panel.js` da yashaydi va `hisobotchi` agenti aynan o'sha faylni
+  tahrirlaydi; `loyiha-panel.html` da faqat `faoliyat-item` bloklari qoladi.
+  `panel.js` o'zgarganda `loyiha-panel.html` dagi `panel.js?v=N` oshiriladi.
+  Test 15 buni darrov qizil qiladi
 
 - [2026-08-06] Qaror: **`sayt-eski/` inline hodisadan TOZALANMAYDI — u C3 dan keyin
   jimgina o'ladi va bu qabul qilinadi** (founder: "kerakmas, unut"). `sayt-eski/index.html:69`

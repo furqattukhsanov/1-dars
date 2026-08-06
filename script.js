@@ -38,6 +38,21 @@ document.addEventListener('submit', (e) => {
   if (typeof fn === 'function') fn(e);
 });
 
+/* Enter bosilishi — uchinchi qatlam. `keydown` ham `click` emas, ya'ni yuqoridagi
+   tinglovchilarning hech biri uni ko'rmaydi. Narx filtrining ikkala maydonida
+   ilgari `onkeydown="if(event.key==='Enter')applyPrice()"` turardi va u C1
+   supurishidan O'TIB KETGAN edi — o'sha qidiruv faqat click/input/change/submit/
+   error hodisalarini sanagan, ya'ni "hammasini qamradim" degan xulosa qidiruv
+   ro'yxati qanchalik to'liq bo'lsa shunchalik to'g'ri bo'lgan. Endi qamrovni
+   hodisa nomlari ro'yxati emas, Test 15 belgilaydi. */
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter') return;
+  const el = e.target.closest('[data-enter]');
+  if (!el) return;
+  const fn = window[el.dataset.enter];
+  if (typeof fn === 'function') fn();
+});
+
 /* ── Page loader ──
    DIQQAT: bu yerda ilgari `window.addEventListener('load', ...)` turardi.
    `load` hodisasi BARCHA rasm/shrift yuklanib bo'lgandan keyin otiladi, loader

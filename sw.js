@@ -11,13 +11,18 @@
 // foydalanuvchida eski `.jpg` yozuvlari keshda qolib ketardi — sinovda aynan
 // shu ko'rindi: kesh tozalanmagan holatda 11 ta ortiqcha JPEG tortildi,
 // tozalangandan keyin 0 ta.
-const CACHE_VERSION = 'v2';
+// v3 (2026-08-06): offline sahifaning skripti tashqi faylga chiqdi (C3).
+// Bu raqam ko'tarilmasa keshda ESKI PRECACHE ro'yxati qolardi — ya'ni
+// `offline.js` aynan kerak bo'lgan paytda, offline holatda, yuklanmasdi va
+// tuzatish o'zi tuzatayotgan holatda ishlamas edi.
+const CACHE_VERSION = 'v3';
 const CACHE_NAME = `lolamarket-web-${CACHE_VERSION}`;
 
 // Faqat offline holat uchun kerak bo'lgan minimal to'plam.
 // Ro'yxat qisqa: bittasi yuklanmasa ham SW o'rnatilishi buzilmasin.
 const PRECACHE = [
   './offline.html',
+  './offline.js',
   './Photo/logo/lola-mark.png',
   './assets/pwa/icon-192.png',
 ];

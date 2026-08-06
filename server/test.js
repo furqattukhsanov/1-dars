@@ -965,6 +965,95 @@ function testSelfCheck() {
     `(${REQUIRED.length} ta fayl kuzatiladi)`);
 }
 
+// ============ TEST 15: Frontendda inline kod QOLMASIN ============
+// C3 dan keyin CSP `script-src` da `'unsafe-inline'` yo'q. Ya'ni inline
+// hodisa (`onclick="..."`), inline `<script>` bloki va `javascript:` URL
+// brauzer tomonidan BAJARILMAYDI — tugma bosilmaydi, sahifa chizilmaydi.
+//
+// Nuqson JIMGINA chiqadi: HTML yetib boradi, xato faqat konsolda ko'rinadi,
+// HTTP kod 200 qolaveradi. Shuning uchun uni odam emas, test tutishi kerak.
+// Bu loyihaning o'z darsi: yozilgan qoida himoya emas — uni tekshiradigan
+// test himoya (Test 2c va 10c ham shu sababdan tug'ilgan).
+//
+// Skaner FAQAT deploy qilinadigan fayllarga qaraydi (`deploy.yml` → `source`).
+// `maket-yangi-ekranlar.html` ataylab yo'q — u serverga chiqmaydi, ya'ni
+// CSP unga hech qachon tegmaydi.
+function testNoInlineFrontendCode() {
+  const fs = require('fs');
+  const path = require('path');
+  const root = path.join(__dirname, '..');
+
+  const TARGETS = [
+    'index.html', 'offline.html', 'loyiha-panel.html',
+    'script.js', 'pwa.js', 'sw.js', 'offline.js', 'panel.js',
+    'admin/index.html', 'admin/admin.js',
+    'telegram-app/index.html', 'telegram-app/offline.html',
+    'telegram-app/app.js', 'telegram-app/pwa.js',
+    'telegram-app/sw.js', 'telegram-app/offline.js',
+    'sayt-eski/index.html', 'sayt-eski/script.js',
+  ];
+
+  // `on[a-z]{3,}` — eng qisqa haqiqiy hodisa `oncut` (3 harf). Ikki harfli
+  // chegara qo'yilsa `<div one="...">` kabi begona atribut ham tutilardi.
+  // `inline <script>` faqat HTML'da qidiriladi: JS faylida `<script>` matni
+  // izohda ham uchraydi va u brauzerga umuman bormaydi. Qolgan ikkitasi JS'ga
+  // ham tegadi — shablon satri HTML chizadi, ya'ni hodisa o'sha yerdan ham
+  // kirib kelishi mumkin (C1/C2 dagi ~120 hodisaning ko'pi aynan shunday edi).
+  const PATTERNS = [
+    { nom: 'inline hodisa', re: /<[a-z][a-z0-9-]*\s[^>]*?\son[a-z]{3,}\s*=/gi },
+    { nom: 'inline <script>', re: /<script(?![^>]*\ssrc\s*=)[^>]*>/gi, faqatHtml: true },
+    { nom: 'javascript: URL', re: /(?:href|src|action)\s*=\s*["']?\s*javascript:/gi },
+  ];
+
+  // ⚠️ ATAYLAB ruxsat berilgan YAGONA istisno — founder qarori (2026-08-06:
+  // "kerakmas, unut"). `sayt-eski/` ishlatilmaydi va faqat `style.css` uchun
+  // turibdi (`demo/` va `admin/` unga bog'liq), shuning uchun o'sha formadagi
+  // email tugmasi C3 dan keyin jimgina o'lishi BILIB QILINGAN tanlov.
+  // Ro'yxat AYNAN solishtiriladi: istisno yo'qolsa ham test qizil bo'ladi —
+  // ya'ni eski sayt tozalangan kuni bu qatorni o'chirish esdan chiqmaydi.
+  const ALLOWED = [
+    'sayt-eski/index.html:69 — inline hodisa',
+  ];
+
+  const topilgan = [];
+  let bayt = 0;
+  for (const rel of TARGETS) {
+    const file = path.join(root, rel);
+    assert.ok(fs.existsSync(file),
+      `skaner nishoni yo'qolgan: ${rel} — fayl ko'chirilgan bo'lsa TARGETS ham yangilansin`);
+    const src = fs.readFileSync(file, 'utf8');
+    bayt += src.length;
+
+    for (const { nom, re, faqatHtml } of PATTERNS) {
+      if (faqatHtml && !rel.endsWith('.html')) continue;
+      re.lastIndex = 0;
+      let m;
+      while ((m = re.exec(src)) !== null) {
+        const qator = src.slice(0, m.index).split('\n').length;
+        topilgan.push(`${rel}:${qator} — ${nom}`);
+      }
+    }
+  }
+
+  assert.deepStrictEqual(topilgan.sort(), ALLOWED.slice().sort(),
+    'Frontendda inline kod topildi. CSP `script-src` da `\'unsafe-inline\'` YO\'Q, ' +
+    'ya\'ni bu joy brauzerda umuman ishlamaydi va xato bermaydi.\n' +
+    'Hodisani `data-action` delegatsiyasiga yoki `addEventListener` ga o\'tkazing, ' +
+    'inline `<script>` blokini tashqi faylga chiqaring (va uni `deploy.yml` dagi ' +
+    '`source` ro\'yxatiga QO\'SHING).\n' +
+    '⚠️ Agar bu `loyiha-panel.html` dagi HISOBOT MATNI bo\'lsa — bu ham haqiqiy ' +
+    'nuqson: xom `<img onerror=...>` matn emas, brauzer ochadigan HAQIQIY teg, ' +
+    'ortidagi hisobot esa o\'sha teg ichiga tushib ko\'rinmay qoladi. `<` belgisini ' +
+    '`&lt;` bilan yozing.\n' +
+    `Topilgani: ${topilgan.join('; ') || '(yo\'q)'}`);
+
+  assert.ok(bayt > 200000, 'skaner haqiqatan fayllarni o\'qigan bo\'lishi kerak');
+
+  console.log(`✅ Test 15: Frontendda inline kod yo'q — PASS ` +
+    `(${TARGETS.length} ta fayl, ${Math.round(bayt / 1024)} KB, ` +
+    `${ALLOWED.length} ta ataylab qoldirilgan istisno)`);
+}
+
 // ============ TEST 14: Kesh mahsulot MATNI bo'yicha eskiradi ============
 // Sprint 10, 3-qaror. Xavf konkret: mato tarkibi tahrirlansa (masalan
 // "100% ipak" → "70% ipak, 30% paxta"), eski tarkibga qarab yozilgan g'oyalar
@@ -1174,6 +1263,7 @@ async function runTests() {
     testEveryStatusWriteIsRecorded();
     testStatusGuardsSurviveCte();
     testSelfCheck();
+    testNoInlineFrontendCode();
     testSourceHash();
     testParseIdeas();
     await testAiQuotaAtomic();

@@ -58,16 +58,10 @@
       Katalog va narxlar har safar serverdan olinadi, shuning uchun
       ular offline holatda ko'rsatilmaydi. Aloqa tiklangach qayta urinib ko'ring.
     </p>
-    <button type="button" onclick="location.reload()">Qayta urinish</button>
+    <button type="button" id="retry">Qayta urinish</button>
     <p class="hint" id="hint" hidden>Aloqa tiklandi — sahifa yangilanmoqda…</p>
   </div>
 
-  <script>
-    // Internet qaytishi bilan avtomatik qayta yuklaymiz.
-    addEventListener('online', function () {
-      document.getElementById('hint').hidden = false;
-      location.reload();
-    });
-  </script>
+  <script src="offline.js" defer></script>
 </body>
 </html>
