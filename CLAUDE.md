@@ -142,7 +142,15 @@
   ular ATAYLAB `?v=` siz yuradi, chunki `sw.js` keshdan `ignoreSearch`siz
   qidiradi va versiya qo'shilsa so'rov keshdagi yozuvga mos kelmay qolardi.
   U yerda eskirish `CACHE_VERSION` orqali boshqariladi — u ham har deploy'da
-  oshiriladi.
+  oshiriladi. **Buni Test 17 qo'riqlaydi** (2026-08-07): u ikkala `sw.js` dan
+  `PRECACHE` ro'yxatining O'ZINI o'qiydi va ro'yxat + fayllar tarkibining
+  `sha256` ini jadval bilan solishtiradi, ya'ni ro'yxatga fayl qo'shilsa ham,
+  fayl ichi o'zgarsa ham `CACHE_VERSION` oshirilmaguncha test QIZIL bo'ladi.
+  Yonida ikki qorovul: PRECACHE yozuvida `?v=` bo'lmasin (yuqoridagi istisno
+  aynan shu) va ro'yxatdagi har bir fayl diskda mavjud bo'lsin. Sabab: bu
+  ko'rsatma `sw.js` faylining O'ZIDA yozilgan edi va shunga qaramay raqam
+  `v1` da qotib qolgandi — Test 16 esa buni QAMRAMASDI, chunki u HTML dagi
+  `?v=` ga qaraydi, PRECACHE esa ataylab `?v=` siz yuradi.
   **Qorovul: `server/test.js` → Test 16.** HTML larni O'ZI skanerlaydi (ro'yxat
   qo'lda yozilmaydi), har bir versiyalangan faylning `sha256` ini jadvaldagi
   qiymat bilan solishtiradi. Fayl o'zgarib versiya qolsa test QIZIL bo'ladi va

@@ -642,6 +642,15 @@ LolaMarket ni rasmiy ishga tushirish. Birinchi haqiqiy xaridorlar va ishlab chiq
   ishga tushmagan. Ya'ni "alert ishlayapti" deb yozib bo'lmaydi — dalil restartdan
   keyin keladi.
 
+  ✅ **[2026-08-07] RESTART BAJARILGAN — yuqoridagi ogohlantirish ESKIRGAN.**
+  Jonli serverda o'qildi: `lolamarket-notify` `ActiveState=active`,
+  `ActiveEnterTimestamp=2026-08-06 06:38:03`, va `/opt/lolamarket-notify/server.js`
+  da `self-check` ulangan. Ya'ni (a), (b), (c) uchtasi ham yopildi: jarayon yangi
+  muhit bilan ishlayapti va `config.js` qorovuli ishga tushgan. Ogohlantirish
+  ataylab o'chirilmadi — u o'sha kunning haqiqiy holati edi; eskirgani ustiga
+  qo'shildi, chunki **"bajarilmagan" deb turgan yozuv bajarilgandan keyin
+  jimgina yolg'onga aylanadi.**
+
 - [2026-08-03] **Xato monitoringi yozildi (Sentry o'rniga Telegram alerti), va shu ish
   yo'l-yo'lakay JIDDIYROQ nuqson ochib berdi: bitta so'rovdagi baza uzilishi BUTUN
   serverni o'ldirardi.**

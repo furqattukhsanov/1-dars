@@ -1087,7 +1087,7 @@ function testAssetVersionsAreFresh() {
     'style.css': { v: 36, hash: 'c4e8e763789f' },
     'script.js': { v: 27, hash: 'b729d38501fe' },
     'pwa.js': { v: 2, hash: 'f46683d58662' },
-    'panel.js': { v: 4, hash: '28e18bfd92c4' },
+    'panel.js': { v: 5, hash: '1bbce0ea810f' },
     'admin/admin.css': { v: 17, hash: 'dbefeb6757ff' },
     'admin/admin.js': { v: 20, hash: 'ff157289e9d0' },
     'telegram-app/styles.css': { v: 17, hash: 'c741190115b1' },
@@ -1136,6 +1136,94 @@ function testAssetVersionsAreFresh() {
 
   console.log(`✅ Test 16: Kesh versiyalari fayl bilan mos — PASS ` +
     `(${Object.keys(KUTILGAN).length} ta versiyalangan fayl, ${HTML.length} ta sahifa)`);
+}
+
+// ============ TEST 17: `CACHE_VERSION` PRECACHE bilan BIRGA oshadi ============
+// Test 16 ning ko'r nuqtasi. U HTML dagi `?v=` ni qo'riqlaydi, service worker
+// keshi esa BUTUNLAY boshqa mexanizm: `PRECACHE` ro'yxatidagi fayllar ATAYLAB
+// `?v=` siz yuradi (`sw.js` keshdan `ignoreSearch`siz qidiradi), ya'ni ular
+// uchun yagona eskirish dastagi — `CACHE_VERSION`.
+//
+// Xavf konkret va JIMGINA: `offline.js` tahrirlansa, lekin `CACHE_VERSION`
+// o'sha joyda qolsa, `activate` eski keshni o'chirmaydi va qaytib kelgan
+// foydalanuvchida ESKI `offline.html`/`offline.js` abadiy qolib ketadi —
+// aynan internet uzilgan paytda, ya'ni tuzatish o'zi kerak bo'lgan holatda
+// ishlamaydi. 2026-08-05 da bu tuzoq real ko'rindi (kesh tozalanmagan holatda
+// 11 ta ortiqcha JPEG tortildi).
+//
+// "Har deploy'da bu raqamni oshiring" ko'rsatmasi `sw.js` faylining O'ZIDA
+// yozilgan edi va shunga qaramay raqam `v1` da qotib qolgandi. Loyihaning
+// darsi shu: YOZILGAN QOIDA HIMOYA EMAS — UNI TEKSHIRADIGAN TEST HIMOYA.
+//
+// Ro'yxat qo'lda yozilmaydi: `PRECACHE` ning O'ZI `sw.js` dan o'qiladi, ya'ni
+// ro'yxatga yangi fayl qo'shilsa u avtomatik qamraladi (Test 16 bilan bitta naqsh).
+function testServiceWorkerCacheVersion() {
+  const fs = require('fs');
+  const path = require('path');
+  const crypto = require('crypto');
+  const root = path.join(__dirname, '..');
+
+  // Kalit — service worker fayli. Ikkalasining keshi alohida
+  // (`lolamarket-web-*` va `lolamarket-mini-*`), shuning uchun versiyalari
+  // ham bir-biriga bog'liq emas va alohida oshiriladi.
+  const KUTILGAN = {
+    'sw.js': { v: 'v3', hash: '8e5d407b4efa' },
+    'telegram-app/sw.js': { v: 'v3', hash: 'ea6ae3946dba' },
+  };
+
+  const YORDAM = '\n→ PRECACHE dagi fayl o\'zgargan bo\'lsa: (1) o\'sha `sw.js` da ' +
+    '`CACHE_VERSION` ni oshiring, (2) shu jadvaldagi `v` va `hash` ni yangilang.\n' +
+    '→ Hash test xabarida ko\'rsatilgan qiymatdan olinadi.';
+
+  for (const [sw, kutilgan] of Object.entries(KUTILGAN)) {
+    const src = fs.readFileSync(path.join(root, sw), 'utf8');
+
+    const vMatch = src.match(/CACHE_VERSION\s*=\s*'(v\d+)'/);
+    assert.ok(vMatch,
+      `\`${sw}\` da \`CACHE_VERSION = 'vN'\` topilmadi — nom yoki shakl ` +
+      'o\'zgargan bo\'lsa bu qorovul jimgina ishlamay qoladi.');
+    assert.strictEqual(vMatch[1], kutilgan.v,
+      `\`${sw}\` da \`CACHE_VERSION\` = \`${vMatch[1]}\`, jadvalda esa ` +
+      `\`${kutilgan.v}\`. Versiya oshirilgan bo'lsa jadval ham yangilansin.${YORDAM}`);
+
+    const listMatch = src.match(/const PRECACHE\s*=\s*\[([\s\S]*?)\]/);
+    assert.ok(listMatch, `\`${sw}\` da \`PRECACHE\` ro'yxati topilmadi.`);
+    const fayllar = [...listMatch[1].matchAll(/'([^']+)'/g)].map((m) => m[1]);
+    assert.ok(fayllar.length > 0, `\`${sw}\` dagi \`PRECACHE\` bo'sh.`);
+
+    // Ro'yxatning O'ZI ham hisobga olinadi: fayl qo'shilishi/olib tashlanishi
+    // ham keshni eskirtiradi, holbuki fayllar tarkibi o'zgarmagan bo'lishi mumkin.
+    const hisob = crypto.createHash('sha256');
+    hisob.update(fayllar.join('\n'));
+
+    for (const ref of fayllar) {
+      // `?v=` ATAYLAB yo'q: `sw.js` keshdan `ignoreSearch`siz qidiradi, ya'ni
+      // versiya qo'shilsa so'rov keshdagi yozuvga umuman mos kelmay qolardi.
+      assert.ok(!ref.includes('?'),
+        `\`${sw}\` PRECACHE da \`${ref}\` so'rov qatori bilan yozilgan. ` +
+        'PRECACHE fayllari `?v=` SIZ yuradi — kesh `ignoreSearch`siz qidiradi ' +
+        'va versiyali so\'rov keshdagi yozuvni topa olmaydi. Eskirish bu yerda ' +
+        '`CACHE_VERSION` orqali boshqariladi.');
+
+      const rel = path.posix.normalize(
+        path.posix.join(path.posix.dirname(sw), ref));
+      const toliq = path.join(root, rel);
+      assert.ok(fs.existsSync(toliq),
+        `\`${sw}\` PRECACHE da \`${ref}\` bor, lekin \`${rel}\` fayli YO'Q. ` +
+        'Offline sahifa aynan internet uzilganda ishlamay qoladi.');
+      hisob.update(fs.readFileSync(toliq));
+    }
+
+    const bor = hisob.digest('hex').slice(0, 12);
+    assert.strictEqual(bor, kutilgan.hash,
+      `\`${sw}\` PRECACHE tarkibi O'ZGARGAN (hash ${kutilgan.hash} → ${bor}), ` +
+      `lekin \`CACHE_VERSION\` hamon \`${kutilgan.v}\`. Eski kesh o'chirilmaydi: ` +
+      'qaytib kelgan foydalanuvchida ESKI offline sahifa abadiy qolib ketadi ' +
+      `va buni hech narsa ko'rsatmaydi.${YORDAM}`);
+  }
+
+  console.log(`✅ Test 17: SW kesh versiyasi PRECACHE bilan mos — PASS ` +
+    `(${Object.keys(KUTILGAN).length} ta service worker)`);
 }
 
 // ============ TEST 14: Kesh mahsulot MATNI bo'yicha eskiradi ============
@@ -1349,6 +1437,7 @@ async function runTests() {
     testSelfCheck();
     testNoInlineFrontendCode();
     testAssetVersionsAreFresh();
+    testServiceWorkerCacheVersion();
     testSourceHash();
     testParseIdeas();
     await testAiQuotaAtomic();

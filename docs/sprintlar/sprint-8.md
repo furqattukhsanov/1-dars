@@ -170,6 +170,58 @@ Platformaning barcha funksiyalarini real foydalanuvchilar bilan sinovdan o'tkazi
 
 ## Qilingan ishlar
 
+- [2026-08-07] **Test 17 yozildi — service worker kesh versiyasi endi QOROVUL
+  ostida. 5-avgustda ataylab ochiq qoldirilgan qarz YOPILDI.**
+
+  **1. Nima uchun Test 16 yetarli emas edi.** Test 16 (`e6716c4`) HTML dagi
+  `?v=` versiyalarini qo'riqlaydi, service worker keshi esa BUTUNLAY boshqa
+  mexanizm: `PRECACHE` ro'yxatidagi fayllar ATAYLAB `?v=` siz yuradi, chunki
+  `sw.js` keshdan `ignoreSearch`siz qidiradi va versiyali so'rov keshdagi
+  yozuvni topa olmasdi. Ya'ni ular uchun yagona eskirish dastagi —
+  `CACHE_VERSION`, va Test 16 unga umuman qaramaydi. Qorovulning ko'r nuqtasi
+  qorovul yo'qligidan yomonroq: u qamrov TUYG'USINI beradi.
+
+  **2. Xavf konkret va JIMGINA.** `offline.js` tahrirlanib `CACHE_VERSION`
+  o'sha joyda qolsa, `activate` eski keshni o'chirmaydi va qaytib kelgan
+  foydalanuvchida ESKI `offline.html`/`offline.js` abadiy qolib ketadi —
+  aynan internet uzilgan paytda, ya'ni tuzatish o'zi kerak bo'lgan holatda
+  ishlamaydi. Bu nazariy emas: 2026-08-05 da aynan shu tuzoq ko'ringan
+  (kesh tozalanmagan holatda 11 ta ortiqcha JPEG tortilardi).
+
+  **3. Test nima qiladi** (`server/test.js` → `testServiceWorkerCacheVersion`).
+  Ro'yxat QO'LDA yozilmaydi — `PRECACHE` ning O'ZI `sw.js` dan o'qiladi, ya'ni
+  ro'yxatga yangi fayl qo'shilsa avtomatik qamraladi (Test 16 bilan bitta
+  naqsh). Besh qorovul: (a) `CACHE_VERSION` jadvaldagi qiymatga mos;
+  (b) `PRECACHE` ro'yxati + undagi HAR BIR faylning tarkibi `sha256` bilan
+  jadvalga solishtiriladi — ro'yxatning O'ZI ham hisobga olinadi, chunki fayl
+  qo'shilishi/olib tashlanishi ham keshni eskirtiradi, holbuki fayllar tarkibi
+  o'zgarmagan bo'lishi mumkin; (c) `PRECACHE` yozuvida `?v=` bo'lmasin —
+  yuqoridagi istisno shu bilan QULFLANADI, aks holda kelajakda kimdir
+  "izchillik uchun" versiya qo'shib keshni butunlay ishlamas qilardi;
+  (d) ro'yxatdagi har bir fayl diskda mavjud; (e) `CACHE_VERSION` nomi/shakli
+  o'zgarsa test O'ZI qichqiradi — qorovul jimgina ishlamay qolmasligi uchun.
+
+  **4. Tasdiqlangani — 6 ta MUTATSIYA, 6 tasi ham ushlandi.** Testning yashil
+  bo'lishi u ishlayotganini isbotlamaydi, shuning uchun ataylab buzib ko'rildi:
+  M1 `offline.js` o'zgardi, versiya qoldi → hash mos kelmadi; M2
+  `CACHE_VERSION` `v3`→`v4`, jadval yangilanmadi → tutildi; M3 `PRECACHE` ga
+  `?v=2` qo'shildi → tutildi; M4 `PRECACHE` da mavjud bo'lmagan fayl →
+  tutildi; M5 `CACHE_VERSION` nomi o'zgartirildi → tutildi; M6 `PRECACHE` dan
+  fayl olib tashlandi (fayllar TARKIBI o'zgarmagan holda) → tutildi.
+  Mutatsiyalardan keyin fayllar scratchpad zaxirasidan tiklandi —
+  `git checkout` ATAYLAB ishlatilmadi, u commit qilinmagan tahrirni
+  o'chirib yuborardi. `node test.js` — **34 test PASS** (o'zi sanaldi, oldingi
+  yozuvdagi 33 ustiga +1).
+
+  **5. Yo'l-yo'lakay ikki eskirgan da'vo tuzatildi** (ikkalasi ham jonli
+  serverdan o'qildi, 2026-08-07): `lolamarket-notify` servisi
+  **2026-08-06 06:38:03** da qayta ishga tushgan va hozir `active` — ya'ni
+  Sprint 9 dagi "restart HALI BAJARILMAGAN" va quyidagi "kod hali serverga
+  ko'chirilmagan" yozuvlari eskirgan edi; ikkalasi ham yangilandi. CSP jonli
+  sarlavhada tasdiqlandi (`script-src 'self' https://telegram.org
+  https://static.cloudflareinsights.com` — `'unsafe-inline'` YO'Q, C3 yopiq).
+  HSTS hamon `max-age=2592000` (30 kun) — founder bandi OCHIQ qoladi.
+
 - [2026-08-06] **`telegram.org` ga `preconnect` qo'shildi — Sprint 8 ning
   OXIRGI ochiq tezlik bandi yopildi.** O'zgarish jismonan ikkita qator:
   `index.html` va `telegram-app/index.html` ga bittadan
@@ -514,6 +566,12 @@ Platformaning barcha funksiyalarini real foydalanuvchilar bilan sinovdan o'tkazi
   yo'q: bu vaqtinchalik holat, keyingi deploy'gacha yangi o'tishlar tarixga tushmaydi.
   Sprint bandi shu sabab `[x]` qilinmadi (30-iyul qarori: dalil jonli tekshiruvdan keladi).
 
+  ✅ **[2026-08-07] YUQORIDAGI "ko'chirilmagan" YOZUVI ESKIRGAN.** Jonli serverda
+  tekshirildi: `/opt/lolamarket-notify/lib/order-history.js` mavjud (2026-08-03 04:15)
+  va servis `active`, oxirgi ishga tushish **2026-08-06 06:38:03**. Ya'ni
+  "jadval bor, yozadigan kod yo'q" vaqtinchalik holati TUGAGAN. Yozuv ataylab
+  o'chirilmadi — u o'sha kunning haqiqiy holati; eskirgani ustiga qo'shildi.
+
 - [2026-08-03] **B2 — bahs (dispute) oqimi jonli Telegram bilan uchidan-uchiga sinaldi, va
   yo'l-yo'lakay `review_hide` amalini BUTUNLAY ishlamas qilib turgan production nuqsoni
   topib tuzatildi.**
@@ -780,6 +838,40 @@ Platformaning barcha funksiyalarini real foydalanuvchilar bilan sinovdan o'tkazi
 
 ## Qarorlar
 
+- [2026-08-07] Qaror: **`PRECACHE` ro'yxati testda QO'LDA sanalmaydi — `sw.js`
+  ning O'ZIDAN o'qiladi.** Qo'lda yozilgan ro'yxat ikkinchi haqiqat manbai
+  bo'lardi va u jimgina eskirardi: yangi fayl `PRECACHE` ga qo'shilsa test
+  buni sezmay, "yashil" qolaverardi — ya'ni qorovul aynan yangi fayl
+  qo'shilgan paytda, eng kerak bo'lgan payt, ko'r bo'lardi. Bu `to_status`
+  ga CHECK qo'yilmagani va Test 16 ning HTML larni o'zi skanerlashi bilan
+  bitta oila: **bir xil ro'yxat ikki joyda takrorlanmasin — ikkinchi ro'yxat
+  himoya emas, kelajakdagi tuzoq.**
+
+- [2026-08-07] Qaror: **`PRECACHE` da `?v=` YO'QLIGI endi test bilan
+  QULFLANDI.** Bu istisno CLAUDE.md da yozilgan edi, lekin u tushuntirish
+  edi — qorovul emas. Xavf teskari yo'nalishda: kimdir "izchillik uchun"
+  `?v=` qo'shsa, `sw.js` keshdan `ignoreSearch`siz qidirgani uchun so'rov
+  keshdagi yozuvga UMUMAN mos kelmay qolardi va offline rejim butunlay
+  o'lardi — sinovsiz sezilmaydigan nuqson. Endi bunday o'zgarish testda
+  darrov qizil bo'ladi va sababini o'zi tushuntiradi.
+
+- [2026-08-07] Qaror: **test YASHIL bo'lgani u ishlayotganini isbotlamaydi —
+  qorovul MUTATSIYA bilan sinaladi.** Test 17 oltita ataylab buzilgan holatda
+  tekshirildi va oltitasi ham ushlandi. Sabab loyihaning takroriy darsidan
+  keladi: Test 10c qo'shilishiga sabab bo'lgan qoida O'SHA commitning o'zida
+  buzilgan holda qolgan edi, ya'ni **hech kim buzib ko'rmagan qorovul —
+  qorovul emas, taxmin.** Yangi qorovul testi qo'shilganda shu tartib
+  saqlansin.
+
+- [2026-08-07] Qaror: **mutatsiyadan keyin fayl `git checkout` bilan
+  TIKLANMAYDI — zaxiradan tiklanadi.** Test 17 ni sinash uchun `sw.js` va
+  `offline.js` ataylab buzilgan payt ishchi katalogda commit QILINMAGAN
+  tahrirlar turgandi (`test.js`, `CLAUDE.md`): `git checkout` ularni
+  savolsiz o'chirib yuborardi va ish yo'qolardi. Shuning uchun fayllar avval
+  scratchpad ga nusxalandi, keyin undan qaytarildi. Bu "Almashtirishni
+  QO'LGA KIRITMASDAN eskisini o'chirma" qoidasining aynan o'sha oilasi:
+  **qaytarish yo'li amal boshlanishidan OLDIN mavjud bo'lsin.**
+
 - [2026-08-06] Qaror: **`telegram.org` preconnect'iga `crossorigin`
   QO'YILMADI — chunki skriptning o'zida ham u yo'q.** Preconnect brauzerda
   ulanishni CORS bo'yicha ALOHIDA hovuzda saqlaydi: `crossorigin` li
@@ -866,6 +958,12 @@ Platformaning barcha funksiyalarini real foydalanuvchilar bilan sinovdan o'tkazi
   qoidasi kabi, tekshirilmasa bajarilmaydi.** Bu bugungi Test 10c darsining takrori.
   Hozircha qorovul QO'YILMADI (ochiq qarz): deploy'da versiya oshganini tekshiradigan
   test yo'q, ya'ni bu qaror hozir niyat darajasida
+
+  ✅ **[2026-08-07] QARZ YOPILDI — Test 17.** Qorovul qo'yildi: `PRECACHE`
+  ro'yxati va undagi fayllar tarkibining `sha256` i `CACHE_VERSION` bilan
+  bog'landi, ya'ni fayl o'zgarib versiya qolsa test QIZIL bo'ladi. Qaror
+  endi niyat emas — tekshiriladigan shart. Tafsilot: yuqoridagi 2026-08-07
+  yozuvi
 
 - [2026-08-05] Qaror: **tezlik bandi production o'lchovi bilan YOPILDI, lekin
   o'lchovning chegarasi hujjatda ochiq yozildi.** Sekin 3G'da olti o'lchov
