@@ -23,10 +23,14 @@ async function handleAuthTelegram(req, res, ip) {
     const fullName =
       [tgUser.first_name, tgUser.last_name].filter(Boolean).join(' ') || tgUser.username || null;
     const { rows } = await pool.query(
-      `INSERT INTO users (tg_user_id, full_name, role)
-       VALUES ($1, $2, 'buyer')
+      // `engaged_at` — BIRINCHI haqiqiy foydalanish belgisi (db/020).
+      // `COALESCE` bilan bir marta yoziladi: keyingi ochishlar uni surmaydi,
+      // aks holda "birinchi foydalanish" o'rniga "oxirgi" bo'lib qolardi.
+      `INSERT INTO users (tg_user_id, full_name, role, engaged_at)
+       VALUES ($1, $2, 'buyer', now())
        ON CONFLICT (tg_user_id)
-       DO UPDATE SET full_name = COALESCE(EXCLUDED.full_name, users.full_name)
+       DO UPDATE SET full_name  = COALESCE(EXCLUDED.full_name, users.full_name),
+                     engaged_at = COALESCE(users.engaged_at, now())
        RETURNING id, tg_user_id, full_name, role, created_at`,
       [String(tgUser.id), fullName]
     );

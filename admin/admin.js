@@ -783,8 +783,12 @@ function renderUsers() {
   const block = document.getElementById('usersBlock');
   const note = document.getElementById('usersNote');
   if (!block) return;
+  // `engaged` ham tekshiriladi, `users` ning O'ZI bor-yo'qligi kifoya emas:
+  // deploy oynasida frontend yangi, backend esa bir qadam orqada bo'lishi
+  // mumkin (2026-08-08 da aynan shu holat bo'ldi) — o'shanda `engaged`
+  // `undefined` bo'lib ekranda "NaN%" chiqardi.
   const u = state.summary.users;
-  if (!u) {
+  if (!u || u.engaged == null) {
     block.hidden = true;
     if (note) note.hidden = true;
     return;
@@ -793,6 +797,11 @@ function renderUsers() {
   if (note) note.hidden = false;
 
   document.getElementById('usersTotal').textContent = fmtNum(u.total) + ' ta';
+  // Ulush jamiga nisbatan — "botni ochib qo'ygan, lekin foydalanmagan" ulushi
+  // konversiyaning eng qo'pol o'lchovi.
+  const ulush = u.total ? Math.round((u.engaged / u.total) * 100) : 0;
+  document.getElementById('usersSplit').textContent =
+    `${fmtNum(u.engaged)} foydalangan (${ulush}%) · ${fmtNum(u.startOnly)} faqat /start`;
 
   const rollar = [
     { name: 'Xaridor', n: u.buyers },
@@ -814,7 +823,9 @@ function renderUsers() {
   // Ustunlar jamiga nisbatan chiziladi — "oxirgi 30 kunda kelganlar ulushi"
   // o'sish tezligini bitta qarashda ko'rsatadi.
   const yangi = [
-    { text: 'Oxirgi 7 kun', n: u.new7, color: '#119DAB' },
+    { text: 'Foydalanganlar', n: u.engaged, color: '#119DAB' },
+    { text: 'Faqat /start bosgan', n: u.startOnly, color: '#8f1a10' },
+    { text: 'Oxirgi 7 kun', n: u.new7, color: '#54D7E1' },
     { text: 'Oxirgi 30 kun', n: u.new30, color: '#D98E0C' },
     { text: 'Telefon raqami bor', n: u.withPhone, color: '#C9362D' },
   ];

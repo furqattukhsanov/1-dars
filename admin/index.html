@@ -346,8 +346,9 @@
             <div class="panel glass">
               <div class="panel-head">
                 <div>
-                  <div class="panel-title">Foydalanuvchilar — ilovani ochganlar</div>
+                  <div class="panel-title">Foydalanuvchilar — botga kirganlar</div>
                   <div class="panel-value" id="usersTotal">–</div>
+                  <div class="stat-foot" id="usersSplit">–</div>
                 </div>
               </div>
               <div class="cat-list" id="usersRoles"></div>
@@ -355,18 +356,20 @@
 
             <div class="panel glass">
               <div class="panel-head">
-                <div class="panel-title">Yangi foydalanuvchilar</div>
+                <div class="panel-title">Faollik va yangilar</div>
               </div>
               <div class="status-dist" id="usersNew"></div>
             </div>
           </div>
 
           <div class="sample-note" id="usersNote" hidden>
-            Bu raqam — <b>ilovani ochgan</b> odamlar soni, botdagi obunachilar soni EMAS.
-            Botga <code>/start</code> bosib Mini App'ni ochmagan odam bazaga umuman
-            yozilmaydi, shuning uchun haqiqiy bot auditoriyasi bundan kattaroq va
-            hozircha hech qayerda hisoblanmaydi. Telegram Bot API ham botning
-            obunachilar sonini bermaydi.
+            <b>Jami</b> — botga <code>/start</code> bosgan hamma odam.
+            <b>Foydalanganlar</b> — Mini App'ni ochgan, saytga kirgan yoki sotuvchi
+            arizasini to'ldirganlar; qolgani faqat botni ochib qo'ygan.
+            ⚠️ <code>/start</code> hisobi <b>2026-08-08 dan</b> boshlab yuritiladi —
+            undan oldin bosganlar, agar ilovani ham ochmagan bo'lsa, bu yerda yo'q.
+            Telegram Bot API botning obunachilar sonini bermaydi, shuning uchun
+            bundan aniqroq manba mavjud emas.
           </div>
 
           <div class="panel glass">
@@ -471,6 +474,6 @@
     </div>
   </div>
 
-  <script src="admin.js?v=21"></script>
+  <script src="admin.js?v=22"></script>
 </body>
 </html>

@@ -120,15 +120,14 @@ async function handleAdminSummary(req, res, ip) {
 
       pool.query(`SELECT count(*)::int AS n FROM disputes WHERE status='open'`),
 
-      // ---- Foydalanuvchilar. ⚠️ Bu raqam "botga /start bosgan odam" EMAS:
-      // `users` qatori faqat Mini App ochilganda (`catalog.js` → initData auth),
-      // saytga kirilganda (`web-auth.js`) yoki sotuvchi arizasi
-      // to'ldirilganda (`seller-application.js`) tug'iladi. `/start` bosib
-      // ilovani ochmagan odam bazada UMUMAN yo'q, shuning uchun panelda ham
-      // yorliq "Ilovani ochganlar" deb yoziladi — "botdagi obunachilar" deb
-      // yozilsa bu raqam jimgina yolg'on gapirardi.
+      // ---- Foydalanuvchilar. `engaged_at` ikki tushunchani AJRATADI (db/020):
+      // NULL = faqat `/start` bosgan, NOT NULL = ilova/sayt/ariza orqali
+      // foydalangan. Bitta "jami" raqami bo'lsa u jimgina yolg'on gapirardi —
+      // botga kirgan odam bilan ilovani ochgan odam bir xil ko'rinardi.
       pool.query(`
         SELECT count(*)::int                                                     AS total,
+               count(*) FILTER (WHERE engaged_at IS NOT NULL)::int                AS engaged,
+               count(*) FILTER (WHERE engaged_at IS NULL)::int                    AS start_only,
                count(*) FILTER (WHERE role='buyer')::int                          AS buyers,
                count(*) FILTER (WHERE role='seller')::int                         AS sellers,
                count(*) FILTER (WHERE role='admin')::int                          AS admins,
@@ -175,6 +174,8 @@ async function handleAdminSummary(req, res, ip) {
 
       users: {
         total: usersRes.rows[0].total,
+        engaged: usersRes.rows[0].engaged,
+        startOnly: usersRes.rows[0].start_only,
         buyers: usersRes.rows[0].buyers,
         sellers: usersRes.rows[0].sellers,
         admins: usersRes.rows[0].admins,

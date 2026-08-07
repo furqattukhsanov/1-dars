@@ -162,11 +162,14 @@ async function handleSellerApplicationReview(chatId, action, appId, reason) {
     const { rows: userRows } = await client.query(
       // Telefon ham users'ga yoziladi — admin panelidagi sotuvchilar ro'yxati
       // uni shu yerdan oladi (ilgari faqat arizada qolib ketardi).
-      `INSERT INTO users (tg_user_id, full_name, phone, role)
-         VALUES ($1, $2, $3, 'seller')
+      // `engaged_at` — haqiqiy foydalanish belgisi (db/020). Sotuvchi arizasini
+      // to'ldirish `/start` bosishdan ancha uzoqroq qadam.
+      `INSERT INTO users (tg_user_id, full_name, phone, role, engaged_at)
+         VALUES ($1, $2, $3, 'seller', now())
          ON CONFLICT (tg_user_id) DO UPDATE
            SET role = 'seller',
-               phone = COALESCE(EXCLUDED.phone, users.phone)
+               phone = COALESCE(EXCLUDED.phone, users.phone),
+               engaged_at = COALESCE(users.engaged_at, now())
          RETURNING id`,
       [String(app.tg_user_id), app.business_name || app.tg_username || null, app.phone || null]
     );

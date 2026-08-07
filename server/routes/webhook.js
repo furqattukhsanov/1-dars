@@ -303,6 +303,34 @@ async function handleTelegramWebhook(req, res) {
     }
 
     if (text.startsWith('/start')) {
+      // Botga kirgan odamni yozib qo'yamiz — "botda qancha odam bor" savoliga
+      // yagona manba shu (Telegram Bot API obunachilar sonini bermaydi).
+      //
+      // ⚠️ `engaged_at` ATAYLAB TEGILMAYDI — na INSERT da, na UPDATE da. Bu
+      // qator "ilovani ochgan" degani EMAS, va agar odam keyin ilovani ochsa
+      // `engaged_at` ni o'sha yo'lning o'zi qo'yadi (db/020 izohiga qara).
+      // `DO UPDATE` ishlatiladi, `DO NOTHING` emas: ismi o'zgargan bo'lishi
+      // mumkin, lekin roli TEGILMAYDI — sotuvchi `/start` bossa `buyer` ga
+      // tushib qolardi.
+      //
+      // Telegram ID bu yerda ISHONCHLI: uni klient emas, webhook orqali
+      // Telegram'ning o'zi yuboradi va so'rov WEBHOOK_SECRET bilan
+      // tekshirilgan (CLAUDE.md — foydalanuvchi kimligi brauzerdan olinmaydi).
+      if (msg.from && msg.from.id) {
+        const startName =
+          [msg.from.first_name, msg.from.last_name].filter(Boolean).join(' ')
+          || msg.from.username || null;
+        await pool.query(
+          `INSERT INTO users (tg_user_id, full_name, tg_username, role)
+             VALUES ($1, $2, $3, 'buyer')
+           ON CONFLICT (tg_user_id) DO UPDATE
+             SET full_name   = COALESCE(users.full_name, EXCLUDED.full_name),
+                 tg_username = COALESCE(EXCLUDED.tg_username, users.tg_username)`,
+          [String(msg.from.id), startName, msg.from.username || null]
+        // Birinchi argument — alert guruhlash kaliti, o'zgaruvchan qism ikkinchida.
+        ).catch((e) => console.error('/start foydalanuvchini yozishda xato:', e.message));
+      }
+
       // Saytdan kelgan kirish havolasi: /start web_<kod>
       const startParam = text.slice('/start'.length).trim();
       const loginMatch = startParam.match(/^web_([0-9a-f]{8,64})$/);

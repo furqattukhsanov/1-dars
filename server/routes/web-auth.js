@@ -228,11 +228,14 @@ async function confirmWebLoginCode(msg, code) {
   const fullName =
     [msg.from.first_name, msg.from.last_name].filter(Boolean).join(' ') || msg.from.username || null;
   const { rows: users } = await pool.query(
-    `INSERT INTO users (tg_user_id, full_name, tg_username, role)
-     VALUES ($1, $2, $3, 'buyer')
+    // `engaged_at` — haqiqiy foydalanish belgisi (db/020). Saytga kirish ham
+    // foydalanish: odam faqat `/start` bosgan emas, kod olib ichkariga kirgan.
+    `INSERT INTO users (tg_user_id, full_name, tg_username, role, engaged_at)
+     VALUES ($1, $2, $3, 'buyer', now())
      ON CONFLICT (tg_user_id) DO UPDATE
        SET full_name   = COALESCE(EXCLUDED.full_name, users.full_name),
-           tg_username = COALESCE(EXCLUDED.tg_username, users.tg_username)
+           tg_username = COALESCE(EXCLUDED.tg_username, users.tg_username),
+           engaged_at  = COALESCE(users.engaged_at, now())
      RETURNING id, phone`,
     [String(msg.from.id), fullName, msg.from.username || null]
   );

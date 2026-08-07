@@ -799,6 +799,77 @@ function testEveryStatusWriteIsRecorded() {
     `(${totalWrites} ta yozuv, ${totalRecords} ta tarix chaqiruvi)`);
 }
 
+// ============ TEST 12d: Har bir `users` yozuvi `engaged_at` ni hal qiladi ============
+// db/020 dan keyin `users` da IKKI tushuncha yashaydi va ular ustunda ajratilgan:
+//   `engaged_at IS NULL`     → faqat `/start` bosgan
+//   `engaged_at IS NOT NULL` → ilova / sayt / ariza orqali FOYDALANGAN
+//
+// Xavf JIMGINA: yangi foydalanish yo'li qo'shilib `engaged_at` unutilsa, o'sha
+// yo'ldan kelgan odam bazada ABADIY "faqat /start bosgan" bo'lib qoladi.
+// Hech qanday xato chiqmaydi — panel shunchaki noto'g'ri raqam ko'rsatadi va
+// unga qarab qaror qabul qilinadi. Bu `NULL` reyting va tarix qoidalari bilan
+// bitta oilada: jimgina yolg'on yo'qlikdan yomonroq.
+//
+// Loyihaning darsi: YOZILGAN QOIDA HIMOYA EMAS — UNI TEKSHIRADIGAN TEST HIMOYA
+// (Test 2c, 10c va 16 shu sababdan tug'ilgan). Shuning uchun qoida CLAUDE.md ga
+// yozilishi bilan cheklanmadi.
+//
+// `webhook.js` ATAYLAB istisno — u yerdagi yozuv `/start` ning O'ZI, ya'ni
+// `engaged_at` qo'yilmasligi nuqson emas, aynan maqsad.
+const ENGAGED_EXEMPT = { 'webhook.js': '/start — foydalanish emas, shuning uchun engaged_at qo\'yilmaydi' };
+
+function testUserWritesResolveEngagedAt() {
+  const fs = require('fs');
+  const path = require('path');
+  const dir = path.join(__dirname, 'routes');
+
+  let tekshirilgan = 0;
+  for (const file of fs.readdirSync(dir).filter((f) => f.endsWith('.js'))) {
+    const src = fs.readFileSync(path.join(dir, file), 'utf8');
+    // `INSERT INTO users` dan keyingi so'rov matni — yopuvchi backtick'gacha.
+    for (const m of src.matchAll(/INSERT INTO users\b[\s\S]*?`/g)) {
+      const soz = m[0];
+      tekshirilgan++;
+      if (ENGAGED_EXEMPT[file]) {
+        assert.ok(!/engaged_at/.test(soz),
+          `${file}: istisno ro'yxatida, lekin engaged_at qo'yilgan — ` +
+          `istisno sababi eskirgan bo'lsa ENGAGED_EXEMPT dan olib tashlang.\n` +
+          `   Sabab: ${ENGAGED_EXEMPT[file]}`);
+        continue;
+      }
+      assert.ok(/engaged_at/.test(soz),
+        `${file}: \`INSERT INTO users\` bor, lekin \`engaged_at\` yo'q. ` +
+        'Yangi foydalanish yo\'li qo\'shgan bo\'lsangiz — ' +
+        '`engaged_at = COALESCE(users.engaged_at, now())` ni ham qo\'shing, ' +
+        'aks holda bu odam abadiy "faqat /start bosgan" bo\'lib qoladi.\n' +
+        '   Ataylab qo\'yilmagan bo\'lsa — ENGAGED_EXEMPT ga sabab bilan yozing.');
+      // `COALESCE` majburiy: usiz maydon "birinchi" emas "oxirgi" foydalanish
+      // bo'lib qolardi va "faqat /start" ulushi jimgina o'zgarardi.
+      if (/ON CONFLICT/.test(soz)) {
+        assert.ok(/engaged_at\s*=\s*COALESCE\(\s*users\.engaged_at/.test(soz),
+          `${file}: \`ON CONFLICT\` shoxida \`engaged_at\` COALESCE'siz yangilanyapti — ` +
+          'har kirishda sursa u "birinchi foydalanish" bo\'lmay qoladi.');
+      }
+    }
+  }
+
+  assert.ok(tekshirilgan >= 4,
+    `\`INSERT INTO users\` faqat ${tekshirilgan} joyda topildi — kutilgani kamida 4 ` +
+    '(webhook, catalog, web-auth, seller-application). Naqsh o\'zgargan bo\'lsa ' +
+    'bu qorovul jimgina ishlamay qoladi.');
+
+  // Migratsiya joyida turibdimi — ustun bo'lmasa yuqoridagi hammasi ma'nosiz.
+  const mig = fs.readFileSync(path.join(__dirname, '..', 'db', '020_user_engagement.sql'), 'utf8');
+  assert.ok(/ADD COLUMN IF NOT EXISTS engaged_at/.test(mig),
+    'db/020 da `engaged_at` ustuni qo\'shilishi kerak');
+  assert.ok(/UPDATE users SET engaged_at = created_at/.test(mig),
+    'db/020 da backfill bo\'lishi kerak — usiz mavjud foydalanuvchilar ' +
+    'birdaniga "faqat /start bosgan" bo\'lib qolardi.');
+
+  console.log(`✅ Test 12d: \`users\` yozuvlari engaged_at ni hal qiladi — PASS ` +
+    `(${tekshirilgan} ta yozuv, ${Object.keys(ENGAGED_EXEMPT).length} ta ataylab istisno)`);
+}
+
 // ============ TEST 12c: Atomik qorovul CTE dan keyin ham saqlanganmi ============
 // `seller.js` dagi UPDATE tarix uchun CTE ga o'tkazildi (oldingi holatni olish
 // kerak edi). Xavf: kimdir uni "soddalashtirib" `FOR UPDATE` yoki
@@ -1087,9 +1158,9 @@ function testAssetVersionsAreFresh() {
     'style.css': { v: 36, hash: 'c4e8e763789f' },
     'script.js': { v: 27, hash: 'b729d38501fe' },
     'pwa.js': { v: 2, hash: 'f46683d58662' },
-    'panel.js': { v: 8, hash: '80ad2f107485' },
+    'panel.js': { v: 9, hash: '3b8eef19d783' },
     'admin/admin.css': { v: 17, hash: 'dbefeb6757ff' },
-    'admin/admin.js': { v: 21, hash: '7dbfba715b15' },
+    'admin/admin.js': { v: 22, hash: '8a8310a94f5e' },
     'telegram-app/styles.css': { v: 21, hash: '6dddba75c0bc' },
     'telegram-app/app.js': { v: 72, hash: '5f60a20735f4' },
     'telegram-app/pwa.js': { v: 6, hash: '798ab85e1cde' },
@@ -2014,6 +2085,7 @@ async function runTests() {
     await testHideReviewRecalculates();
     await testRecordStatusChange();
     testEveryStatusWriteIsRecorded();
+    testUserWritesResolveEngagedAt();
     testStatusGuardsSurviveCte();
     testSelfCheck();
     testNoInlineFrontendCode();
