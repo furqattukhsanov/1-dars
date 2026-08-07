@@ -1374,14 +1374,31 @@ function testExtractImage() {
   // yagona belgi. Model rad etganda "qayta urinib ko'ring" DEYILMASLIGI
   // kerak: ayni prompt ayni javobni beradi va xaridor foydasiz bosaverardi.
   const kind = (json) => { try { extractImage(json); return null; } catch (e) { return e.kind || null; } };
-  assert.strictEqual(kind({ candidates: [{ finishReason: 'IMAGE_SAFETY' }] }), 'blocked',
-    'model rad etgani `blocked` deb belgilansin');
-  assert.strictEqual(kind({ candidates: [{ finishReason: 'PROHIBITED_CONTENT' }] }), 'blocked');
-  // ⚠️ `MAX_TOKENS` rad etish EMAS — u bizning tomondagi nosozlik va uni
-  // `blocked` deb belgilash foydalanuvchiga "javoblaringizni o'zgartiring"
-  // deb YOLG'ON aytardi.
-  assert.strictEqual(kind({ candidates: [{ finishReason: 'MAX_TOKENS' }] }), null,
-    'MAX_TOKENS rad etish emas — `blocked` deb belgilanmasin');
+  const sabab = (v) => kind({ candidates: [{ finishReason: v }] });
+
+  // ⚠️ `IMAGE_` OLD QO'SHIMCHALI variantlar SHU RO'YXATNING SABABI.
+  // Birinchi variantda aniq qiymatlar to'plami ishlatilgan edi va u
+  // JIMGINA ISHLAMASDI: Gemini rasm yo'lida rad sababini `IMAGE_` bilan
+  // qaytaradi, ya'ni eng tez-tez uchraydigan holat (`IMAGE_PROHIBITED_CONTENT`)
+  // to'plamga tushmasdi va foydalanuvchi yana foydasiz "qayta urinish"
+  // tugmasini ko'rardi. Bu qiymatlar hujjatlangan `FinishReason` ro'yxatida
+  // YO'Q — ular faqat amalda uchraydi (BerriAI/litellm#28989).
+  for (const v of ['SAFETY', 'IMAGE_SAFETY', 'PROHIBITED_CONTENT', 'IMAGE_PROHIBITED_CONTENT',
+    'BLOCKLIST', 'RECITATION', 'IMAGE_RECITATION', 'SPII', 'LANGUAGE']) {
+    assert.strictEqual(sabab(v), 'blocked', `${v} rad etish deb belgilansin`);
+  }
+
+  // ⚠️ Bular rad etish EMAS. `blocked` deb belgilansa foydalanuvchiga
+  // "javoblaringizni o'zgartiring" deb YOLG'ON aytilardi — holbuki
+  // javoblarning aybi yo'q.
+  for (const v of ['MAX_TOKENS', 'OTHER', 'IMAGE_OTHER', 'STOP', 'MALFORMED_FUNCTION_CALL']) {
+    assert.strictEqual(sabab(v), null, `${v} rad etish emas — \`blocked\` deb belgilanmasin`);
+  }
+
+  // Sabab qaysi qiymat bo'lishidan qat'i nazar xato MATNIDA ko'rinsin —
+  // aks holda alert yana mazmunsiz bo'lib qolardi.
+  assert.throws(() => extractImage({ candidates: [{ finishReason: 'IMAGE_PROHIBITED_CONTENT' }] }),
+    /IMAGE_PROHIBITED_CONTENT/, 'sabab xato matnida bo\'lsin');
 
   console.log('✅ Test 14f: Rasm javobi qat\'iy tekshiriladi — PASS');
 }

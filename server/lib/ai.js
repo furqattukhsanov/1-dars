@@ -407,10 +407,14 @@ function buildImagePrompt(p, choices) {
 // `parts` massiv bo'lmasa xato matni shunchaki `javobda parts yo'q` derdi.
 // Production'da aynan shu chiqdi va u hech narsa o'rgatmadi: Gemini rasmni
 // rad etganda javob `content` ni UMUMAN yubormaydi, sabab esa yonidagi
-// `finishReason` da turadi (`IMAGE_SAFETY`, `PROHIBITED_CONTENT`,
-// `RECITATION`, `MAX_TOKENS`). Ya'ni sabab javobda BOR edi, kod esa uni
-// o'qimasdan tashlab yuborardi. Endi ikkala yo'l BITTA tashxis nuqtasiga
-// keladi — "rasm yo'q" hech qachon sababsiz aytilmaydi.
+// `finishReason` da turadi (rasm yo'lida odatda `IMAGE_PROHIBITED_CONTENT`
+// yoki `IMAGE_SAFETY`). Ya'ni sabab javobda BOR edi, kod esa uni o'qimasdan
+// tashlab yuborardi. Endi ikkala yo'l BITTA tashxis nuqtasiga keladi —
+// "rasm yo'q" hech qachon sababsiz aytilmaydi.
+// ⚠️ Bu naqsh bizga xos emas: LiteLLM da AYNI nuqson ochiq turibdi
+// (BerriAI/litellm#28989 — "silently drops finishReason on safety blocks"),
+// ya'ni `parts` ni aylanib `finishReason` ni e'tiborsiz qoldirish shu
+// API bilan ishlaganda tipik tuzoq.
 // Bu CLAUDE.md dagi "jimgina yolg'on yo'qlikdan yomonroq" oilasidan:
 // mazmunsiz xato xabari xato yo'qligicha qimmatga tushadi.
 function refusalReason(json) {
@@ -422,7 +426,30 @@ function refusalReason(json) {
 // Model rad etgan holatlar. Bulardan keyin QAYTA URINISH FOYDASIZ — ayni
 // prompt ayni javobni beradi. Shuning uchun ular `kind='blocked'` bilan
 // belgilanadi va foydalanuvchiga "qayta urinib ko'ring" DEYILMAYDI.
-const RAD_SABABLARI = new Set(['SAFETY', 'IMAGE_SAFETY', 'PROHIBITED_CONTENT', 'BLOCKLIST', 'RECITATION', 'SPII']);
+//
+// ⚠️ TO'PLAM EMAS, O'ZAK bo'yicha qidiriladi va bu ATAYLAB. Birinchi
+// variantda aniq qiymatlar to'plami edi (`SAFETY`, `PROHIBITED_CONTENT`, ...)
+// va u JIMGINA ISHLAMASDI: Gemini RASM yo'lida o'sha sabablarni `IMAGE_`
+// old qo'shimchasi bilan qaytaradi — `IMAGE_PROHIBITED_CONTENT`,
+// `IMAGE_SAFETY`, `IMAGE_RECITATION`, `IMAGE_OTHER`. Ya'ni eng tez-tez
+// uchraydigan rad sababi to'plamga TUSHMASDI va foydalanuvchi yana
+// "qayta urinib ko'ring" ni ko'rardi — tuzatilayotgan nuqsonning aynan o'zi.
+// Old qo'shimchali variantlar hujjatlangan `FinishReason` ro'yxatida YO'Q
+// (2026-08-08 da tekshirildi), shuning uchun aniq ro'yxatga tayanish
+// hujjatga tayanib xato qilish bo'lardi.
+//
+// O'zak bo'yicha qidirish yangi `IMAGE_*` variantlari qo'shilganda ham
+// ishlaydi — bu ro'yxatning kelajakda jimgina eskirishini oldini oladi.
+const RAD_OZAKLARI = ['SAFETY', 'PROHIBITED_CONTENT', 'BLOCKLIST', 'RECITATION', 'SPII', 'LANGUAGE'];
+
+// ⚠️ `OTHER` va `IMAGE_OTHER` ATAYLAB YO'Q: ular "sabab aytilmadi" degani
+// va rad etish deb belgilash foydalanuvchiga "javoblaringizni o'zgartiring"
+// deb YOLG'ON aytardi. `MAX_TOKENS` ham shu sababdan tashqarida — u
+// bizning tomondagi nosozlik.
+function isRefusal(why) {
+  const s = String(why || '').toUpperCase();
+  return RAD_OZAKLARI.some((o) => s.includes(o));
+}
 
 function extractImage(json) {
   const parts = json?.candidates?.[0]?.content?.parts;
@@ -434,7 +461,7 @@ function extractImage(json) {
   }
   const why = refusalReason(json);
   const e = new Error(`javobda rasm yo'q (${why})`);
-  if (RAD_SABABLARI.has(String(why))) e.kind = 'blocked';
+  if (isRefusal(why)) e.kind = 'blocked';
   throw e;
 }
 
