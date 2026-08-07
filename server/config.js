@@ -103,7 +103,10 @@ function chatId(raw, name, fallback) {
 // ko'mib yubormasin.
 const ALERT_CHAT_ID = chatId(process.env.ALERT_CHAT_ID, 'ALERT_CHAT_ID', ADMIN_CHAT_ID);
 
-// ============ AI G'OYALARI (Sprint 10) ============
+// ============ AI (Sprint 10) ============
+// 2026-08-07 dan beri yagona AI funksiyasi — kiyim RASMI. Matn g'oyalari
+// founder qarori bilan olib tashlandi. Pastdagi `AI_PROVIDER` / `AI_API_KEY`
+// qoldi, chunki rasm ham o'sha kalit bilan ishlaydi.
 // `chatId()` bilan AYNI mulohaza: qiymatning BO'SH EMASLIGI uni haqiqiy
 // qilmaydi. `.env` da `AI_API_KEY=<key>` namunasi qolib ketsa, `||` uni
 // haqiqiy kalit deb qabul qiladi va funksiya jimgina o'lik turaverardi —
@@ -146,17 +149,46 @@ const AI_PROVIDER = (() => {
 
 const AI_API_KEY = aiKey(process.env.AI_API_KEY);
 
-// Model nomi provayderga qarab zaxiraga tushadi. Sprint 10 qarori bo'yicha
-// haqiqatan SINALADIGAN provayder — Gemini Flash.
-const AI_MODEL = String(process.env.AI_MODEL || '').trim()
-  || (AI_PROVIDER === 'openai' ? 'gpt-5-mini' : 'gemini-flash-latest');
-
 // Funksiya YOQILGANMI — chaqiruvchi kod faqat shu bayroqqa qaraydi, sozlama
 // tafsilotini bilmaydi. Frontend tugmani shu qiymatga qarab chizadi.
 const AI_ENABLED = !!(AI_PROVIDER && AI_API_KEY);
 if (!AI_ENABLED) {
   console.error('AI funksiyasi o\'chiq — sozlama to\'liq emas:',
     `provider=${AI_PROVIDER || 'yo\'q'} key=${AI_API_KEY ? 'bor' : 'yo\'q'}`);
+}
+
+// ============ RASM MODELI (Sprint 10 ning rasm qismi, 2026-08-07) ============
+// ⚠️ RASM FAQAT GEMINI YO'LIDA. `AI_PROVIDER=openai` bo'lsa rasm funksiyasi
+// o'chadi — OpenAI rasm yo'li YOZILMAGAN. Buni jimgina "ishlayotgandek"
+// qoldirish `lib/ai.js` dagi ogohlantirish bilan bitta oilada: abstraksiya
+// borligi ikkala yo'l sinalgan degani EMAS.
+//
+// Model nomi `.env` dan olinadi, chunki u tez o'zgaradi
+// (`gemini-2.5-flash-image` → `gemini-3.1-flash-image`) va o'zgarishi uchun
+// deploy kutib o'tirmaslik kerak. Shakli tekshiriladi: model nomida faqat
+// harf, raqam, nuqta va chiziqcha bo'ladi — namuna (`<model>`) shu yerda
+// tutiladi, aks holda so'rov 404 bo'lib, sababi noma'lum bo'lib qolardi.
+const AI_IMAGE_MODEL = (() => {
+  const v = String(process.env.AI_IMAGE_MODEL || '').trim();
+  if (!v) return 'gemini-2.5-flash-image';
+  if (/^[a-zA-Z0-9.-]+$/.test(v)) return v;
+  console.error('AI_IMAGE_MODEL yaroqsiz, zaxira model ishlatiladi:', v);
+  return 'gemini-2.5-flash-image';
+})();
+
+// Generatsiya qilingan rasm SHU chatga yuboriladi va undan `file_id` olinadi
+// (jadval: `product_ai_image`). Berilmasa — ADMIN_CHAT_ID, `ALERT_CHAT_ID`
+// va `BACKUP_CHAT_ID` bilan AYNI naqsh.
+// Alohida chat ajratish tavsiya etiladi: rasm oqimi admin chatidagi buyurtma
+// xabarlarini ko'mib yubormasin.
+const AI_IMAGE_CHAT_ID = chatId(process.env.AI_IMAGE_CHAT_ID, 'AI_IMAGE_CHAT_ID', ADMIN_CHAT_ID);
+
+// Rasm tugmasi shu bayroqqa qarab chiziladi. `AI_ENABLED` ning O'ZI yetarli
+// emas — matn ishlab, rasm ishlamaydigan holat HAQIQIY holat (2026-08-06 da
+// aynan shunday edi: matn HTTP 200, rasm HTTP 429 `limit: 0`).
+const AI_IMAGE_ENABLED = !!(AI_ENABLED && AI_PROVIDER === 'gemini');
+if (AI_ENABLED && !AI_IMAGE_ENABLED) {
+  console.error('AI rasm funksiyasi o\'chiq — provayder gemini emas:', AI_PROVIDER);
 }
 
 // Ro'yxatdan o'tgan foydalanuvchiga kuniga nechta YANGI generatsiya
@@ -193,6 +225,7 @@ module.exports = {
   PORT, BOT_TOKEN, ADMIN_CHAT_ID, ALLOWED_ORIGIN, WEBHOOK_SECRET,
   MINI_APP_URL, BOT_USERNAME, CONTACTS_FILE, GIT_SHA, ALERT_CHAT_ID,
   ADMIN_PANEL_TOKEN, PREPAY_RATE, COMMISSION_RATE, ADMIN_TG_IDS, DELIVERY_FEE_ESTIMATE,
-  AI_PROVIDERS, AI_PROVIDER, AI_API_KEY, AI_MODEL, AI_ENABLED, AI_DAILY_LIMIT,
+  AI_PROVIDERS, AI_PROVIDER, AI_API_KEY, AI_ENABLED, AI_DAILY_LIMIT,
+  AI_IMAGE_MODEL, AI_IMAGE_CHAT_ID, AI_IMAGE_ENABLED,
   chatId, aiKey,
 };

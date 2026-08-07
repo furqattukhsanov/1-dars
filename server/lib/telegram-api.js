@@ -1,4 +1,5 @@
 const https = require('https');
+const crypto = require('crypto');
 const { BOT_TOKEN, ADMIN_CHAT_ID, MINI_APP_URL } = require('../config');
 const { escapeHtml } = require('./format');
 
@@ -99,7 +100,103 @@ function tgGetFile(fileId) {
   });
 }
 
+// ============ FAYLNI BAYT SIFATIDA OLIB KELISH ============
+// `handleProductPhoto` (routes/catalog.js) faylni brauzerga OQIM bilan
+// uzatadi — u yerda bayt kerak emas. Bu yerda esa manba rasm AI ga
+// yuboriladi, ya'ni butun tarkib xotirada kerak.
+//
+// Hajm chegarasi SHART: mahsulot surati sotuvchi yuborgan fayl, ya'ni tashqi
+// ma'lumot. Chegarasiz o'qish bitta katta fayl bilan Node jarayonini
+// yiqitardi.
+const MAX_DOWNLOAD_BYTES = 12 * 1024 * 1024;
+
+// Kengaytmadan tur — `routes/catalog.js` dagi bilan bir xil mulohaza:
+// Telegram CDN'i `content-type` bermaydi yoki `application/octet-stream`
+// beradi, AI provayderi esa haqiqiy turni talab qiladi.
+const MIME_BY_EXT = {
+  jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp',
+};
+
+function tgDownloadFile(filePath) {
+  return new Promise((resolve, reject) => {
+    https.get(`https://api.telegram.org/file/bot${BOT_TOKEN}/${filePath}`, (res) => {
+      if (res.statusCode !== 200) { res.resume(); return reject(new Error(`fayl yuklanmadi HTTP ${res.statusCode}`)); }
+      const chunks = [];
+      let size = 0;
+      res.on('data', (d) => {
+        size += d.length;
+        if (size > MAX_DOWNLOAD_BYTES) { res.destroy(); return reject(new Error('fayl juda katta')); }
+        chunks.push(d);
+      });
+      res.on('end', () => resolve({
+        buf: Buffer.concat(chunks),
+        mime: MIME_BY_EXT[String(filePath).split('.').pop().toLowerCase()] || 'image/jpeg',
+      }));
+      res.on('error', reject);
+    }).on('error', reject);
+  });
+}
+
+// ============ RASMNI YUKLASH (multipart) ============
+// `callTelegram` JSON yuboradi va bayt yubora olmaydi. Fayl yuborish uchun
+// Telegram `multipart/form-data` talab qiladi, shuning uchun bu alohida yo'l.
+//
+// NEGA UMUMAN TELEGRAM'GA YUKLANADI: generatsiya qilingan rasm biror joyda
+// yashashi kerak. Serverdagi papka tanlanmadi — deploy rsync bilan boradi va
+// papka bir kun jimgina yo'qolishi mumkin (2026-08-03 da `/opt/lolamarket-
+// notify/` shunday o'chgan edi). Telegram esa loyihada allaqachon ishlaydigan
+// omborxona: mahsulot surati ham, bahs dalili ham o'sha yerda.
+//
+// Qaytaradi — eng KATTA o'lchamning `file_id` si. Telegram bitta rasmni bir
+// necha o'lchamda qaytaradi va oxirgisi eng kattasi (`routes/catalog.js` da
+// ham aynan shu tanlanadi).
+function sendPhotoBytes(chatId, buf, filename, caption) {
+  return new Promise((resolve, reject) => {
+    const boundary = `----lola${crypto.randomBytes(16).toString('hex')}`;
+    const field = (name, value) =>
+      Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="${name}"\r\n\r\n${value}\r\n`);
+
+    const body = Buffer.concat([
+      field('chat_id', String(chatId)),
+      ...(caption ? [field('caption', caption)] : []),
+      Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="photo"; filename="${filename}"\r\n`
+        + 'Content-Type: image/png\r\n\r\n'),
+      buf,
+      Buffer.from(`\r\n--${boundary}--\r\n`),
+    ]);
+
+    const req = https.request({
+      hostname: 'api.telegram.org',
+      path: `/bot${BOT_TOKEN}/sendPhoto`,
+      method: 'POST',
+      headers: {
+        'Content-Type': `multipart/form-data; boundary=${boundary}`,
+        'Content-Length': body.length,
+      },
+    }, (res) => {
+      let data = '';
+      res.on('data', (d) => (data += d));
+      res.on('end', () => {
+        try {
+          const j = JSON.parse(data);
+          const sizes = j?.result?.photo;
+          const fileId = Array.isArray(sizes) && sizes.length ? sizes[sizes.length - 1].file_id : null;
+          // ⚠️ Jimgina `null` qaytarilmaydi. Chaqiruvchi keshga yozmoqchi va
+          // `file_id` yo'qligini "rasm yo'q" deb tushunib, PULGA generatsiya
+          // qilingan natijani yo'qotardi — sababi esa ko'rinmasdi.
+          if (!fileId) return reject(new Error(`sendPhoto file_id bermadi: ${j?.description || res.statusCode}`));
+          resolve(fileId);
+        } catch (e) { reject(new Error('sendPhoto javobi buzuq')); }
+      });
+    });
+    req.on('error', reject);
+    req.write(body);
+    req.end();
+  });
+}
+
 module.exports = {
   callTelegram, sendOrderNotifyMessage, sendBuyerConfirmMessage,
   STATUS_COMMANDS, sendOpenAppMessage, callbackAnswer, notify, tgGetFile,
+  tgDownloadFile, sendPhotoBytes,
 };

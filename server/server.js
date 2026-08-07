@@ -34,7 +34,7 @@ const {
 const {
   handleCreateReview, handleGetReviews, handleSellerReviews,
 } = require('./routes/reviews');
-const { handleAiIdeas } = require('./routes/ai');
+const { handleAiImage, handleAiGallery } = require('./routes/ai');
 const { handleTelegramWebhook } = require('./routes/webhook');
 
 
@@ -165,14 +165,23 @@ function routeRequest(req, res) {
     return fail(res, 'method not allowed', 405);
   }
 
-  // AI kiyim g'oyalari (Sprint 10). POST — chunki generatsiya YOZUV amali
-  // (kesh va kunlik limit yoziladi), GET esa keshlanadigan o'qish deb
-  // tushunilardi va Cloudflare uni jimgina keshlab qo'yishi mumkin edi.
-  if (path === '/api/ai/ideas') {
+  // AI kiyim RASMI (2026-08-07). POST — g'oyalar bilan AYNI sabab: bu YOZUV
+  // amali (kesh va kunlik limit yoziladi) va Cloudflare uni keshlab
+  // qo'ymasligi kerak.
+  // AI galereyasi — pastki paneldagi AI bo'limi shundan oziqlanadi.
+  // FAQAT O'QISH: bu yerda hech narsa generatsiya qilinmaydi.
+  if (path === '/api/ai/gallery') {
+    cors(res, 'GET, OPTIONS');
+    if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
+    if (req.method !== 'GET') return fail(res, 'method not allowed', 405);
+    return handleAiGallery(req, res, ip);
+  }
+
+  if (path === '/api/ai/image') {
     cors(res, 'POST, OPTIONS');
     if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
     if (req.method !== 'POST') return fail(res, 'method not allowed', 405);
-    return handleAiIdeas(req, res, ip);
+    return handleAiImage(req, res, ip);
   }
 
   if (path === '/api/orders') {

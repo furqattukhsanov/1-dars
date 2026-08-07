@@ -231,6 +231,43 @@ www-data'ga tegishli, ya'ni bu himoya hali yo'q.
 | `PREPAY_RATE` | Oldindan to'lov ulushi (default `0.5`) |
 | `COMMISSION_RATE` | Platforma komissiyasi, 0..1 oralig'ida (default `0.12`). Buyurtma yaratilganda `orders.commission_rate` ga snapshot qilinadi |
 | `ALERT_CHAT_ID` | Server xatosi alertlari boradigan chat (default — `ADMIN_CHAT_ID`). Alohida chat tavsiya etiladi: alert oqimi buyurtma xabarlarini ko'mib yubormasin |
+| `AI_PROVIDER` | `gemini` yoki `openai`. Bo'sh yoki noma'lum bo'lsa AI funksiyasi o'chadi |
+| `AI_API_KEY` | AI provayderi kaliti. Shakli tekshiriladi (`<key>` namunasi qolib ketsa o'chadi) |
+| `AI_IMAGE_MODEL` | **Rasm** modeli (default `gemini-2.5-flash-image`). Ataylab `.env` da: model nomi tez o'zgaradi va buning uchun deploy kutilmasin |
+| `AI_IMAGE_CHAT_ID` | Generatsiya qilingan rasm yuboriladigan chat — undan `file_id` olinadi (default — `ADMIN_CHAT_ID`). Alohida chat tavsiya etiladi |
+| `AI_DAILY_LIMIT` | Bir foydalanuvchiga kunlik rasm generatsiyasi soni (default `10`) |
+
+⚠️ **Rasm faqat `AI_PROVIDER=gemini` da ishlaydi** — OpenAI rasm yo'li
+YOZILMAGAN. `openai` tanlansa matn ishlaydi, rasm tugmasi esa umuman
+chizilmaydi (`/api/auth/telegram` javobidagi `aiImageEnabled: false`).
+
+### ⚠️ nginx: rasm so'rovi 30 soniyaga sig'maydi
+
+Umumiy `location ^~ /api/` blokida `proxy_read_timeout 30s` turibdi. Matn
+so'rovi uchun bu yetarli, **rasm generatsiyasi esa undan uzoq ketishi
+mumkin** — o'shanda nginx ulanishni uzadi va foydalanuvchi 504 ko'radi,
+holbuki server hamon ishlab turgan bo'ladi va **kvota allaqachon
+sarflangan** bo'ladi (limit AI chaqiruvidan oldin olinadi).
+
+Shuning uchun rasm yo'liga alohida blok kerak — umumiy blokdan OLDIN
+(nginx eng uzun mos prefiksni tanlaydi):
+
+```nginx
+location = /api/ai/image {
+    proxy_pass http://127.0.0.1:3001;
+    proxy_http_version 1.1;
+    proxy_set_header Host              $host;
+    proxy_set_header X-Real-IP         $remote_addr;
+    proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_read_timeout 180s;   # rasm generatsiyasi matndan sekin
+}
+```
+
+⚠️ **Cloudflare ham o'z chegarasini qo'yadi** (bepul tarifda ~100 s).
+Ya'ni nginx'ni 180 s ga ko'tarish yetarli bo'lmasligi mumkin — o'shanda
+javob Cloudflare tomonidan uziladi. Buni TAXMIN qilmasdan o'lchash kerak:
+birinchi haqiqiy generatsiyada javob vaqti yozib olinsin.
 
 ## Xato monitoringi (2026-08-03)
 

@@ -1087,11 +1087,11 @@ function testAssetVersionsAreFresh() {
     'style.css': { v: 36, hash: 'c4e8e763789f' },
     'script.js': { v: 27, hash: 'b729d38501fe' },
     'pwa.js': { v: 2, hash: 'f46683d58662' },
-    'panel.js': { v: 5, hash: '1bbce0ea810f' },
+    'panel.js': { v: 6, hash: 'f8267efd8793' },
     'admin/admin.css': { v: 17, hash: 'dbefeb6757ff' },
     'admin/admin.js': { v: 20, hash: 'ff157289e9d0' },
-    'telegram-app/styles.css': { v: 17, hash: 'c741190115b1' },
-    'telegram-app/app.js': { v: 62, hash: 'faf54650c9d6' },
+    'telegram-app/styles.css': { v: 21, hash: '6dddba75c0bc' },
+    'telegram-app/app.js': { v: 70, hash: '834385128e47' },
     'telegram-app/pwa.js': { v: 6, hash: '798ab85e1cde' },
   };
 
@@ -1226,105 +1226,6 @@ function testServiceWorkerCacheVersion() {
     `(${Object.keys(KUTILGAN).length} ta service worker)`);
 }
 
-// ============ TEST 14: Kesh mahsulot MATNI bo'yicha eskiradi ============
-// Sprint 10, 3-qaror. Xavf konkret: mato tarkibi tahrirlansa (masalan
-// "100% ipak" → "70% ipak, 30% paxta"), eski tarkibga qarab yozilgan g'oyalar
-// sahifada QOLIB KETARDI va buni hech kim sezmasdi — reyting `NULL` va
-// `ALERT_CHAT_ID` bilan bitta oiladagi JIMGINA YOLG'ON.
-function testSourceHash() {
-  const { sourceHash } = require('./lib/ai');
-
-  const asl = { name_uz: 'Ipak ikat', comp_uz: '100% ipak', cat_key: 'silk', width: '0.9 m', weight: '90 g/m²' };
-  const h = sourceHash(asl);
-
-  // Bir xil kirish — bir xil hash (kesh keraksiz yerda buzilmasin)
-  assert.strictEqual(sourceHash({ ...asl }), h, 'bir xil mato bir xil hash berishi kerak');
-
-  // HAR BIR maydon hashga ta'sir qilishi shart. Bittasi tushib qolsa,
-  // o'sha maydon tahrirlanganda kesh jimgina eskirmay qolardi.
-  for (const k of ['name_uz', 'comp_uz', 'cat_key', 'width', 'weight']) {
-    assert.notStrictEqual(sourceHash({ ...asl, [k]: 'boshqa' }), h,
-      `${k} o'zgarsa hash ham o'zgarishi kerak — aks holda eskirgan g'oya qolib ketadi`);
-  }
-
-  // `null` va bo'sh satr ATAYLAB bir xil: "tarkib yozilmagan" va "tarkib bo'sh"
-  // bir xil g'oya beradi, ya'ni ular orasida farq keshni buzishi shart emas.
-  assert.strictEqual(
-    sourceHash({ ...asl, comp_uz: null }),
-    sourceHash({ ...asl, comp_uz: '' }),
-    'null va bo\'sh satr bir xil qaralishi kerak'
-  );
-
-  // Maydon chegarasi surilib ketmasin: "a|b" va "a" + "|b" chalkashmasligi kerak
-  assert.notStrictEqual(
-    sourceHash({ ...asl, name_uz: 'A', comp_uz: 'B' }),
-    sourceHash({ ...asl, name_uz: 'A B', comp_uz: '' }),
-    'maydonlar chegarasi hashda saqlanishi kerak'
-  );
-
-  console.log('✅ Test 14: Kesh hash mahsulot matniga bog\'langan — PASS');
-}
-
-// ============ TEST 14b: AI javobi sxemasi ============
-// Sprint 10, 6-qaror: mos kelmasa javob RAD ETILADI (keshga yozilmaydi).
-// Bu tekshiruv bezak emas — Gemini'ning JSON rejimi bo'sh, ya'ni bu YAGONA
-// qorovul. Shu bilan birga 5-qaror: NOTANISH kategoriya jimgina tashlanadi,
-// butun javob rad etilMAYDI (bitta yomon tavsiya uchun uchta yaxshi g'oyani
-// yo'qotish foydalanuvchiga zarar).
-function testParseIdeas() {
-  const { parseIdeas, MIN_IDEAS, MAX_IDEAS } = require('./lib/ai');
-  const CATS = ['cotton', 'silk', 'linen'];
-
-  const yaxshi = (n) => Array.from({ length: n }, (_, i) => ({
-    nom: `G'oya ${i}`, izoh: 'izoh matni', sarf: '2.5 m',
-    qiyinlik: 'oson', kerakli_kategoriyalar: ['cotton'],
-  }));
-
-  // 1) To'g'ri javob o'tadi
-  const ok = parseIdeas(JSON.stringify(yaxshi(MIN_IDEAS)), CATS);
-  assert.strictEqual(ok.length, MIN_IDEAS);
-  assert.deepStrictEqual(ok[0].kerakli_kategoriyalar, ['cotton']);
-
-  // 2) Markdown ramkasi — MAZMUN emas, TRANSPORT artefakti. Uni ochish
-  //    "tuzatish" emas: modellar JSON rejimida ham ba'zan ramka qo'shadi.
-  const ramkali = '```json\n' + JSON.stringify(yaxshi(MIN_IDEAS)) + '\n```';
-  assert.strictEqual(parseIdeas(ramkali, CATS).length, MIN_IDEAS,
-    'markdown ramkasi ichidagi JSON o\'qilishi kerak');
-
-  // 3) Notanish kategoriya JIMGINA tushadi, javob esa BARIBIR chiqadi
-  const aralash = yaxshi(MIN_IDEAS);
-  aralash[0].kerakli_kategoriyalar = ['astar', 'cotton', 'tugma'];
-  const f = parseIdeas(JSON.stringify(aralash), CATS);
-  assert.deepStrictEqual(f[0].kerakli_kategoriyalar, ['cotton'],
-    'oq ro\'yxatda yo\'q kalit tashlanishi kerak');
-  assert.strictEqual(f.length, MIN_IDEAS, 'notanish kalit butun javobni rad etmasligi kerak');
-
-  // 4) Sxemaga mos kelmagan javoblar — HAMMASI rad etiladi
-  const yomon = [
-    ['JSON emas', 'salom dunyo'],
-    ['massiv emas', '{"nom":"x"}'],
-    ['juda kam', JSON.stringify(yaxshi(MIN_IDEAS - 1))],
-    ['juda ko\'p', JSON.stringify(yaxshi(MAX_IDEAS + 1))],
-    ['nom yo\'q', JSON.stringify(yaxshi(MIN_IDEAS).map((x, i) => (i ? x : { ...x, nom: '' })))],
-    ['izoh yo\'q', JSON.stringify(yaxshi(MIN_IDEAS).map((x, i) => (i ? x : { ...x, izoh: null })))],
-    ['sarf yo\'q', JSON.stringify(yaxshi(MIN_IDEAS).map((x, i) => (i ? x : { ...x, sarf: 42 })))],
-    ['qiyinlik notanish', JSON.stringify(yaxshi(MIN_IDEAS).map((x, i) => (i ? x : { ...x, qiyinlik: 'juda qiyin' })))],
-    ['g\'oya obyekt emas', JSON.stringify([...yaxshi(MIN_IDEAS - 1), 'satr'])],
-  ];
-  for (const [nom, kirish] of yomon) {
-    assert.throws(() => parseIdeas(kirish, CATS), undefined,
-      `sxemaga mos kelmagan javob rad etilishi kerak: ${nom}`);
-  }
-
-  // 5) Matn uzunligi chegarasi — cheksiz matn sahifani buzmasin
-  const uzun = yaxshi(MIN_IDEAS);
-  uzun[0].izoh = 'a'.repeat(401);
-  assert.throws(() => parseIdeas(JSON.stringify(uzun), CATS),
-    undefined, 'juda uzun izoh rad etilishi kerak');
-
-  console.log('✅ Test 14b: AI javobi sxemasi qat\'iy tekshiriladi — PASS');
-}
-
 // ============ TEST 14c: Kunlik limit ATOMIK ============
 // `decrementStock` bilan AYNI sabab (CLAUDE.md, zaxira qoidasi): tekshiruv va
 // oshirish alohida `SELECT` + `UPDATE` ga bo'linsa, bir vaqtda kelgan ikki
@@ -1377,33 +1278,201 @@ async function testAiQuotaAtomic() {
   console.log(`✅ Test 14c: Kunlik limit atomik — PASS (${LIMIT} ta berildi, ortig'i rad etildi)`);
 }
 
-// ============ TEST 14d: Yaroqsiz javob keshga YOZILMAYDI ============
-// Sprint 10, 6-qaror. Bu yerda ikki narsa tekshiriladi va IKKALASI ham kerak:
-// tartib (kesh yozuvi generatsiyadan KEYIN) va xatti-harakat (yaroqsiz javob
-// xato tashlaydi, ya'ni yozuvgacha yetib bormaydi).
-function testBadAnswerNeverCached() {
+// ============ TEST 14e: Rasm keshi SURATGA ham bog'langan ============
+// Rasm image-to-image bilan chiziladi, ya'ni uning MANBASI — mahsulot surati.
+// Hash faqat matnga bog'langan bo'lsa, sotuvchi suratni almashtirganda eski
+// rasm BOSHQA matoni ko'rsatib turardi va buni hech kim sezmasdi.
+// Bu Test 14 ning rasm uchun juftligi (u yerda surat qatnashmaydi).
+function testImageSourceHash() {
+  const { imageSourceHash } = require('./lib/ai');
+  const asl = { name_uz: 'Adras', comp_uz: '100% ipak', cat_key: 'silk' };
+  const h = imageSourceHash(asl, 'file-123');
+
+  assert.strictEqual(imageSourceHash({ ...asl }, 'file-123'), h,
+    'bir xil mato + bir xil surat bir xil hash berishi kerak');
+
+  // ⚠️ ASOSIY BAND: surat almashsa hash O'ZGARSIN.
+  assert.notStrictEqual(imageSourceHash(asl, 'file-BOSHQA'), h,
+    'surat almashsa hash o\'zgarishi kerak — aks holda rasm boshqa matoni ko\'rsatib turadi');
+
+  // Matn maydonlari ham ta'sir qiladi: tarkib tahrirlansa rasm ham eskiradi.
+  for (const k of ['name_uz', 'comp_uz', 'cat_key']) {
+    assert.notStrictEqual(imageSourceHash({ ...asl, [k]: 'boshqa' }, 'file-123'), h,
+      `${k} o'zgarsa rasm hash ham o'zgarishi kerak`);
+  }
+
+  // Surat YO'Q holati bilan bo'sh satr bir xil qaraladi — ikkalasi ham
+  // "manba yo'q" degani va endpoint bu holatda umuman generatsiya qilmaydi.
+  assert.strictEqual(imageSourceHash(asl, null), imageSourceHash(asl, ''),
+    'null va bo\'sh surat havolasi bir xil qaralishi kerak');
+
+  console.log('✅ Test 14e: Rasm keshi suratga bog\'langan — PASS');
+}
+
+// ============ TEST 14f: Rasm javobi — jimgina bo'sh natija YO'Q ============
+// Rasm so'rovi PULGA ketadi (~$0.04) va kvota chaqiruvdan OLDIN olinadi.
+// Shuning uchun "rasm topilmadi" holati XATO bo'lishi shart: jimgina `null`
+// qaytarilsa chaqiruvchi buni "rasm yo'q" deb tushunib, sababini yo'qotardi.
+function testExtractImage() {
+  const { extractImage } = require('./lib/ai');
+  const b64 = Buffer.from('rasm-baytlari').toString('base64');
+
+  // camelCase (`inlineData`) — Gemini REST javobining odatiy shakli
+  const a = extractImage({ candidates: [{ content: { parts: [{ inlineData: { mimeType: 'image/png', data: b64 } }] } }] });
+  assert.strictEqual(a.buf.toString(), 'rasm-baytlari', 'inlineData dan bayt olinishi kerak');
+  assert.strictEqual(a.mime, 'image/png');
+
+  // snake_case (`inline_data`) — ba'zi javoblarda shu shaklda keladi.
+  // Ikkalasi qo'llab-quvvatlanadi, chunki bittasiga tayanish javob shakli
+  // o'zgargan kuni funksiyani JIMGINA o'ldirardi.
+  const b = extractImage({ candidates: [{ content: { parts: [{ inline_data: { mime_type: 'image/jpeg', data: b64 } }] } }] });
+  assert.strictEqual(b.buf.toString(), 'rasm-baytlari', 'inline_data dan ham bayt olinishi kerak');
+
+  // Matn qismi rasmni to'sib qo'ymasin (model "mana rasm" deb yozishi mumkin)
+  const c = extractImage({ candidates: [{ content: { parts: [{ text: 'mana' }, { inlineData: { data: b64 } }] } }] });
+  assert.strictEqual(c.buf.toString(), 'rasm-baytlari', 'matn qismi rasmni to\'smasligi kerak');
+
+  // Rasm YO'Q — xato tashlansin va sabab xato matnida bo'lsin
+  assert.throws(
+    () => extractImage({ candidates: [{ content: { parts: [{ text: 'yo\'q' }] }, finishReason: 'SAFETY' }] }),
+    /SAFETY/,
+    'rasm topilmasa xato tashlansin va sababi ko\'rinsin'
+  );
+  assert.throws(() => extractImage({}), undefined,
+    'buzuq javobda ham xato tashlansin (jimgina bo\'sh natija emas)');
+
+  console.log('✅ Test 14f: Rasm javobi qat\'iy tekshiriladi — PASS');
+}
+
+// ============ TEST 14g: Rasm so'rovining chegaralari matnnikidan boshqa ====
+// Bu qorovul aynan bitta jimgina nuqson uchun: rasm base64 bo'lib keladi va
+// bir necha MB bo'ladi. Matn chegarasi (200 KB) qoldirilsa so'rov o'rtasida
+// UZILARDI — ustiga kvota ALLAQACHON sarflangan bo'lardi, chunki limit AI
+// chaqiruvidan oldin olinadi. Nuqson faqat production'da, faqat haqiqiy
+// rasmda ko'rinardi.
+function testImageLimitsDiffer() {
+  const fs = require('fs');
+  const path = require('path');
+  const src = fs.readFileSync(path.join(__dirname, 'lib', 'ai.js'), 'utf8');
+
+  const num = (name) => {
+    const m = src.match(new RegExp(`const ${name}\\s*=\\s*([^;]+);`));
+    assert.ok(m, `${name} lib/ai.js da bo'lishi kerak`);
+    // eslint-disable-next-line no-new-func
+    return Function(`return (${m[1].replace(/_/g, '')})`)();
+  };
+
+  assert.ok(num('MAX_IMAGE_RESPONSE_BYTES') > num('MAX_RESPONSE_BYTES') * 10,
+    'rasm javobi chegarasi matnnikidan ancha katta bo\'lsin (base64 rasm MB larda)');
+  assert.ok(num('IMAGE_TIMEOUT_MS') > num('TIMEOUT_MS'),
+    'rasm generatsiyasi matndan sekin — vaqt chegarasi ham kattaroq bo\'lsin');
+
+  // Chegaralar HAQIQATAN uzatilishi kerak — konstanta e'lon qilinib
+  // ishlatilmay qolsa test yashil, kod esa nuqsonli bo'lardi.
+  assert.ok(/maxBytes:\s*MAX_IMAGE_RESPONSE_BYTES/.test(src),
+    'rasm so\'rovi MAX_IMAGE_RESPONSE_BYTES ni uzatishi kerak');
+  assert.ok(/timeoutMs:\s*IMAGE_TIMEOUT_MS/.test(src),
+    'rasm so\'rovi IMAGE_TIMEOUT_MS ni uzatishi kerak');
+
+  console.log('✅ Test 14g: Rasm so\'rovi chegaralari alohida — PASS');
+}
+
+// ============ TEST 14h: Rasm keshiga yozuv nuqtasi bitta ============
+// Test 14d ning rasm uchun juftligi, ikkita qo'shimcha bandi bilan:
+// keshga yozish Telegram'ga yuklashdan KEYIN bo'lsin (aks holda mavjud
+// bo'lmagan `file_id` saqlanardi), va manba surat yo'qligi ALOHIDA javob
+// bo'lsin (umumiy xato bo'lsa foydalanuvchi foydasiz qayta urinib kvota
+// yeb yuborardi).
+function testImageCacheWritePath() {
   const fs = require('fs');
   const path = require('path');
   const src = fs.readFileSync(path.join(__dirname, 'routes', 'ai.js'), 'utf8');
 
-  const iGen = src.indexOf('generateIdeas(');
-  const iIns = src.indexOf('INSERT INTO product_ai_ideas');
-  assert.ok(iGen > 0 && iIns > 0, 'ikkala qadam ham ai.js da bo\'lishi kerak');
-  assert.ok(iGen < iIns,
-    'keshga yozish generatsiyadan KEYIN bo\'lsin — sxema tekshiruvidan oldin yozilmasin');
+  const yozuvlar = src.match(/INSERT INTO product_ai_image/g) || [];
+  assert.strictEqual(yozuvlar.length, 1, 'rasm keshiga yozuv nuqtasi bitta bo\'lsin');
 
-  // Keshga faqat SHU joyda yoziladi — ikkinchi yozuv nuqtasi paydo bo'lsa,
-  // u sxema tekshiruvini chetlab o'tishi mumkin.
-  const yozuvlar = src.match(/INSERT INTO product_ai_ideas/g) || [];
-  assert.strictEqual(yozuvlar.length, 1, 'keshga yozuv nuqtasi bitta bo\'lsin');
+  const iGen = src.indexOf('generateImage(');
+  const iSend = src.indexOf('sendPhotoBytes(');
+  const iIns = src.indexOf('INSERT INTO product_ai_image');
+  assert.ok(iGen > 0 && iSend > 0 && iIns > 0, 'uchala qadam ham routes/ai.js da bo\'lsin');
+  assert.ok(iGen < iSend && iSend < iIns,
+    'tartib: generatsiya → Telegram\'ga yuklash → keshga yozish');
 
-  // Xatti-harakat: yaroqsiz javobda `parseIdeas` xato tashlaydi, ya'ni
-  // `generateIdeas` ham tashlaydi va INSERT ga umuman yetib borilmaydi.
-  const { parseIdeas } = require('./lib/ai');
-  assert.throws(() => parseIdeas('{"buzuq":true}', ['cotton']),
-    undefined, 'yaroqsiz javob xato tashlashi kerak (jimgina bo\'sh natija emas)');
+  assert.ok(src.includes('no_source_photo'),
+    'manba surat yo\'qligi alohida javob bo\'lsin (umumiy xato emas)');
 
-  console.log('✅ Test 14d: Sxemadan o\'tmagan javob keshga yozilmaydi — PASS');
+  console.log('✅ Test 14h: Rasm keshi yozuv yo\'li to\'g\'ri — PASS');
+}
+
+// ============ TEST 14i: Javoblar oq ro'yxati qat'iy ============
+// Xaridor javoblari PULLIK so'rovni belgilaydi, shuning uchun yaroqsizi
+// jimgina zaxiraga almashtirilmaydi — RAD ETILADI.
+function testNormalizeChoices() {
+  const { IMAGE_CHOICES, normalizeChoices, choicesHash } = require('./lib/ai');
+  const yaxshi = { kiyim: 'koylak', kim: 'ayol', uslub: 'bayram' };
+
+  assert.deepStrictEqual(normalizeChoices(yaxshi), yaxshi, 'to\'g\'ri javob o\'tishi kerak');
+
+  // Har bir guruh MAJBURIY: bittasi tushib qolsa prompt yarim qolardi va
+  // model qolganini o'zi o'ylab topardi — ya'ni xaridor so'ramagan rasm.
+  for (const g of Object.keys(IMAGE_CHOICES)) {
+    const kam = { ...yaxshi }; delete kam[g];
+    assert.throws(() => normalizeChoices(kam), undefined, `${g} yo'q bo'lsa rad etilsin`);
+  }
+  assert.throws(() => normalizeChoices({ ...yaxshi, kiyim: 'kosmonavt' }), undefined,
+    'ro\'yxatda yo\'q kalit rad etilsin');
+  assert.throws(() => normalizeChoices(null), undefined, 'javobsiz so\'rov rad etilsin');
+
+  // Hash TARTIBGA bog'liq bo'lmasin — aks holda aynan bir rasm uchun ikki
+  // marta to'langan bo'lardi.
+  assert.strictEqual(
+    choicesHash({ kiyim: 'koylak', kim: 'ayol', uslub: 'ish' }),
+    choicesHash({ uslub: 'ish', kim: 'ayol', kiyim: 'koylak' }),
+    'kalitlar tartibi hashga ta\'sir qilmasin'
+  );
+  assert.notStrictEqual(choicesHash(yaxshi), choicesHash({ ...yaxshi, kim: 'erkak' }),
+    'boshqa javob boshqa hash bersin');
+
+  console.log('✅ Test 14i: Javoblar oq ro\'yxati qat\'iy — PASS');
+}
+
+// ============ TEST 14j: Frontend yorlig'i serverdagi kalitni QOPLAYDI ====
+// Kalitlar serverda tug'iladi, yorliqlar frontendda yashaydi — ya'ni ular
+// AJRALIB KETISHI mumkin. Serverga yangi kiyim turi qo'shilib yorlig'i
+// yozilmasa, xaridor tugmada TUSHUNARSIZ kalitni ko'rardi (`koylak_milliy`).
+// Bu db/014 darsining aynan o'zi: ikkinchi ro'yxat himoya emas, tuzoq —
+// shuning uchun himoya SHU TEST.
+function testChoiceLabelsCoverKeys() {
+  const fs = require('fs');
+  const path = require('path');
+  const { IMAGE_CHOICES } = require('./lib/ai');
+  const src = fs.readFileSync(path.join(__dirname, '..', 'telegram-app', 'app.js'), 'utf8');
+
+  // `aiO: { ... }` bloklari — har til uchun bittadan.
+  const bloklar = [...src.matchAll(/aiO:\s*\{([\s\S]*?)\}/g)].map((m) => m[1]);
+  assert.strictEqual(bloklar.length, 2, 'yorliq jadvali ikkala tilda bo\'lsin (uz, ru)');
+
+  const kalitlar = Object.values(IMAGE_CHOICES).flatMap((g) => Object.keys(g));
+  assert.ok(kalitlar.length >= 6, 'kalitlar ro\'yxati bo\'sh bo\'lmasin');
+
+  for (const [i, blok] of bloklar.entries()) {
+    for (const k of kalitlar) {
+      assert.ok(new RegExp(`(^|[^\\w])${k}\\s*:`).test(blok),
+        `${i === 0 ? 'uz' : 'ru'} yorliqlarida "${k}" yo'q — serverga qo'shilib frontendda unutilgan`);
+    }
+  }
+
+  // Savol sarlavhalari ham har guruh uchun bo'lsin
+  const savolBloklar = [...src.matchAll(/aiQ:\s*\{([\s\S]*?)\}/g)].map((m) => m[1]);
+  assert.strictEqual(savolBloklar.length, 2, 'savol sarlavhalari ikkala tilda bo\'lsin');
+  for (const [i, blok] of savolBloklar.entries()) {
+    for (const g of Object.keys(IMAGE_CHOICES)) {
+      assert.ok(new RegExp(`(^|[^\\w])${g}\\s*:`).test(blok),
+        `${i === 0 ? 'uz' : 'ru'} savollarida "${g}" guruhi yo'q`);
+    }
+  }
+
+  console.log(`✅ Test 14j: Yorliqlar serverdagi kalitlarni qoplaydi — PASS (${kalitlar.length} kalit × 2 til)`);
 }
 
 // ============ TEST RUNNER ============
@@ -1438,12 +1507,15 @@ async function runTests() {
     testNoInlineFrontendCode();
     testAssetVersionsAreFresh();
     testServiceWorkerCacheVersion();
-    testSourceHash();
-    testParseIdeas();
     await testAiQuotaAtomic();
-    testBadAnswerNeverCached();
+    testImageSourceHash();
+    testExtractImage();
+    testImageLimitsDiffer();
+    testImageCacheWritePath();
+    testNormalizeChoices();
+    testChoiceLabelsCoverKeys();
 
-    console.log('\n✅ Hammasi PASS — pul hisobi, imzo, route jadvali, xato alerti, buyurtma tarixi va AI g\'oyalari joyida\n');
+    console.log('\n✅ Hammasi PASS — pul hisobi, imzo, route jadvali, xato alerti, buyurtma tarixi va AI rasmi joyida\n');
     process.exit(0);
   } catch (err) {
     console.error('\n❌ TEST XATOSI:\n', err.message, '\n');

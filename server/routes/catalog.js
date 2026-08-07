@@ -1,7 +1,8 @@
 const https = require('https');
 const crypto = require('crypto');
 const { pool } = require('../db');
-const { BOT_TOKEN, ADMIN_PANEL_TOKEN, AI_ENABLED } = require('../config');
+const { BOT_TOKEN, ADMIN_PANEL_TOKEN, AI_IMAGE_ENABLED } = require('../config');
+const { IMAGE_CHOICES } = require('../lib/ai');
 const { verifyInitData, authUser, isAdmin, currentSeller } = require('../lib/auth');
 const { escapeHtml, money, safeEqual } = require('../lib/format');
 const { validate } = require('../lib/validate');
@@ -29,12 +30,23 @@ async function handleAuthTelegram(req, res, ip) {
        RETURNING id, tg_user_id, full_name, role, created_at`,
       [String(tgUser.id), fullName]
     );
-    // `aiEnabled` — AI tugmasi chizilsinmi. Kalit yaroqsiz bo'lsa (config.js
-    // qorovuli) frontend tugmani UMUMAN ko'rsatmaydi: bosilgach "xato" chiqadigan
-    // tugma sozlama buzilganini yashirardi (Sprint 10, 9-qaror).
+    // `aiImageEnabled` — AI rasm tugmasi chizilsinmi. Sozlama yaroqsiz bo'lsa
+    // (config.js qorovuli) frontend tugmani UMUMAN ko'rsatmaydi: bosilgach
+    // "xato" chiqadigan tugma sozlama buzilganini yashirardi.
     // ⚠️ Bu KO'RINISH belgisi, himoya EMAS — endpointning o'zi ham mustaqil
     // tekshiradi (tugmani yashirish hech qachon yagona qorovul bo'lmaydi).
-    sendJson(res, 200, { ok: true, user: rows[0], aiEnabled: AI_ENABLED });
+    // `aiImageChoices` — savol guruhlari va ularning KALITLARI. Yorliqlar
+    // (uz/ru) frontendda, kalitlar esa SERVERDA tug'iladi va shu yerdan
+    // beriladi: ikkinchi ro'yxat himoya emas, kelajakdagi tuzoq (db/014).
+    // Frontend serverdan kelmagan kalitni umuman chizmaydi.
+    sendJson(res, 200, {
+      ok: true,
+      user: rows[0],
+      aiImageEnabled: AI_IMAGE_ENABLED,
+      aiImageChoices: AI_IMAGE_ENABLED
+        ? Object.fromEntries(Object.entries(IMAGE_CHOICES).map(([g, v]) => [g, Object.keys(v)]))
+        : null,
+    });
   } catch (e) {
     console.error('auth xatosi:', e.message);
     fail(res, 'server error', 500);

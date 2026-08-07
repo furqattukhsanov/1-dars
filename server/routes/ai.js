@@ -1,85 +1,10 @@
-const { AI_ENABLED, AI_DAILY_LIMIT } = require('../config');
+const { AI_ENABLED, AI_DAILY_LIMIT, AI_IMAGE_ENABLED, AI_IMAGE_CHAT_ID } = require('../config');
 const { pool } = require('../db');
 const { authUser } = require('../lib/auth');
 const { rateLimited, clientIp, readBody, sendJson, ok, fail } = require('../lib/http');
-const { sourceHash, generateIdeas } = require('../lib/ai');
-
-// ============ AI KIYIM G'OYALARI (Sprint 10) ============
-// POST /api/ai/ideas  { productId }
-//
-// Oqim: imzo → kesh (hash bilan) → ATOMIK limit → AI → sxema → kesh yozish.
-// Kesh mos kelsa limitga UMUMAN TEGILMAYDI (4-qaror): xarajat foydalanuvchi
-// soniga emas, MAHSULOT soniga bog'liq bo'lishi shundan kelib chiqadi.
-
-// Hozircha faqat o'zbekcha (7-qaror). Ruscha qo'shilganda shu qiymat
-// so'rovdan keladi — jadval kaliti allaqachon (product_id, lang).
-const LANG = 'uz';
-
-// Bitta kategoriyaga nechta mahsulot tavsiya qilinadi
-const RECS_PER_CAT = 2;
-
-// ============ OQ RO'YXAT BAZADAN OLINADI ============
-// Sprint 10, 5-qaror + 2026-08-06 founder qarori. Qo'lda yozilgan doimiy
-// EMAS: katalogga yangi tur qo'shilsa ro'yxat o'zi kengayadi va kodga
-// tegilmaydi (db/014 darsi — bir xil ro'yxat ikki joyda yashasa,
-// ikkinchisini yangilash unutiladi va amal production'da jimgina o'ladi).
-async function allowedCategories() {
-  const { rows } = await pool.query(
-    `SELECT DISTINCT cat_key FROM products
-      WHERE status = 'published' AND cat_key IS NOT NULL AND cat_key <> ''
-      ORDER BY cat_key`
-  );
-  return rows.map((r) => r.cat_key);
-}
-
-// ============ TAVSIYALAR HAR SAFAR QAYTA HISOBLANADI ============
-// ⚠️ Keshda mahsulot `id` si SAQLANMAYDI — faqat kategoriya kaliti.
-// Sabab 5-qarorning davomi: saqlangan `id` mahsulot e'londan olingan yoki
-// o'chirilgan kuni O'LIK HAVOLAGA aylanardi va buni faqat foydalanuvchi
-// sezardi. Kategoriya esa eskirmaydi. Ya'ni g'oyalar keshlanadi, tavsiya
-// esa har javobda jonli katalogdan yig'iladi.
-async function recsByCategory(cats, excludeProductId) {
-  if (!cats.length) return new Map();
-  const { rows } = await pool.query(
-    `SELECT id, cat_key, name_uz, price, unit, img FROM (
-       SELECT p.id, p.cat_key, p.name_uz, p.price, p.unit, p.img,
-              row_number() OVER (PARTITION BY p.cat_key
-                                 ORDER BY p.sort_order NULLS LAST, p.id) AS rn
-         FROM products p
-        WHERE p.status = 'published'
-          AND p.cat_key = ANY($1::text[])
-          AND p.id <> $2
-     ) t WHERE t.rn <= $3`,
-    [cats, excludeProductId, RECS_PER_CAT]
-  );
-  const map = new Map();
-  for (const r of rows) {
-    if (!map.has(r.cat_key)) map.set(r.cat_key, []);
-    map.get(r.cat_key).push({
-      id: r.id, name: r.name_uz, price: Number(r.price), unit: r.unit, img: r.img,
-    });
-  }
-  return map;
-}
-
-// G'oyaga haqiqiy mahsulotlarni biriktiradi. Kategoriyada mahsulot topilmasa
-// ro'yxat BO'SH qoladi va frontend blokni umuman chizmaydi — "tavsiya yo'q"
-// deb yozib qo'yish o'ylab topilgan ma'lumotdan farq qilmasdi (CLAUDE.md:
-// ma'lumot bazadan kelmasa blok ko'rsatilmaydi).
-function attachRecs(ideas, map) {
-  return ideas.map((it) => {
-    const seen = new Set();
-    const tavsiyalar = [];
-    for (const c of it.kerakli_kategoriyalar) {
-      for (const p of map.get(c) || []) {
-        if (seen.has(p.id)) continue;
-        seen.add(p.id);
-        tavsiyalar.push(p);
-      }
-    }
-    return { ...it, tavsiyalar };
-  });
-}
+const { imageSourceHash, generateImage, normalizeChoices, choicesHash } = require('../lib/ai');
+const { tgGetFile, tgDownloadFile, sendPhotoBytes } = require('../lib/telegram-api');
+const { productPhotoUrl } = require('./catalog');
 
 // ============ KUNLIK LIMIT — ATOMIK ============
 // `decrementStock` bilan AYNI naqsh (CLAUDE.md, zaxira qoidasi): tekshiruv va
@@ -105,47 +30,95 @@ async function takeQuota(tgUserId) {
   return rows.length > 0;
 }
 
-async function handleAiIdeas(req, res) {
-  // Sozlama yaroqsiz bo'lsa funksiya butunlay o'chiq (config.js jurnalda
-  // qichqirgan). Frontend ham tugmani chizmaydi — bu ikkinchi qatlam.
-  if (!AI_ENABLED) return fail(res, 'ai_disabled', 503);
+// ============ AI KIYIM RASMI (2026-08-07) ============
+// POST /api/ai/image  { productId }
+//
+// Oqim: imzo → kesh (hash bilan) → ATOMIK limit → manba surat → AI →
+// Telegram'ga yuklash → kesh yozish.
+//
+// ⚠️ MATN G'OYALARI SHU FAYLDAN OLIB TASHLANDI (2026-08-07, founder qarori:
+// "matn ai umuman kerak emas, faqat rasm qolsin"). Yuqoridagi `takeQuota`
+// o'sha yo'ldan qoldi va bu ATAYLAB: u atomik limitning ISHLAB TURGAN
+// namunasi edi, rasm ham aynan shu hisobni ishlatadi. Ya'ni matn yo'li
+// o'chdi, undan qolgan qism esa yangidan yozilmadi.
+//
+// Rasm yo'lining uchta o'ziga xos bandi:
+//   1) hash ichida SURAT ham bor (`imageSourceHash`) — surat almashsa rasm
+//      yaroqsiz bo'ladi;
+//   2) natija bazada emas, Telegram'da yashaydi va faqat `file_id` saqlanadi;
+//   3) manba surat bo'lmasa umuman boshlanmaydi — image-to-image ning MANBASI
+//      yo'q bo'lsa qoladigani "matndan o'ylab topish" bo'lardi, u esa aynan
+//      2026-08-06 da rad etilgan yo'l.
+
+// ---- Manba surat ----
+// Ikki xil bo'lishi mumkin: Telegram `img_file_id` (sotuvchi botga yuborgan)
+// yoki statik `img` yo'li (katalogdagi eski rasmlar). Faqat BIRINCHISI
+// qo'llab-quvvatlanadi — statik rasm serverning o'z diskida turadi va uni
+// o'qish uchun yo'lni tashqi qiymatdan yasash kerak bo'lardi (path traversal
+// yuzasi). Ikkinchisi uchun javob ochiq: rasm yo'q deb aytiladi.
+async function loadSourcePhoto(fileId) {
+  const filePath = await tgGetFile(fileId);
+  if (!filePath) throw new Error('manba suratning file_path i yo\'q');
+  return tgDownloadFile(filePath);
+}
+
+async function handleAiImage(req, res) {
+  // Ikki bayroq: umumiy AI va aynan RASM. Matn ishlab, rasm ishlamaydigan
+  // holat haqiqiy holat (2026-08-06: matn HTTP 200, rasm HTTP 429).
+  if (!AI_ENABLED || !AI_IMAGE_ENABLED) return fail(res, 'ai_image_disabled', 503);
 
   const ip = clientIp(req);
-  if (rateLimited(`ai:${ip}`, 20)) return fail(res, 'too many requests', 429);
+  // Matn yo'lidan PASTROQ chegara: bitta rasm ~$0.04, matn esa ming marta
+  // arzon. Bu narx himoyasi, tezlik himoyasi emas.
+  if (rateLimited(`aiimg:${ip}`, 6)) return fail(res, 'too many requests', 429);
 
   try {
     // Kimlik FAQAT imzolangan initData dan (CLAUDE.md, 2026-07-29).
-    // Klient yuborgan `tg_user_id` ga ishonilmaydi — u umuman o'qilmaydi.
     const tg = authUser(req);
     if (!tg || !tg.id) return fail(res, 'unauthorized', 401);
 
     const body = await readBody(req, 5_000);
-    const productId = String(JSON.parse(body || '{}').productId || '').trim();
+    const inp = JSON.parse(body || '{}');
+    const productId = String(inp.productId || '').trim();
     if (!productId) return fail(res, 'productId kerak', 400);
 
+    // ---- Xaridor javoblari (2026-08-07) ----
+    // Oq ro'yxatdan O'TKAZILADI va yaroqsizi 400 bilan RAD ETILADI.
+    // ⚠️ Zaxira qiymat qo'yilmaydi ("javob kelmasa ayol/ko'ylak deb hisobla"):
+    // o'shanda xaridor bir narsani tanlab, butunlay boshqasini ko'rardi va
+    // sababini bilmasdi — ustiga bu PULLIK so'rov.
+    let choices;
+    try {
+      choices = normalizeChoices(inp.choices);
+    } catch (_) {
+      return fail(res, 'bad_choices', 400);
+    }
+    const cHash = choicesHash(choices);
+
     const { rows: prod } = await pool.query(
-      `SELECT id, name_uz, comp_uz, cat_key, width, weight
+      `SELECT id, name_uz, comp_uz, cat_key, img_file_id
          FROM products WHERE id = $1 AND status = 'published'`,
       [productId]
     );
     if (!prod.length) return fail(res, 'mahsulot topilmadi', 404);
     const p = prod[0];
-    const hash = sourceHash(p);
+
+    // ---- 0. Manba bormi ----
+    // Kesh tekshiruvidan OLDIN: manbasiz mahsulotning keshi ham bo'lishi
+    // mumkin emas, ya'ni bu tartib bitta ortiqcha so'rovni tejaydi.
+    if (!p.img_file_id) return fail(res, 'no_source_photo', 422);
+
+    const hash = imageSourceHash(p, p.img_file_id);
 
     // ---- 1. Kesh ----
-    // Hash mos kelmasa (mato tavsifi tahrirlangan) qator BOR bo'lsa ham
-    // yaroqsiz deb qaraladi va pastda ustiga yoziladi.
     const { rows: cached } = await pool.query(
-      `SELECT ideas, model, source_hash, created_at
-         FROM product_ai_ideas WHERE product_id = $1 AND lang = $2`,
-      [productId, LANG]
+      `SELECT file_id, model, source_hash, created_at
+         FROM product_ai_image WHERE product_id = $1 AND choices_hash = $2`,
+      [productId, cHash]
     );
     if (cached.length && cached[0].source_hash === hash) {
-      const ideas = cached[0].ideas;
-      const cats = [...new Set(ideas.flatMap((i) => i.kerakli_kategoriyalar || []))];
-      const map = await recsByCategory(cats, productId);
       return ok(res, {
-        ideas: attachRecs(ideas, map),
+        image: productPhotoUrl(cached[0].file_id),
         model: cached[0].model,
         cached: true,
         createdAt: cached[0].created_at,
@@ -153,43 +126,93 @@ async function handleAiIdeas(req, res) {
     }
 
     // ---- 2. Limit ----
-    // ⚠️ Limit AI chaqiruvidan OLDIN olinadi (sprint tartibi). Ya'ni AI
-    // yiqilsa ham bitta birlik sarflanadi. Bu bilib qilingan tanlov:
-    // muvaffaqiyatsiz so'rov ham provayder kvotasini yeydi, shuning uchun
-    // "faqat muvaffaqiyatda hisobla" naqshi bilan endpointni bepul
-    // urib turish mumkin bo'lardi. Qaytarish (kompensatsiya) yozuvi
-    // QO'SHILMADI — u ham yiqilishi mumkin va murakkablik ortardi.
+    // Matn bilan BITTA hisobda (`ai_usage`). Alohida hisob QILINMADI: ikkita
+    // hisob ikkita "ertaga yangilanadi" xabarini talab qilardi va
+    // foydalanuvchi qaysi biri tugaganini bilmasdi.
     if (!(await takeQuota(String(tg.id)))) {
       return sendJson(res, 429, { ok: false, error: 'limit', limit: AI_DAILY_LIMIT });
     }
 
-    // ---- 3. AI ----
-    const cats = await allowedCategories();
-    const { ideas, model } = await generateIdeas(p, cats);
+    // ---- 3. Manba surat + AI ----
+    const source = await loadSourcePhoto(p.img_file_id);
+    const { buf, model } = await generateImage(p, source, choices);
 
-    // ---- 4. Keshga yozish ----
-    // Sxemadan o'tmagan javob bu yergacha YETIB KELMAYDI — `generateIdeas`
-    // xato tashlaydi (6-qaror: mos kelmasa keshga yozilmaydi).
-    await pool.query(
-      `INSERT INTO product_ai_ideas (product_id, lang, ideas, source_hash, model)
-       VALUES ($1, $2, $3::jsonb, $4, $5)
-       ON CONFLICT (product_id, lang)
-       DO UPDATE SET ideas = EXCLUDED.ideas,
-                     source_hash = EXCLUDED.source_hash,
-                     model = EXCLUDED.model,
-                     created_at = now()`,
-      [productId, LANG, JSON.stringify(ideas), hash, model]
+    // ---- 4. Telegram'ga yuklash ----
+    // ⚠️ Bu qadam yiqilsa keshga HECH NARSA yozilmaydi va pul ketgan natija
+    // yo'qoladi. Shuning uchun `sendPhotoBytes` jimgina `null` qaytarmaydi —
+    // u xato tashlaydi va sabab alertga chiqadi.
+    const fileId = await sendPhotoBytes(
+      AI_IMAGE_CHAT_ID, buf, `ai-${productId}.png`,
+      `AI kiyim rasmi — ${p.name_uz || productId} (${Object.values(choices).join(', ')})`
     );
 
-    const used = [...new Set(ideas.flatMap((i) => i.kerakli_kategoriyalar))];
-    const map = await recsByCategory(used, productId);
-    ok(res, { ideas: attachRecs(ideas, map), model, cached: false, createdAt: new Date() });
+    // ---- 5. Keshga yozish ----
+    await pool.query(
+      `INSERT INTO product_ai_image (product_id, choices_hash, choices, file_id, source_hash, model)
+       VALUES ($1, $2, $3::jsonb, $4, $5, $6)
+       ON CONFLICT (product_id, choices_hash)
+       DO UPDATE SET file_id = EXCLUDED.file_id,
+                     source_hash = EXCLUDED.source_hash,
+                     choices = EXCLUDED.choices,
+                     model = EXCLUDED.model,
+                     created_at = now()`,
+      [productId, cHash, JSON.stringify(choices), fileId, hash, model]
+    );
+
+    ok(res, { image: productPhotoUrl(fileId), model, cached: false, createdAt: new Date() });
   } catch (e) {
     // Birinchi argument — alert guruhlash KALITI (CLAUDE.md, Test 10c).
-    // O'zgaruvchan qism (mahsulot id, model xabari) ikkinchi argumentda.
-    console.error('aiIdeas xatosi:', e.message);
+    console.error('aiImage xatosi:', e.message);
     fail(res, 'ai_unavailable', 503);
   }
 }
 
-module.exports = { handleAiIdeas, allowedCategories, recsByCategory, attachRecs, takeQuota, LANG };
+// ============ AI GALEREYASI — /api/ai/gallery (2026-08-07) ============
+// AI bo'limidagi galereya shundan oziqlanadi (pastki paneldagi ✦ tab).
+//
+// ⚠️ BU YERDA HECH NARSA GENERATSIYA QILINMAYDI — faqat ALLAQACHON
+// chizilgan rasmlar o'qiladi. Shuning uchun u GET, imzosiz va bepul.
+// Agar lenta generatsiya qildirganida, bosh sahifani ochgan har bir odam
+// pul sarflardi — bu Sprint 10 ning "avtomatik yuklash yo'q" qarorining
+// aynan takrori bo'lardi.
+//
+// Bo'sh bo'lsa BO'SH massiv qaytadi va frontend blokni UMUMAN chizmaydi:
+// CLAUDE.md — ma'lumot bazadan kelmasa, blok ko'rsatilmaydi (o'ylab topilgan
+// namuna rasm qo'yilmaydi).
+const GALLERY_LIMIT = 10;
+
+async function handleAiGallery(req, res) {
+  const ip = clientIp(req);
+  if (rateLimited(`aigal:${ip}`, 60)) return fail(res, 'too many requests', 429);
+  try {
+    // `DISTINCT ON (product_id)` — bitta mahsulotning bir nechta javob
+    // varianti bo'lishi mumkin (kesh kaliti `mahsulot + javoblar`), lenta esa
+    // bitta matoni takrorlab ko'rsatmasligi kerak: eng YANGISI olinadi.
+    // Mahsulot e'londan olingan bo'lsa umuman chiqmaydi.
+    const { rows } = await pool.query(
+      `SELECT DISTINCT ON (i.product_id)
+              i.product_id, i.file_id, i.choices, i.created_at,
+              p.name_uz, p.name_ru
+         FROM product_ai_image i
+         JOIN products p ON p.id = i.product_id AND p.status = 'published'
+        ORDER BY i.product_id, i.created_at DESC`
+    );
+    // Tartib SQL da `product_id` bo'yicha majburlangan (DISTINCT ON sharti),
+    // shuning uchun "eng yangisi birinchi" tartibi shu yerda beriladi.
+    rows.sort((a, b) => b.created_at - a.created_at);
+    ok(res, {
+      items: rows.slice(0, GALLERY_LIMIT).map((r) => ({
+        productId: r.product_id,
+        image: productPhotoUrl(r.file_id),
+        name: { uz: r.name_uz, ru: r.name_ru },
+        choices: r.choices,
+      })),
+    });
+  } catch (e) {
+    // Birinchi argument — alert guruhlash KALITI (CLAUDE.md, Test 10c).
+    console.error('aiGallery xatosi:', e.message);
+    fail(res, 'server error', 500);
+  }
+}
+
+module.exports = { handleAiImage, handleAiGallery, takeQuota, loadSourcePhoto };

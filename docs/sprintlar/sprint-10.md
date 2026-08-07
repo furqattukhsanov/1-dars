@@ -1,10 +1,33 @@
-# Sprint 10 — AI kiyim g'oyalari (Dars 17)
+# Sprint 10 — AI kiyim RASMI (Dars 17)
 
-**Holat:** jarayonda
+**Holat:** tugadi
 **Sana:** rejalashtirildi 2026-08-06 (founder bilan savol-javob orqali),
-kod qismi bajarildi va production'ga chiqdi 2026-08-06
+matn qismi 2026-08-06 da chiqdi va RAD ETILDI,
+**rasm qismi 2026-08-07 da tugadi va production'da tasdiqlandi**
 
-⚠️ **"Jarayonda", "tugadi" EMAS — lekin sababi kutilganidan boshqa.**
+## YOPILDI (2026-08-07)
+
+Sprint `jarayonda` da turgan yagona sabab — rasm varianti billing'ga bog'liq
+edi. Founder billing'ni to'ladi va **shart bajarildi**: «billing yoqdim»
+dalil deb QABUL QILINMADI — serverdan jonli kalit bilan haqiqiy so'rov
+yuborildi va `429` / `limit: 0` **yo'qolgani KO'RILDI**. Bu aynan shu faylda
+2026-08-06 da oldindan yozib qo'yilgan talab edi va u ishladi.
+
+Production'da **2 ta haqiqiy rasm chizildi** va manba mato bilan
+solishtirildi: rang va naqsh **KO'CHIRILGAN**, o'ylab topilmagan — ya'ni
+1-qarorni bekor qilishga asos bo'lgan da'vo ("image-to-image naqshni
+ko'chiradi") endi tekshirilgan da'vo.
+
+⚠️ **Matn g'oyalari BUTUNLAY olib tashlandi** (founder: "matn ai umuman
+kerak emas, faqat rasm qolsin"). Pastdagi matn bo'limlari TARIX uchun
+qoldirildi — o'chirilmadi, chunki rasm yo'li o'sha qarorlarning butun
+qorovul qatlamini (imzo, kesh + `sourceHash`, atomik limit, oq ro'yxat)
+meros qilib oldi va ular nega shunday ekanini faqat o'sha matn tushuntiradi.
+
+⚠️ **Sprintning ASOSIY darsi:** «tugadi» ikki marta yozildi va ikkalasi ham
+boshqa narsa haqida edi. 2026-08-06 da kod tugadi, maqsad tegmadi;
+2026-08-07 da maqsad tegdi. Oradagi farqni test emas, **founderning qo'lidagi
+sinov** ko'rsatdi.
 
 Kod yozildi, testlar yashil va endpoint production'da tirik. Yopilish mezoni
 (founder sinab, sifatni QO'LDA baholashi) ham **BAJARILDI** — founder
@@ -38,7 +61,12 @@ shu bilan asosan yopiladi — lekin butunlay emas: mato haqiqiy bo'lsa ham,
 rasmda **mavjud bo'lmagan buyum** ko'rinadi, shuning uchun ostiga
 "AI tasavvuri — haqiqiy mahsulot emas" yorlig'i SHART.
 
-## Rasm varianti — BLOKLANGAN (2026-08-06)
+## Rasm varianti — ~~BLOKLANGAN~~ **YOPILDI (2026-08-07)**
+
+⚠️ Quyidagi blok 2026-08-06 dagi holatni tasvirlaydi va **2026-08-07 da
+yopildi** — matn tarix uchun qoldirildi, chunki to'siqning nima bo'lgani va
+uni qanday tekshirganimiz kelajakda yana kerak bo'ladi. Bugungi holat pastdagi
+"RASM QISMI — DEPLOY DALILI (2026-08-07)" bo'limida.
 
 **Hajmi (founder qarori):** bitta mahsulotga **BITTA rasm** — hozircha shu.
 "Bir nechta variant" yoki "har g'oyaga alohida rasm" MVP ga kirmaydi.
@@ -71,6 +99,123 @@ so'rov ko'rsatdi, taxmin emas.
 tayyor, faqat natija turi matndan rasmga o'zgaradi. Rasm saqlash uchun
 tavsiya: Telegram `file_id` + mavjud `/api/product-photo` proksisi
 (deploy'dan omon qoladi, loyihada allaqachon ishlaydigan naqsh).
+
+✅ **Tavsiya AYNAN shunday bajarildi** — natija Telegram'da yashaydi, bazada
+faqat `file_id` (`db/017`). Qayta ishlatish rejasi ham to'liq ishladi: imzo,
+kesh + hash, atomik limit, oq ro'yxat — hech biri qaytadan yozilmadi.
+
+---
+
+## RASM QISMI (2026-08-07)
+
+### Bajarilgan ishlar
+
+#### Baza
+- [x] `db/017_ai_image.sql` — `product_ai_image`: `file_id`, `source_hash`
+      (mato matni **+ SURAT havolasi**), `model`, `created_at`.
+      ⚠️ **`lang` ustuni ATAYLAB YO'Q** — 016 dan aynan shu bilan farq qiladi:
+      rasmda matn yo'q, ya'ni ruscha va o'zbekcha uchun AYNI rasm ishlaydi.
+      "Har ehtimolga" `lang` qo'shilsa kesh ikkiga bo'linib, bitta rasm uchun
+      ikki marta to'lanardi
+- [x] `db/018_ai_image_choices.sql` — `choices_hash` + `choices` (JSONB), PK
+      `(product_id, choices_hash)` ga kengaydi. Eski qatorlar
+      O'CHIRILMADI — ular allaqachon to'langan rasm
+
+#### Backend
+- [x] `server/lib/ai.js` — `generateImage()`, image-to-image (manba:
+      mahsulotning O'Z surati), `IMAGE_CHOICES`, `choicesHash()`,
+      `normalizeChoices()`, `extractImage()`
+- [x] **Rasm uchun ALOHIDA chegara: 20 MB / 120 s.** Matn chegarasi
+      (200 KB / qisqa timeout) qoldirilsa so'rov O'RTASIDA uzilardi va
+      **kvota baribir sarflangan** bo'lardi — ya'ni pul ketib, natija
+      kelmasdi. Bu Test 14g bilan qulflandi
+- [x] `server/lib/telegram-api.js` — `sendPhotoBytes()` (multipart) va
+      `tgDownloadFile()`
+- [x] `server/routes/ai.js` — `POST /api/ai/image`: imzo → kesh → ATOMIK
+      kunlik limit → manba surat → AI → Telegram → kesh
+- [x] `GET /api/ai/gallery` — **FAQAT O'QISH.** Bu yerda hech narsa
+      generatsiya qilinmaydi: galereya sahifasi ochilishi kvota sarflasa,
+      bitta aylanish butun kunlik limitni yeb qo'yardi
+- [x] `server/config.js` — `AI_IMAGE_MODEL`, `AI_IMAGE_CHAT_ID`,
+      `AI_IMAGE_ENABLED`; hammasi SHAKLI bo'yicha tekshiriladi
+      (`chatId()` / `aiKey()` namunasi)
+- [x] `server/README.md` — `.env` jadvali va **nginx ogohlantirishi**:
+      umumiy `/api/` blokida `proxy_read_timeout 30s`, rasm undan uzoq ketadi
+
+#### Matn g'oyalari — OLIB TASHLANDI
+- [x] `POST /api/ai/ideas`, `generateIdeas`, `parseIdeas`, provayder
+      abstraksiyasi (OpenAI yo'li — **hech qachon sinalmagan edi**), UI,
+      Test 14 / 14b / 14d
+- [x] `product_ai_ideas` jadvali bazada **QOLDIRILDI** — o'chirish qaytarib
+      bo'lmaydi, saqlab turish esa hech kimga zarar qilmaydi
+
+#### Rasmdan oldin 3 ta savol (founder qarori)
+- [x] «Nima tikilsin / Kim uchun / Qayerga». Ro'yxat **SERVERDA tug'iladi**
+      (`IMAGE_CHOICES`), klient yuborgani oq ro'yxatdan o'tadi, yaroqsizi 400
+- [x] Kesh kaliti — `mahsulot + javoblar`, **foydalanuvchi bo'yicha EMAS**
+- [x] Promptda kiyinish odobi qat'iy: yopiq, lekin zamonaviy va chiroyli;
+      model Markaziy Osiyo ko'rinishida
+
+#### Frontend
+- [x] **Bosh sahifa va katalog BIRLASHTIRILDI.** Bo'shagan tab o'rniga AI
+      bo'limi (`renderAi`). Tartib: Katalog · Savat · Buyurtma · AI
+- [x] Bosh sahifadagi filtr endi SHU sahifada ochiladi (ilgari u katalogga
+      o'tkazardi — ya'ni filtr bosish sahifani almashtirardi)
+- [x] AI bo'limi CSS: `.ai-chip`, `.ai-cta`, `.ai-figure`, tanlash
+      hisoblagichi, kutish chizig'i
+- [x] Kesh versiyalari: `app.js?v=62→70`, `styles.css?v=17→21`
+      (Test 16 jadvali ham yangilandi)
+
+#### Yo'l-yo'lakay topilgan JIMGINA nuqson
+- [x] `--border-hair` tokeni `telegram-app/styles.css` da **UMUMAN
+      aniqlanmagan** edi, `app.js` esa uni **31 joyda** ishlatadi
+      (`var(--border-hair)`, sanaldi). Brauzerda o'lchandi: chegaralar
+      `rgba(23,26,48,.08)` o'rniga `rgb(23,26,48)` bo'lib chiqardi —
+      **~12 barobar to'q**, va bu BUTUN Mini App'ga ta'sir qilgan.
+      Nuqson jimgina: xato yo'q, konsolda ham yo'q.
+      Endi `styles.css:79` da aniqlangan
+
+#### Testlar
+- [x] **Test 14e** — rasm keshi suratga bog'langan (surat almashsa yaroqsiz)
+- [x] **Test 14f** — rasm javobi qat'iy tekshiriladi
+- [x] **Test 14g** — rasm chegaralari matndan ALOHIDA
+- [x] **Test 14h** — kesh yozuv yo'li to'g'ri
+- [x] **Test 14i** — javoblar oq ro'yxati qat'iy
+- [x] **Test 14j** — frontend yorliqlari serverdagi kalitlarni **qoplaydi**
+      (serverga kalit qo'shilib frontendda unutilsa test QIZIL)
+- [x] Har biri **MUTATSIYA bilan** sinaldi — 7 mutatsiya, hammasi tutildi
+- [x] Lint: **0 xato** (27 ogohlantirish — ular avvaldan bor)
+
+---
+
+## RASM QISMI — DEPLOY DALILI (2026-08-07)
+
+### 1. Billing — TAXMIN emas, O'LCHOV
+
+Founder billing'ni to'ladi. «Billing yoqdim» dalil deb qabul QILINMADI:
+serverdan jonli kalit bilan rasm modeliga haqiqiy so'rov yuborildi va
+**`429` / `limit: 0` yo'qolgani ko'rildi**. Bu talab 2026-08-06 da shu
+faylga OLDINDAN yozib qo'yilgan edi — ya'ni tekshiruv eslab qolishga emas,
+**hujjatga** tayandi.
+
+### 2. Ikkita HAQIQIY rasm chizildi va manba bilan solishtirildi
+
+Rang va naqsh **KO'CHIRILGAN**, o'ylab topilmagan. Bu 1-qarorni bekor
+qilishga asos bo'lgan yagona da'vo edi va endi u tekshirilgan.
+⚠️ E'tiroz butunlay yo'qolmaydi — **buyumning o'zi mavjud emas**, shuning
+uchun "AI tasavvuri" yorlig'i qoladi.
+
+### 3. Testlar — raqam SANALDI
+
+**37 ta PASS** (`npm test`, to'liq chiqish o'qildi). Oldingi holat — 34.
+Farq: matn testlaridan 3 tasi olib tashlandi (14, 14b, 14d), rasm uchun
+6 tasi qo'shildi (14e…14j): `34 − 3 + 6 = 37`.
+
+⚠️ **Sessiya davomida bu raqam «32 → 36» deb aytilgan edi va ikkala uchi ham
+noto'g'ri.** Tuzatishning o'zi kichik, lekin naqsh aynan CLAUDE.md dagi
+**"hujjatdagi raqam — tekshirilmagan da'vo"** qoidasi: raqam ikki mustaqil
+usul bilan olindi — `grep -c "✅ Test "` = 37 va `npm test` chiqishidagi
+qatorlar = 37.
 
 ---
 
@@ -467,6 +612,53 @@ ishlaydi" degani EMAS.
 - [2026-08-06] Hujjat to'g'rilandi: yopilish mezoni "BAJARILMAGAN" emas,
   "BAJARILDI, natija rad etish" — va 1-qaror (rasm rad etilgani) bekor
   qilingani uch joyda (tepa blok, qarorning o'zi, qarorlar tarixi) yozildi
+- [2026-08-07] **Billing yoqildi va SINOV QAYTARILDI** — serverdan jonli
+  kalit bilan rasm modeliga so'rov, `429` / `limit: 0` YO'QOLGANI ko'rildi.
+  «Billing yoqdim» dalil deb qabul qilinmadi
+- [2026-08-07] `server/lib/ai.js` — `generateImage()` (image-to-image, manba
+  mahsulotning O'Z surati), `IMAGE_CHOICES`, `choicesHash()`,
+  `normalizeChoices()`, `extractImage()`. Rasm uchun ALOHIDA chegara:
+  **20 MB / 120 s** (matn chegarasi qoldirilsa so'rov o'rtasida uzilardi va
+  kvota baribir sarflangan bo'lardi)
+- [2026-08-07] `server/lib/telegram-api.js` — `sendPhotoBytes()` (multipart)
+  va `tgDownloadFile()`. Natija Telegram'da yashaydi, bazada faqat `file_id`
+  — deploy'dan omon qoladi
+- [2026-08-07] `server/routes/ai.js` — `POST /api/ai/image`: imzo → kesh →
+  ATOMIK kunlik limit → manba surat → AI → Telegram → kesh.
+  `GET /api/ai/gallery` — FAQAT O'QISH, generatsiya YO'Q
+- [2026-08-07] `server/config.js` — `AI_IMAGE_MODEL`, `AI_IMAGE_CHAT_ID`,
+  `AI_IMAGE_ENABLED`, hammasi SHAKLI bo'yicha tekshiriladi. `AI_MODEL`
+  (matn modeli) olib tashlandi
+- [2026-08-07] `db/017_ai_image.sql` — rasm keshi. `lang` ustuni ATAYLAB
+  yo'q: rasmda matn yo'q, ya'ni ikkala til uchun AYNI rasm
+- [2026-08-07] `db/018_ai_image_choices.sql` — `choices_hash` + `choices`,
+  PK `(product_id, choices_hash)`. Kesh kaliti `mahsulot + javoblar`
+- [2026-08-07] **Matn g'oyalari BUTUNLAY olib tashlandi** — `/api/ai/ideas`,
+  `generateIdeas`, `parseIdeas`, provayder abstraksiyasi (OpenAI yo'li,
+  hech qachon sinalmagan), UI, Test 14/14b/14d. `product_ai_ideas` jadvali
+  bazada QOLDIRILDI (o'chirish qaytarib bo'lmaydi)
+- [2026-08-07] **Rasmdan oldin 3 ta savol** — «Nima tikilsin / Kim uchun /
+  Qayerga». Ro'yxat SERVERDA tug'iladi, klient yuborgani oq ro'yxatdan
+  o'tadi, yaroqsizi 400. Promptda kiyinish odobi qat'iy: yopiq, lekin
+  zamonaviy va chiroyli; model Markaziy Osiyo ko'rinishida
+- [2026-08-07] **Bosh sahifa va katalog BIRLASHTIRILDI.** Bo'shagan tab
+  o'rniga AI bo'limi (`renderAi`). Tartib: Katalog · Savat · Buyurtma · AI.
+  Bosh sahifadagi filtr endi shu sahifada ochiladi
+- [2026-08-07] `telegram-app/styles.css` — AI bo'limi uchun CSS
+  (`.ai-chip`, `.ai-cta`, `.ai-figure`, tanlash hisoblagichi, kutish
+  chizig'i); `app.js?v=70`, `styles.css?v=21`, Test 16 jadvali yangilandi
+- [2026-08-07] **JIMGINA nuqson tuzatildi:** `--border-hair` tokeni
+  `styles.css` da umuman aniqlanmagan edi, `app.js` esa uni 31 joyda
+  ishlatadi. Chegaralar `rgba(23,26,48,.08)` o'rniga `rgb(23,26,48)` —
+  ~12 barobar to'q, butun Mini App'ga ta'sir qilgan
+- [2026-08-07] Testlar **34 → 37** (14e, 14f, 14g, 14h, 14i, 14j qo'shildi;
+  14, 14b, 14d olib tashlandi). Har biri MUTATSIYA bilan sinaldi —
+  7 mutatsiya, hammasi tutildi. Lint 0 xato
+- [2026-08-07] Production'da tasdiqlandi: 2 ta haqiqiy rasm chizildi, manba
+  mato bilan solishtirildi — rang va naqsh KO'CHIRILGAN
+- [2026-08-07] `server/README.md` — `.env` jadvaliga `AI_*` qatorlari va
+  **nginx ogohlantirishi**: umumiy `/api/` blokidagi `proxy_read_timeout 30s`
+  rasm so'roviga yetmaydi
 
 ---
 
@@ -487,9 +679,12 @@ mezon "hali tekshirmadik" holatidan "tekshirdik va kerak emas ekan" holatiga
 o'tdi — **farqi muhim**, birinchisi ish qoldi degani, ikkinchisi ish
 noto'g'ri narsaga sarflandi degani.
 
-Sprint shunga qaramay **jarayonda**, `tugadi` emas — lekin endi sababi boshqa:
-funksiyaning founder haqiqatan so'ragan shakli (**rasm**) hali yo'q va u
-billing'ga bog'liq. Sprint o'sha rasm ishlagan kuni yopiladi.
+~~Sprint shunga qaramay **jarayonda**, `tugadi` emas~~ — **2026-08-07 da
+YOPILDI.** Founder haqiqatan so'ragan shakl (**rasm**) ishlab ketdi va
+production'da qo'lda baholandi: 2 ta haqiqiy rasm chizildi, manba mato bilan
+solishtirildi, rang va naqsh ko'chirilgani ko'rildi. Mezon aynan shu ikkinchi
+o'tishda o'z vazifasini bajardi — birinchi o'tishda u "kerak emas" degan
+javobni, ikkinchisida "ha, shu" degan javobni berdi.
 
 ⚠️ **Mezonning O'ZI ham dars berdi.** U "sifat yaxshimi?" deb so'rardi va
 javob "sifat masalasi emas, funksiyaning O'ZI kerak emas" bo'lib chiqdi.
@@ -503,23 +698,40 @@ kiritilsin — va u kod yozilgunga QADAR so'ralsin.
 
 Bu ro'yxat ataylab "bajarildi" deb yopilmadi.
 
-1. **Rasm varianti — BILLING'ga bog'liq.** Eng muhimi endi shu. Kod tomoni
-   deyarli tayyor (imzo, kesh, limit, oq ro'yxat qayta ishlatiladi), to'siq
-   faqat pul: bepul tarifda rasm kvotasi `limit: 0`. Sprint shu band
-   yopilmaguncha `jarayonda` turadi.
-   ~~Sprint yopilish mezoni bajarilmagan~~ — **2026-08-06 da bajarildi**,
-   natijasi rad etish bo'ldi (yuqoriga qara).
+1. ~~**Rasm varianti — BILLING'ga bog'liq.**~~ — **2026-08-07 da YOPILDI.**
+   Founder billing'ni to'ladi, sinov qaytarildi va `limit: 0` yo'qolgani
+   KO'RILDI. Rasm production'da ishlaydi.
+   ~~Sprint yopilish mezoni bajarilmagan~~ — 2026-08-06 da bajarildi
+   (natijasi rad etish), 2026-08-07 da qayta bajarildi (natijasi qabul).
 2. **MVP da moderatsiya yo'q** — bilib qilingan tanlov (10-qaror), xavfi va
    ikkita qo'lda zaxira yo'li o'sha yerda yozilgan.
 3. **`.env` da `AI_*` qatorlari IKKI MARTA turibdi.** Qiymatlar bir xil va
    systemd oxirgisini oladi, ya'ni bugun hech narsa buzilmaydi — lekin
    kelajakda BITTASI tahrirlanib ikkinchisi qolib ketsa, o'zgarish jimgina
    qo'llanmasdi va sabab topilmasdi. Tozalanishi kerak.
-4. **Sprint 10 ga aloqasi YO'Q, yo'l-yo'lakay topilgan nuqson:**
-   `--border-hair` CSS o'zgaruvchisi butun Mini App'da ishlatiladi, lekin
-   `styles.css` da **HECH QACHON aniqlanmagan** — ya'ni o'nlab ramkalar
-   jimgina chizilmayapti. Xato bermaydi, konsolda ham ko'rinmaydi. Alohida
-   ish sifatida belgilandi (bu sprintga qo'shilmadi).
+4. ~~**`--border-hair` aniqlanmagan**~~ — **2026-08-07 da TUZATILDI**
+   (`styles.css:79`). Brauzerda o'lchandi: chegara `rgb(23,26,48)` edi,
+   `rgba(23,26,48,.08)` bo'ldi. Ta'sir doirasi taxmin qilinmadi, sanaldi:
+   `app.js` da 31 ta `var(--border-hair)`.
+
+---
+
+## Ochiq qolgani (2026-08-07 da qo'shildi)
+
+1. **nginx `proxy_read_timeout` — rasm yo'liga alohida blok kerak.**
+   Umumiy `/api/` blokida 30 s turibdi, rasm undan uzoq ketishi mumkin.
+   Tartibi `server/README.md` da yozilgan. ⚠️ **Cloudflare ham o'z chegarasini
+   qo'yadi** (~100 s bepul tarifda), ya'ni nginx'ni ko'tarish YETARLI
+   bo'lmasligi mumkin — buni TAXMIN qilmasdan o'lchash kerak.
+   Bu founder bajaradigan ish (nginx tahriri).
+2. **Test 5 (`Buzuq havola yo'q`) yo'llarni QO'LDA yozilgan ro'yxatdan
+   oladi** — ya'ni yangi endpoint unga avtomatik tushmaydi. Route jadvali
+   testi (`testRouteTable`) esa avtomatik. Bu "yozilgan qoida himoya emas —
+   uni tekshiradigan test himoya" oilasidan va u hozir **qamrovni ro'yxat
+   belgilaydigan** holatda: ro'yxat jimgina eskiradi va buni hech narsa
+   ko'rsatmaydi. Keyingi sessiyaga band.
+3. **`product_ai_ideas` jadvali bazada qoldi** — hech kim o'qimaydi.
+   Ataylab: o'chirish qaytarib bo'lmaydi, turgani zarar qilmaydi.
 
 ---
 
@@ -635,3 +847,72 @@ Bu ro'yxat ataylab "bajarildi" deb yopilmadi.
   **"Please retry in 27s" deydi, holbuki chegara nol** — kutish hech qachon
   yordam bermaydi. Sabab faqat javob TANASIDAGI `limit: 0` da ko'rinadi.
   Ya'ni xato xabarining tavsiyasi ham tekshirilmagan da'vo bo'lishi mumkin
+
+### 2026-08-07 (rasm qismi)
+
+- [2026-08-07] Qaror: **matn g'oyalari BUTUNLAY olib tashlanadi.** Founder:
+  "matn ai umuman kerak emas, faqat rasm qolsin". 2026-08-06 dagi "matn
+  tugmasi QOLDIRILADI" qarori shu bilan bekor bo'ldi — sabab o'zgardi:
+  o'shanda uni saqlab turishning asosi qorovul qatlamini yo'qotmaslik edi,
+  endi esa o'sha qatlam rasm yo'lida ISHLAB turibdi, ya'ni matnni saqlashning
+  yagona sababi qolmadi. Birga ketdi: provayder abstraksiyasi va OpenAI
+  yo'li — u **hech qachon sinalmagan** edi va 8-qarorda buning narxi
+  oldindan ochiq yozilgan («abstraksiya bepul emas»). Ya'ni sinalmagan yo'l
+  oxir-oqibat foyda bermay, faqat qarz bo'lib qoldi
+- [2026-08-07] Qaror: **`product_ai_ideas` jadvali O'CHIRILMAYDI** —
+  o'chirish qaytarib bo'lmaydi, turgani esa hech kimga zarar qilmaydi.
+  "Almashtirishni qo'lga kiritmasdan eskisini o'chirma" oilasining
+  baza ko'rinishi
+- [2026-08-07] Qaror: **rasmdan oldin 3 ta savol** («Nima tikilsin / Kim
+  uchun / Qayerga») va **ro'yxat SERVERDA tug'iladi.** Klient yuborgan javob
+  oq ro'yxatdan o'tadi, yaroqsizi 400. Frontendda faqat YORLIQ (uz/ru),
+  kalit emas — `db/014` darsi: ikkinchi ro'yxat himoya emas, tuzoq.
+  Buni Test 14j qulfladi: serverga kalit qo'shilib frontendda unutilsa
+  test QIZIL bo'ladi
+- [2026-08-07] Qaror: **kesh kaliti `mahsulot + javoblar`, foydalanuvchi
+  bo'yicha EMAS.** So'zma-so'z talqin (har foydalanuvchiga o'z qatori)
+  rad etildi: bir xil javob bergan ikki xaridor AYNAN BIR rasmni oladi,
+  ya'ni ikkinchisi uchun to'lash sof isrof (~$0.04) bo'lardi va xarajat
+  foydalanuvchi soniga qarab o'sardi. Xaridor nuqtai nazaridan farq yo'q —
+  javobi boshqa bo'lsa rasmi ham boshqa. Bu 4-qarorning davomi: xarajat
+  endi "mahsulot × javob to'plami" ga bog'liq
+- [2026-08-07] Qaror: **rasm keshida `lang` ustuni YO'Q** (016 dan ataylab
+  farq). Rasmda matn yo'q, ya'ni ikkala til uchun AYNI rasm ishlaydi.
+  "Har ehtimolga" qo'shilsa kesh ikkiga bo'linib bir rasm uchun ikki marta
+  to'lattirardi. ⚠️ 7-qaror bilan zid emas — o'sha qaror MATN keshi haqida
+  edi va bu yerda kesh matn EMAS
+- [2026-08-07] Qaror: **rasm uchun chegaralar matnnikidan ALOHIDA**
+  (20 MB / 120 s). Matn chegarasi (200 KB) qoldirilsa so'rov O'RTASIDA
+  uzilardi va **kvota baribir sarflangan** bo'lardi — pul ketib, natija
+  kelmasdi. Qorovul: Test 14g
+- [2026-08-07] Qaror: **`AI_IMAGE_ENABLED` alohida bayroq, `AI_ENABLED`
+  ning o'zi yetarli emas.** "Matn ishlaydi, rasm ishlamaydi" HAQIQIY holat:
+  2026-08-06 da aynan shunday edi (matn 200, rasm 429 `limit: 0`).
+  `AI_PROVIDER=openai` bo'lsa rasm o'chadi va jurnalda qichqiradi —
+  OpenAI rasm yo'li YOZILMAGAN va u jimgina "ishlayotgandek" qolmasin
+- [2026-08-07] Qaror: **`GET /api/ai/gallery` — FAQAT O'QISH.** Galereya
+  sahifasi ochilishi generatsiya qildirsa, bitta aylanish butun kunlik
+  limitni yeb qo'yardi. Generatsiya faqat `POST /api/ai/image` da
+- [2026-08-07] Qaror: **bosh sahifa va katalog birlashtiriladi**, bo'shagan
+  tab AI bo'limiga beriladi. Bosh sahifadagi filtr endi shu sahifada
+  ochiladi — ilgari filtr bosish foydalanuvchini boshqa ekranga otib
+  yuborardi
+- [2026-08-07] Qaror: **promptda kiyinish odobi qat'iy** — yopiq, lekin
+  zamonaviy va chiroyli; model Markaziy Osiyo ko'rinishida. Bu bozor
+  qarori, texnik emas: natija O'zbekiston B2B xaridoriga ko'rsatiladi
+- [2026-08-07] ⚠️ **Dars: preview brauzerda tab `hidden` bo'lgani uchun CSS
+  transition MUZLAYDI.** Shu sababli navigatsiyada MAVJUD BO'LMAGAN nuqson
+  IKKI MARTA "topildi". O'lchash usuli: o'tishni vaqtincha o'chirib
+  tekshirish. Bu `tezlik-olchov-usuli` xotirasidagi "brauzer panelidagi FCP
+  yolg'on (tab hidden)" darsining aynan **ikkinchi ko'rinishi** — ya'ni
+  muammo bir marta emas, ikki marta shu joydan chiqdi
+- [2026-08-07] ⚠️ **Dars: Test 5 (`Buzuq havola yo'q`) yo'llarni QO'LDA
+  yozilgan ro'yxatdan oladi** — yangi endpoint unga avtomatik tushmaydi,
+  `testRouteTable` esa avtomatik. "Qamrovni ro'yxat belgilaydi" naqshi:
+  ro'yxat jimgina eskiradi va buni na test, na xato ko'rsatadi. Bu 2026-08-06
+  dagi Test 16/17 darsining takrori — ochiq band sifatida yozildi
+- [2026-08-07] Dars: **sessiya hisobotidagi test soni ham tekshirilmagan
+  da'vo bo'lib chiqdi** — «32 → 36» deyilgandi, haqiqatda **34 → 37**
+  (ikkala uchi ham noto'g'ri). Raqam ikki mustaqil usul bilan olindi:
+  `grep -c` va `npm test` chiqishi. Xuddi shu narsa 2026-08-06 da
+  «85 mahsulot» → 12 va «250 KB shrift» → 131 KB da bo'lgan edi
