@@ -2,7 +2,7 @@ const https = require('https');
 const crypto = require('crypto');
 const { pool } = require('../db');
 const { BOT_TOKEN, ADMIN_PANEL_TOKEN, AI_IMAGE_ENABLED } = require('../config');
-const { IMAGE_CHOICES } = require('../lib/ai');
+const { IMAGE_CHOICES, COMBO_CHOICES, COMBO_TEXT_MAX } = require('../lib/ai');
 const { verifyInitData, authUser, isAdmin, currentSeller } = require('../lib/auth');
 const { escapeHtml, money, safeEqual } = require('../lib/format');
 const { validate } = require('../lib/validate');
@@ -46,6 +46,17 @@ async function handleAuthTelegram(req, res, ip) {
       aiImageChoices: AI_IMAGE_ENABLED
         ? Object.fromEntries(Object.entries(IMAGE_CHOICES).map(([g, v]) => [g, Object.keys(v)]))
         : null,
+      // Combo javoblari ALOHIDA yuboriladi, chunki ular SHARTLI: faqat
+      // `dizayn = combo` tanlanganda so'raladi. Bitta ro'yxatga qo'shib
+      // yuborilsa frontend ularni doim chizardi va xaridor keraksiz ikki
+      // savolga javob berib o'tirardi.
+      aiComboChoices: AI_IMAGE_ENABLED
+        ? Object.fromEntries(Object.entries(COMBO_CHOICES).map(([g, v]) => [g, Object.keys(v)]))
+        : null,
+      // Erkin matn chegarasi — frontend `maxlength` ni SHUNDAN oladi.
+      // Qo'lda yozilsa server 60 ga, input 100 ga sozlanib qolishi mumkin
+      // edi va xaridor yozib bo'lgach 400 xato ko'rardi (db/014 darsi).
+      aiComboTextMax: AI_IMAGE_ENABLED ? COMBO_TEXT_MAX : null,
     });
   } catch (e) {
     console.error('auth xatosi:', e.message);

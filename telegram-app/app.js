@@ -74,20 +74,45 @@ const STR = {
     comp: "Tarkibi", leadTime: "Yetkazish muddati", minOrder: "Minimal buyurtma (MOQ)", supplierL: "Yetkazib beruvchi",
     verified: "Tasdiqlangan", reviews: "sharh", message: "Xabar yuborish", qty: "Miqdor", cart: "Savat", cartEmpty: "Savat bo'sh",
     // — AI kiyim RASMI (2026-08-07) —
-    // Matn g'oyalarining kalitlari olib tashlandi; `aiRetry`, `aiErr` va
-    // `aiLimit` QOLDI — ular umumiy holat matnlari va rasm ham ishlatadi.
-    // ⚠️ `aiLimit` matni ATAYLAB "generatsiya" deydi, "g'oya" emas: hisob
-    // bitta va u endi rasmni sanaydi.
+    // ⚠️ `aiLimit` ("Bugungi N ta generatsiya tugadi. Ertaga 00:00 da
+    // yangilanadi") O'CHIRILDI — kunlik limit LOLA CREDIT ga almashdi.
+    // Matn dead-code bo'lib qolmadi, O'CHIRILDI: kredit qoldiq va u o'zi
+    // tiklanmaydi, ya'ni o'sha jumla endi YOLG'ON. Kutilmaganda chizilib
+    // qolsa, foydalanuvchi ertaga bekorga qaytardi.
     aiRetry: "Qayta urinish",
     aiErr: "Hozir generatsiya qilib bo'lmadi, birozdan keyin urinib ko'ring",
-    aiLimit: "Bugungi {n} ta generatsiya tugadi. Ertaga 00:00 da yangilanadi.",
-    aiQ: { kiyim: "Nima tikilsin?", kim: "Kim uchun?", uslub: "Qayerga?" },
+    aiQ: {
+      kiyim: "Nima tikilsin?", kim: "Kim uchun?", uslub: "Qayerga?",
+      dizayn: "Dizayn yo'nalishi", rang: "Qo'shimcha rang", qoshimcha: "Qo'shimcha material",
+    },
     aiO: {
       koylak_milliy: "Milliy ko'ylak", koylak: "Ko'ylak", kostyum: "Kostyum",
       palto: "Palto", yubka: "Yubka", romol: "Ro'mol",
-      ayol: "Ayol", erkak: "Erkak", bola: "Bola",
+      ayol: "Ayol", bola: "Bola",
       kundalik: "Kundalik", bayram: "Bayram / to'y", ish: "Ish",
+      neoklassika: "Neoklassika", zamonaviy: "Zamonaviy",
+      minimalistik: "Minimalistik", combo: "Combo",
+      oq: "Oq", qora: "Qora", bej: "Bej", kok: "Ko'k",
+      yashil: "Yashil", bordo: "Bordo", oltin: "Oltin",
+      yoq: "Yo'q", charm: "Charm", jinsi: "Jinsi",
+      bahmal: "Bahmal", dantel: "Dantel", trikotaj: "Trikotaj",
     },
+    aiTextQ: "Yana nima qo'shilsin? (ixtiyoriy)",
+    aiTextPh: "masalan: oltin tugma, qora yoqa",
+    aiTextBad: "Matnda ruxsat etilmagan belgi bor — faqat harf, raqam, vergul va chiziqcha",
+    aiCredits: "Lola credit",
+    aiCreditCost: "Bitta rasm — {n} credit",
+    aiCreditLeft: "{n} credit qoldi",
+    aiCreditNone: "Lola credit tugadi",
+    aiCreditNoneSub: "Kredit qoldig'i tugadi — yangi rasm chizib bo'lmaydi.",
+    aiUnlimited: "Cheksiz",
+    aiTabFeed: "Lenta", aiTabMine: "Mening rasmlarim",
+    aiNewBtn: "✦ Yangi rasm chizish",
+    aiPickFabric: "Qaysi matodan?",
+    aiOtherFabric: "Boshqa mato",
+    aiMineEmpty: "Siz hali rasm chizmagansiz",
+    aiShare: "Ulashish",
+    aiOrder: "Shu matodan buyurtma",
     allFabrics: "Barcha matolar",
     aiJump: "Kiyimda ko'rish",
     aiHubT: "AI bilan chizilgan",
@@ -190,14 +215,38 @@ const STR = {
     // ⚠️ Рисунок НЕ зависит от языка (в нём нет текста), поэтому кеш общий.
     aiRetry: "Повторить",
     aiErr: "Сейчас не удалось сгенерировать, попробуйте чуть позже",
-    aiLimit: "Сегодняшние {n} генераций закончились. Обновится завтра в 00:00.",
-    aiQ: { kiyim: "Что сшить?", kim: "Для кого?", uslub: "Куда?" },
+    aiQ: {
+      kiyim: "Что сшить?", kim: "Для кого?", uslub: "Куда?",
+      dizayn: "Направление дизайна", rang: "Дополнительный цвет", qoshimcha: "Доп. материал",
+    },
     aiO: {
       koylak_milliy: "Нац. платье", koylak: "Платье", kostyum: "Костюм",
       palto: "Пальто", yubka: "Юбка", romol: "Платок",
-      ayol: "Женщина", erkak: "Мужчина", bola: "Ребёнок",
+      ayol: "Женщина", bola: "Ребёнок",
       kundalik: "Повседневно", bayram: "Праздник / свадьба", ish: "Работа",
+      neoklassika: "Неоклассика", zamonaviy: "Современный",
+      minimalistik: "Минимализм", combo: "Комбо",
+      oq: "Белый", qora: "Чёрный", bej: "Бежевый", kok: "Синий",
+      yashil: "Зелёный", bordo: "Бордовый", oltin: "Золотой",
+      yoq: "Нет", charm: "Кожа", jinsi: "Джинса",
+      bahmal: "Бархат", dantel: "Кружево", trikotaj: "Трикотаж",
     },
+    aiTextQ: "Что ещё добавить? (необязательно)",
+    aiTextPh: "например: золотые пуговицы, чёрный воротник",
+    aiTextBad: "В тексте недопустимый символ — только буквы, цифры, запятая и дефис",
+    aiCredits: "Lola credit",
+    aiCreditCost: "Одно изображение — {n} credit",
+    aiCreditLeft: "Осталось {n} credit",
+    aiCreditNone: "Lola credit закончились",
+    aiCreditNoneSub: "Остаток кредитов исчерпан — новое изображение не построить.",
+    aiUnlimited: "Безлимит",
+    aiTabFeed: "Лента", aiTabMine: "Мои изображения",
+    aiNewBtn: "✦ Новое изображение",
+    aiPickFabric: "Из какой ткани?",
+    aiOtherFabric: "Другая ткань",
+    aiMineEmpty: "Вы ещё не создавали изображений",
+    aiShare: "Поделиться",
+    aiOrder: "Заказать эту ткань",
     allFabrics: "Все ткани",
     aiJump: "Смотреть в одежде",
     aiHubT: "Нарисовано AI",
@@ -475,6 +524,20 @@ const S = {
   // Har mahsulotga alohida: bir matoga ko'ylak, boshqasiga palto so'ralishi
   // mumkin va biri ikkinchisini bosib ketmasligi kerak.
   aiChoices: {},
+  // Combo qo'shimcha savollari — SERVERDAN (`aiComboChoices`). Faqat
+  // `dizayn = combo` tanlanganda chiziladi.
+  aiComboKeys: null,
+  // Erkin matn chegarasi ham SERVERDAN: bu yerda 100, u yerda 60 bo'lib
+  // qolsa xaridor yozib bo'lgach 400 xato ko'rardi (db/014 darsi).
+  aiComboTextMax: 60,
+  aiText: {},            // productId -> combo erkin matni
+  // Lola credit — { balance, cost, unlimited }. `null` = hali bilinmaydi va
+  // shunda ko'rsatkich UMUMAN chizilmaydi (o'ylab topilgan raqam emas).
+  aiCredits: null,
+  aiMine: null,          // mening rasmlarim (/api/ai/my)
+  aiTab: 'feed',         // AI ekrani: 'feed' | 'mine'
+  aiWizard: null,        // AI ekranida tanlangan mato id (sehrgar)
+  aiPickOpen: false,     // mato tanlash ro'yxati ochiqmi
   // — Bahsli holatlar (xaridor tomoni) —
   disputes: [],          // /api/disputes dan — o'z bahslari
   dispSheet: null,       // ochiq sheet: { orderId }
@@ -653,7 +716,11 @@ function tab(k) {
   // Galereya faqat AI bo'limi ochilganda yuklanadi — boshqa ekranlarga
   // keraksiz so'rov qo'shmaydi. Har ochilishda yangilanadi: oradan vaqt
   // o'tib yangi rasm chizilgan bo'lishi mumkin.
-  if (k === 'ai') loadAiGallery();
+  // AI ekrani ochilganda: lenta + kredit qoldig'i. Kredit `loadAiMine` bilan
+  // BITTA javobda keladi, ya'ni ikkita so'rov emas, ikkitasi ham bir so'rovda.
+  // ⚠️ Bu yerda HECH NARSA generatsiya qilinmaydi (Sprint 10 qarori) —
+  // ekran ochilishi pul sarflamaydi.
+  if (k === 'ai') { loadAiGallery(); loadAiMine(); }
 }
 
 // ============ SAVAT ============
@@ -1020,22 +1087,69 @@ function clearPriceFilter() {
 // nima qilish kerakligi aytiladi, xolos.
 function renderAi() {
   const T = STR[S.lang];
-  const list = S.aiGallery;
 
-  const bosh = `
-    <div style="text-align:center;padding:52px 24px;display:flex;flex-direction:column;align-items:center;gap:9px">
-      <span style="width:66px;height:66px;border-radius:20px;background:linear-gradient(150deg,var(--pom-600),var(--pom-800));color:var(--pom-100);display:flex;align-items:center;justify-content:center;font-size:28px;box-shadow:0 12px 28px -10px rgba(81,1,0,.5)">✦</span>
-      <div style="font-family:var(--font-display);font-size:17px;font-weight:700;color:var(--text-strong);margin-top:5px">${T.aiHubEmpty}</div>
-      <div style="font-size:13px;color:var(--text-muted);line-height:1.5;max-width:260px">${T.aiHubEmptySub}</div>
-      <button data-action="tab" data-arg="home" style="margin-top:10px;height:42px;padding:0 22px;border-radius:var(--radius-md);border:none;background:linear-gradient(135deg,#8f1a10,#510100);color:#ffe9db;font-size:14px;font-weight:600;cursor:pointer;box-shadow:var(--shadow-sm)">${T.aiHubBrowse}</button>
+  const sarlavha = `
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+      <div>
+        <div style="font-family:var(--font-display);font-size:19px;font-weight:800;color:var(--text-strong);letter-spacing:-.02em">✦ ${T.aiHubT}</div>
+        <div style="font-size:12.5px;color:var(--text-muted);margin-top:2px;line-height:1.4">${T.aiHubSub}</div>
+      </div>
+      ${creditRozetka()}
     </div>`;
+
+  // ---- Sehrgar: mato tanlangan bo'lsa mahsulot sahifasidagi AYNI blok ----
+  // ⚠️ Blok NUSXALANMAYDI — `aiImageSection` o'sha-o'sha funksiya. Ikkinchi
+  // nusxa yozilsa savol/holat mantiqi ikki joyda yashardi va biri
+  // ikkinchisidan orqada qolardi (db/014 darsining UI dagi ko'rinishi).
+  if (S.aiWizard) {
+    const p = vm(byId(S.aiWizard));
+    return `
+    <div style="padding:14px 16px 28px;display:flex;flex-direction:column;gap:12px">
+      ${sarlavha}
+      <button class="ai-ghost" data-action="aiWizardExit" style="align-self:flex-start">← ${T.aiOtherFabric}</button>
+      ${p ? `<div style="display:flex;align-items:center;gap:10px">
+        <span style="flex:none;width:44px;height:44px;border-radius:12px;${p.bgStyle}"></span>
+        <span style="font-size:14px;font-weight:600;color:var(--text-strong)">${p.name}</span>
+      </div>` : ''}
+      ${aiImageSection(S.aiWizard)}
+    </div>`;
+  }
+
+  // ---- Mato tanlash ----
+  if (S.aiPickOpen) {
+    return `
+    <div style="padding:14px 16px 28px;display:flex;flex-direction:column;gap:12px">
+      ${sarlavha}
+      <button class="ai-ghost" data-action="aiWizardExit" style="align-self:flex-start">← ${T.aiOtherFabric}</button>
+      <div style="font-size:13px;font-weight:700;color:var(--text-strong)">${T.aiPickFabric}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        ${PRODUCTS.map(vm).filter(Boolean).map((p) => `
+          <button class="ai-hub-card" data-action="aiWizardPick" data-arg="${esc(p.id)}">
+            <span style="display:block;width:100%;aspect-ratio:1;border-radius:12px;${p.bgStyle}"></span>
+            <span>${p.name}</span>
+          </button>`).join('')}
+      </div>
+    </div>`;
+  }
+
+  // ---- Ro'yxat: lenta yoki mening rasmlarim ----
+  const mine = S.aiTab === 'mine';
+  const list = mine ? S.aiMine : S.aiGallery;
+  const bosh = `
+    <div style="text-align:center;padding:44px 24px;display:flex;flex-direction:column;align-items:center;gap:9px">
+      <span style="width:66px;height:66px;border-radius:20px;background:linear-gradient(150deg,var(--pom-600),var(--pom-800));color:var(--pom-100);display:flex;align-items:center;justify-content:center;font-size:28px;box-shadow:0 12px 28px -10px rgba(81,1,0,.5)">✦</span>
+      <div style="font-family:var(--font-display);font-size:17px;font-weight:700;color:var(--text-strong);margin-top:5px">${mine ? T.aiMineEmpty : T.aiHubEmpty}</div>
+      <div style="font-size:13px;color:var(--text-muted);line-height:1.5;max-width:260px">${T.aiHubEmptySub}</div>
+    </div>`;
+
+  const tab = (k, matn) => `
+    <button class="ai-chip${S.aiTab === k ? ' on' : ''}" data-action="aiTab" data-arg="${k}">${esc(matn)}</button>`;
 
   return `
   <div style="padding:14px 16px 28px;display:flex;flex-direction:column;gap:12px">
-    <div>
-      <div style="font-family:var(--font-display);font-size:19px;font-weight:800;color:var(--text-strong);letter-spacing:-.02em">✦ ${T.aiHubT}</div>
-      <div style="font-size:12.5px;color:var(--text-muted);margin-top:2px;line-height:1.4">${T.aiHubSub}</div>
-    </div>
+    ${sarlavha}
+    ${S.aiImageEnabled ? `<button class="ai-cta" data-action="aiPickOpen">${T.aiNewBtn}</button>` : ''}
+    <div class="ai-chips">${tab('feed', T.aiTabFeed)}${tab('mine', T.aiTabMine)}</div>
     ${!Array.isArray(list) || !list.length ? bosh : `
       <div style="font-size:11.5px;color:var(--text-muted)">${T.aiImgNote}</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
@@ -1046,6 +1160,20 @@ function renderAi() {
           </button>`).join('')}
       </div>`}
   </div>`;
+}
+
+// Kredit rozetkasi (ekran tepasida). `null` bo'lsa UMUMAN chizilmaydi —
+// bu Sprint 10 tavsiyasining asosiy bandi: foydalanuvchi chegarani u
+// TUGAGANDA emas, PUL SARFLASHDAN OLDIN ko'rsin.
+function creditRozetka() {
+  const T = STR[S.lang];
+  const c = S.aiCredits;
+  if (!c) return '';
+  const matn = c.unlimited ? `∞ ${T.aiUnlimited}` : `${c.balance} ✦`;
+  const past = !c.unlimited && c.balance < c.cost;
+  return `<span style="flex:none;padding:6px 11px;border-radius:999px;font-size:12px;font-weight:700;white-space:nowrap;
+    background:${past ? 'rgba(160,30,20,.12)' : 'var(--glass-fill-strong)'};
+    color:${past ? '#8f1a10' : 'var(--text-strong)'};border:1px solid var(--border-hair)">${esc(past ? T.aiCreditNone : matn)}</span>`;
 }
 
 // Galereyani yuklaydi. Xato bo'lsa JIM o'tadi va bo'sh holat ko'rsatiladi —
@@ -1182,17 +1310,40 @@ function aiImageSection(productId) {
     // Guruhlar SERVER bergan tartibda chiziladi va faqat server bergan
     // kalitlar ko'rsatiladi. Yorliq topilmasa kalitning O'ZI chiziladi —
     // jimgina yo'qolib qolgandan ko'ra ko'rinib turgani yaxshi.
-    const guruhlar = Object.keys(S.aiChoiceKeys);
+    // ⚠️ Combo savollari SHARTLI: `dizayn = combo` tanlanmaguncha ular
+    // umuman chizilmaydi va MAJBURIY ham emas. Doim chizilsa xaridor
+    // o'ziga keraksiz ikki savolga javob berib o'tirardi.
+    const combo = tanlov.dizayn === 'combo' && S.aiComboKeys;
+    const guruhlar = Object.keys(S.aiChoiceKeys).concat(combo ? Object.keys(S.aiComboKeys) : []);
+    const kalitlar = (g) => (S.aiChoiceKeys[g] || (S.aiComboKeys && S.aiComboKeys[g]) || []);
+
     const savollar = guruhlar.map((guruh, i) => `
       <div class="ai-q">
         <span class="ai-q-num">${i + 1}</span>
         <span class="ai-q-label">${esc((T.aiQ && T.aiQ[guruh]) || guruh)}</span>
       </div>
       <div class="ai-chips">
-        ${S.aiChoiceKeys[guruh].map((k) => `
+        ${kalitlar(guruh).map((k) => `
           <button class="ai-chip${tanlov[guruh] === k ? ' on' : ''}" data-action="pickAiChoice" data-arg="${esc(productId)}|${esc(guruh)}|${esc(k)}">${esc((T.aiO && T.aiO[k]) || k)}</button>`).join('')}
       </div>`).join('');
 
+    // ---- Erkin matn (faqat combo) ----
+    // ⚠️ Bu yerda belgilar RO'YXATI takrorlanMAYDI — tekshiruv faqat
+    // serverda (`cleanComboText`). Ikkinchi ro'yxat ikkisi ajralib
+    // ketadigan joy bo'lardi (db/014 darsi); `maxlength` ham serverdan
+    // kelgan qiymatdan olinadi.
+    const matnBlok = combo ? `
+      <div class="ai-q" style="margin-top:12px">
+        <span class="ai-q-num">✎</span>
+        <span class="ai-q-label">${esc(T.aiTextQ)}</span>
+      </div>
+      <input type="text" data-input="setAiText" data-arg="${esc(productId)}"
+             value="${esc(S.aiText[productId] || '')}"
+             maxlength="${S.aiComboTextMax}" placeholder="${esc(T.aiTextPh)}"
+             style="width:100%;padding:11px 13px;border:1px solid var(--border-hair);border-radius:var(--radius-sm);background:var(--glass-fill-strong);font-family:var(--font-sans);font-size:16px;color:var(--text-strong);outline:none">` : '';
+
+    // Combo tanlansa qo'shimcha ikki savol ham MAJBURIY bo'ladi (erkin matn
+    // esa ixtiyoriy — u yo'q bo'lsa ham rasm chiziladi).
     const nechta = guruhlar.filter((g) => tanlov[g]).length;
     const tayyor = nechta === guruhlar.length;
 
@@ -1203,7 +1354,9 @@ function aiImageSection(productId) {
           <span style="font-size:12px;color:var(--text-muted);line-height:1.35">${T.aiImgSub}</span>
         </div>
         ${savollar}
+        ${matnBlok}
         ${tayyor ? '' : `<div class="ai-count">${esc(T.aiPick.replace('{n}', nechta).replace('{m}', guruhlar.length))}</div>`}
+        ${creditQator()}
         <button class="ai-cta" data-action="askAiImage" data-arg="${esc(productId)}"${tayyor ? '' : ' disabled'}>${tayyor ? '✦ ' : ''}${T.aiGo}</button>
       </div>
     </div>`;
@@ -1231,11 +1384,23 @@ function aiImageSection(productId) {
     </div>`;
   }
 
-  // Holat 4 — limit tugadi. Foydalanuvchi QACHON qaytishini ham biladi:
-  // shunchaki "limit tugadi" deyish uni nima qilishni bilmay qoldirardi.
-  if (st.state === 'limit') {
+  // Holat 4 — Lola credit tugadi.
+  // ⚠️ "Ertaga yangilanadi" DEYILMAYDI (2026-08-07 da limit kreditga
+  // almashdi): kredit qoldiq va u o'zi tiklanmaydi, ya'ni eski xabar
+  // jimgina yolg'on bo'lardi.
+  if (st.state === 'nocredit') {
     return `<div>${head}
-      <div class="ai-msg ai-msg-warn">${esc(T.aiLimit.replace('{n}', st.limit))}</div>
+      <div class="ai-msg ai-msg-warn">${esc(T.aiCreditNoneSub)}</div>
+    </div>`;
+  }
+
+  // Holat 4b — matn rad etildi (server oq ro'yxati).
+  if (st.state === 'badtext') {
+    return `<div>${head}
+      <div class="ai-msg ai-msg-warn">
+        ${esc(T.aiTextBad)}
+        <button class="ai-ghost" data-action="resetAiImage" data-arg="${esc(productId)}">${T.aiAgain}</button>
+      </div>
     </div>`;
   }
 
@@ -1264,8 +1429,25 @@ function aiImageSection(productId) {
       <img src="${esc(st.url)}" alt="${T.aiImgT}" loading="lazy">
       <figcaption class="ai-note"><span>⚠️</span><span>${T.aiImgNote}</span></figcaption>
     </figure>
-    <button class="ai-ghost" data-action="resetAiImage" data-arg="${esc(productId)}">${T.aiAgain}</button>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="ai-ghost" data-action="resetAiImage" data-arg="${esc(productId)}">${T.aiAgain}</button>
+      <button class="ai-ghost" data-action="shareAiImage" data-arg="${esc(st.url)}">${T.aiShare}</button>
+      ${S.screen === 'ai' ? `<button class="ai-ghost" data-action="openProduct" data-arg="${esc(productId)}">${T.aiOrder}</button>` : ''}
+    </div>
+    ${creditQator()}
   </div>`;
+}
+
+// Kredit qatori. `null` bo'lsa UMUMAN chizilmaydi — CLAUDE.md: ma'lumot
+// bazadan kelmasa blok ko'rsatilmaydi (o'ylab topilgan raqam qo'yilmaydi).
+function creditQator() {
+  const T = STR[S.lang];
+  const c = S.aiCredits;
+  if (!c) return '';
+  const matn = c.unlimited
+    ? `${T.aiCredits}: ∞ ${T.aiUnlimited}`
+    : `${T.aiCreditLeft.replace('{n}', c.balance)} · ${T.aiCreditCost.replace('{n}', c.cost)}`;
+  return `<div class="ai-count" style="margin-top:8px">✦ ${esc(matn)}</div>`;
 }
 
 // Chip bosilganda. Argument `productId|guruh|kalit` — delegatsiya bitta
@@ -1317,11 +1499,23 @@ async function askAiImage(productId) {
     const r = await fetch('/api/ai/image', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-Telegram-Init-Data': initData },
-      body: JSON.stringify({ productId: id, choices: S.aiChoices[id] || {} }),
+      body: JSON.stringify({
+        productId: id,
+        // Matn har doim yuboriladi — server `dizayn = combo` bo'lmasa uni
+        // O'ZI tashlaydi. Klientda "combo tanlanganmi" degan ikkinchi
+        // tekshiruv yozilmadi: u serverdagi qoidaning nusxasi bo'lardi.
+        choices: { ...(S.aiChoices[id] || {}), matn: S.aiText[id] || '' },
+      }),
     });
     const j = await r.json().catch(() => null);
-    if (r.status === 429 && j && j.error === 'limit') {
-      S.aiImages[id] = { state: 'limit', limit: j.limit };
+    if (j && j.data && j.data.credits) S.aiCredits = j.data.credits;
+    if (r.status === 429 && j && j.error === 'no_credit') {
+      if (j.credits) S.aiCredits = { ...(S.aiCredits || {}), ...j.credits };
+      S.aiImages[id] = { state: 'nocredit' };
+    } else if (r.status === 400 && j && j.error === 'bad_choices') {
+      // Serverning oq ro'yxati rad etdi — deyarli har doim erkin matn
+      // sababli (chip kalitlari serverdan kelgan).
+      S.aiImages[id] = { state: 'badtext' };
     } else if (r.status === 422 && j && j.error === 'no_source_photo') {
       // Alohida holat: "surat yo'q" texnik xato EMAS va uni umumiy xato
       // sifatida ko'rsatish foydalanuvchini foydasiz qayta urinishga
@@ -1338,9 +1532,64 @@ async function askAiImage(productId) {
   repaintDetail(id);
 }
 
+// Erkin matn. ⚠️ Bu yerda QAYTA CHIZISH YO'Q: har harfda ekran qayta
+// chizilsa kursor maydondan uchib ketardi (boshqa matn maydonlari ham shu
+// naqshda — `setComment`, `setDispComment`).
+function setAiText(qiymat, productId) {
+  S.aiText[String(productId)] = String(qiymat || '');
+}
+
+// Ulashish — rasm allaqachon Telegram'da yashaydi, ya'ni bu deyarli tekin
+// kanal. Havola bizning domendagi `/api/product-photo` proksisi.
+function shareAiImage(url) {
+  const T = STR[S.lang];
+  const toliq = String(url || '').startsWith('http') ? url : location.origin + url;
+  const havola = 'https://t.me/share/url?url=' + encodeURIComponent(toliq) +
+    '&text=' + encodeURIComponent(`${T.aiHubT} — lolamarket.uz`);
+  const tg = window.Telegram && window.Telegram.WebApp;
+  if (tg && tg.openTelegramLink) tg.openTelegramLink(havola);
+  else window.open(havola, '_blank');
+}
+
+// ---- AI ekrani sehrgari ----
+function aiTab(k) { S.aiTab = k === 'mine' ? 'mine' : 'feed'; if (k === 'mine') loadAiMine(); render(); }
+function aiPickOpen() { S.aiPickOpen = true; render(); }
+function aiWizardPick(id) { S.aiWizard = String(id); S.aiPickOpen = false; render(); }
+function aiWizardExit() { S.aiWizard = null; S.aiPickOpen = false; render(); }
+
+// "Mening rasmlarim" + kredit qoldig'i. Ikkalasi BITTA so'rovda keladi.
+// Xato bo'lsa JIM o'tadi — galereya bilan bir xil mulohaza: foydalanuvchi
+// uchun "yuklab bo'lmadi" va "hali rasm yo'q" o'rtasida farq yo'q.
+async function loadAiMine() {
+  const initData = tgInitData();
+  if (!initData) return;
+  try {
+    const r = await fetch('/api/ai/my', { headers: { 'X-Telegram-Init-Data': initData } });
+    const j = await r.json();
+    if (j && j.ok && j.data) {
+      S.aiMine = Array.isArray(j.data.items) ? j.data.items : [];
+      if (j.data.credits) S.aiCredits = j.data.credits;
+    } else {
+      S.aiMine = [];
+    }
+  } catch (e) {
+    S.aiMine = [];
+  }
+  if (S.screen === 'ai') render();
+}
+
 // Detal ekranini qayta chizish — `loadProductReviews` dagi bilan bir xil
 // naqsh. Foydalanuvchi boshqa ekranga o'tib ketgan bo'lsa hech narsa qilmaydi.
+// ⚠️ AI bloki endi IKKI joyda yashaydi: mahsulot sahifasida va AI ekranidagi
+// sehrgarda. Shuning uchun qayta chizish ikkalasini ham biladi — aks holda
+// AI ekranida tugma bosilardi va HECH NARSA o'zgarmasdi (holat yangilanadi,
+// ekran esa eski qolardi).
+//
+// Bu yo'l bilan kutish holati ham SAQLANADI: rasm chizilayotganda boshqa
+// tabga o'tib qaytsangiz, `S.aiImages` da holat turibdi va ekran uni
+// qaytadan chizadi.
 function repaintDetail(productId) {
+  if (S.screen === 'ai') { render(); return; }
   if (S.screen !== 'detail' || S.selectedId !== productId) return;
   const w = document.getElementById('screen-wrap');
   if (w) w.innerHTML = renderDetail();
@@ -2576,6 +2825,10 @@ async function loginTelegram() {
       // Savol kalitlari serverdan. Kelmasa — savol chizilmaydi va tugma
       // ham chizilmaydi (pastdagi `aiImageSection` shuni tekshiradi).
       S.aiChoiceKeys = d.aiImageChoices || null;
+      S.aiComboKeys = d.aiComboChoices || null;
+      if (Number.isInteger(d.aiComboTextMax) && d.aiComboTextMax > 0) {
+        S.aiComboTextMax = d.aiComboTextMax;
+      }
       // Javob kech kelsa foydalanuvchi allaqachon mahsulot sahifasida
       // bo'lishi mumkin — o'shanda tugma o'zi paydo bo'lsin.
       repaintDetail(S.selectedId);

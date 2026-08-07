@@ -34,7 +34,7 @@ const {
 const {
   handleCreateReview, handleGetReviews, handleSellerReviews,
 } = require('./routes/reviews');
-const { handleAiImage, handleAiGallery } = require('./routes/ai');
+const { handleAiImage, handleAiGallery, handleAiMy } = require('./routes/ai');
 const { handleTelegramWebhook } = require('./routes/webhook');
 
 
@@ -175,6 +175,15 @@ function routeRequest(req, res) {
     if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
     if (req.method !== 'GET') return fail(res, 'method not allowed', 405);
     return handleAiGallery(req, res, ip);
+  }
+
+  // "Mening rasmlarim" + kredit qoldig'i. GET, lekin IMZO SHART — bu shaxsiy
+  // ma'lumot (galereyadan farqi shu: u ochiq va umumiy).
+  if (path === '/api/ai/my') {
+    cors(res, 'GET, OPTIONS');
+    if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
+    if (req.method !== 'GET') return fail(res, 'method not allowed', 405);
+    return handleAiMy(req, res, ip);
   }
 
   if (path === '/api/ai/image') {

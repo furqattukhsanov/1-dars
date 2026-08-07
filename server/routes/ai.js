@@ -1,4 +1,7 @@
-const { AI_ENABLED, AI_DAILY_LIMIT, AI_IMAGE_ENABLED, AI_IMAGE_CHAT_ID } = require('../config');
+const {
+  AI_ENABLED, AI_IMAGE_ENABLED, AI_IMAGE_CHAT_ID,
+  AI_CREDITS_START, AI_CREDIT_COST, AI_UNLIMITED_TG_IDS,
+} = require('../config');
 const { pool } = require('../db');
 const { authUser } = require('../lib/auth');
 const { rateLimited, clientIp, readBody, sendJson, ok, fail } = require('../lib/http');
@@ -6,28 +9,102 @@ const { imageSourceHash, generateImage, normalizeChoices, choicesHash } = requir
 const { tgGetFile, tgDownloadFile, sendPhotoBytes } = require('../lib/telegram-api');
 const { productPhotoUrl } = require('./catalog');
 
-// ============ KUNLIK LIMIT — ATOMIK ============
+// ============ LOLA CREDIT — ATOMIK ============
+// (2026-08-07, founder: "har bir insonga 20 ta lola credit, bitta rasmga 2 ta")
+//
 // `decrementStock` bilan AYNI naqsh (CLAUDE.md, zaxira qoidasi): tekshiruv va
-// oshirish BITTA gapda. Alohida `SELECT` + `UPDATE` ga bo'linsa, bir vaqtda
-// kelgan ikki so'rov ikkalasi ham "hali limit tugamagan" deb o'qib o'tib
-// ketardi — aynan oxirgi rulon muammosi.
+// yechish BITTA gapda. Alohida `SELECT` + `UPDATE` ga bo'linsa, bir vaqtda
+// kelgan ikki so'rov ikkalasi ham "krediti bor" deb o'qib o'tib ketardi va
+// balans MANFIYGA tushardi — aynan oxirgi rulon muammosi, faqat pul tomonda.
 //
-// Qator qaytmasa — limit tugagan.
+// Qator qaytmasa — kredit yetmadi.
 //
-// Kun MAHALLIY mintaqada hisoblanadi (db/016 izohiga qara): UTC ishlatilsa
-// limit aslida Toshkent vaqti bilan 05:00 da yangilanardi, foydalanuvchiga
-// esa "ertaga 00:00 da" deyilardi — jimgina yolg'on.
-async function takeQuota(tgUserId) {
+// Birinchi so'rovda qator O'ZI tug'iladi va balans darrov `START - COST` bo'ladi:
+// "20 ta berish" uchun alohida qadam yo'q, ya'ni "krediti berilmay qolgan
+// foydalanuvchi" degan holat mavjud emas.
+//
+// ⚠️ CHEKSIZ RO'YXAT (`AI_UNLIMITED_TG_IDS`) — balans TEGILMAYDI, lekin sarf
+// BARIBIR YOZILADI. Yozuvni ham o'tkazib yuborish oson yo'l edi, lekin
+// o'shanda o'z sarfingiz KO'RINMAS bo'lardi: hisob kelganda kim qancha
+// sarflaganini ko'rsatadigan yozuv qolmasdi. Bu "jimgina yolg'on" oilasidan.
+async function takeCredits(tgUserId, cheksiz) {
+  if (cheksiz) {
+    const { rows } = await pool.query(
+      `INSERT INTO ai_credits (tg_user_id, balance, spent)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (tg_user_id)
+       DO UPDATE SET spent = ai_credits.spent + $3, updated_at = now()
+       RETURNING balance`,
+      [tgUserId, AI_CREDITS_START, AI_CREDIT_COST]
+    );
+    return { ok: true, cheksiz: true, balance: rows.length ? rows[0].balance : AI_CREDITS_START };
+  }
+
   const { rows } = await pool.query(
-    `INSERT INTO ai_usage (tg_user_id, day, used)
-     VALUES ($1, (now() AT TIME ZONE 'Asia/Tashkent')::date, 1)
-     ON CONFLICT (tg_user_id, day)
-     DO UPDATE SET used = ai_usage.used + 1
-           WHERE ai_usage.used < $2
-     RETURNING used`,
-    [tgUserId, AI_DAILY_LIMIT]
+    `INSERT INTO ai_credits (tg_user_id, balance, spent)
+     VALUES ($1, $2 - $3, $3)
+     ON CONFLICT (tg_user_id)
+     DO UPDATE SET balance = ai_credits.balance - $3,
+                   spent   = ai_credits.spent + $3,
+                   updated_at = now()
+           WHERE ai_credits.balance >= $3
+     RETURNING balance`,
+    [tgUserId, AI_CREDITS_START, AI_CREDIT_COST]
   );
-  return rows.length > 0;
+  return rows.length ? { ok: true, balance: rows[0].balance } : { ok: false, balance: 0 };
+}
+
+// ============ KREDITNI QAYTARISH (2026-08-07) ============
+// Kredit AI chaqiruvidan OLDIN yechiladi — bu ataylab: aks holda bir vaqtda
+// kelgan o'nlab so'rov hammasi "krediti bor" deb o'tib ketardi va pul
+// chegaradan oshib sarflanardi.
+//
+// ⚠️ Lekin oldindan yechish YARIM yo'l edi: generatsiya YIQILSA foydalanuvchi
+// hech narsa olmaydi, krediti esa ketgan bo'lardi. Bu nazariy emas —
+// 2026-08-07 da production'da AYNAN shu bo'ldi: Gemini `HTTP 503 high demand`
+// qaytardi (o'z tomonidagi vaqtinchalik nosozlik), foydalanuvchi esa xato
+// xabarini VA 2 credit kamaygan balansni ko'rdi. Provayder nosozligi
+// XARIDORNING hisobidan to'lanishi mumkin emas.
+//
+// Qaytarish YO'Q QILINGANDA ham xavfsiz: `spent >= $3` sharti bir marta
+// yechilgan kreditni ikki marta qaytarishga yo'l qo'ymaydi.
+//
+// ⚠️ Telegram'ga yuklash yiqilganda ham qaytariladi. O'sha holatda Google'ga
+// pul ALLAQACHON to'langan bo'ladi — ya'ni zarar bizniki. Baribir qaytariladi:
+// xaridor rasm olmadi, demak u to'lamasligi kerak.
+async function refundCredits(tgUserId, cheksiz) {
+  if (cheksiz) {
+    // Balans tegilmagan edi — faqat sarf hisobini orqaga qaytaramiz.
+    await pool.query(
+      `UPDATE ai_credits SET spent = spent - $2, updated_at = now()
+        WHERE tg_user_id = $1 AND spent >= $2`,
+      [tgUserId, AI_CREDIT_COST]
+    );
+    return;
+  }
+  await pool.query(
+    `UPDATE ai_credits
+        SET balance = balance + $2, spent = spent - $2, updated_at = now()
+      WHERE tg_user_id = $1 AND spent >= $2`,
+    [tgUserId, AI_CREDIT_COST]
+  );
+}
+
+// Faqat KO'RSATISH uchun — qoldiqni o'qiydi va hech narsa yechmaydi.
+// Qator yo'q bo'lsa `AI_CREDITS_START` qaytadi va bu YOLG'ON EMAS: birinchi
+// so'rovda u aynan shuncha bilan tug'iladi.
+async function readCredits(tgUserId) {
+  const { rows } = await pool.query(
+    'SELECT balance, spent FROM ai_credits WHERE tg_user_id = $1',
+    [tgUserId]
+  );
+  const r = rows[0];
+  return {
+    balance: r ? r.balance : AI_CREDITS_START,
+    spent: r ? r.spent : 0,
+    cost: AI_CREDIT_COST,
+    unlimited: AI_UNLIMITED_TG_IDS.has(String(tgUserId)),
+  };
 }
 
 // ============ AI KIYIM RASMI (2026-08-07) ============
@@ -67,15 +144,25 @@ async function handleAiImage(req, res) {
   // holat haqiqiy holat (2026-08-06: matn HTTP 200, rasm HTTP 429).
   if (!AI_ENABLED || !AI_IMAGE_ENABLED) return fail(res, 'ai_image_disabled', 503);
 
-  const ip = clientIp(req);
-  // Matn yo'lidan PASTROQ chegara: bitta rasm ~$0.04, matn esa ming marta
-  // arzon. Bu narx himoyasi, tezlik himoyasi emas.
-  if (rateLimited(`aiimg:${ip}`, 6)) return fail(res, 'too many requests', 429);
-
   try {
+    // ⚠️ TARTIB: kimlik AVVAL, tezlik chegarasi KEYIN (2026-08-07 da almashdi).
+    // Ilgari `rateLimited` birinchi turardi va o'shanda cheksiz ro'yxatdagi
+    // odam ham 7-so'rovda 429 olardi — ya'ni "cheksiz kredit" JIMGINA
+    // yolg'on bo'lardi: kredit cheksiz, lekin daqiqada 6 ta.
     // Kimlik FAQAT imzolangan initData dan (CLAUDE.md, 2026-07-29).
     const tg = authUser(req);
     if (!tg || !tg.id) return fail(res, 'unauthorized', 401);
+
+    const cheksiz = AI_UNLIMITED_TG_IDS.has(String(tg.id));
+
+    // Matn yo'lidan PASTROQ chegara: bitta rasm ~$0.04. Bu narx himoyasi,
+    // tezlik himoyasi emas — shuning uchun kredit hisobi bilan qo'sh qorovul.
+    // Kalit IP emas, FOYDALANUVCHI: bitta uy Wi-Fi'sidagi ikki xaridor
+    // bir-birini bloklamasin (kimlik baribir imzolangan).
+    const ip = clientIp(req);
+    if (!cheksiz && rateLimited(`aiimg:${tg.id}:${ip}`, 6)) {
+      return fail(res, 'too many requests', 429);
+    }
 
     const body = await readBody(req, 5_000);
     const inp = JSON.parse(body || '{}');
@@ -117,49 +204,78 @@ async function handleAiImage(req, res) {
       [productId, cHash]
     );
     if (cached.length && cached[0].source_hash === hash) {
+      // ⚠️ Keshdan o'qish KREDIT YEMAYDI (Sprint 10, 4-qaror) — hech qanday
+      // AI chaqiruvi bo'lmadi, ya'ni to'lanadigan narsa ham yo'q.
       return ok(res, {
         image: productPhotoUrl(cached[0].file_id),
         model: cached[0].model,
         cached: true,
         createdAt: cached[0].created_at,
+        credits: await readCredits(String(tg.id)),
       });
     }
 
-    // ---- 2. Limit ----
-    // Matn bilan BITTA hisobda (`ai_usage`). Alohida hisob QILINMADI: ikkita
-    // hisob ikkita "ertaga yangilanadi" xabarini talab qilardi va
-    // foydalanuvchi qaysi biri tugaganini bilmasdi.
-    if (!(await takeQuota(String(tg.id)))) {
-      return sendJson(res, 429, { ok: false, error: 'limit', limit: AI_DAILY_LIMIT });
+    // ---- 2. Lola credit ----
+    const kredit = await takeCredits(String(tg.id), cheksiz);
+    if (!kredit.ok) {
+      // ⚠️ "Ertaga yangilanadi" DEYILMAYDI: kredit qoldiq, u o'zi tiklanmaydi
+      // va bunday xabar jimgina yolg'on bo'lardi.
+      return sendJson(res, 429, {
+        ok: false, error: 'no_credit',
+        credits: { balance: kredit.balance, cost: AI_CREDIT_COST },
+      });
     }
 
-    // ---- 3. Manba surat + AI ----
-    const source = await loadSourcePhoto(p.img_file_id);
-    const { buf, model } = await generateImage(p, source, choices);
+    // ---- 3-5: shu yerdan keyin har qanday yiqilish KREDITNI QAYTARADI ----
+    // Kredit yuqorida ALLAQACHON yechilgan, ya'ni bu nuqtadan keyingi xato
+    // foydalanuvchini "pul to'ladim, hech narsa olmadim" holatida qoldirardi.
+    // Aynan shu 2026-08-07 da production'da bo'ldi (Gemini HTTP 503).
+    let fileId;
+    let model;
+    try {
+      // ---- 3. Manba surat + AI ----
+      const source = await loadSourcePhoto(p.img_file_id);
+      const natija = await generateImage(p, source, choices);
+      model = natija.model;
 
-    // ---- 4. Telegram'ga yuklash ----
-    // ⚠️ Bu qadam yiqilsa keshga HECH NARSA yozilmaydi va pul ketgan natija
-    // yo'qoladi. Shuning uchun `sendPhotoBytes` jimgina `null` qaytarmaydi —
-    // u xato tashlaydi va sabab alertga chiqadi.
-    const fileId = await sendPhotoBytes(
-      AI_IMAGE_CHAT_ID, buf, `ai-${productId}.png`,
-      `AI kiyim rasmi — ${p.name_uz || productId} (${Object.values(choices).join(', ')})`
-    );
+      // ---- 4. Telegram'ga yuklash ----
+      // ⚠️ Bu qadam yiqilsa keshga HECH NARSA yozilmaydi va pul ketgan natija
+      // yo'qoladi. Shuning uchun `sendPhotoBytes` jimgina `null` qaytarmaydi —
+      // u xato tashlaydi va sabab alertga chiqadi.
+      fileId = await sendPhotoBytes(
+        AI_IMAGE_CHAT_ID, natija.buf, `ai-${productId}.png`,
+        `AI kiyim rasmi — ${p.name_uz || productId} (${Object.values(choices).join(', ')})`
+      );
+    } catch (e) {
+      // ⚠️ Qaytarish xatosi ASL xatoni BOSIB KETMASIN: aks holda alertda
+      // "gemini 503" o'rniga "baza band" ko'rinardi va tashxis yo'qolardi.
+      try {
+        await refundCredits(String(tg.id), cheksiz);
+      } catch (e2) {
+        // Birinchi argument — alert guruhlash KALITI (CLAUDE.md, Test 10c).
+        console.error('aiImage kredit qaytarilmadi:', e2.message);
+      }
+      throw e;
+    }
 
     // ---- 5. Keshga yozish ----
     await pool.query(
-      `INSERT INTO product_ai_image (product_id, choices_hash, choices, file_id, source_hash, model)
-       VALUES ($1, $2, $3::jsonb, $4, $5, $6)
+      `INSERT INTO product_ai_image (product_id, choices_hash, choices, file_id, source_hash, model, tg_user_id)
+       VALUES ($1, $2, $3::jsonb, $4, $5, $6, $7)
        ON CONFLICT (product_id, choices_hash)
        DO UPDATE SET file_id = EXCLUDED.file_id,
                      source_hash = EXCLUDED.source_hash,
                      choices = EXCLUDED.choices,
                      model = EXCLUDED.model,
+                     tg_user_id = EXCLUDED.tg_user_id,
                      created_at = now()`,
-      [productId, cHash, JSON.stringify(choices), fileId, hash, model]
+      [productId, cHash, JSON.stringify(choices), fileId, hash, model, String(tg.id)]
     );
 
-    ok(res, { image: productPhotoUrl(fileId), model, cached: false, createdAt: new Date() });
+    ok(res, {
+      image: productPhotoUrl(fileId), model, cached: false, createdAt: new Date(),
+      credits: { balance: kredit.balance, cost: AI_CREDIT_COST, unlimited: !!kredit.cheksiz },
+    });
   } catch (e) {
     // Birinchi argument — alert guruhlash KALITI (CLAUDE.md, Test 10c).
     console.error('aiImage xatosi:', e.message);
@@ -180,6 +296,30 @@ async function handleAiImage(req, res) {
 // CLAUDE.md — ma'lumot bazadan kelmasa, blok ko'rsatilmaydi (o'ylab topilgan
 // namuna rasm qo'yilmaydi).
 const GALLERY_LIMIT = 10;
+const MY_LIMIT = 30;
+
+// ============ ESKIRGAN JAVOBLI QATORLARNI FILTRLASH (2026-08-07) ============
+// `kim = erkak` olib tashlanganda paydo bo'lgan savol: bazadagi eski rasmlar
+// nima bo'ladi? Ular O'CHIRILMAYDI (haqiqiy, pulga chizilgan rasmlar), lekin
+// KO'RSATILMAYDI.
+//
+// ⚠️ Tekshiruv `normalizeChoices` bilan qilinadi — ya'ni "ko'rsatilmaydigan
+// javoblar" degan IKKINCHI RO'YXAT yozilmaydi. db/014 darsi: ikkinchi ro'yxat
+// himoya emas, kelajakdagi tuzoq — ro'yxatdan yana bir kalit olinsa, uni shu
+// yerda ham eslab qolish kerak bo'lardi va aynan shu unutilardi.
+function joriyMi(r) {
+  try { normalizeChoices(r.choices); return true; } catch (_) { return false; }
+}
+
+function lentaYozuvi(r) {
+  return {
+    productId: r.product_id,
+    image: productPhotoUrl(r.file_id),
+    name: { uz: r.name_uz, ru: r.name_ru },
+    choices: r.choices,
+    createdAt: r.created_at,
+  };
+}
 
 async function handleAiGallery(req, res) {
   const ip = clientIp(req);
@@ -200,14 +340,7 @@ async function handleAiGallery(req, res) {
     // Tartib SQL da `product_id` bo'yicha majburlangan (DISTINCT ON sharti),
     // shuning uchun "eng yangisi birinchi" tartibi shu yerda beriladi.
     rows.sort((a, b) => b.created_at - a.created_at);
-    ok(res, {
-      items: rows.slice(0, GALLERY_LIMIT).map((r) => ({
-        productId: r.product_id,
-        image: productPhotoUrl(r.file_id),
-        name: { uz: r.name_uz, ru: r.name_ru },
-        choices: r.choices,
-      })),
-    });
+    ok(res, { items: rows.filter(joriyMi).slice(0, GALLERY_LIMIT).map(lentaYozuvi) });
   } catch (e) {
     // Birinchi argument — alert guruhlash KALITI (CLAUDE.md, Test 10c).
     console.error('aiGallery xatosi:', e.message);
@@ -215,4 +348,46 @@ async function handleAiGallery(req, res) {
   }
 }
 
-module.exports = { handleAiImage, handleAiGallery, takeQuota, loadSourcePhoto };
+// ============ MENING RASMLARIM + KREDIT — /api/ai/my (2026-08-07) ============
+// AI ekranining "Mening rasmlarim" bo'limi va kredit ko'rsatkichi shundan
+// oziqlanadi. Ikkalasi BITTA javobda: ekran ochilganda ikkita so'rov o'rniga
+// bitta ketadi, va kredit qoldig'i rasmlar bo'lmaganda ham ko'rinadi.
+//
+// ⚠️ Kredit qoldig'i SO'RALMASDAN ko'rsatiladi — bu ataylab. Ilgari
+// foydalanuvchi chegarani faqat U TUGAGANDA bilardi (HTTP 429), ya'ni pul
+// sarflashdan oldin nechta qolganini ko'ra olmasdi.
+//
+// ⚠️ Imzo SHART: bu shaxsiy ma'lumot. Galereya (`/api/ai/gallery`) esa
+// imzosiz va ochiq — u umumiy lenta.
+async function handleAiMy(req, res) {
+  const ip = clientIp(req);
+  if (rateLimited(`aimy:${ip}`, 60)) return fail(res, 'too many requests', 429);
+  try {
+    const tg = authUser(req);
+    if (!tg || !tg.id) return fail(res, 'unauthorized', 401);
+
+    const { rows } = await pool.query(
+      `SELECT i.product_id, i.file_id, i.choices, i.created_at, p.name_uz, p.name_ru
+         FROM product_ai_image i
+         JOIN products p ON p.id = i.product_id AND p.status = 'published'
+        WHERE i.tg_user_id = $1
+        ORDER BY i.created_at DESC
+        LIMIT $2`,
+      [String(tg.id), MY_LIMIT]
+    );
+
+    ok(res, {
+      items: rows.filter(joriyMi).map(lentaYozuvi),
+      credits: await readCredits(String(tg.id)),
+    });
+  } catch (e) {
+    // Birinchi argument — alert guruhlash KALITI (CLAUDE.md, Test 10c).
+    console.error('aiMy xatosi:', e.message);
+    fail(res, 'server error', 500);
+  }
+}
+
+module.exports = {
+  handleAiImage, handleAiGallery, handleAiMy,
+  takeCredits, refundCredits, readCredits, loadSourcePhoto,
+};

@@ -235,7 +235,16 @@ www-data'ga tegishli, ya'ni bu himoya hali yo'q.
 | `AI_API_KEY` | AI provayderi kaliti. Shakli tekshiriladi (`<key>` namunasi qolib ketsa o'chadi) |
 | `AI_IMAGE_MODEL` | **Rasm** modeli (default `gemini-2.5-flash-image`). Ataylab `.env` da: model nomi tez o'zgaradi va buning uchun deploy kutilmasin |
 | `AI_IMAGE_CHAT_ID` | Generatsiya qilingan rasm yuboriladigan chat — undan `file_id` olinadi (default — `ADMIN_CHAT_ID`). Alohida chat tavsiya etiladi |
-| `AI_DAILY_LIMIT` | Bir foydalanuvchiga kunlik rasm generatsiyasi soni (default `10`) |
+| `AI_DAILY_LIMIT` | ⚠️ **ESKIRDI** (2026-08-07) — gating LOLA CREDIT ga o'tdi. Qiymat o'qiladi, lekin HECH QAYERDA ishlatilmaydi |
+| `AI_CREDITS_START` | Har bir foydalanuvchiga beriladigan boshlang'ich Lola credit (default `20`). Balans BIRINCHI so'rovda o'zi tug'iladi — alohida "berish" qadami yo'q |
+| `AI_CREDIT_COST` | Bitta rasm nechta creditga tushadi (default `2`). Narx boshlang'ich qoldiqdan katta bo'lsa jurnalda qichqiradi — hech kim rasm chiza olmasdi |
+| `AI_UNLIMITED_TG_IDS` | Cheksiz generatsiya huquqi — vergul bilan ajratilgan Telegram ID lar. ⚠️ `ADMIN_TG_IDS` dan **ATAYLAB alohida**: admin ro'yxati moderatsiya haqida, bu esa PULGA tegadi. Sarf baribir yoziladi (`ai_credits.spent`) |
+
+**Lola credit qanday ishlaydi (2026-08-07):** balans `ai_credits` jadvalida,
+atomik yechiladi (`decrementStock` naqshi). Kunlik limitdan farqi TUSHUNCHADA —
+u QOLDIQ va o'zi tiklanmaydi, shuning uchun UI da "ertaga yangilanadi" degan
+xabar YO'Q (u yolg'on bo'lardi). Keshdan o'qish credit YEMAYDI: AI chaqiruvi
+bo'lmagan joyda to'lanadigan narsa ham yo'q.
 
 ⚠️ **Rasm faqat `AI_PROVIDER=gemini` da ishlaydi** — OpenAI rasm yo'li
 YOZILMAGAN. `openai` tanlansa matn ishlaydi, rasm tugmasi esa umuman

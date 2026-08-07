@@ -193,10 +193,68 @@ if (AI_ENABLED && !AI_IMAGE_ENABLED) {
 
 // Ro'yxatdan o'tgan foydalanuvchiga kuniga nechta YANGI generatsiya
 // (keshdan o'qish limitga TEGMAYDI — Sprint 10, 4-qaror).
+//
+// ⚠️ ESKIRDI (2026-08-07): gating endi LOLA CREDIT bilan ketadi (pastga qara).
+// Qiymat o'chirilmadi, chunki `db/016` dagi `ai_usage` jadvali va uning
+// izohlari hali shu tushunchaga ishora qiladi — o'chirish ularni yolg'onga
+// aylantirardi. Yangi kod uni ISHLATMAYDI.
 const AI_DAILY_LIMIT = (() => {
   const v = Number(process.env.AI_DAILY_LIMIT);
   return Number.isInteger(v) && v > 0 ? v : 10;
 })();
+
+// ============ LOLA CREDIT (2026-08-07, founder qarori) ============
+// "Har bir insonga 20 ta lola credit beramiz, bitta rasmga 2 credit ketadi."
+//
+// Kunlik limitdan farqi TUSHUNCHADA: bu — QOLDIQ (balans), har kuni
+// yangilanmaydi. Ya'ni "ertaga qaytib keling" degan xabar endi YOLG'ON
+// bo'lardi va u shuning uchun UI dan ham olib tashlandi.
+// Qayta to'ldirish (kunlik yoki xarid orqali) hali YO'Q — kerak bo'lganda
+// ataylab qo'shiladi, "bir kun o'zi tiklanadi" degan taxminga tayanilmaydi.
+//
+// Shakl tekshiruvi MAJBURIY (CLAUDE.md: `ALERT_CHAT_ID` darsi) — `.env` da
+// namuna to'ldirilmay qolsa yoki `20 ta` deb yozilsa, `Number()` `NaN` beradi
+// va u JIMGINA "cheksiz" yoki "nol" ga aylanib ketardi.
+function musbatButun(raw, nom, zaxira) {
+  if (raw == null || String(raw).trim() === '') return zaxira;
+  const v = Number(String(raw).trim());
+  if (!Number.isInteger(v) || v <= 0) {
+    console.error('Sozlama yaroqsiz, zaxira ishlatildi:', `${nom}=${raw} → ${zaxira}`);
+    return zaxira;
+  }
+  return v;
+}
+
+const AI_CREDITS_START = musbatButun(process.env.AI_CREDITS_START, 'AI_CREDITS_START', 20);
+const AI_CREDIT_COST = musbatButun(process.env.AI_CREDIT_COST, 'AI_CREDIT_COST', 2);
+
+// ⚠️ Narx boshlang'ich qoldiqdan katta bo'lsa hech kim BIRORTA ham rasm
+// chiza olmaydi — funksiya jimgina o'lardi va sababi hech qayerda
+// ko'rinmasdi. Shuning uchun bu holat jurnalda QICHQIRADI.
+if (AI_CREDIT_COST > AI_CREDITS_START) {
+  console.error('Kredit sozlamasi qarama-qarshi:',
+    `AI_CREDIT_COST=${AI_CREDIT_COST} > AI_CREDITS_START=${AI_CREDITS_START} — hech kim rasm chiza olmaydi`);
+}
+
+// Cheksiz generatsiya huquqi — vergul bilan ajratilgan Telegram ID lar.
+//
+// ⚠️ `ADMIN_TG_IDS` dan ATAYLAB ALOHIDA. Admin ro'yxati moderatsiya haqida;
+// unga qo'shilgan yangi odam JIMGINA cheksiz PUL sarflash huquqini ham
+// olardi (~$0.04 har rasm). Pulga tegadigan huquq alohida va ko'rinadigan
+// ro'yxatda turadi.
+//
+// Shakl tekshiruvi: Telegram ID — butun son. Yaroqsizi tashlanadi VA
+// jurnalda qichqiradi (jimgina tashlansa, siz o'zingizni ro'yxatda deb
+// o'ylab yurardingiz, aslida esa limit ostida edingiz).
+const AI_UNLIMITED_TG_IDS = new Set(
+  (process.env.AI_UNLIMITED_TG_IDS || '')
+    .split(',').map((s) => s.trim()).filter(Boolean)
+    .filter((s) => {
+      if (/^-?\d+$/.test(s)) return true;
+      console.error('AI_UNLIMITED_TG_IDS da yaroqsiz ID tashlandi:', s);
+      return false;
+    })
+);
 
 // Moderatsiya ruxsati bor Telegram ID'lari (vergul bilan ajratilgan).
 // Berilmasa — ADMIN_CHAT_ID (admin shaxsiy chati = uning Telegram user id'si).
@@ -226,6 +284,7 @@ module.exports = {
   MINI_APP_URL, BOT_USERNAME, CONTACTS_FILE, GIT_SHA, ALERT_CHAT_ID,
   ADMIN_PANEL_TOKEN, PREPAY_RATE, COMMISSION_RATE, ADMIN_TG_IDS, DELIVERY_FEE_ESTIMATE,
   AI_PROVIDERS, AI_PROVIDER, AI_API_KEY, AI_ENABLED, AI_DAILY_LIMIT,
+  AI_CREDITS_START, AI_CREDIT_COST, AI_UNLIMITED_TG_IDS,
   AI_IMAGE_MODEL, AI_IMAGE_CHAT_ID, AI_IMAGE_ENABLED,
   chatId, aiKey,
 };

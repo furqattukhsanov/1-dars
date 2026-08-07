@@ -660,6 +660,103 @@ ishlaydi" degani EMAS.
   **nginx ogohlantirishi**: umumiy `/api/` blokidagi `proxy_read_timeout 30s`
   rasm so'roviga yetmaydi
 
+### Ikkinchi to'lqin — sprint YOPILGANDAN KEYIN (2026-08-07, o'sha kun)
+
+⚠️ Bu bo'lim sprint `tugadi` deb belgilangandan KEYIN qo'shildi va holat
+o'zgartirilmadi. Sabab: yopilish mezoni (founder qo'lda sinab qabul qilishi)
+allaqachon bajarilgan, quyidagilari esa **qabul qilingan funksiyaning ustiga
+qo'yilgan qatlam**. "Yopildi" ni ochib qayta yopish yozuvni chalkashtirardi —
+qaysi sana haqiqiy qabul sanasi ekani ko'rinmay qolardi.
+
+- [2026-08-07] **Orqa fon xilma-xilligi** (`server/lib/ai.js`): 18 ta sahna
+  (`SAHNA`), `uslub` bo'yicha 3 guruh × 6 fon. Fon uslubga ZID bo'lmasligi
+  uchun guruhlangan — bayramona ko'ylakni ofis yo'lagida ko'rsatish rasmni
+  buzardi.
+  ⚠️ **Fon TASODIFIY EMAS** — u kesh kalitidan hosil qilinadi (`sceneFor`:
+  `mahsulot id + javoblar hash`). `Math.random()` ikki yo'ldan birini
+  berardi va ikkalasi ham yomon: sahna kesh kalitiga kirmasa — birinchi
+  chizilgan rasm abadiy qoladi va tasodif KO'RINMAYDI (kod bor, natijasi
+  yo'q); kirsa — har bosishda yangi kalit tug'ilib kesh butunlay ishlamay
+  qoladi va ayni mato uchun qayta-qayta ~$0.04 to'lanardi
+- [2026-08-07] Promptga **neytral yorug'lik bandi** qo'shildi. Fon kelgani
+  bilan rasmning MAQSADI o'zgarmadi — u matoning HAQIQIY rangi. Rangli
+  yorug'lik (neon, quyoshbotar) matoni boshqa rangga bo'yab qo'yardi va
+  image-to-image ning butun sababi yo'qolardi; foydalanuvchi buni tekshira
+  ham olmasdi
+- [2026-08-07] **`PROMPT_VERSION` qorovuli** (`server/lib/ai.js`, hozir `v3`).
+  Kesh kaliti (`imageSourceHash`) promptga UMUMAN qaramasdi: prompt o'zgarsa
+  ham allaqachon chizilgan rasmlar abadiy eski holida qolardi va galereya
+  aynan shu keshdan oziqlanadi. Nuqson JIMGINA bo'lardi — kod yangi, test
+  yashil, deploy muvaffaqiyatli, ekranda esa hech narsa o'zgarmagan.
+  Endi versiya hash ichida. Narxi ochiq: versiya oshgach har bir rasm bir
+  marta qayta chiziladi (~$0.04), lekin faqat kimdir SO'RAGANDA
+- [2026-08-07] **LOLA CREDIT — kunlik limit o'rniga balans** (founder qarori).
+  `db/019_lola_credits.sql`: `ai_credits` jadvali (`balance`, `spent`,
+  `CHECK >= 0`) + `product_ai_image.tg_user_id`. Har foydalanuvchiga 20
+  credit, bitta rasm 2 credit. Yechish **ATOMIK** — `decrementStock` naqshi
+  (`INSERT ... ON CONFLICT ... WHERE balance >= narx RETURNING`), alohida
+  `SELECT` + `UPDATE` ga bo'linmaydi: aks holda balans MANFIYGA tushardi.
+  Balans BIRINCHI so'rovda o'zi tug'iladi, ya'ni "krediti berilmay qolgan
+  foydalanuvchi" degan holat mavjud emas
+- [2026-08-07] `server/config.js` — `AI_CREDITS_START`, `AI_CREDIT_COST`,
+  `AI_UNLIMITED_TG_IDS`; hammasi SHAKLI bo'yicha tekshiriladi
+  (`ALERT_CHAT_ID` darsi). Narx boshlang'ich qoldiqdan katta bo'lsa jurnalda
+  QICHQIRADI — aks holda hech kim rasm chiza olmasdi va sababi ko'rinmasdi.
+  `AI_DAILY_LIMIT` **eskirdi**, lekin o'chirilmadi: `db/016` va uning izohlari
+  hali shu tushunchaga ishora qiladi
+- [2026-08-07] **"Ertaga yangilanadi" xabari O'CHIRILDI.** Kunlik limitda u
+  HAQIQAT edi, kreditda YOLG'ON: kredit — qoldiq, u o'zi tiklanmaydi.
+  Yana o'sha "jimgina yolg'on yo'qlikdan yomonroq" oilasi
+- [2026-08-07] **Kredit qoldig'i SO'RALMASDAN ko'rsatiladi** (`/api/ai/my`).
+  Ilgari foydalanuvchi chegarani faqat U TUGAGANDA bilardi (HTTP 429), ya'ni
+  pul sarflashdan oldin nechta qolganini ko'ra olmasdi
+- [2026-08-07] **Tezlik chegarasi tartibi almashdi** (`routes/ai.js`): kimlik
+  AVVAL, `rateLimited` KEYIN. Ilgari cheksiz ro'yxatdagi odam ham 7-so'rovda
+  429 olardi — "cheksiz kredit" jimgina yolg'on bo'lardi. Kalit ham IP dan
+  `tg.id + IP` ga o'tdi: bitta uy Wi-Fi'sidagi ikki xaridor bir-birini
+  bloklamasin
+- [2026-08-07] **`kim = erkak` varianti olib tashlandi** (founder qarori).
+  Kalit shunchaki o'chirildi, "ko'rsatilmasin" bayrog'i QO'YILMADI: ro'yxat
+  oq ro'yxat bo'lgani uchun yo'q kalit avtomatik 400 oladi. Bazadagi eski
+  `erkak` qatorlari O'CHIRILMADI (haqiqiy, pulga chizilgan rasmlar), lekin
+  lentada KO'RSATILMAYDI — filtr `normalizeChoices` ning O'ZI bilan qilinadi
+  (`joriyMi`), ya'ni ikkinchi ro'yxat yozilmadi (`db/014` darsi)
+- [2026-08-07] **Dizayn guruhi qo'shildi**: neoklassika / zamonaviy /
+  minimalistik / combo. `combo` tanlansa ikki qo'shimcha savol ochiladi
+  (`COMBO_CHOICES`: rang, qo'shimcha material) va **erkin matn**. Combo
+  javoblari `/api/auth/telegram` da ALOHIDA yuboriladi (`aiComboChoices`),
+  chunki ular SHARTLI — bitta ro'yxatga qo'shilsa frontend ularni doim
+  chizardi
+- [2026-08-07] **Erkin matn — founder qarori TAVSIYAGA QARAMASDAN.** Tavsiya
+  "faqat oq ro'yxat" edi, founder: "erkin matn shunsiz ham bo'lmaydi".
+  Shuning uchun himoya KIRISHDA turadi va u ikki qavat: (1) SHAKL —
+  `cleanComboText`, 60 belgi, qavs/tirnoq/burchak qavs/qiya chiziq/yangi
+  qator O'TMAYDI (aynan shular bilan promptga "yangi ko'rsatma"
+  tiqishtiriladi); (2) O'RIN — matn promptda MA'LUMOT deb e'lon qilinadi va
+  ortidan darrov `ODOB` keladi, chunki model OXIRGI ko'rsatmalarga ko'proq
+  og'irlik beradi. ⚠️ Matn KESILMAYDI, uzun bo'lsa RAD ETILADI: jimgina
+  qirqilsa xaridor yozganini emas boshqasini olardi, ustiga bu pullik so'rov
+- [2026-08-07] **AI ekrani qayta yozildi** (`telegram-app/app.js`): sehrgar
+  (mato tanlash → savollar → natija), "Mening rasmlarim" tabi, kredit
+  rozetkasi, Telegram'ga ulashish, "Shu matodan buyurtma" CTA, kutish holati
+  ekran almashganda saqlanadi. Natija bloki `aiImageSection` ni QAYTA
+  ISHLATADI — ikkinchi nusxa yozilmadi. `index.html` da `app.js?v=70→71`
+- [2026-08-07] `GET /api/ai/my` — "Mening rasmlarim" + kredit BITTA javobda.
+  **Imzo SHART** (galereyadan farqi shu: u ochiq va umumiy)
+- [2026-08-07] Testlar **37 → 40**: 14c kredit uchun qayta yozildi, 14j combo
+  javoblarini ham qamraydi, yangi **14k** (fon xilma-xilligi va kesh
+  buzilmagani), **14l** (prompt versiyasi qorovuli — u promptning O'ZINI
+  hashlaydi), **14m** (erkin matn kirishda tozalanadi).
+  ⚠️ Raqam IKKI MUSTAQIL usul bilan olindi: `grep -c "✅ Test "` = **40** va
+  `npm test` chiqishidagi qatorlar = **40**. Lint: **0 xato**
+  (28 ogohlantirish — 27 tasi avvaldan bor, biri `test.js` dagi endi keraksiz
+  `eslint-disable` izohi)
+- [2026-08-07] Deploy: `db/019` production'da BAJARILDI; `.env` tuzatildi —
+  `AI_UNLIMITED_TG_IDS` da namuna qolib ketgan edi (`ALERT_CHAT_ID` darsining
+  aynan takrori, faqat bu safar `config.js` qorovuli uni TUTDI).
+  ⚠️ **Backend rsync va servis restarti HALI QILINMAGAN** — ya'ni bu commit
+  paytida production hamon ESKI kodni ishlatyapti
+
 ---
 
 ## Sprint yopilish mezoni
@@ -916,3 +1013,167 @@ Bu ro'yxat ataylab "bajarildi" deb yopilmadi.
   (ikkala uchi ham noto'g'ri). Raqam ikki mustaqil usul bilan olindi:
   `grep -c` va `npm test` chiqishi. Xuddi shu narsa 2026-08-06 da
   «85 mahsulot» → 12 va «250 KB shrift» → 131 KB da bo'lgan edi
+
+### 2026-08-07 (ikkinchi to'lqin — yopilgandan keyingi qatlam)
+
+- [2026-08-07] Qaror: **orqa fon kesh kalitidan hosil qilinadi, TASODIFIY
+  emas** (`sceneFor`). `Math.random()` ikki yo'ldan birini berardi va
+  ikkalasi ham nuqson: sahna kesh kalitiga kirmasa tasodif KO'RINMAYDI
+  (kod bor, natijasi yo'q — jimgina yolg'on), kirsa esa kesh butunlay
+  o'ladi va ayni mato uchun qayta-qayta ~$0.04 to'lanadi. Kalitdan hosil
+  qilinsa: boshqa mahsulot — boshqa fon, boshqa javob — boshqa fon, AYNI
+  so'rov esa AYNI rasm. Lenta xilma-xil, hisob o'zgarmagan
+- [2026-08-07] Qaror: **sahna XARIDORDAN so'ralmaydi.** `IMAGE_CHOICES` ga
+  to'rtinchi guruh qilib qo'shilmadi — founder "2–3 savol" degan, va xaridor
+  fon tanlagani emas, MATONI ko'rgani keladi
+- [2026-08-07] Qaror: **prompt kesh kalitiga KIRADI (`PROMPT_VERSION`)** —
+  bu sozlama emas, QOROVUL. Kesh kaliti promptga qaramasa, prompt yaxshilansa
+  ham eski rasmlar abadiy qolardi va **ekranda hech narsa o'zgarmasdi**,
+  holbuki kod yangi, test yashil, deploy muvaffaqiyatli. Bu `?v=` qoidasi
+  bilan BITTA OILA: manba o'zgarsa versiya HAM oshadi. Qorovuli — Test 14l,
+  u promptning O'ZINI hashlaydi, ya'ni matn tahrirlanib versiya qolsa test
+  QIZIL bo'ladi (yozilgan qoida himoya emas — uni tekshiradigan test himoya)
+- [2026-08-07] Qaror (founder): **kunlik limit o'rniga LOLA CREDIT** —
+  har insonga 20 credit, bitta rasm 2 credit. Kunlik limitdan farqi
+  TUSHUNCHADA: kredit — QOLDIQ va o'zi tiklanmaydi. Shu sababli "ertaga
+  00:00 da yangilanadi" xabari UI dan OLIB TASHLANDI — 2026-08-06 da u
+  haqiqat edi, bugun yolg'on bo'lardi. Qayta to'ldirish (kunlik yoki xarid)
+  ATAYLAB yozilmadi: kerak bo'lganda ochiq qo'shiladi, "bir kun o'zi
+  tiklanadi" degan taxminga tayanilmaydi
+- [2026-08-07] Qaror: **`AI_UNLIMITED_TG_IDS` — `ADMIN_TG_IDS` dan ALOHIDA
+  ro'yxat.** Admin ro'yxati moderatsiya haqida; unga qo'shilgan yangi odam
+  jimgina cheksiz PUL sarflash huquqini ham olardi (~$0.04/rasm). Pulga
+  tegadigan huquq alohida va ko'rinadigan ro'yxatda tursin.
+  ⚠️ Cheksiz ro'yxatda ham **sarf BARIBIR yoziladi** (`ai_credits.spent`):
+  yozuvni o'tkazib yuborish oson yo'l edi, lekin o'shanda hisob kelganda
+  kim qancha sarflaganini ko'rsatadigan iz qolmasdi
+- [2026-08-07] Qaror: **kimlik tekshiruvi tezlik chegarasidan OLDIN.**
+  Teskari tartibda cheksiz ro'yxatdagi odam 7-so'rovda 429 olardi — ya'ni
+  "cheksiz" jimgina yolg'on bo'lardi (kredit cheksiz, lekin daqiqada 6 ta)
+- [2026-08-07] Qaror (founder): **`erkak` varianti olib tashlanadi.** Kalit
+  o'chirildi, "yashirilsin" bayrog'i qo'yilmadi — oq ro'yxatda yo'q kalit
+  o'zi 400 oladi. Bazadagi eski qatorlar O'CHIRILMAYDI (haqiqiy, pulga
+  chizilgan rasmlar) va lentada `normalizeChoices` ning O'ZI bilan
+  filtrlanadi — **ikkinchi ro'yxat yozilmaydi** (`db/014` darsi). Ro'yxat
+  qaytsa, o'sha rasmlar ham qaytadi
+- [2026-08-07] Qaror (founder, TAVSIYAGA QARSHI): **combo dizaynda ERKIN
+  MATN bo'ladi.** Tavsiya "faqat oq ro'yxat" edi — sabab: erkin matn promptga
+  boradi va prompt in'ektsiyasining to'g'ridan-to'g'ri yo'li. Founder
+  qabul qildi, shuning uchun himoya kirishda va **ikki qavat**: shakl
+  tekshiruvi (60 belgi, qavs/tirnoq/yangi qator o'tmaydi) va promptdagi
+  devor — matn MA'LUMOT deb e'lon qilinadi, `ODOB` esa undan KEYIN turadi,
+  chunki model oxirgi ko'rsatmalarga ko'proq og'irlik beradi. Qorovul —
+  Test 14m
+- [2026-08-07] Qaror: **erkin matn KESILMAYDI, uzun bo'lsa RAD ETILADI.**
+  Jimgina qirqilsa xaridor yozganini emas, boshqasini olardi — ustiga bu
+  pullik so'rov. Bo'sh matn kalit sifatida UMUMAN qo'shilmaydi: `{matn:''}`
+  va matnsiz so'rov ikki xil kesh kaliti berardi va ayni rasm uchun ikki
+  marta to'lanardi
+- [2026-08-07] Qaror: **combo qo'shimchalari boshqa dizaynda JIMGINA
+  tashlanadi, rad etilmaydi.** Xaridor combo'ni tanlab rangni to'ldirib
+  keyin "minimalistik" ga o'tsa, klientda eski javob qolib ketadi — uni rad
+  etish foydalanuvchi hech qanday xato qilmagan joyda yo'lni to'sardi.
+  Tashlangani zararsiz: u na promptga, na kesh kalitiga kiradi.
+  ⚠️ Bu `normalizeChoices` ning asosiy qoidasidan (notanish kalit — XATO)
+  ataylab farq qiladi va farqning sababi shu izohda yozilgan
+- [2026-08-07] Qaror: **kredit qoldig'i so'ralmasdan ko'rsatiladi**
+  (`/api/ai/my` va har javobda). Ilgari foydalanuvchi chegarani faqat U
+  TUGAGANDA bilardi, ya'ni pul sarflashdan oldin nechta qolganini ko'ra
+  olmasdi. Keshdan o'qish esa **kredit YEMAYDI** — AI chaqiruvi bo'lmagan
+  joyda to'lanadigan narsa ham yo'q (4-qarorning davomi)
+- [2026-08-07] Qaror: **`AI_DAILY_LIMIT` va `ai_usage` O'CHIRILMAYDI.**
+  Sozlama o'qiladi, lekin hech qayerda ishlatilmaydi; jadvalda haqiqiy tarix
+  bor va uni o'chirish "qancha sarflangan" savolini javobsiz qoldirardi.
+  "Almashtirishni qo'lga kiritmasdan eskisini o'chirma" oilasining baza
+  ko'rinishi — `product_ai_ideas` bilan bitta qatorda
+- [2026-08-07] Qaror: **`product_ai_image.tg_user_id` NULL bo'lishi mumkin**
+  va bu ataylab: 019 gacha chizilgan rasmlarda muallif ma'lum EMAS. Uni
+  "birinchi admin" yoki `0` bilan to'ldirish jimgina yolg'on bo'lardi —
+  `NULL` esa "bilinmaydi" degani (reyting `NULL` qoidasi bilan bitta oila).
+  Ustun keshni foydalanuvchi bo'yicha BO'LMAYDI: kalit hamon
+  `(product_id, choices_hash)`, ya'ni ikkinchi odam ayni javoblar bilan
+  so'rasa tayyor rasmni BEPUL oladi
+- [2026-08-07] Dars: **`.env` da yana namuna qolib ketdi** —
+  `AI_UNLIMITED_TG_IDS`. Bu 2026-08-05 dagi `ALERT_CHAT_ID` holatining aynan
+  takrori, faqat bu safar **oqibati bo'lmadi**: `config.js` dagi shakl
+  tekshiruvi uni tutdi va jurnalda qichqirdi. Ya'ni o'sha kuni yozilgan
+  qoida bugun birinchi marta HAQIQIY nosozlikni ushladi — qorovul
+  qo'yilgani nazariy foyda emas ekan
+
+---
+
+## 2026-08-07 (kechqurun) — Rasm funksiyasi kengaytirildi
+
+Sprint 10 ertalab yopilgan edi; bu bo'lim founder o'sha kuni bergan to'rtta
+yangi talab va ular ochib bergan nuqsonlar haqida.
+
+### Bajarilgani
+
+| Band | Natija |
+|---|---|
+| Orqa fon xilma-xilligi | 18 sahna (`SAHNA`), uslub bo'yicha 3 × 6 |
+| Prompt versiyasi | `PROMPT_VERSION` kesh kalitida, hozir `v3` |
+| Lola credit | 20 boshlang'ich, 1 rasm = 2 credit (`db/019`) |
+| `erkak` varianti | olib tashlandi (founder qarori) |
+| Dizayn yo'nalishi | neoklassika / zamonaviy / minimalistik / combo |
+| Combo | rang + qo'shimcha material + ERKIN MATN |
+| AI ekrani | sehrgar, mening rasmlarim, kredit, ulashish, buyurtma CTA |
+| Testlar | 42 ta yashil (yangi: 14k, 14l, 14m, 14n) |
+
+### Qarorlar
+
+- [2026-08-07] Qaror: **orqa fon TASODIFIY EMAS, kesh kalitidan hosil
+  qilinadi.** `Math.random()` ikki yo'ldan birini berardi: sahna kesh
+  kalitiga kirmasa — birinchi chizilgan rasm abadiy qoladi va tasodif
+  KO'RINMAYDI; kirsa — har bosishda yangi kalit tug'iladi va ayni mato
+  uchun qayta-qayta ~$0.04 to'lanadi. Kalitning O'ZIDAN hosil qilinganda
+  lenta xilma-xil bo'ladi, hisob esa o'zgarmaydi
+- [2026-08-07] Dars: **kesh kaliti promptga umuman qaramasdi.** Prompt
+  yaxshilansa ham allaqachon chizilgan rasmlar abadiy eski holida qolardi
+  va galereya faqat shu keshdan oziqlanadi — kod yangi, testlar yashil,
+  deploy muvaffaqiyatli, ekranda esa hech narsa o'zgarmagan. `?v=`
+  qoidasining aynan o'zi, faqat fayl o'rniga prompt
+- [2026-08-07] Dars: **qorovul pul sarflashga majburlasa, u qorovul emas.**
+  Test 14l ning birinchi shakli hamma javob birikmasini birga hashlardi va
+  shu sababli `erkak` OLIB TASHLANGANDA ham qizil bo'lardi — holbuki ayol
+  rasmlarining prompti o'zgarmagan va ular keshda to'g'ri turibdi. Endi
+  skelet va har bir variant iborasi alohida tekshiriladi; variant qo'shilishi
+  yoki olib tashlanishi versiya oshirishni TALAB QILMAYDI
+- [2026-08-07] Qaror: **kredit — QOLDIQ, kunlik limit emas.** Farq
+  foydalanuvchiga aytiladigan gapda ko'rindi: kunlik limitda "ertaga 00:00 da
+  yangilanadi" HAQIQAT edi, kreditda YOLG'ON — shuning uchun o'sha xabar UI
+  dan o'chirildi, dead-code bo'lib qoldirilmadi
+- [2026-08-07] Qaror: **`AI_UNLIMITED_TG_IDS` — `ADMIN_TG_IDS` dan alohida.**
+  Admin ro'yxati moderatsiya haqida; unga qo'shilgan yangi odam jimgina
+  cheksiz PUL sarflash huquqini ham olardi. Cheksiz yo'lda ham `spent`
+  yoziladi — aks holda o'z xarajating ko'rinmas bo'lardi
+- [2026-08-07] **PRODUCTION DARSI: provayder nosozligi xaridor hisobidan
+  to'lanmaydi.** Gemini `HTTP 503 high demand` qaytardi va founder xato
+  xabarini VA 2 credit kamaygan balansni ko'rdi. Kredit AI chaqiruvidan
+  OLDIN yechiladi (bu ataylab — poyga oynasi uchun), lekin xatoda
+  QAYTMASDI. `refundCredits` qo'shildi; `spent >= cost` sharti ikki marta
+  qaytarishga yo'l qo'ymaydi. Telegram'ga yuklash yiqilganda ham
+  qaytariladi — o'shanda Google'ga pul to'langan va zarar BIZNIKI, xaridor
+  esa rasm olmagani uchun to'lamaydi. Qaytarish xatosi ASL xatoni bosib
+  ketmasin: aks holda alertda "gemini 503" o'rniga "baza band" ko'rinib
+  tashxis yo'qolardi. Qorovul: Test 14n
+- [2026-08-07] Qaror: **erkin matn — founder qarori, tavsiyaga QARSHI.**
+  Tavsiya "faqat oq ro'yxat" edi (uch sabab: `ODOB` promptda yashaydi va
+  matn uni bekor qilishi mumkin; cheksiz kesh kaliti; chiqishda ikki
+  marta qochirish). Founder: "erkin matn shunsiz ham bo'lmaydi". Shuning
+  uchun himoya KIRISHGA qo'yildi va u ikki qavat — shakl tekshiruvi
+  (`cleanComboText`) va promptdagi devor, `ODOB` matndan KEYIN turadi
+- [2026-08-07] Dars: **hujjatda yozilgani qo'llanganini bildirmaydi.**
+  `server/README.md` da `/api/ai/image` uchun 180s nginx bloki yozilgan,
+  konfiguratsiyada esa YO'Q ekan — 30 soniyada nginx ulanishni uzadi,
+  foydalanuvchi 504 ko'radi, kredit esa allaqachon yechilgan bo'ladi.
+  "Tekshirilmagan da'vo" qoidasining nginx dagi ko'rinishi
+
+### Ochiq qolgani
+
+- Kredit **qayta to'ldirilmaydi** (kunlik ham, xarid orqali ham) — 20 ta
+  tugagach foydalanuvchi to'xtaydi. Ataylab: qaysi shakl kerakligi hali
+  hal qilinmagan va "bir kun o'zi tiklanadi" degan taxminga tayanilmadi
+- nginx 180s bloki hali qo'llanmagan (buyruq founderga berildi)
+- Galereyada `erkak` va 018 dan oldingi (javobsiz) rasmlar endi
+  ko'rsatilmaydi — o'chirilmadi, faqat yashirildi
