@@ -1087,11 +1087,11 @@ function testAssetVersionsAreFresh() {
     'style.css': { v: 36, hash: 'c4e8e763789f' },
     'script.js': { v: 27, hash: 'b729d38501fe' },
     'pwa.js': { v: 2, hash: 'f46683d58662' },
-    'panel.js': { v: 6, hash: 'f8267efd8793' },
+    'panel.js': { v: 7, hash: '4d96a1b853e6' },
     'admin/admin.css': { v: 17, hash: 'dbefeb6757ff' },
     'admin/admin.js': { v: 20, hash: 'ff157289e9d0' },
     'telegram-app/styles.css': { v: 21, hash: '6dddba75c0bc' },
-    'telegram-app/app.js': { v: 71, hash: '3f3084236fc6' },
+    'telegram-app/app.js': { v: 72, hash: '5f60a20735f4' },
     'telegram-app/pwa.js': { v: 6, hash: '798ab85e1cde' },
   };
 
@@ -1352,7 +1352,123 @@ function testExtractImage() {
   assert.throws(() => extractImage({}), undefined,
     'buzuq javobda ham xato tashlansin (jimgina bo\'sh natija emas)');
 
+  // ⚠️ 2026-08-08 QO'SHILDI. Production'da `javobda parts yo'q` xatosi chiqdi
+  // va u HECH NARSA o'rgatmadi: Gemini rasmni rad etganda `content` ni
+  // UMUMAN yubormaydi, sabab esa yonidagi `finishReason` da turadi. Ya'ni
+  // sabab javobda BOR edi, kod uni o'qimasdan tashlab yuborardi.
+  // Test aynan shu yo'lni qo'riqlaydi: `parts` YO'Q bo'lgan javobda ham
+  // sabab xato matniga tushsin.
+  assert.throws(
+    () => extractImage({ candidates: [{ finishReason: 'IMAGE_SAFETY' }] }),
+    /IMAGE_SAFETY/,
+    '`parts` yo\'q javobda ham sabab xato matnida bo\'lsin (mazmunsiz xato = xato yo\'qligicha yomon)'
+  );
+  assert.throws(
+    () => extractImage({ promptFeedback: { blockReason: 'PROHIBITED_CONTENT' } }),
+    /PROHIBITED_CONTENT/,
+    'promptFeedback dagi sabab ham ko\'rinsin'
+  );
+
+  // ============ XATO TURI ============
+  // `kind` — `routes/ai.js` foydalanuvchiga NIMA deyishini hal qiladigan
+  // yagona belgi. Model rad etganda "qayta urinib ko'ring" DEYILMASLIGI
+  // kerak: ayni prompt ayni javobni beradi va xaridor foydasiz bosaverardi.
+  const kind = (json) => { try { extractImage(json); return null; } catch (e) { return e.kind || null; } };
+  assert.strictEqual(kind({ candidates: [{ finishReason: 'IMAGE_SAFETY' }] }), 'blocked',
+    'model rad etgani `blocked` deb belgilansin');
+  assert.strictEqual(kind({ candidates: [{ finishReason: 'PROHIBITED_CONTENT' }] }), 'blocked');
+  // ⚠️ `MAX_TOKENS` rad etish EMAS — u bizning tomondagi nosozlik va uni
+  // `blocked` deb belgilash foydalanuvchiga "javoblaringizni o'zgartiring"
+  // deb YOLG'ON aytardi.
+  assert.strictEqual(kind({ candidates: [{ finishReason: 'MAX_TOKENS' }] }), null,
+    'MAX_TOKENS rad etish emas — `blocked` deb belgilanmasin');
+
   console.log('✅ Test 14f: Rasm javobi qat\'iy tekshiriladi — PASS');
+}
+
+// ============ TEST 14o: Vaqtinchalik nosozlik doimiysidan ajratiladi ======
+// 2026-08-08 da production'da ikki xil nosozlik BITTA "xato" bo'lib
+// ko'rinardi: Gemini `HTTP 503 high demand` (vaqtinchalik, qayta urinish
+// FOYDALI) va model rad etishi (doimiy, qayta urinish FOYDASIZ). Xaridor
+// ikkinchisida ham "Qayta urinish" tugmasini bosaverardi.
+//
+// Bu test manba kodini skanerlaydi, chunki qorovulning maqsadi — kelajakda
+// bu ajratma JIMGINA yo'qolib qolmasligi.
+function testImageErrorKinds() {
+  const fs = require('fs');
+  const path = require('path');
+  const lib = fs.readFileSync(path.join(__dirname, 'lib', 'ai.js'), 'utf8');
+  const route = fs.readFileSync(path.join(__dirname, 'routes', 'ai.js'), 'utf8');
+
+  // ---- 1. Qayta urinish 503 dan tashqarisini ham qamrasin ----
+  const set = lib.match(/const QAYTA_URINILADI\s*=\s*new Set\(\[([^\]]+)\]\)/);
+  assert.ok(set, 'QAYTA_URINILADI ro\'yxati lib/ai.js da bo\'lsin');
+  const kodlar = set[1].split(',').map((s) => Number(s.trim()));
+  assert.ok(kodlar.includes(503), '503 qayta urinilsin — provayder bandligi');
+  // ⚠️ 429 SHU YERDA BO'LMASIN. 2026-08-06 darsi: bepul tarifda kvota
+  // `limit: 0` edi va kutish HECH QACHON yordam bermasdi — 429 ni
+  // takrorlash faqat javobni sekinlashtiradi va sababni yashiradi.
+  assert.ok(!kodlar.includes(429), '429 QAYTA URINILMASIN (kvota tugashi kutish bilan tuzalmaydi)');
+
+  // ---- 2. Kutish ro'yxati o'sib borsin va jitter bo'lsin ----
+  const kutish = lib.match(/const RETRY_KUTISH_MS\s*=\s*\[([^\]]+)\]/);
+  assert.ok(kutish, 'RETRY_KUTISH_MS bo\'lsin');
+  const ms = kutish[1].split(',').map((s) => Number(s.trim().replace(/_/g, '')));
+  assert.ok(ms.length >= 3, 'kamida uch marta qayta urinilsin (ikkitasi 2026-08-08 da yetmadi)');
+  assert.ok(ms.every((v, i) => i === 0 || v > ms[i - 1]), 'kutish vaqti o\'sib borsin');
+  // Umumiy kutish nginx chegarasidan oshib ketmasin: oshsa foydalanuvchi
+  // 504 ko'rardi, server esa hamon ishlab turardi.
+  assert.ok(ms.reduce((a, b) => a + b, 0) <= 30_000, 'umumiy kutish 30s dan oshmasin (nginx chegarasi)');
+  // Jitter SHART: aniq kutish bilan yiqilgan hamma so'rov bir vaqtda
+  // uyg'onib, band provayderga birdan urardi — ya'ni qayta urinishning
+  // O'ZI bandlikni kuchaytirardi.
+  assert.ok(/jitter\(/.test(lib) && /Math\.random/.test(lib), 'kutishga jitter qo\'shilsin');
+
+  // ---- 3. Tur belgilansin va route uni ISHLATSIN ----
+  assert.ok(/e\.kind\s*=\s*'busy'/.test(lib), 'vaqtinchalik nosozlik `busy` deb belgilansin');
+  assert.ok(/e\.kind\s*=\s*'blocked'/.test(lib), 'model rad etishi `blocked` deb belgilansin');
+
+  for (const [k, kod] of [['busy', 'ai_busy'], ['blocked', 'ai_blocked']]) {
+    assert.ok(new RegExp(`kind === '${k}'`).test(route), `routes/ai.js '${k}' turini ajratsin`);
+    assert.ok(route.includes(`'${kod}'`), `routes/ai.js '${kod}' javobini qaytarsin`);
+  }
+
+  // ---- 4. Alert kalitlari ALOHIDA va qat'iy ----
+  // Provayder bandligi bizning nosozligimiz emas va tez-tez takrorlanadi;
+  // umumiy kalitda qolsa haqiqiy nuqsonni Telegram'da ko'mib yuborardi.
+  // (Kalitlarning o'zgarmasligini Test 10c alohida qo'riqlaydi.)
+  const kalitlar = [...route.matchAll(/console\.error\('(aiImage[^']*)'/g)].map((m) => m[1]);
+  assert.ok(new Set(kalitlar).size === kalitlar.length, 'aiImage alert kalitlari takrorlanmasin');
+  assert.ok(kalitlar.some((k) => /band/.test(k)), 'provayder bandligi ALOHIDA alert kalitida bo\'lsin');
+
+  // ---- 5. Klient ikkala holatni ALOHIDA ko'rsatsin ----
+  const app = fs.readFileSync(path.join(__dirname, '..', 'telegram-app', 'app.js'), 'utf8');
+  for (const holat of ['busy', 'blocked']) {
+    assert.ok(new RegExp(`state: '${holat}'`).test(app), `klient '${holat}' holatini o'rnatsin`);
+    assert.ok(new RegExp(`st\\.state === '${holat}'`).test(app), `klient '${holat}' holatini chizsin`);
+  }
+  // Yorliqlar IKKALA tilda bo'lsin — bittasi yo'q bo'lsa ekranda
+  // `undefined` chiqardi.
+  for (const kalit of ['aiBusy', 'aiBlocked']) {
+    const necha = (app.match(new RegExp(`${kalit}:`, 'g')) || []).length;
+    assert.strictEqual(necha, 2, `${kalit} ikkala tilda (uz/ru) bo'lsin`);
+  }
+
+  // ---- 6. SQL da parametrlar orasidagi arifmetikaga TURI yozilsin ----
+  // ⚠️ Bu band `routes/ai.js` dagi izoh AYNAN shu testga ishora qilgani
+  // uchun bor. 2026-08-07 da `VALUES ($1, $2 - $3, $3)` production'da
+  // yiqildi: turi ko'rsatilmagan ikki parametr Postgres uchun `unknown`
+  // bo'ladi va u qaysi ayirish operatorini tanlashni bilmaydi
+  // ("operator is not unique: unknown - unknown").
+  // Test 14c buni TUTMAYDI — u `pool.query` ni taqlid qiladi, ya'ni SQL
+  // matni hech qachon haqiqiy Postgres'ga bormaydi. Shuning uchun qorovul
+  // matnning O'ZIGA qaraydi.
+  const takeSrc = route.slice(route.indexOf('async function takeCredits'), route.indexOf('async function refundCredits'));
+  assert.ok(takeSrc.length > 100, 'takeCredits tanasi topilsin');
+  const xomArifmetika = takeSrc.match(/\$\d+(?!::)\s*[-+*/]\s*\$\d+/g);
+  assert.ok(!xomArifmetika, `SQL da $N ${xomArifmetika || ''} arifmetikasiga ::int yozilsin (unknown - unknown)`);
+
+  console.log('✅ Test 14o: Vaqtinchalik va doimiy nosozlik ajratilgan — PASS');
 }
 
 // ============ TEST 14g: Rasm so'rovining chegaralari matnnikidan boshqa ====
@@ -1889,6 +2005,7 @@ async function runTests() {
     await testAiQuotaAtomic();
     testImageSourceHash();
     testExtractImage();
+    testImageErrorKinds();
     testImageLimitsDiffer();
     testImageCacheWritePath();
     await testCreditRefund();

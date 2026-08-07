@@ -403,17 +403,39 @@ function buildImagePrompt(p, choices) {
 // tashlanadi, `inlineData` qidiriladi. Rasm topilmasa XATO tashlanadi:
 // bo'sh natija qaytarilsa chaqiruvchi "rasm chiqmadi" bilan "so'rov
 // yiqildi" ni ajrata olmasdi va PULGA ketgan so'rov jimgina yo'qolardi.
+// ⚠️ 2026-08-08: bu yerda IKKI xato yo'li bor edi va biri KO'R edi —
+// `parts` massiv bo'lmasa xato matni shunchaki `javobda parts yo'q` derdi.
+// Production'da aynan shu chiqdi va u hech narsa o'rgatmadi: Gemini rasmni
+// rad etganda javob `content` ni UMUMAN yubormaydi, sabab esa yonidagi
+// `finishReason` da turadi (`IMAGE_SAFETY`, `PROHIBITED_CONTENT`,
+// `RECITATION`, `MAX_TOKENS`). Ya'ni sabab javobda BOR edi, kod esa uni
+// o'qimasdan tashlab yuborardi. Endi ikkala yo'l BITTA tashxis nuqtasiga
+// keladi — "rasm yo'q" hech qachon sababsiz aytilmaydi.
+// Bu CLAUDE.md dagi "jimgina yolg'on yo'qlikdan yomonroq" oilasidan:
+// mazmunsiz xato xabari xato yo'qligicha qimmatga tushadi.
+function refusalReason(json) {
+  const c = json?.candidates?.[0];
+  const blocked = c?.safetyRatings?.find((s) => s?.blocked)?.category;
+  return c?.finishReason || json?.promptFeedback?.blockReason || blocked || 'sabab yo\'q';
+}
+
+// Model rad etgan holatlar. Bulardan keyin QAYTA URINISH FOYDASIZ — ayni
+// prompt ayni javobni beradi. Shuning uchun ular `kind='blocked'` bilan
+// belgilanadi va foydalanuvchiga "qayta urinib ko'ring" DEYILMAYDI.
+const RAD_SABABLARI = new Set(['SAFETY', 'IMAGE_SAFETY', 'PROHIBITED_CONTENT', 'BLOCKLIST', 'RECITATION', 'SPII']);
+
 function extractImage(json) {
   const parts = json?.candidates?.[0]?.content?.parts;
-  if (!Array.isArray(parts)) throw new Error('javobda parts yo\'q');
-  for (const part of parts) {
-    const d = part?.inlineData || part?.inline_data;
-    if (d?.data) return { buf: Buffer.from(d.data, 'base64'), mime: d.mimeType || d.mime_type || 'image/png' };
+  if (Array.isArray(parts)) {
+    for (const part of parts) {
+      const d = part?.inlineData || part?.inline_data;
+      if (d?.data) return { buf: Buffer.from(d.data, 'base64'), mime: d.mimeType || d.mime_type || 'image/png' };
+    }
   }
-  // Model rad etgan bo'lsa sababi shu yerda bo'ladi — u xato matniga
-  // qo'shiladi, chunki "rasm yo'q" o'zi diagnoz uchun foydasiz.
-  const why = json?.candidates?.[0]?.finishReason || json?.promptFeedback?.blockReason || 'sabab yo\'q';
-  throw new Error(`javobda rasm yo'q (${why})`);
+  const why = refusalReason(json);
+  const e = new Error(`javobda rasm yo'q (${why})`);
+  if (RAD_SABABLARI.has(String(why))) e.kind = 'blocked';
+  throw e;
 }
 
 // ============ RASM UCHUN YAGONA KIRISH NUQTASI ============
@@ -425,13 +447,80 @@ function extractImage(json) {
 // ni `openai` ga o'zgartirish bir soniyalik ish va o'shanda so'rov Gemini
 // manziliga OpenAI kaliti bilan ketardi — xato esa "HTTP 400" bo'lib,
 // sababini ko'rsatmasdi.
+// ============ 503 DA QAYTA URINISH (2026-08-07) ============
+// Gemini `HTTP 503 — high demand` qaytardi va u O'Z tomonidagi VAQTINCHALIK
+// bandlik: rasm umuman chizilmaydi, ya'ni bu urinish PUL ham olmaydi.
+// Shuning uchun qayta urinish tekin va foydali.
+//
+// ⚠️ 429 da QAYTA URINILMAYDI va bu ataylab. 2026-08-06 dagi dars: bepul
+// tarifda kvota `limit: 0` edi va Google'ning o'z xabari "27 soniyadan keyin
+// urinib ko'ring" derdi — kutish esa HECH QACHON yordam bermasdi. 429 ni
+// takrorlash faqat javobni sekinlashtiradi va sababni yashiradi.
+//
+// ⚠️ Kutish vaqti ATAYLAB qisqa. nginx `/api/ai/image` blokida vaqt
+// chegarasi bor va uzun kutish javobni o'sha chegaradan chiqarib yuborardi:
+// foydalanuvchi 504 ko'rardi, server esa hamon ishlab turardi.
+//
+// 2026-08-08 da 2s+5s dan 2s+5s+10s ga uzaytirildi: production'da 503
+// ketma-ket 5 marta takrorlandi, ya'ni ikki urinish bandlik to'lqinidan
+// chiqishga YETMADI. Umumiy kutish 17s — 503 javobi tez keladi (rasm
+// chizilmaydi), shuning uchun bu chegaraga sig'adi.
+const RETRY_KUTISH_MS = [2000, 5000, 10000];
+
+// ⚠️ JITTER SHART, bezak emas. Kutish aniq 2s/5s bo'lsa, bandlik paytida
+// yiqilgan HAMMA so'rov bir vaqtda uxlab, bir vaqtda uyg'onadi va o'sha
+// band provayderga bir zumda urib tushadi — ya'ni qayta urinish bandlikni
+// KUCHAYTIRARDI. Tasodifiy ±25% ularni yoyadi.
+function jitter(ms) { return Math.round(ms * (0.75 + Math.random() * 0.5)); }
+
+// Provayderning O'Z tomonidagi VAQTINCHALIK nosozliklari. `500 INTERNAL`
+// ham shu ro'yxatda: Gemini uni bandlik cho'qqisida 503 bilan bir xil
+// ma'noda qaytaradi ("keyinroq urinib ko'ring"), ikkalasida ham rasm
+// chizilmaydi va PUL olinmaydi.
+// ⚠️ 429 bu yerda YO'Q va bu ataylab — yuqoridagi izohga qara.
+const QAYTA_URINILADI = new Set([500, 502, 503, 504]);
+
+function kut(ms) { return new Promise((r) => setTimeout(r, ms)); }
+
 async function generateImage(product, source, choices) {
   if (AI_PROVIDER !== 'gemini') throw new Error(`rasm yo'li ${AI_PROVIDER} uchun yozilmagan`);
   if (!source || !Buffer.isBuffer(source.buf) || !source.buf.length) {
     throw new Error('manba surat yo\'q');
   }
 
-  const r = await postJson({
+  let r;
+  for (let urinish = 0; ; urinish++) {
+    r = await postImageRequest(product, source, choices);
+    if (!QAYTA_URINILADI.has(r.status) || urinish >= RETRY_KUTISH_MS.length) break;
+    await kut(jitter(RETRY_KUTISH_MS[urinish]));
+  }
+
+  // ⚠️ HTTP 429 bu yerda ODDIY xato emas, TASHXIS: 2026-08-06 da bepul
+  // tarifda rasm kvotasi `limit: 0` edi va xabar "27 soniyadan keyin urinib
+  // ko'ring" derdi — kutish esa HECH QACHON yordam bermasdi. Shuning uchun
+  // javob tanasidan sabab olinadi va xatoga qo'shiladi.
+  if (r.status !== 200) {
+    let why = '';
+    try { why = JSON.parse(r.body)?.error?.message || ''; } catch (_) { /* tana JSON emas */ }
+    const e = new Error(`gemini rasm HTTP ${r.status}${why ? ` — ${why.slice(0, 200)}` : ''}`);
+    // ⚠️ `kind` — bu XATONING TURI, matni emas. Chaqiruvchi (`routes/ai.js`)
+    // shunga qarab foydalanuvchiga nima deyishni hal qiladi: "provayder
+    // band, keyinroq urinib ko'ring" bilan "so'rov rad etildi" ni bitta
+    // "xato" ga qo'shib yuborish foydalanuvchini FOYDASIZ qayta urinishga
+    // undardi (2026-08-08). Matnni tahlil qilish yo'li ATAYLAB tanlanmadi —
+    // xato matni o'zgarsa u jimgina ishlamay qolardi.
+    if (QAYTA_URINILADI.has(r.status)) e.kind = 'busy';
+    throw e;
+  }
+
+  let json;
+  try { json = JSON.parse(r.body); } catch (_) { throw new Error('gemini rasm javobi JSON emas'); }
+  const img = extractImage(json);
+  return { ...img, model: `${AI_PROVIDER}:${AI_IMAGE_MODEL}` };
+}
+
+function postImageRequest(product, source, choices) {
+  return postJson({
     hostname: 'generativelanguage.googleapis.com',
     path: `/v1beta/models/${encodeURIComponent(AI_IMAGE_MODEL)}:generateContent`,
     headers: { 'x-goog-api-key': AI_API_KEY },
@@ -446,21 +535,6 @@ async function generateImage(product, source, choices) {
     maxBytes: MAX_IMAGE_RESPONSE_BYTES,
     timeoutMs: IMAGE_TIMEOUT_MS,
   });
-
-  // ⚠️ HTTP 429 bu yerda ODDIY xato emas, TASHXIS: 2026-08-06 da bepul
-  // tarifda rasm kvotasi `limit: 0` edi va xabar "27 soniyadan keyin urinib
-  // ko'ring" derdi — kutish esa HECH QACHON yordam bermasdi. Shuning uchun
-  // javob tanasidan sabab olinadi va xatoga qo'shiladi.
-  if (r.status !== 200) {
-    let why = '';
-    try { why = JSON.parse(r.body)?.error?.message || ''; } catch (_) { /* tana JSON emas */ }
-    throw new Error(`gemini rasm HTTP ${r.status}${why ? ` — ${why.slice(0, 200)}` : ''}`);
-  }
-
-  let json;
-  try { json = JSON.parse(r.body); } catch (_) { throw new Error('gemini rasm javobi JSON emas'); }
-  const img = extractImage(json);
-  return { ...img, model: `${AI_PROVIDER}:${AI_IMAGE_MODEL}` };
 }
 
 module.exports = {

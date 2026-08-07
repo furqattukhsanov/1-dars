@@ -130,6 +130,11 @@ const STR = {
     aiImgLoading: "Rasm chizilmoqda… (30 soniyagacha)",
     aiImgNote: "AI tasavvuri — haqiqiy mahsulot emas",
     aiImgNoPhoto: "Bu mahsulotda surat yo'q, shuning uchun rasm chizib bo'lmaydi",
+    // ⚠️ "Kreditingiz qaytarildi" AYTILADI — server uni haqiqatan qaytaradi
+    // va buni jim qoldirish xaridorni "pulim ketdi" degan shubhada
+    // qoldirardi (2026-08-08 da aynan shu holat bo'lgan).
+    aiBusy: "AI xizmati hozir band. Kreditingiz qaytarildi — bir necha daqiqadan keyin urinib ko'ring",
+    aiBlocked: "AI bu so'rov bo'yicha rasm chizishdan bosh tortdi. Kreditingiz qaytarildi — javoblarni o'zgartirib ko'ring",
     // — Sharhlar —
     reviewsT: "Sharhlar", noReviews: "Hali sharh yo'q", noReviewsSub: "Birinchi sharhni siz yozishingiz mumkin",
     rateIt: "Baholash", rated: "Baholandi", revTitle: "Matoni baholang",
@@ -262,6 +267,8 @@ const STR = {
     aiImgLoading: "Рисуем изображение… (до 30 секунд)",
     aiImgNote: "Представление AI — это не реальный товар",
     aiImgNoPhoto: "У этого товара нет фото, поэтому изображение не построить",
+    aiBusy: "Сервис AI сейчас перегружен. Кредит возвращён — попробуйте через несколько минут",
+    aiBlocked: "AI отказался рисовать по этому запросу. Кредит возвращён — попробуйте изменить ответы",
     // — Отзывы —
     reviewsT: "Отзывы", noReviews: "Отзывов пока нет", noReviewsSub: "Вы можете оставить первый отзыв",
     rateIt: "Оценить", rated: "Оценено", revTitle: "Оцените ткань",
@@ -1404,6 +1411,31 @@ function aiImageSection(productId) {
     </div>`;
   }
 
+  // Holat 4v — provayder band (2026-08-08). Alohida holat, chunki bu
+  // NOSOZLIK EMAS: server allaqachon uch marta urinib ko'rgan va kredit
+  // qaytarilgan. Xabar shuni aytadi — "xato" degan qizil blok bu yerda
+  // yolg'on bo'lardi.
+  if (st.state === 'busy') {
+    return `<div>${head}
+      <div class="ai-msg ai-msg-warn">
+        ${T.aiBusy}
+        <button class="ai-ghost" data-action="askAiImage" data-arg="${esc(productId)}">${T.aiRetry}</button>
+      </div>
+    </div>`;
+  }
+
+  // Holat 4g — model rad etdi. ⚠️ Tugma "qayta urinish" EMAS: ayni javoblar
+  // ayni rad javobini beradi va takror bosish faqat kutish bo'lardi.
+  // Yagona foydali harakat — javoblarni o'zgartirish.
+  if (st.state === 'blocked') {
+    return `<div>${head}
+      <div class="ai-msg ai-msg-warn">
+        ${T.aiBlocked}
+        <button class="ai-ghost" data-action="resetAiImage" data-arg="${esc(productId)}">${T.aiAgain}</button>
+      </div>
+    </div>`;
+  }
+
   // Holat 5 — texnik xato. Tugma QAYTA FAOLLASHADI.
   // ⚠️ Zaxira sifatida biror "namunaviy rasm" ATAYLAB ko'rsatilmaydi: u AI
   // ishlamayotganini yashirardi va bu loyihaning "jimgina yolg'on yo'qlikdan
@@ -1516,6 +1548,17 @@ async function askAiImage(productId) {
       // Serverning oq ro'yxati rad etdi — deyarli har doim erkin matn
       // sababli (chip kalitlari serverdan kelgan).
       S.aiImages[id] = { state: 'badtext' };
+    } else if (j && j.error === 'ai_busy') {
+      // Provayder O'Z tomonida band. Bu bizning nosozligimiz EMAS va u
+      // vaqtinchalik — server allaqachon uch marta qayta urinib ko'rgan.
+      // Umumiy "xato" dan ajratilgani ataylab: xabar boshqa, chunki bu
+      // yerda qayta urinish HAQIQATAN yordam beradi.
+      S.aiImages[id] = { state: 'busy' };
+    } else if (r.status === 422 && j && j.error === 'ai_blocked') {
+      // Model rasmni chizishdan bosh tortdi. Qayta urinish FOYDASIZ —
+      // ayni javoblar ayni natijani beradi, shuning uchun tugma
+      // "qayta urinish" emas, "javoblarni o'zgartirish" bo'ladi.
+      S.aiImages[id] = { state: 'blocked' };
     } else if (r.status === 422 && j && j.error === 'no_source_photo') {
       // Alohida holat: "surat yo'q" texnik xato EMAS va uni umumiy xato
       // sifatida ko'rsatish foydalanuvchini foydasiz qayta urinishga

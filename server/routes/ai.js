@@ -42,7 +42,13 @@ async function takeCredits(tgUserId, cheksiz) {
 
   const { rows } = await pool.query(
     `INSERT INTO ai_credits (tg_user_id, balance, spent)
-     VALUES ($1, $2 - $3, $3)
+     -- ⚠️ ::int SHART. Turi ko'rsatilmasa ikkala parametr ham Postgres uchun
+     -- unknown bo'ladi va u qaysi ayirish operatorini tanlashni bilmaydi:
+     -- "operator is not unique: unknown - unknown".
+     -- Nuqson 2026-08-07 da production'da chiqdi va uni test TUTMADI, chunki
+     -- Test 14c pool.query ni taqlid qiladi — ya'ni SQL matni HECH QACHON
+     -- haqiqiy Postgres'ga bormaydi. Qorovul: Test 14o (matnni skanerlaydi).
+     VALUES ($1, $2::int - $3::int, $3::int)
      ON CONFLICT (tg_user_id)
      DO UPDATE SET balance = ai_credits.balance - $3,
                    spent   = ai_credits.spent + $3,
@@ -277,7 +283,31 @@ async function handleAiImage(req, res) {
       credits: { balance: kredit.balance, cost: AI_CREDIT_COST, unlimited: !!kredit.cheksiz },
     });
   } catch (e) {
+    // ============ XATO TURI (2026-08-08) ============
+    // Uch xil nosozlik uch xil javob beradi, chunki foydalanuvchi ular
+    // bilan uch xil ish qiladi:
+    //   busy    — provayder band (503/500). Qayta urinish FOYDALI.
+    //   blocked — model rasmni rad etdi. Qayta urinish FOYDASIZ: ayni
+    //             prompt ayni javobni beradi, javoblarni O'ZGARTIRISH kerak.
+    //   qolgani — bizning tomonda nosozlik.
+    // Hammasini bitta `ai_unavailable` ga qo'shish aynan 2026-08-08 da
+    // zarar keltirdi: xaridor rad etilgan so'rovni qayta-qayta bosardi.
+    //
+    // ⚠️ Kredit UCHALASIDA ham qaytarilgan (yuqoridagi `refundCredits`),
+    // ya'ni bu yerdagi tanlov faqat XABARGA ta'sir qiladi.
+    //
     // Birinchi argument — alert guruhlash KALITI (CLAUDE.md, Test 10c).
+    // ⚠️ Provayder bandligi ALOHIDA kalitga chiqarilgan va bu ataylab:
+    // u bizning nosozligimiz emas va tez-tez takrorlanadi, umumiy kalitda
+    // qolsa haqiqiy nuqsonni Telegram'da ko'mib yuborardi.
+    if (e && e.kind === 'busy') {
+      console.error('aiImage provayder band:', e.message);
+      return fail(res, 'ai_busy', 503);
+    }
+    if (e && e.kind === 'blocked') {
+      console.error('aiImage rad etildi:', e.message);
+      return fail(res, 'ai_blocked', 422);
+    }
     console.error('aiImage xatosi:', e.message);
     fail(res, 'ai_unavailable', 503);
   }

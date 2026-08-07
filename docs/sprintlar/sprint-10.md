@@ -3,7 +3,8 @@
 **Holat:** tugadi
 **Sana:** rejalashtirildi 2026-08-06 (founder bilan savol-javob orqali),
 matn qismi 2026-08-06 da chiqdi va RAD ETILDI,
-**rasm qismi 2026-08-07 da tugadi va production'da tasdiqlandi**
+**rasm qismi 2026-08-07 da tugadi va production'da tasdiqlandi**,
+2026-08-08 da production'dan kelgan uch nosozlik yopildi (sprint ochilmadi)
 
 ## YOPILDI (2026-08-07)
 
@@ -1177,3 +1178,99 @@ yangi talab va ular ochib bergan nuqsonlar haqida.
 - nginx 180s bloki hali qo'llanmagan (buyruq founderga berildi)
 - Galereyada `erkak` va 018 dan oldingi (javobsiz) rasmlar endi
   ko'rsatilmaydi — o'chirilmadi, faqat yashirildi
+
+---
+
+## 2026-08-08 — Production'dan kelgan uch nosozlik yopildi
+
+Sprint 10 allaqachon `tugadi` holatida; bu bo'lim funksiya TIRIK ishlab
+turgan holda chiqqan uchta nosozlik haqida. Ikkitasi Telegram alertidan,
+biri kredit yo'lidan keldi.
+
+### Bajarilgani
+
+| Band | Natija |
+|---|---|
+| 503 qayta urinish | 2s+5s → 2s+5s+10s, ±25% jitter, 500/502/503/504 |
+| `javobda parts yo'q` | sabab `finishReason` dan olinadi (`refusalReason`) |
+| Xato TURI | `busy` / `blocked` ajratildi, route `ai_busy` (503) / `ai_blocked` (422) qaytaradi |
+| Alert kaliti | provayder bandligi alohida kalitga chiqdi |
+| Klient | ikki yangi holat + `aiBusy` / `aiBlocked` yorliqlari (uz/ru) |
+| `takeCredits` SQL | `$2::int - $3::int` — `unknown - unknown` tuzatildi |
+| Testlar | 42 ta yashil (yangi: 14o; 14f kengaytirildi) |
+| Kesh | `app.js?v=71` → `?v=72` |
+
+### Qilingan ishlar
+
+- [2026-08-08] 503 qayta urinish uzaytirildi — ikki urinish bandlik
+  to'lqinidan chiqishga yetmagani production'da ko'rindi (ketma-ket 5 ta
+  alert); jitter qo'shildi, `QAYTA_URINILADI` = 500/502/503/504
+- [2026-08-08] `extractImage` ning ko'r xato yo'li yopildi — `parts` yo'q
+  javobda ham sabab (`IMAGE_SAFETY`, `PROHIBITED_CONTENT`, …) xato matniga
+  tushadi
+- [2026-08-08] `routes/ai.js` xato turiga qarab uch xil javob qaytaradi;
+  kredit uchalasida ham qaytariladi (o'zgarmadi)
+- [2026-08-08] Mini App'da `busy` va `blocked` holatlari — `blocked` da
+  tugma "Qayta urinish" EMAS, "Boshqacha chizish"
+- [2026-08-08] `takeCredits` dagi `VALUES ($1, $2 - $3, $3)` tuzatildi —
+  turi ko'rsatilmagan ikki parametr Postgres uchun `unknown` edi
+- [2026-08-08] Test 14o qo'shildi (6 band), Test 14f kengaytirildi;
+  qorovul uch xil orqaga qaytarish bilan tekshirildi va uchalasida ham
+  qizil bo'ldi
+
+### Qarorlar
+
+- [2026-08-08] Qaror: **429 qayta urinish ro'yxatiga KIRMAYDI va buni endi
+  test qo'riqlaydi.** 2026-08-06 darsi: bepul tarifda kvota `limit: 0` edi
+  va Google'ning o'z xabari "27 soniyadan keyin urinib ko'ring" derdi —
+  kutish HECH QACHON yordam bermasdi. 429 ni takrorlash faqat javobni
+  sekinlashtiradi va sababni yashiradi. `500 INTERNAL` esa AKSINCHA
+  ro'yxatga kiritildi: Gemini uni bandlik cho'qqisida 503 bilan bir xil
+  ma'noda qaytaradi
+- [2026-08-08] Qaror: **jitter bezak emas, qorovul.** Kutish aniq 2s/5s
+  bo'lsa bandlikda yiqilgan HAMMA so'rov bir vaqtda uyg'onib band
+  provayderga birdan urardi — ya'ni qayta urinishning O'ZI bandlikni
+  kuchaytirardi. Umumiy kutish 17s: nginx chegarasiga sig'ishi kerak,
+  aks holda foydalanuvchi 504 ko'rardi va server hamon ishlab turardi
+- [2026-08-08] Qaror: **xato TURI belgi bilan uzatiladi, matn tahlili
+  bilan emas** (`e.kind`). Matnni o'qib "band ekan" deb topish yo'li
+  ataylab tanlanmadi — provayder xato matnini o'zgartirsa u JIMGINA
+  ishlamay qolardi va foydalanuvchi yana umumiy xato ko'rardi
+- [2026-08-08] Qaror: **`MAX_TOKENS` rad etish EMAS.** U bizning
+  tomondagi nosozlik va uni `blocked` deb belgilash foydalanuvchiga
+  "javoblaringizni o'zgartiring" deb YOLG'ON aytardi — o'zgartirish esa
+  hech narsani hal qilmasdi. Testda alohida band bilan qulflandi
+- [2026-08-08] Qaror: **provayder bandligi alohida alert kalitida.** U
+  bizning nosozligimiz emas va tez-tez takrorlanadi; umumiy
+  `aiImage xatosi:` kalitida qolsa haqiqiy nuqsonni Telegram'da ko'mib
+  yuborardi. Birinchi argument o'zgarmas — Test 10c qoidasi saqlandi
+- [2026-08-08] Qaror: **xabar kredit qaytarilganini AYTADI.** Server uni
+  allaqachon qaytarardi, lekin buni jim qoldirardi va xaridor "pulim
+  ketdi" degan shubhada qolardi. Qaytarish faqat kodda bo'lsa u
+  foydalanuvchi uchun mavjud emas
+- [2026-08-08] Dars: **taqlid qilingan `pool.query` SQL matnini
+  TEKSHIRMAYDI.** `takeCredits` dagi `unknown - unknown` production'da
+  yiqildi, Test 14c esa yashil turardi — chunki u `pool.query` ni taqlid
+  qiladi va SQL hech qachon haqiqiy Postgres'ga bormaydi. Qorovul
+  matnning O'ZIGA qo'yildi (Test 14o, 6-band): ikki `$N` orasidagi
+  arifmetikada tur ko'rsatilmasa test qizil bo'ladi
+- [2026-08-08] Dars: **izohdagi "Qorovul: Test 14o" ning o'zi qorovul
+  emas.** `::int` tuzatilganda izohga shunday yozilgan edi, Test 14o esa
+  o'sha bandni UMUMAN tekshirmasdi — ya'ni himoya bor deb ishonilardi va
+  yo'q edi. Bu CLAUDE.md dagi "yozilgan qoida himoya emas — uni
+  tekshiradigan test himoya" qoidasining aynan o'zi, faqat bu safar
+  yolg'on da'vo izohda turardi. Band qo'shilgach izoh haqiqatga aylandi
+- [2026-08-08] Dars: **test soni yana noto'g'ri sanaldi.** Sessiya
+  yakunida "45 test (avval 44 edi)" deb yozilgandi, o'lchov esa
+  **42 (avval 41)** berdi. Bu `docs`dagi raqam qoidasining uchinchi
+  takrori — raqam yozilishidan oldin `node test.js` bilan sanalsin
+
+### Ochiq qolgani
+
+- **503 ning ildizi bizda emas** — bu Google tomonidagi bandlik va qayta
+  urinish uni kamaytiradi, YO'Q QILMAYDI. Butunlay yopish uchun zaxira
+  rasm modeli kerak, `AI_IMAGE_MODEL` esa hozir bitta qiymat
+  (`config.js`) — ya'ni bu band kodni emas, sozlama shaklini o'zgartiradi
+- Yangi xato yo'llari production'da hali KO'RILMAGAN: `ai_busy` va
+  `ai_blocked` ekranlari faqat testda tekshirilgan. Deploy'dan keyin
+  haqiqiy 503 kutiladi va xabar QO'LDA tasdiqlansin
