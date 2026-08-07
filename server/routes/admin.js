@@ -26,7 +26,7 @@ async function handleAdminSummary(req, res, ip) {
     const [
       modRes, appRes, sellerRes, todayRes, catRes, ordersRes,
       dailyRes, monthlyRes, totalsRes, topSellersRes,
-      appListRes, sellerListRes, modListRes, disputeRes,
+      appListRes, sellerListRes, modListRes, disputeRes, usersRes,
     ] = await Promise.all([
       pool.query(`SELECT count(*)::int AS n FROM products WHERE status='pending'`),
       pool.query(`SELECT count(*)::int AS n FROM seller_applications WHERE status='pending' AND step='done'`),
@@ -119,6 +119,23 @@ async function handleAdminSummary(req, res, ip) {
          WHERE p.status='pending' ORDER BY p.created_at DESC LIMIT 50`),
 
       pool.query(`SELECT count(*)::int AS n FROM disputes WHERE status='open'`),
+
+      // ---- Foydalanuvchilar. ⚠️ Bu raqam "botga /start bosgan odam" EMAS:
+      // `users` qatori faqat Mini App ochilganda (`catalog.js` → initData auth),
+      // saytga kirilganda (`web-auth.js`) yoki sotuvchi arizasi
+      // to'ldirilganda (`seller-application.js`) tug'iladi. `/start` bosib
+      // ilovani ochmagan odam bazada UMUMAN yo'q, shuning uchun panelda ham
+      // yorliq "Ilovani ochganlar" deb yoziladi — "botdagi obunachilar" deb
+      // yozilsa bu raqam jimgina yolg'on gapirardi.
+      pool.query(`
+        SELECT count(*)::int                                                     AS total,
+               count(*) FILTER (WHERE role='buyer')::int                          AS buyers,
+               count(*) FILTER (WHERE role='seller')::int                         AS sellers,
+               count(*) FILTER (WHERE role='admin')::int                          AS admins,
+               count(*) FILTER (WHERE created_at >= now() - interval '7 days')::int  AS new7,
+               count(*) FILTER (WHERE created_at >= now() - interval '30 days')::int AS new30,
+               count(*) FILTER (WHERE phone IS NOT NULL)::int                     AS with_phone
+          FROM users`),
     ]);
 
     const t = totalsRes.rows[0];
@@ -155,6 +172,16 @@ async function handleAdminSummary(req, res, ip) {
       topSellers: topSellersRes.rows.map((r) => ({
         id: r.id, name: r.name, orders: r.orders, gmv: Number(r.gmv),
       })),
+
+      users: {
+        total: usersRes.rows[0].total,
+        buyers: usersRes.rows[0].buyers,
+        sellers: usersRes.rows[0].sellers,
+        admins: usersRes.rows[0].admins,
+        new7: usersRes.rows[0].new7,
+        new30: usersRes.rows[0].new30,
+        withPhone: usersRes.rows[0].with_phone,
+      },
 
       categories: catRes.rows.map((r) => ({ catKey: r.cat_key, count: r.n })),
 

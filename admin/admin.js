@@ -301,6 +301,7 @@ function renderAll() {
   renderModQueue();
   renderDisputes();
   renderTopSellers();
+  renderUsers();
   renderPlanFakt();
 
   updateNavBadges(d);
@@ -766,6 +767,62 @@ function renderTopSellers() {
         <div class="cat-bar-wrap"><div class="cat-bar" style="width:${Math.round((s.gmv / max) * 100)}%;background:${CAT_COLORS[i % CAT_COLORS.length]}"></div></div>
       </div>
       <span class="cat-count">${fmtSomShort(s.gmv)}</span>
+    </div>
+  `).join('');
+}
+
+/* ─── Foydalanuvchilar ─── */
+// ⚠️ Yorliqlarda ATAYLAB "ilovani ochganlar" deyiladi, "bot obunachilari" emas:
+// `users` qatori faqat Mini App / sayt / sotuvchi arizasi orqali tug'iladi
+// (server tomonda `handleAdminSummary` izohiga qarang). `/start` bosgan odam
+// bazada yo'q, ya'ni "obunachi" deb yozilsa raqam jimgina yolg'on gapirardi.
+//
+// Backend eski versiyada qolsa (`users` maydoni yo'q) blok BUTUNLAY yashiriladi —
+// nol ko'rsatilmaydi: "ma'lumot yo'q" bilan "hech kim yo'q" bir xil ko'rinmasin.
+function renderUsers() {
+  const block = document.getElementById('usersBlock');
+  const note = document.getElementById('usersNote');
+  if (!block) return;
+  const u = state.summary.users;
+  if (!u) {
+    block.hidden = true;
+    if (note) note.hidden = true;
+    return;
+  }
+  block.hidden = false;
+  if (note) note.hidden = false;
+
+  document.getElementById('usersTotal').textContent = fmtNum(u.total) + ' ta';
+
+  const rollar = [
+    { name: 'Xaridor', n: u.buyers },
+    { name: 'Sotuvchi', n: u.sellers },
+    { name: 'Admin', n: u.admins },
+  ];
+  const maxRol = Math.max(...rollar.map((r) => r.n), 1);
+  document.getElementById('usersRoles').innerHTML = rollar.map((r, i) => `
+    <div class="cat-row">
+      <span class="cat-swatch" style="background:${CAT_COLORS[i % CAT_COLORS.length]}"></span>
+      <div class="cat-info">
+        <div class="cat-name">${r.name}</div>
+        <div class="cat-bar-wrap"><div class="cat-bar" style="width:${Math.round((r.n / maxRol) * 100)}%;background:${CAT_COLORS[i % CAT_COLORS.length]}"></div></div>
+      </div>
+      <span class="cat-count">${fmtNum(r.n)}</span>
+    </div>
+  `).join('');
+
+  // Ustunlar jamiga nisbatan chiziladi — "oxirgi 30 kunda kelganlar ulushi"
+  // o'sish tezligini bitta qarashda ko'rsatadi.
+  const yangi = [
+    { text: 'Oxirgi 7 kun', n: u.new7, color: '#119DAB' },
+    { text: 'Oxirgi 30 kun', n: u.new30, color: '#D98E0C' },
+    { text: 'Telefon raqami bor', n: u.withPhone, color: '#C9362D' },
+  ];
+  document.getElementById('usersNew').innerHTML = yangi.map((y) => `
+    <div class="status-dist-row">
+      <span class="status-dist-label">${y.text}</span>
+      <div class="status-dist-bar-wrap"><div class="status-dist-bar" style="width:${u.total ? Math.round((y.n / u.total) * 100) : 0}%;background:${y.color}"></div></div>
+      <span class="status-dist-val">${fmtNum(y.n)}</span>
     </div>
   `).join('');
 }

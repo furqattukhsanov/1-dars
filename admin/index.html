@@ -341,6 +341,34 @@
             </div>
           </div>
 
+          <!-- ─── Foydalanuvchilar ─── -->
+          <div class="dash-grid dash-grid-even" id="usersBlock" hidden>
+            <div class="panel glass">
+              <div class="panel-head">
+                <div>
+                  <div class="panel-title">Foydalanuvchilar — ilovani ochganlar</div>
+                  <div class="panel-value" id="usersTotal">–</div>
+                </div>
+              </div>
+              <div class="cat-list" id="usersRoles"></div>
+            </div>
+
+            <div class="panel glass">
+              <div class="panel-head">
+                <div class="panel-title">Yangi foydalanuvchilar</div>
+              </div>
+              <div class="status-dist" id="usersNew"></div>
+            </div>
+          </div>
+
+          <div class="sample-note" id="usersNote" hidden>
+            Bu raqam — <b>ilovani ochgan</b> odamlar soni, botdagi obunachilar soni EMAS.
+            Botga <code>/start</code> bosib Mini App'ni ochmagan odam bazaga umuman
+            yozilmaydi, shuning uchun haqiqiy bot auditoriyasi bundan kattaroq va
+            hozircha hech qayerda hisoblanmaydi. Telegram Bot API ham botning
+            obunachilar sonini bermaydi.
+          </div>
+
           <div class="panel glass">
             <div class="panel-head">
               <div class="panel-title">Kategoriyalar bo'yicha e'lonlar</div>
@@ -443,6 +471,6 @@
     </div>
   </div>
 
-  <script src="admin.js?v=20"></script>
+  <script src="admin.js?v=21"></script>
 </body>
 </html>
