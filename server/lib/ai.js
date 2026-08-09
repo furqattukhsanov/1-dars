@@ -1,6 +1,7 @@
 const https = require('https');
 const crypto = require('crypto');
 const { AI_PROVIDER, AI_API_KEY, AI_IMAGE_MODEL } = require('../config');
+const { BANNER_VERSION } = require('./watermark');
 
 // ============ AI QATLAMI ============
 // Bu modul TARMOQ va SHAKL bilan shug'ullanadi. Kesh, limit va bazadan
@@ -98,8 +99,15 @@ const PROMPT_VERSION = 4;
 // (u faqat mato matniga qarardi). Sotuvchi suratni almashtirsa eski rasm
 // boshqa matoni ko'rsatib turardi va buni hech kim sezmasdi: "jimgina
 // yolg'on" oilasining aynan o'zi.
+// ⚠️ `BANNER_VERSION` ham SHU YERDA (2026-08-09). Chiqadigan rasm endi faqat
+// promptdan emas, ustiga qo'shiladigan brend tasmasidan ham iborat — ya'ni
+// "saqlangan rasm hozir chizadiganimizga mos keladimi?" degan savolga tasma
+// ham kiradi. Tashqarida qoldirilsa: tasma o'zgargan kuni bazadagi kesh eski
+// rasmni qaytaraverardi va R2 dagi nusxa `immutable` bo'lgani uchun eskisi
+// BIR YIL yashardi.
 function imageSourceHash(p, photoRef) {
-  const parts = [p.name_uz, p.comp_uz, p.cat_key, String(photoRef || ''), `v${PROMPT_VERSION}`]
+  const parts = [p.name_uz, p.comp_uz, p.cat_key, String(photoRef || ''),
+    `v${PROMPT_VERSION}`, `b${BANNER_VERSION}`]
     .map((v) => (v == null ? '' : String(v)));
   return crypto.createHash('sha256').update(parts.join(' ')).digest('hex');
 }
@@ -669,6 +677,9 @@ function buildImagePrompt(p, choices) {
     'Lighting must stay neutral and even so the fabric keeps its true colour:',
     'no coloured light, no heavy shadows across the garment.',
     'Keep the background soft and slightly out of focus — the garment is the subject.',
+    // ⚠️ Bu band brend tasmasiga ZID EMAS: tasma modelga chizdirilmaydi,
+    // u serverda rasm TAGIGA qo'shiladi (`lib/watermark.js`). Model chizgan
+    // "logo" har safar boshqa va soxta bo'lardi.
     'No text, no logos, no watermarks in the image.',
     TAQIQ,
   ].filter(Boolean).join(' ');

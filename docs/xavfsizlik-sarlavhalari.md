@@ -205,7 +205,7 @@ Shundan keyingina `'unsafe-inline'` olib tashlanadi va CSP to'liq kuchga kiradi.
 uchun turibdi.
 
 ```
-default-src 'self'; script-src 'self' https://telegram.org https://static.cloudflareinsights.com 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; frame-ancestors 'self' https://telegram.org https://*.telegram.org; base-uri 'self'; form-action 'self'; object-src 'none'
+default-src 'self'; script-src 'self' https://telegram.org https://static.cloudflareinsights.com 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://cdn.lolamarket.uz; connect-src 'self'; frame-ancestors 'self' https://telegram.org https://*.telegram.org; base-uri 'self'; form-action 'self'; object-src 'none'
 ```
 
 ⚠️ **`static.cloudflareinsights.com` — kuzatuv rejimi topgan buzilish.** Bu
@@ -224,7 +224,7 @@ Bandlarning ma'nosi:
 | `script-src` | Skript faqat bizdan yoki `telegram.org` dan |
 | `style-src` | Uslub bizdan yoki Google Fonts'dan |
 | `font-src` | Shrift fayllari `fonts.gstatic.com` dan |
-| `img-src 'self' data:` | Rasm bizdan (`assets/`, `/api/product-photo`) |
+| `img-src 'self' data: https://cdn.lolamarket.uz` | Rasm bizdan (`assets/`, `/api/product-photo`) va R2 omboridan (2026-08-09) |
 | `connect-src 'self'` | **`fetch` faqat o'z API'imizga** — ma'lumot tashqariga chiqmaydi |
 | `frame-ancestors` | Freym himoyasi, Telegram'ga ruxsat bilan |
 | `base-uri 'self'` | `<base>` orqali hamma yo'lni burib yuborishning oldini oladi |
@@ -265,7 +265,7 @@ qiymatni **founder almashtiradi** — bu yagona qolgan qadam.
 ### Kanonik qoida — BUGUNGI qiymat
 
 ```
-default-src 'self'; script-src 'self' https://telegram.org https://static.cloudflareinsights.com; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; frame-ancestors 'self' https://telegram.org https://*.telegram.org; base-uri 'self'; form-action 'self'; object-src 'none'
+default-src 'self'; script-src 'self' https://telegram.org https://static.cloudflareinsights.com; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://cdn.lolamarket.uz; connect-src 'self'; frame-ancestors 'self' https://telegram.org https://*.telegram.org; base-uri 'self'; form-action 'self'; object-src 'none'
 ```
 
 Eskisidan farqi **bitta**: `script-src` dan `'unsafe-inline'` olib tashlandi.

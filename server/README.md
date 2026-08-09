@@ -239,6 +239,18 @@ www-data'ga tegishli, ya'ni bu himoya hali yo'q.
 | `AI_CREDITS_START` | Har bir foydalanuvchiga beriladigan boshlang'ich Lola credit (default `20`). Balans BIRINCHI so'rovda o'zi tug'iladi — alohida "berish" qadami yo'q |
 | `AI_CREDIT_COST` | Bitta rasm nechta creditga tushadi (default `2`). Narx boshlang'ich qoldiqdan katta bo'lsa jurnalda qichqiradi — hech kim rasm chiza olmasdi |
 | `AI_UNLIMITED_TG_IDS` | Cheksiz generatsiya huquqi — vergul bilan ajratilgan Telegram ID lar. ⚠️ `ADMIN_TG_IDS` dan **ATAYLAB alohida**: admin ro'yxati moderatsiya haqida, bu esa PULGA tegadi. Sarf baribir yoziladi (`ai_credits.spent`) |
+| `R2_ACCOUNT_ID` | Cloudflare akkaunt ID (hex). Endpoint HOSTNAME iga qo'yiladi, shuning uchun shakli qat'iy tekshiriladi |
+| `R2_ACCESS_KEY_ID` | R2 API tokeni. Ruxsat **Object Read & Write** va faqat shu bucket uchun bo'lsin |
+| `R2_SECRET_ACCESS_KEY` | R2 sirli kaliti. Jurnalga hech qachon yozilmaydi — faqat uzunligi |
+| `R2_BUCKET` | Bucket nomi (`lolamarket-storage`). URL YO'LIGA qo'yiladi, nomlash qoidasi tekshiriladi |
+| `R2_PUBLIC_BASE` | Ommaviy manzil (`https://cdn.lolamarket.uz`). **Yuklashdan ALOHIDA sozlama:** yuklash ishlashi rasmning ommaviy ko'rinishini bildirmaydi. Berilmasa yuklash ishlayveradi, URL esa eski Telegram proksisidan beriladi |
+
+**R2 fayl ombori (2026-08-09).** To'rttadan bittasi yetishmasa funksiya
+O'CHADI va jurnalda qichqiradi (`yaroqli=3/4` ko'rinishida) — chala sozlama
+jimgina o'tib ketmaydi. R2 o'chiq bo'lsa hamma narsa eski Telegram yo'lidan
+ishlayveradi, ya'ni bu ixtiyoriy funksiya.
+⚠️ **Zaxira nusxa bu bucket'ga QO'YILMASIN** — `cdn.lolamarket.uz` orqali
+kalitni bilgan har kim o'qiy oladi, zaxirada esa mijoz ma'lumoti bor.
 
 **Lola credit qanday ishlaydi (2026-08-07):** balans `ai_credits` jadvalida,
 atomik yechiladi (`decrementStock` naqshi). Kunlik limitdan farqi TUSHUNCHADA —

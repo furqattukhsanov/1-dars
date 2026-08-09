@@ -263,6 +263,110 @@ const ADMIN_TG_IDS = new Set(
     .split(',').map((s) => s.trim()).filter(Boolean)
 );
 
+// ============ R2 — fayl ombori (Cloudflare) ============
+// Bugungacha rasm ombori vazifasini TELEGRAM bajarib kelgan: fayl Telegram
+// serverida yotadi, bazada faqat `file_id` saqlanadi va ko'rsatishda o'z
+// serverimiz uni proksi qiladi (`routes/catalog.js` → `handleProductPhoto`).
+// U ishlaydi, lekin katalog rasmlarini BOT TOKENIGA bog'lab qo'yadi — token
+// almashsa yoki bot bloklansa rasmlar bilan birga yo'qoladi. R2 shu
+// bog'lanishni uzadi.
+//
+// ⚠️ AI bloki bilan AYNI mulohaza (va aynan shu sabab bilan yozilgan):
+// qiymatning BO'SH EMASLIGI uni haqiqiy qilmaydi. `.env` da
+// `R2_BUCKET=<bucket_nomi>` namunasi to'ldirilmay qolsa, `||` uni haqiqiy
+// deb qabul qilardi va yuklash har safar jimgina yiqilardi.
+//
+// `process.exit(1)` QILINMAYDI: fayl ombori — ixtiyoriy funksiya, usiz
+// Telegram yo'li ishlayveradi. Sozlama yaroqsiz bo'lsa funksiya O'CHADI va
+// jurnalda qichqiriladi.
+
+// Sir qiymat (kalitlar). Aniq uzunlikka BOG'LANMAYDI — `aiKey()` dagi bir xil
+// mulohaza: provayder formatni o'zgartirsa haqiqiy kalit rad etilardi.
+// Tekshiriladigani — namuna qolib ketganini ochib beradigan belgilar.
+// ⚠️ Qiymatning O'ZI hech qachon jurnalga yozilmaydi, faqat uzunligi.
+function r2Sir(raw, nom) {
+  const v = String(raw || '').trim();
+  if (!v) return '';
+  if (/[<>]/.test(v) || /\s/.test(v) || v.length < 20) {
+    console.error('R2 sozlamasi yaroqsiz, fayl ombori o\'chirildi:', `${nom} uzunlik=${v.length}`);
+    return '';
+  }
+  return v;
+}
+
+// Account ID endpoint HOSTNAME iga qo'yiladi (`<id>.r2.cloudflarestorage.com`).
+// Shuning uchun tekshiruv bu yerda qat'iy: qiyshiq qiymat so'rovni butunlay
+// BOSHQA hostga yuborardi va biz uni faqat javob kelmaganidan bilardik.
+function r2AccountId(raw) {
+  const v = String(raw || '').trim().toLowerCase();
+  if (!v) return '';
+  if (!/^[a-f0-9]{20,64}$/.test(v)) {
+    console.error('R2 sozlamasi yaroqsiz, fayl ombori o\'chirildi:', `R2_ACCOUNT_ID uzunlik=${v.length}`);
+    return '';
+  }
+  return v;
+}
+
+// Bucket nomi URL YO'LIGA qo'yiladi. Tekshiruv Cloudflare'ning o'z nomlash
+// qoidasi bilan bir xil (kichik harf, raqam, defis, 3–63) va bu shunchaki
+// tozalik emas: tekshirilmagan nom yo'lga qo'shilsa, undagi `/` yoki `..`
+// so'rovni boshqa manzilga burib yuborardi.
+function r2Bucket(raw) {
+  const v = String(raw || '').trim();
+  if (!v) return '';
+  if (!/^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$/.test(v)) {
+    console.error('R2 sozlamasi yaroqsiz, fayl ombori o\'chirildi:', `R2_BUCKET=${v}`);
+    return '';
+  }
+  return v;
+}
+
+const R2_ACCOUNT_ID = r2AccountId(process.env.R2_ACCOUNT_ID);
+const R2_ACCESS_KEY_ID = r2Sir(process.env.R2_ACCESS_KEY_ID, 'R2_ACCESS_KEY_ID');
+const R2_SECRET_ACCESS_KEY = r2Sir(process.env.R2_SECRET_ACCESS_KEY, 'R2_SECRET_ACCESS_KEY');
+const R2_BUCKET = r2Bucket(process.env.R2_BUCKET);
+
+const R2_ENABLED = !!(R2_ACCOUNT_ID && R2_ACCESS_KEY_ID && R2_SECRET_ACCESS_KEY && R2_BUCKET);
+const R2_ENDPOINT = R2_ENABLED ? `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com` : '';
+
+// Rasm foydalanuvchiga SHU manzil orqali beriladi (R2 custom domain).
+// Yuklashdan ALOHIDA sozlama va bu ataylab: yuklash ishlashi rasmning
+// ommaviy ko'rinishini bildirmaydi — domen ulanmagan bo'lishi mumkin.
+// Berilmasa yuklash ishlayveradi, URL esa eski Telegram proksisidan beriladi.
+//
+// ⚠️ Oxiridagi `/` olib tashlanadi: aks holda kalit bilan qo'shilganda
+// `//` hosil bo'lardi va u BOSHQA obyekt kaliti — 404. `lib/r2.js` dagi
+// `tekshirKalit` ham `//` ni rad etadi, ya'ni nomuvofiqlik ikki joyda
+// bir xil tushuniladi.
+function r2PublicBase(raw) {
+  const v = String(raw || '').trim().replace(/\/+$/, '');
+  if (!v) return '';
+  if (!/^https:\/\/[a-z0-9.-]+$/i.test(v)) {
+    console.error('R2_PUBLIC_BASE yaroqsiz, Telegram yo\'li ishlatiladi:', v);
+    return '';
+  }
+  return v;
+}
+
+const R2_PUBLIC_BASE = r2PublicBase(process.env.R2_PUBLIC_BASE);
+
+// ⚠️ QISMAN to'ldirilgan holat ALOHIDA qichqiradi va bu eng muhim qorovul.
+// To'rttadan uchtasi qo'yilgan bo'lsa odam "qo'ydim" deb o'ylab yuradi,
+// funksiya esa o'chiq turadi va buni hech narsa ko'rsatmasdi — `ALERT_CHAT_ID`
+// bilan 2026-08-05 da AYNAN shu bo'lgan (monitoring ikki kun o'lik turdi).
+{
+  const berilgan = ['R2_ACCOUNT_ID', 'R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY', 'R2_BUCKET']
+    .filter((n) => String(process.env[n] || '').trim() !== '').length;
+  // Tekshiruvdan O'TGANLARI sanaladi, `.env` da BORLARI emas. Farqi muhim:
+  // to'rttasi ham yozilgan, lekin bittasi yaroqsiz bo'lsa "chala" deyish
+  // YOLG'ON bo'lardi va odam yo'q qiymatni qidirib yurardi.
+  if (berilgan > 0 && !R2_ENABLED) {
+    const yaroqli = [R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET]
+      .filter(Boolean).length;
+    console.error('R2 sozlamasi to\'liq emas — fayl ombori o\'chiq:', `yaroqli=${yaroqli}/4 (.env da ${berilgan} ta yozilgan)`);
+  }
+}
+
 if (!BOT_TOKEN || !ADMIN_CHAT_ID) {
   console.error('BOT_TOKEN yoki ADMIN_CHAT_ID .env da topilmadi');
   process.exit(1);
@@ -286,5 +390,7 @@ module.exports = {
   AI_PROVIDERS, AI_PROVIDER, AI_API_KEY, AI_ENABLED, AI_DAILY_LIMIT,
   AI_CREDITS_START, AI_CREDIT_COST, AI_UNLIMITED_TG_IDS,
   AI_IMAGE_MODEL, AI_IMAGE_CHAT_ID, AI_IMAGE_ENABLED,
-  chatId, aiKey,
+  R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET,
+  R2_ENABLED, R2_ENDPOINT, R2_PUBLIC_BASE,
+  chatId, aiKey, r2Sir, r2AccountId, r2Bucket, r2PublicBase,
 };

@@ -929,6 +929,161 @@ function testChatIdValidation() {
   console.log('✅ Test 2c: Yaroqsiz chat_id qorovuli — PASS');
 }
 
+// ============ TEST 18: R2 sozlama qorovullari ============
+// Test 2c bilan BITTA OILADA va aynan shu sabab bilan yozilgan: `.env` dagi
+// qiymatning bo'sh EMASLIGI uni haqiqiy qilmaydi. R2 da bu yanada jimroq
+// yiqilardi — yuklash har safar xato beradi, rasm esa eski Telegram yo'lidan
+// baribir ko'rinib turadi, ya'ni "R2 ga o'tdik" degan ishonch YOLG'ON bo'lib
+// oylab davom etishi mumkin edi.
+function testR2ConfigValidation() {
+  const { r2Sir, r2AccountId, r2Bucket, r2PublicBase } = require('./config');
+
+  const errs = [];
+  const realError = console.error;
+  console.error = (...a) => errs.push(a[0]);
+  try {
+    // ---- Sir kalitlar ----
+    const yaxshi = 'a'.repeat(40);
+    assert.strictEqual(r2Sir(yaxshi, 'X'), yaxshi, 'to\'g\'ri kalit o\'zgarmasin');
+    assert.strictEqual(r2Sir('', 'X'), '', 'bo\'sh qiymat bo\'sh qolsin (jimgina)');
+    assert.strictEqual(r2Sir('<access_key_id>', 'X'), '', 'to\'ldirilmagan namuna rad etilsin');
+    assert.strictEqual(r2Sir('qisqa', 'X'), '', 'aql bovar qilmas qisqa kalit rad etilsin');
+    assert.strictEqual(r2Sir('a'.repeat(20) + ' b', 'X'), '', 'bo\'shliqli kalit rad etilsin');
+
+    // ---- Account ID ----
+    // U endpoint HOSTNAME iga qo'yiladi, ya'ni qiyshiq qiymat so'rovni
+    // butunlay boshqa manzilga yuborardi.
+    assert.strictEqual(r2AccountId('A'.repeat(32)), 'a'.repeat(32), 'hex kichik harfga tushsin');
+    assert.strictEqual(r2AccountId('zzz-hex-emas'), '', 'hex bo\'lmagan qiymat rad etilsin');
+    assert.strictEqual(r2AccountId('abc'), '', 'juda qisqa id rad etilsin');
+    assert.strictEqual(r2AccountId('<account_id>'), '', 'namuna rad etilsin');
+
+    // ---- Bucket nomi ----
+    // URL YO'LIGA qo'yiladi: tekshirilmagan nom `/` yoki `..` bilan so'rovni
+    // boshqa manzilga burib yuborardi.
+    assert.strictEqual(r2Bucket('lolamarket-storage'), 'lolamarket-storage', 'to\'g\'ri nom o\'tsin');
+    assert.strictEqual(r2Bucket('<bucket_nomi>'), '', 'namuna rad etilsin');
+    assert.strictEqual(r2Bucket('Katta-Harf'), '', 'katta harf rad etilsin');
+    assert.strictEqual(r2Bucket('a/b'), '', 'yo\'l ajratkichi bo\'lgan nom rad etilsin');
+    assert.strictEqual(r2Bucket('ab'), '', 'juda qisqa nom rad etilsin');
+
+    // ---- Ommaviy manzil ----
+    assert.strictEqual(r2PublicBase('https://cdn.lolamarket.uz'), 'https://cdn.lolamarket.uz',
+      'to\'g\'ri manzil o\'zgarmasin');
+    assert.strictEqual(r2PublicBase('https://cdn.lolamarket.uz/'), 'https://cdn.lolamarket.uz',
+      'oxiridagi `/` kesilsin — aks holda kalit bilan `//` hosil bo\'lardi');
+    assert.strictEqual(r2PublicBase('http://cdn.lolamarket.uz'), '', 'http rad etilsin');
+    assert.strictEqual(r2PublicBase('https://cdn.lolamarket.uz/rasm'), '', 'yo\'lli manzil rad etilsin');
+    assert.strictEqual(r2PublicBase(''), '', 'berilmagani jimgina bo\'sh qolsin');
+  } finally {
+    console.error = realError;
+  }
+
+  // Yaroqsiz qiymat JURNALDA IZ qoldirsin — jimgina tashlanmasin.
+  assert.ok(errs.length >= 10, `yaroqsiz qiymatlar jurnalda iz qoldirsin (topildi: ${errs.length})`);
+  assert.ok(errs.every((k) => typeof k === 'string' && !/\$\{/.test(k)),
+    'alert guruhlash kaliti (1-argument) o\'zgarmas satr bo\'lsin');
+
+  console.log(`✅ Test 18: R2 sozlama qorovullari — PASS (${errs.length} ta ogohlantirish)`);
+}
+
+// ============ TEST 18b: R2 kalit qorovuli ============
+// Kalit bugun BIZNING tomondan yasaladi, foydalanuvchidan kelmaydi. Test
+// aynan KELAJAK uchun: kimdir uni tashqi qiymatdan yasay boshlasa, `..`
+// bilan bucket ichida boshqa joyga yozish yo'li ochilardi va buni hech narsa
+// ushlamasdi. Qorovul `R2_ENABLED` dan OLDIN turishi ham shu yerda qulflanadi.
+function testR2KeyGuard() {
+  const { tekshirKalit, encodeKey } = require('./lib/r2');
+
+  assert.strictEqual(tekshirKalit('ai/p-1/abc.png'), 'ai/p-1/abc.png', 'oddiy kalit o\'tsin');
+
+  const yomon = ['', '/ai/x.png', 'ai/../../x.png', 'ai//x.png', 'a'.repeat(513)];
+  for (const k of yomon) {
+    assert.throws(() => tekshirKalit(k), /yaroqsiz/, `yaroqsiz kalit rad etilsin: ${JSON.stringify(k.slice(0, 20))}`);
+  }
+
+  // `/` yo'l ajratkichi bo'lib QOLSIN — butun kalitga `encodeURIComponent`
+  // qo'llansa u `%2F` ga aylanib, obyekt butunlay boshqa nom ostida yotardi.
+  assert.strictEqual(encodeKey('ai/p-1/x.png'), 'ai/p-1/x.png', 'yo\'l ajratkichi saqlansin');
+  assert.strictEqual(encodeKey('ai/bo\'sh joy.png'), 'ai/bo%27sh%20joy.png',
+    'bo\'shliq va tirnoq qochirilsin (AWS imzosi RFC 3986 kutadi)');
+
+  console.log('✅ Test 18b: R2 kalit qorovuli — PASS');
+}
+
+// ============ TEST 18c: R2 yiqilsa XARIDOR zarar ko'rmasin ============
+// Eng nozik band. Kredit AI chaqiruvidan OLDIN yechiladi, rasm esa Telegram'ga
+// ALLAQACHON yuklangan bo'ladi — ya'ni R2 ga nusxa olish qadami yiqilsa
+// foydalanuvchi to'lagan narsasini oldi va so'rov MUVAFFAQIYATLI tugashi kerak.
+// Agar bu blok kreditni qaytaradigan `try` ichiga tushib qolsa, R2 nosozligi
+// butun so'rovni yiqitardi: xaridor xato ko'rardi, rasm esa mavjud bo'lardi.
+function testR2FailureIsolation() {
+  const fs = require('fs');
+  const path = require('path');
+  const src = fs.readFileSync(path.join(__dirname, 'routes', 'ai.js'), 'utf8');
+
+  const iRefund = src.indexOf('await refundCredits(');
+  const iThrow = src.indexOf('throw e;', iRefund);
+  const iR2 = src.indexOf('await r2Put(');
+  assert.ok(iRefund > 0 && iThrow > 0 && iR2 > 0, 'refund, throw va r2Put — uchalasi ham bo\'lsin');
+  assert.ok(iR2 > iThrow,
+    'R2 ga yozish kredit qaytaradigan `try` dan TASHQARIDA bo\'lsin');
+
+  // Xato yutilmasin: alertga chiqsin, aks holda R2 har safar yiqilib turgan
+  // holat JIMGINA davom etardi (`ALERT_CHAT_ID` darsi).
+  const blok = src.slice(iR2, src.indexOf('---- 5. Keshga yozish'));
+  assert.ok(/console\.error\('aiImage R2 ga yozilmadi:'/.test(blok),
+    'R2 xatosi alertga chiqsin (o\'zgarmas guruhlash kaliti bilan)');
+  assert.ok(!/throw/.test(blok), 'R2 xatosi so\'rovni YIQITMASIN');
+
+  // `file_id` HAMON yoziladi — zaxira yo'l yo'qolmasin.
+  assert.ok(/INSERT INTO product_ai_image[\s\S]{0,200}file_id, r2_key/.test(src),
+    'keshga file_id VA r2_key birga yozilsin');
+
+  // Chiqishda R2 bo'lmasa Telegram yo'liga qaytilsin.
+  assert.ok(/r2PublicUrl\(r2Key\) \|\| productPhotoUrl\(fileId\)/.test(src),
+    'R2 kaliti yo\'q bo\'lsa eski Telegram proksisi ishlatilsin');
+  assert.ok(!/image: productPhotoUrl\(/.test(src),
+    'AI rasm manzili hamma joyda `aiImageUrl` dan o\'tsin — to\'g\'ridan-to\'g\'ri proksi qolmasin');
+
+  // Migratsiya Telegram zaxirasini qulflagan bo'lsin.
+  const mig = fs.readFileSync(path.join(__dirname, '..', 'db', '021_r2_keys.sql'), 'utf8');
+  assert.ok(/file_id.*endi NOT NULL emas|fid_nullable <> 'NO'/.test(mig),
+    'migratsiya `file_id` NOT NULL qolganini tekshirsin');
+
+  console.log('✅ Test 18c: R2 yiqilsa xaridor zarar ko\'rmaydi — PASS');
+}
+
+// ============ TEST 18d: R2 kaliti TARKIBGA bog'langan ============
+// Obyekt `immutable` va bir yil keshlanadi (sinovda tasdiqlangan: R2 dan
+// o'chirilgandan keyin ham CDN `HIT` berib turdi). Ya'ni bitta kalit ostidagi
+// rasm HECH QACHON o'zgarmasligi shart. Kalit tasodifiy bo'lsa yoki faqat
+// mahsulot id'sidan yasalsa, surat almashgan kuni ESKI rasm bir yil davomida
+// yangisi o'rniga ko'rinib turardi — va buni hech narsa ko'rsatmasdi.
+function testR2KeyIsContentAddressed() {
+  const fs = require('fs');
+  const path = require('path');
+  const src = fs.readFileSync(path.join(__dirname, 'routes', 'ai.js'), 'utf8');
+
+  const m = src.match(/function aiImageKey\(([^)]*)\)\s*\{([\s\S]*?)\n\}/);
+  assert.ok(m, 'aiImageKey funksiyasi topilsin');
+  const [, args, tana] = m;
+
+  assert.ok(/sourceHash/.test(args) && /cHash/.test(args),
+    'kalit MANBA hash va JAVOBLAR hash ni olsin');
+  assert.ok(/sourceHash/.test(tana) && /cHash/.test(tana),
+    'ikkala hash ham kalit ichida ISHLATILSIN — argument olib, tashlab yubormasin');
+  assert.ok(!/Date\.now\(\)|Math\.random\(\)/.test(tana),
+    'kalit tasodifiy yoki vaqtga bog\'liq BO\'LMASIN — aks holda kesh cheksiz o\'sardi');
+
+  // Kesh sarlavhasi `immutable` ekani va kalit shu taxminga tayanishi
+  // bir joyda qulflansin.
+  const r2 = fs.readFileSync(path.join(__dirname, 'lib', 'r2.js'), 'utf8');
+  assert.ok(/immutable/.test(r2), 'r2Put `immutable` kesh sarlavhasini qo\'ysin');
+
+  console.log('✅ Test 18d: R2 kaliti tarkibga bog\'langan — PASS');
+}
+
 // ============ TEST 10c: Alert guruhlash kaliti QAT'IY ============
 // `console.error` ning birinchi argumenti alert kaliti bo'lib ishlaydi
 // (`lib/alert.js` → `argsToKeyAndDetail(args)` uni aynan `args[0]` dan oladi).
@@ -2230,6 +2385,150 @@ function testComboText() {
   console.log(`✅ Test 14m: Combo erkin matni kirishda tozalanadi — PASS (chegara ${COMBO_TEXT_MAX})`);
 }
 
+// ============ TEST 19: AI rasmiga brend tasmasi ============
+// Founder qarori 2026-08-09: "shuni har bir AI bilan qilingan rasmni tagiga
+// qo'y doim". Tasma `server/assets/lola-banner.png` da yotadi va sof Node
+// PNG kodeki bilan qo'shiladi (`lib/png.js`, `lib/watermark.js`).
+//
+// Nima uchun test: bu yerda buzilishlarning HAMMASI jimgina bo'ladi —
+// tasma tushmay qolsa ham rasm chiroyli ko'rinadi, faqat logosiz.
+
+// ⚠️ Tasma fayli almashsa BANNER_VERSION ham oshsin. Bu Test 16/17 bilan
+// bitta oila: obyekt R2 da `immutable, max-age=31536000` bilan yotadi va
+// versiya oshmasa YANGI tasma eski kalit ostida qolib, bir yil ko'rinmasdi.
+const BANNER_QOROVUL = {
+  1: 'a46e144ed2a27ba096223270cd38bfcb7b457fceae4a2602b2691c40df851da8',
+};
+
+function testPngCodecRoundTrip() {
+  const fs = require('fs');
+  const path = require('path');
+  const png = require('./lib/png');
+
+  // Qo'lda yasalgan kadr: har piksel boshqa — filtr tanlashning HAMMA yo'li
+  // bosib o'tilsin (tekis rangda hamma filtr bir xil natija berardi).
+  const W = 37, H = 23;
+  const data = Buffer.alloc(W * H * 4);
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      const i = (y * W + x) * 4;
+      data[i] = (x * 7 + y * 3) & 0xff;
+      data[i + 1] = (x * x + y) & 0xff;
+      data[i + 2] = (y * 11) & 0xff;
+      data[i + 3] = x % 5 === 0 ? 0 : 255;
+    }
+  }
+
+  const kodlangan = png.encode({ width: W, height: H, data });
+  const qayta = png.decode(kodlangan);
+  assert.strictEqual(qayta.width, W, 'kodlash-dekodlashda en o\'zgarmasin');
+  assert.strictEqual(qayta.height, H, 'kodlash-dekodlashda bo\'y o\'zgarmasin');
+  assert.ok(qayta.data.equals(data),
+    'PNG aylanishi YO\'QOTISHSIZ bo\'lsin — piksel o\'zgarsa AI rasmi jimgina buziladi');
+
+  // Diskdagi haqiqiy fayl ham o'qilsin: sun'iy kadr Chrome yozgan PNG ning
+  // hamma xususiyatini qamramaydi.
+  const asl = png.decode(fs.readFileSync(path.join(__dirname, 'assets', 'lola-banner.png')));
+  assert.ok(asl.width > 0 && asl.height > 0, 'tasma fayli dekod bo\'lsin');
+  assert.strictEqual(asl.data.length, asl.width * asl.height * 4, 'dekod natijasi RGBA bo\'lsin');
+
+  // Miqyoslash: en/bo'y so'ralganicha chiqsin.
+  const kichik = png.resize(asl, 128, 12);
+  assert.strictEqual(kichik.width, 128);
+  assert.strictEqual(kichik.height, 12);
+
+  console.log(`✅ Test 19: PNG kodeki yo'qotishsiz — PASS (${W}x${H} + tasma ${asl.width}x${asl.height})`);
+}
+
+function testBannerComposite() {
+  const png = require('./lib/png');
+  const { addBanner } = require('./lib/watermark');
+
+  const W = 96, H = 128;
+  const data = Buffer.alloc(W * H * 4);
+  for (let i = 0; i < W * H; i++) {
+    data[i * 4] = 10; data[i * 4 + 1] = 200; data[i * 4 + 2] = 30; data[i * 4 + 3] = 255;
+  }
+  const manba = png.encode({ width: W, height: H, data });
+  const natija = png.decode(addBanner(manba));
+
+  assert.strictEqual(natija.width, W, 'tasma rasm ENINI o\'zgartirmasin');
+  assert.ok(natija.height > H, 'tasma rasm BO\'YIGA qo\'shilsin');
+
+  // ---- Asl kadr TEGILMAGAN bo'lsin ----
+  // Tasma ustiga qo'yilsa kiyimning etagi yopilardi — aynan shu sababdan
+  // pastga QO'SHILADI. Test shuni qulflaydi: yuqori qism bayt-baytda o'sha.
+  assert.ok(natija.data.subarray(0, W * H * 4).equals(data),
+    'asl rasm piksellari o\'zgarmasin — tasma USTIGA emas, TAGIGA qo\'shiladi');
+
+  // ---- Pastda haqiqatan tasma turibdimi ----
+  const oxirgi = ((natija.height - 2) * W + Math.floor(W / 2)) * 4;
+  const yashilmi = natija.data[oxirgi] === 10 && natija.data[oxirgi + 1] === 200;
+  assert.ok(!yashilmi, 'pastki satr manba rangi bo\'lib qolmasin — tasma tushmagan');
+
+  console.log(`✅ Test 19b: Tasma pastga qo'shiladi, kadr tegilmaydi — PASS (${W}x${H} → ${natija.width}x${natija.height})`);
+}
+
+function testBannerFailureIsolation() {
+  const fs = require('fs');
+  const path = require('path');
+  const src = fs.readFileSync(path.join(__dirname, 'routes', 'ai.js'), 'utf8');
+
+  // ---- 1. Tasma xatosi so'rovni yiqitmasin ----
+  const i = src.indexOf('addBanner(');
+  assert.ok(i > 0, 'routes/ai.js da addBanner chaqirilsin');
+  const atrof = src.slice(Math.max(0, i - 400), i + 400);
+  assert.ok(/try\s*\{[\s\S]*addBanner\(/.test(atrof),
+    'addBanner O\'Z try si ichida bo\'lsin — rasm allaqachon chizilgan, tasma xatosi uni yo\'qotmasin');
+  assert.ok(/console\.error\(\s*'aiImage tasma/.test(atrof),
+    'tasma xatosi YUTILMASIN — console.error alertga chiqadi (ALERT_CHAT_ID darsi)');
+
+  // ---- 2. Telegram'ga TASMALI rasm ketsin ----
+  // Eng oson jimgina nuqson shu edi: tasma `rasmBuf` ga yozilib, yuklashga
+  // esa `natija.buf` ketishi. O'shanda kesh, R2 va Telegram uch xil rasm
+  // saqlab, hech qayerda xato ko'rinmasdi.
+  const iSend = src.indexOf('sendPhotoBytes(');
+  assert.ok(iSend > 0, 'sendPhotoBytes chaqiruvi topilsin');
+  const send = src.slice(iSend, iSend + 200);
+  assert.ok(/rasmBuf/.test(send) && !/natija\.buf/.test(send),
+    'Telegram\'ga tasmali `rasmBuf` ketsin — `natija.buf` tasmasiz nusxa');
+
+  console.log('✅ Test 19c: Tasma yiqilsa xaridor zarar ko\'rmaydi, Telegram tasmali nusxani oladi — PASS');
+}
+
+function testBannerVersionGuard() {
+  const fs = require('fs');
+  const path = require('path');
+  const crypto = require('crypto');
+  const { BANNER_VERSION, BANNER_YOLI } = require('./lib/watermark');
+  const { imageSourceHash } = require('./lib/ai');
+
+  // ---- 1. Versiya kesh kalitida qatnashsin ----
+  const src = fs.readFileSync(path.join(__dirname, 'lib', 'ai.js'), 'utf8');
+  const iFn = src.indexOf('function imageSourceHash');
+  assert.ok(/BANNER_VERSION/.test(src.slice(iFn, iFn + 400)),
+    'BANNER_VERSION imageSourceHash ichida bo\'lsin — aks holda tasma almashsa ham kesh eskirmaydi');
+
+  // ---- 2. Natijada ham farq qilsinmi ----
+  const p = { name_uz: 'A', comp_uz: 'B', cat_key: 'C' };
+  assert.notStrictEqual(imageSourceHash(p, 'file-1'),
+    crypto.createHash('sha256').update(['A', 'B', 'C', 'file-1'].join(' ')).digest('hex'),
+    'hash versiyasiz shakldan farq qilsin');
+
+  // ---- 3. Fayl o'zgarsa versiya ham oshsin ----
+  const hash = crypto.createHash('sha256').update(fs.readFileSync(BANNER_YOLI)).digest('hex');
+  const yozilgan = BANNER_QOROVUL[BANNER_VERSION];
+  assert.ok(yozilgan,
+    `BANNER_VERSION=${BANNER_VERSION} uchun yozuv yo'q — test.js dagi BANNER_QOROVUL ga qo'shing:\n  ${BANNER_VERSION}: '${hash}',`);
+  assert.strictEqual(hash, yozilgan,
+    'Tasma FAYLI o\'zgargan, BANNER_VERSION esa o\'sha.\n' +
+    `   Keshdagi rasmlar eski tasma bilan qolib ketadi (R2 da immutable — bir yil).\n` +
+    `   Qiling: lib/watermark.js da BANNER_VERSION = ${BANNER_VERSION + 1},\n` +
+    `   test.js da BANNER_QOROVUL ga:\n  ${BANNER_VERSION + 1}: '${hash}',`);
+
+  console.log(`✅ Test 19d: Tasma versiyasi kesh bilan bog'langan — PASS (v${BANNER_VERSION})`);
+}
+
 // ============ TEST RUNNER ============
 async function runTests() {
   console.log('\n🧪 LolaMarket Server Testlari\n');
@@ -2276,6 +2575,16 @@ async function runTests() {
     testFasonVariety();
     testPromptVersionGuard();
     testComboText();
+
+    testR2ConfigValidation();
+    testR2KeyGuard();
+    testR2FailureIsolation();
+    testR2KeyIsContentAddressed();
+
+    testPngCodecRoundTrip();
+    testBannerComposite();
+    testBannerFailureIsolation();
+    testBannerVersionGuard();
 
     console.log('\n✅ Hammasi PASS — pul hisobi, imzo, route jadvali, xato alerti, buyurtma tarixi va AI rasmi joyida\n');
     process.exit(0);

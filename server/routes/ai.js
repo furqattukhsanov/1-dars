@@ -8,6 +8,8 @@ const { rateLimited, clientIp, readBody, sendJson, ok, fail } = require('../lib/
 const { imageSourceHash, generateImage, normalizeChoices, choicesHash, joriyJavobmi } = require('../lib/ai');
 const { tgGetFile, tgDownloadFile, sendPhotoBytes } = require('../lib/telegram-api');
 const { productPhotoUrl } = require('./catalog');
+const { r2Put, r2PublicUrl, R2_ENABLED } = require('../lib/r2');
+const { addBanner } = require('../lib/watermark');
 
 // ============ LOLA CREDIT — ATOMIK ============
 // (2026-08-07, founder: "har bir insonga 20 ta lola credit, bitta rasmga 2 ta")
@@ -145,6 +147,26 @@ async function loadSourcePhoto(fileId) {
   return tgDownloadFile(filePath);
 }
 
+// ---- R2 kaliti ----
+// Kalit TARKIBDAN yasaladi (manba hash + javoblar hash), tasodifiy EMAS.
+// Sabab keshda: obyekt `immutable` va bir yil yashaydi, ya'ni bitta kalit
+// ostidagi rasm hech qachon o'zgarmasligi SHART. Surat yoki javoblar
+// o'zgarsa hash o'zgaradi va yangi kalit tug'iladi — eski kesh hech kimga
+// xalaqit bermaydi va noto'g'ri rasm ko'rsatilishi MUMKIN EMAS.
+// Mahsulot id'si yo'lda faqat o'qish uchun ("bu qaysi mahsulot"), noyoblikni
+// hash beradi.
+function aiImageKey(productId, sourceHash, cHash) {
+  const toza = String(productId).replace(/[^a-zA-Z0-9_-]/g, '') || 'x';
+  return `ai/${toza}/${String(sourceHash).slice(0, 16)}-${String(cHash).slice(0, 16)}.png`;
+}
+
+// Rasm manzili. R2 kaliti bo'lsa CDN'dan to'g'ridan-to'g'ri, aks holda eski
+// Telegram proksisi. Ikkalasi ham ISHLAYDI — farqi tezlikda va bot tokeniga
+// bog'liqlikda, ya'ni R2 yo'q bo'lgani nuqson emas, zaxira yo'l.
+function aiImageUrl(r2Key, fileId) {
+  return r2PublicUrl(r2Key) || productPhotoUrl(fileId);
+}
+
 async function handleAiImage(req, res) {
   // Ikki bayroq: umumiy AI va aynan RASM. Matn ishlab, rasm ishlamaydigan
   // holat haqiqiy holat (2026-08-06: matn HTTP 200, rasm HTTP 429).
@@ -205,7 +227,7 @@ async function handleAiImage(req, res) {
 
     // ---- 1. Kesh ----
     const { rows: cached } = await pool.query(
-      `SELECT file_id, model, source_hash, created_at
+      `SELECT file_id, r2_key, model, source_hash, created_at
          FROM product_ai_image WHERE product_id = $1 AND choices_hash = $2`,
       [productId, cHash]
     );
@@ -213,7 +235,7 @@ async function handleAiImage(req, res) {
       // ⚠️ Keshdan o'qish KREDIT YEMAYDI (Sprint 10, 4-qaror) — hech qanday
       // AI chaqiruvi bo'lmadi, ya'ni to'lanadigan narsa ham yo'q.
       return ok(res, {
-        image: productPhotoUrl(cached[0].file_id),
+        image: aiImageUrl(cached[0].r2_key, cached[0].file_id),
         model: cached[0].model,
         cached: true,
         createdAt: cached[0].created_at,
@@ -238,18 +260,39 @@ async function handleAiImage(req, res) {
     // Aynan shu 2026-08-07 da production'da bo'ldi (Gemini HTTP 503).
     let fileId;
     let model;
+    let rasmBuf;
     try {
       // ---- 3. Manba surat + AI ----
       const source = await loadSourcePhoto(p.img_file_id);
       const natija = await generateImage(p, source, choices);
       model = natija.model;
+      rasmBuf = natija.buf;
+
+      // ---- 3b. Brend tasmasi (2026-08-09) ----
+      // Telegram'ga yuklashdan OLDIN: rasm bir marta tayyorlanadi va
+      // Telegram'ga ham, R2 ga ham, keshga ham AYNI baytlar ketadi. Keyin
+      // qo'yilsa uch joyda uch xil rasm bo'lib qolardi.
+      //
+      // ⚠️ Xato butun so'rovni YIQITMAYDI. Rasm allaqachon chizilgan, ya'ni
+      // kredit ishlatilgan — tasma qo'shilmagani uchun uni bekor qilish
+      // xaridordan to'lagan narsasini tortib olardi. Bu R2 bandidagi bilan
+      // bitta qoida: qo'shimcha qadam asosiy natijani o'ldirmaydi.
+      // Lekin xato YUTILMAYDI — `console.error` alertga chiqadi, aks holda
+      // tasma har safar tushmay turgan holat jimgina davom etardi va biz
+      // "logo qo'ydik" deb o'ylab yurardik (`ALERT_CHAT_ID` darsi).
+      try {
+        rasmBuf = addBanner(rasmBuf);
+      } catch (e) {
+        // Birinchi argument — alert guruhlash KALITI (CLAUDE.md, Test 10c).
+        console.error('aiImage tasma qo\'shilmadi:', e.message);
+      }
 
       // ---- 4. Telegram'ga yuklash ----
       // ⚠️ Bu qadam yiqilsa keshga HECH NARSA yozilmaydi va pul ketgan natija
       // yo'qoladi. Shuning uchun `sendPhotoBytes` jimgina `null` qaytarmaydi —
       // u xato tashlaydi va sabab alertga chiqadi.
       fileId = await sendPhotoBytes(
-        AI_IMAGE_CHAT_ID, natija.buf, `ai-${productId}.png`,
+        AI_IMAGE_CHAT_ID, rasmBuf, `ai-${productId}.png`,
         `AI kiyim rasmi — ${p.name_uz || productId} (${Object.values(choices).join(', ')})`
       );
     } catch (e) {
@@ -264,22 +307,47 @@ async function handleAiImage(req, res) {
       throw e;
     }
 
+    // ---- 4b. R2 ga nusxa — ENG YAXSHI HARAKAT ----
+    // ⚠️ Bu qadam yiqilsa so'rov YIQILMAYDI va kredit QAYTARILMAYDI: rasm
+    // Telegram'da allaqachon bor, ya'ni foydalanuvchi to'lagan narsasini
+    // to'liq oladi. R2 bu yerda tezlik va bot tokenidan mustaqillik uchun,
+    // majburiy ombor emas — shuning uchun u yuqoridagi `try` ichiga
+    // QO'YILMADI (u yerda har xato kreditni qaytarib, so'rovni yiqitadi).
+    //
+    // Lekin xato YUTILMAYDI. `console.error` alertga chiqadi (`lib/alert.js`),
+    // aks holda R2 har safar yiqilib turgan holat JIMGINA davom etardi va
+    // biz "R2 ga o'tdik" deb o'ylab yurardik — `ALERT_CHAT_ID` darsi aynan shu.
+    let r2Key = null;
+    if (R2_ENABLED && rasmBuf) {
+      const kalit = aiImageKey(productId, hash, cHash);
+      try {
+        await r2Put(kalit, rasmBuf, 'image/png');
+        r2Key = kalit;
+      } catch (e) {
+        // Birinchi argument — alert guruhlash KALITI (CLAUDE.md, Test 10c).
+        console.error('aiImage R2 ga yozilmadi:', e.message);
+      }
+    }
+
     // ---- 5. Keshga yozish ----
+    // `r2_key` NULL bo'lishi mumkin va bu "R2 da yo'q" degani — o'qishda
+    // `aiImageUrl` o'zi Telegram yo'liga qaytadi. Bo'sh satr YOZILMAYDI.
     await pool.query(
-      `INSERT INTO product_ai_image (product_id, choices_hash, choices, file_id, source_hash, model, tg_user_id)
-       VALUES ($1, $2, $3::jsonb, $4, $5, $6, $7)
+      `INSERT INTO product_ai_image (product_id, choices_hash, choices, file_id, r2_key, source_hash, model, tg_user_id)
+       VALUES ($1, $2, $3::jsonb, $4, $5, $6, $7, $8)
        ON CONFLICT (product_id, choices_hash)
        DO UPDATE SET file_id = EXCLUDED.file_id,
+                     r2_key = EXCLUDED.r2_key,
                      source_hash = EXCLUDED.source_hash,
                      choices = EXCLUDED.choices,
                      model = EXCLUDED.model,
                      tg_user_id = EXCLUDED.tg_user_id,
                      created_at = now()`,
-      [productId, cHash, JSON.stringify(choices), fileId, hash, model, String(tg.id)]
+      [productId, cHash, JSON.stringify(choices), fileId, r2Key, hash, model, String(tg.id)]
     );
 
     ok(res, {
-      image: productPhotoUrl(fileId), model, cached: false, createdAt: new Date(),
+      image: aiImageUrl(r2Key, fileId), model, cached: false, createdAt: new Date(),
       credits: { balance: kredit.balance, cost: AI_CREDIT_COST, unlimited: !!kredit.cheksiz },
     });
   } catch (e) {
@@ -352,7 +420,7 @@ function joriyMi(r) {
 function lentaYozuvi(r) {
   return {
     productId: r.product_id,
-    image: productPhotoUrl(r.file_id),
+    image: aiImageUrl(r.r2_key, r.file_id),
     name: { uz: r.name_uz, ru: r.name_ru },
     choices: r.choices,
     createdAt: r.created_at,
@@ -369,7 +437,7 @@ async function handleAiGallery(req, res) {
     // Mahsulot e'londan olingan bo'lsa umuman chiqmaydi.
     const { rows } = await pool.query(
       `SELECT DISTINCT ON (i.product_id)
-              i.product_id, i.file_id, i.choices, i.created_at,
+              i.product_id, i.file_id, i.r2_key, i.choices, i.created_at,
               p.name_uz, p.name_ru
          FROM product_ai_image i
          JOIN products p ON p.id = i.product_id AND p.status = 'published'
@@ -405,7 +473,7 @@ async function handleAiMy(req, res) {
     if (!tg || !tg.id) return fail(res, 'unauthorized', 401);
 
     const { rows } = await pool.query(
-      `SELECT i.product_id, i.file_id, i.choices, i.created_at, p.name_uz, p.name_ru
+      `SELECT i.product_id, i.file_id, i.r2_key, i.choices, i.created_at, p.name_uz, p.name_ru
          FROM product_ai_image i
          JOIN products p ON p.id = i.product_id AND p.status = 'published'
         WHERE i.tg_user_id = $1

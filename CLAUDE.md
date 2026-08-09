@@ -159,6 +159,62 @@
   bilan bitta oilada: **yozilgan qoida himoya emas — uni tekshiradigan test
   himoya**, va aynan bu qoida 2026-08-06 gacha faqat odat bo'lgani uchun
   buzilgan edi.
+- **R2 — QO'SHIMCHA ombor, ALMASHTIRUVCHI emas** (2026-08-09). Rasm
+  Cloudflare R2 ga (`lolamarket-storage`, `cdn.lolamarket.uz`) yoziladi, lekin
+  Telegram nusxasi **O'CHIRILMAYDI**: `product_ai_image.file_id` `NOT NULL`
+  bo'lib qoladi va `products.img_file_id` yoniga `img_r2_key` QO'SHILADI
+  (`db/021`). Ombor almashtirish bir tomonlama eshik bo'lmasligi kerak —
+  R2 yo'lida nimadir chiqsa kod bitta shart bilan eski yo'lga qaytadi.
+  Chiqishda uch pog'ona: R2 → Telegram proksi → statik rasm.
+  ⚠️ **R2 ga yozish ENG YAXSHI HARAKAT va u kreditni qaytaradigan `try` dan
+  TASHQARIDA turadi.** Rasm Telegram'ga allaqachon yuklangan, ya'ni xaridor
+  to'lagan narsasini olgan — R2 nosozligi butun so'rovni yiqitsa, xaridor
+  mavjud rasm uchun xato ko'rardi. **Lekin xato YUTILMAYDI:** `console.error`
+  alertga chiqadi, aks holda R2 har safar yiqilib turgan holat jimgina davom
+  etardi va "R2 ga o'tdik" degan ishonch oylab yolg'on bo'lib qolardi
+  (`ALERT_CHAT_ID` darsi).
+  ⚠️ **Kalit TARKIBDAN yasaladi** (AI: manba+javoblar hash; sotuvchi rasmi:
+  baytlarning `sha256` i) — tasodifiy yoki vaqtga bog'liq BO'LMASIN. Sabab:
+  obyekt `immutable, max-age=31536000` bilan yotadi, ya'ni bitta kalit
+  ostidagi rasm hech qachon o'zgarmasligi SHART. Tasodifiy kalitda surat
+  almashgan kuni eski rasm bir yil davomida yangisi o'rniga ko'rinib turardi.
+  🔴 **CDN keshi O'CHIRISHNI QAYTARMAYDI** — 2026-08-09 da o'lchandi: obyekt
+  R2 dan o'chirilgandan keyin ham `cdn.lolamarket.uz` uni `cf-cache-status:
+  HIT` bilan berib turdi. Ya'ni **rasmni o'chirish uni internetdan olib
+  tashlamaydi**; moderatsiya uchun Cloudflare cache purge kerak.
+  🔴 **Baza zaxirasi bu bucket'ga QO'YILMASIN** — unga custom domain ulangani
+  uchun kalitni bilgan har kim o'qiy oladi, zaxirada esa mijoz ma'lumoti bor.
+  Qorovul: `server/test.js` → Test 18 (sozlama shakli), 18b (kalit yo'li,
+  `..` rad etilishi), 18c (R2 yiqilsa xaridor zarar ko'rmasligi + `file_id`
+  saqlanishi), 18d (kalit tarkibga bog'langani). To'rttasi 6 mutatsiya bilan
+  sinaldi, 6 tasi ushlandi.
+- **AI rasmiga brend tasmasi — RASM TAGIGA, ustiga emas** (2026-08-09, founder
+  qarori: "shuni har bir AI bilan qilingan rasmni tagiga qo'y doim"). Tasma
+  (`server/assets/lola-banner.png`) rasm USTIGA qo'yilmaydi, tuvalning bo'yi
+  uzaytirilib PASTGA qo'shiladi: kadr 3:4 va uning pastki qismida kiyimning
+  etagi turadi — ustiga yozilsa aynan shu joy yopilardi.
+  ⚠️ **Tasma qo'shish Telegram'ga yuklashdan OLDIN bo'ladi** — shunda
+  Telegram, R2 va kesh AYNI baytlarni oladi. Keyin qo'yilsa uch joyda uch xil
+  rasm qolardi. Lekin u kreditni qaytaradigan `try` ichida O'Z `try` si bilan
+  o'raladi: rasm allaqachon chizilgan va pul ishlatilgan, tasma xatosi uni
+  yo'qotmasin (R2 bandidagi bilan bitta qoida). Xato YUTILMAYDI —
+  `console.error` alertga chiqadi.
+  ⚠️ **Tasma fayli almashsa `BANNER_VERSION` HAM oshadi** (`lib/watermark.js`)
+  va u `imageSourceHash` ichida turadi. Oshirilmasa: bazadagi kesh eski rasmni
+  qaytaraverardi, R2 dagi nusxa esa `immutable, max-age=31536000` bilan
+  yotgani uchun eski tasma **bir yil** ko'rinib turardi. Bu `?v=` va R2
+  kaliti qoidalari bilan bitta oila.
+  **Matn kod ichida chizilmaydi:** Node'da shrift rasterizatori yo'q, shuning
+  uchun tasma TAYYOR PNG sifatida yotadi (1024×97, Hanken Grotesk). Uni
+  yangilash — faqat faylni almashtirish va versiyani oshirish.
+  **PNG kodeki sof Node** (`lib/png.js`, `zlib` ustida): `sharp` kabi nativ
+  paket deploy'ga yangi sinish nuqtasi qo'shardi, kerak bo'lgani esa atigi
+  uchta amal — dekod, miqyoslash, kodlash. O'lchandi (2026-08-09): 1365×762
+  rasmda ~0.9 s, hajm **1.04x**.
+  Qorovul: `server/test.js` → Test 19 (kodek yo'qotishsiz), 19b (tasma
+  pastda, kadr tegilmagan), 19c (tasma yiqilsa xaridor zarar ko'rmaydi +
+  Telegram tasmali nusxani oladi), 19d (fayl o'zgarsa versiya oshsin).
+  Beshta mutatsiya bilan sinaldi, beshtasi ham ushlandi.
 - **Prompt — kod emas, MATN: uni CHOP ETIB O'QISH kerak** (2026-08-09).
   AI prompti bo'laklardan yig'iladi (`server/lib/ai.js` → `buildImagePrompt`)
   va har bo'lak alohida to'g'ri bo'lishi mumkin, **birga o'qilganda esa zid**.

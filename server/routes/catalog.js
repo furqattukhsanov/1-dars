@@ -8,7 +8,8 @@ const { escapeHtml, money, safeEqual } = require('../lib/format');
 const { validate } = require('../lib/validate');
 const { rateLimited, readBody, sendJson, ok, fail } = require('../lib/http');
 const { loadContacts } = require('../lib/contacts');
-const { sendOrderNotifyMessage, callTelegram, notify, tgGetFile } = require('../lib/telegram-api');
+const { sendOrderNotifyMessage, callTelegram, notify, tgGetFile, tgDownloadFile } = require('../lib/telegram-api');
+const { r2Put, r2PublicUrl, R2_ENABLED } = require('../lib/r2');
 
 // ============ /api/auth/telegram — Telegram orqali kirish ============
 // initData'ni tekshiradi, foydalanuvchini users jadvaliga yozadi (yoki topadi).
@@ -152,6 +153,29 @@ async function openAwaitingProductImage(tgUserId) {
   return rows[0] || null;
 }
 
+// Sotuvchi suratini R2 ga ham qo'yish — ENG YAXSHI HARAKAT.
+//
+// ⚠️ Yiqilsa sotuvchiga XATO KO'RSATILMAYDI va rasm qabul qilinganicha
+// qoladi: `img_file_id` allaqachon yozilgan, ya'ni rasm katalogda ishlaydi.
+// R2 bu yerda tezlik va bot tokenidan mustaqillik uchun, majburiy ombor emas.
+// Lekin xato YUTILMAYDI — alertga chiqadi, aks holda R2 har safar yiqilib
+// turgan holat jimgina davom etardi (`ALERT_CHAT_ID` darsi).
+//
+// Kalit TARKIBDAN yasaladi (baytlarning `sha256` i): bir xil rasm qayta
+// yuborilsa ayni kalit chiqadi va ortiqcha nusxa yig'ilmaydi, boshqa rasm
+// esa albatta boshqa kalit oladi — bu `immutable` kesh uchun SHART.
+async function uploadProductImageToR2(productId, fileId) {
+  const filePath = await tgGetFile(fileId);
+  if (!filePath) throw new Error('suratning file_path i yo\'q');
+  const { buf } = await tgDownloadFile(filePath);
+  const hash = crypto.createHash('sha256').update(buf).digest('hex').slice(0, 32);
+  const ext = String(filePath).split('.').pop().toLowerCase();
+  const toza = String(productId).replace(/[^a-zA-Z0-9_-]/g, '') || 'x';
+  const key = `mahsulot/${toza}/${hash}.${MIME_BY_EXT[ext] ? ext : 'jpg'}`;
+  await r2Put(key, buf, mimeFromPath(filePath));
+  return key;
+}
+
 async function handleProductImage(msg) {
   const fileId = msg.photo ? msg.photo[msg.photo.length - 1].file_id : null;
   if (!fileId) return false;
@@ -162,6 +186,20 @@ async function handleProductImage(msg) {
   await pool.query(
     `UPDATE products SET img_file_id=$1, awaiting_image=false WHERE id=$2`,
     [fileId, p.id]);
+
+  // ⚠️ `img_file_id` dan KEYIN va alohida `UPDATE` bilan: R2 yiqilsa ham
+  // rasm qabul qilingan bo'lib qolsin. Bitta `UPDATE` da birlashtirilsa,
+  // R2 nosozligi sotuvchining rasmini butunlay yo'qotardi.
+  if (R2_ENABLED) {
+    try {
+      const key = await uploadProductImageToR2(p.id, fileId);
+      await pool.query('UPDATE products SET img_r2_key=$1 WHERE id=$2', [key, p.id]);
+    } catch (e) {
+      // Birinchi argument — alert guruhlash KALITI (CLAUDE.md, Test 10c).
+      console.error('mahsulot rasmi R2 ga yozilmadi:', e.message);
+    }
+  }
+
   await callTelegram('sendMessage', {
     chat_id: msg.chat.id,
     parse_mode: 'HTML',
@@ -176,7 +214,10 @@ function productRowToVM(r) {
     id: r.id,
     catKey: r.cat_key,
     pattern: r.pattern,
-    img: r.img_file_id ? productPhotoUrl(r.img_file_id) : r.img,
+    // Uch pog'ona, shu tartibda: R2 (eng tez, bot tokeniga bog'liq emas) →
+    // Telegram proksi (eski yo'l) → repodagi statik rasm. `r2PublicUrl` domen
+    // ulanmagan bo'lsa `null` qaytaradi, ya'ni pog'ona o'zi pastga tushadi.
+    img: r2PublicUrl(r.img_r2_key) || (r.img_file_id ? productPhotoUrl(r.img_file_id) : r.img),
     price: Number(r.price),
     unit: r.unit,
     moq: Number(r.moq),
@@ -202,7 +243,7 @@ async function handleGetProducts(req, res, ip) {
   if (rateLimited(`products:${ip}`, 60)) return fail(res, 'too many requests', 429);
   try {
     const { rows } = await pool.query(`
-      SELECT p.id, p.cat_key, p.pattern, p.img, p.img_file_id, p.price, p.unit, p.moq, p.lead_days,
+      SELECT p.id, p.cat_key, p.pattern, p.img, p.img_file_id, p.img_r2_key, p.price, p.unit, p.moq, p.lead_days,
              p.rating, p.reviews, p.stock_key, p.stock, p.badge_tone, p.width, p.weight,
              p.name_uz, p.name_ru, p.comp_uz, p.comp_ru, p.badge_uz, p.badge_ru,
              s.business_name_uz, s.business_name_ru, s.city_uz, s.city_ru, s.is_verified
