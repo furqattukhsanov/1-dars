@@ -5,7 +5,7 @@ const {
 const { pool } = require('../db');
 const { authUser } = require('../lib/auth');
 const { rateLimited, clientIp, readBody, sendJson, ok, fail } = require('../lib/http');
-const { imageSourceHash, generateImage, normalizeChoices, choicesHash } = require('../lib/ai');
+const { imageSourceHash, generateImage, normalizeChoices, choicesHash, joriyJavobmi } = require('../lib/ai');
 const { tgGetFile, tgDownloadFile, sendPhotoBytes } = require('../lib/telegram-api');
 const { productPhotoUrl } = require('./catalog');
 
@@ -333,12 +333,20 @@ const MY_LIMIT = 30;
 // nima bo'ladi? Ular O'CHIRILMAYDI (haqiqiy, pulga chizilgan rasmlar), lekin
 // KO'RSATILMAYDI.
 //
-// ⚠️ Tekshiruv `normalizeChoices` bilan qilinadi — ya'ni "ko'rsatilmaydigan
+// ⚠️ Tekshiruv `joriyJavobmi` bilan qilinadi — ya'ni "ko'rsatilmaydigan
 // javoblar" degan IKKINCHI RO'YXAT yozilmaydi. db/014 darsi: ikkinchi ro'yxat
 // himoya emas, kelajakdagi tuzoq — ro'yxatdan yana bir kalit olinsa, uni shu
 // yerda ham eslab qolish kerak bo'lardi va aynan shu unutilardi.
+//
+// ⚠️ Ilgari bu yerda to'g'ridan-to'g'ri `normalizeChoices` turardi va u
+// 2026-08-09 da JIMGINA ISHLAMAY QOLARDI: o'sha kuni butun `kim` guruhi
+// olib tashlandi, `normalizeChoices` esa faqat O'ZI biladigan guruhlarni
+// aylanadi — ya'ni endi notanish `kim` kaliti e'tibordan chetda qolardi va
+// bazadagi `kim=erkak` / `kim=bola` rasmlari lentaga QAYTIB kelardi.
+// Farq: `normalizeChoices` "javob yetarlimi" ni tekshiradi, `joriyJavobmi`
+// esa "javob ORTIQCHA emasmi" ni ham.
 function joriyMi(r) {
-  try { normalizeChoices(r.choices); return true; } catch (_) { return false; }
+  return joriyJavobmi(r.choices);
 }
 
 function lentaYozuvi(r) {

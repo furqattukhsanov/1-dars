@@ -2,7 +2,7 @@ const https = require('https');
 const crypto = require('crypto');
 const { pool } = require('../db');
 const { BOT_TOKEN, ADMIN_PANEL_TOKEN, AI_IMAGE_ENABLED } = require('../config');
-const { IMAGE_CHOICES, COMBO_CHOICES, COMBO_TEXT_MAX } = require('../lib/ai');
+const { IMAGE_CHOICES, COMBO_CHOICES, COMBO_TEXT_MAX, VARIANT_MAX } = require('../lib/ai');
 const { verifyInitData, authUser, isAdmin, currentSeller } = require('../lib/auth');
 const { escapeHtml, money, safeEqual } = require('../lib/format');
 const { validate } = require('../lib/validate');
@@ -61,6 +61,11 @@ async function handleAuthTelegram(req, res, ip) {
       // Qo'lda yozilsa server 60 ga, input 100 ga sozlanib qolishi mumkin
       // edi va xaridor yozib bo'lgach 400 xato ko'rardi (db/014 darsi).
       aiComboTextMax: AI_IMAGE_ENABLED ? COMBO_TEXT_MAX : null,
+      // "Boshqa fason" tugmasining chegarasi — AYNI sabab bilan serverdan
+      // (2026-08-09). Frontend chegaraga yetganda tugmani umuman chizmaydi;
+      // qo'lda yozilsa ikkalasi ajralib ketardi va xaridor tugmani bosib
+      // "javob yaroqsiz" xatosini ko'rardi — ustiga bu pullik so'rov.
+      aiVariantMax: AI_IMAGE_ENABLED ? VARIANT_MAX : null,
     });
   } catch (e) {
     console.error('auth xatosi:', e.message);

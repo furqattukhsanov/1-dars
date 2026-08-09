@@ -1158,11 +1158,11 @@ function testAssetVersionsAreFresh() {
     'style.css': { v: 36, hash: 'c4e8e763789f' },
     'script.js': { v: 27, hash: 'b729d38501fe' },
     'pwa.js': { v: 2, hash: 'f46683d58662' },
-    'panel.js': { v: 9, hash: '3b8eef19d783' },
+    'panel.js': { v: 10, hash: '738e350446bc' },
     'admin/admin.css': { v: 17, hash: 'dbefeb6757ff' },
     'admin/admin.js': { v: 22, hash: '8a8310a94f5e' },
     'telegram-app/styles.css': { v: 21, hash: '6dddba75c0bc' },
-    'telegram-app/app.js': { v: 72, hash: '5f60a20735f4' },
+    'telegram-app/app.js': { v: 73, hash: '52235fc61a17' },
     'telegram-app/pwa.js': { v: 6, hash: '798ab85e1cde' },
   };
 
@@ -1690,8 +1690,8 @@ function testCreditRefund() {
 // Xaridor javoblari PULLIK so'rovni belgilaydi, shuning uchun yaroqsizi
 // jimgina zaxiraga almashtirilmaydi — RAD ETILADI.
 function testNormalizeChoices() {
-  const { IMAGE_CHOICES, normalizeChoices, choicesHash } = require('./lib/ai');
-  const yaxshi = { kiyim: 'koylak', kim: 'ayol', uslub: 'bayram', dizayn: 'minimalistik' };
+  const { IMAGE_CHOICES, normalizeChoices, choicesHash, joriyJavobmi, VARIANT_MAX } = require('./lib/ai');
+  const yaxshi = { kiyim: 'koylak', uslub: 'bayram', dizayn: 'minimalistik' };
 
   assert.deepStrictEqual(normalizeChoices(yaxshi), yaxshi, 'to\'g\'ri javob o\'tishi kerak');
 
@@ -1708,12 +1708,39 @@ function testNormalizeChoices() {
   // Hash TARTIBGA bog'liq bo'lmasin — aks holda aynan bir rasm uchun ikki
   // marta to'langan bo'lardi.
   assert.strictEqual(
-    choicesHash({ kiyim: 'koylak', kim: 'ayol', uslub: 'ish', dizayn: 'zamonaviy' }),
-    choicesHash({ dizayn: 'zamonaviy', uslub: 'ish', kim: 'ayol', kiyim: 'koylak' }),
+    choicesHash({ kiyim: 'koylak', uslub: 'ish', dizayn: 'zamonaviy' }),
+    choicesHash({ dizayn: 'zamonaviy', uslub: 'ish', kiyim: 'koylak' }),
     'kalitlar tartibi hashga ta\'sir qilmasin'
   );
-  assert.notStrictEqual(choicesHash(yaxshi), choicesHash({ ...yaxshi, kim: 'bola' }),
+  assert.notStrictEqual(choicesHash(yaxshi), choicesHash({ ...yaxshi, uslub: 'ish' }),
     'boshqa javob boshqa hash bersin');
+
+  // ---- "Boshqa fason" varianti (2026-08-09) ----
+  // Variant PUL sarflaydi (yangi kesh kaliti), shuning uchun u ham oq
+  // ro'yxat qat'iyligi ostida: chegaradan tashqarisi RAD ETILADI, jimgina
+  // qisqartirilmaydi.
+  assert.ok(!('variant' in normalizeChoices({ ...yaxshi, variant: 0 })),
+    'variant=0 kalit qo\'shmasin — aks holda variantsiz so\'rov bilan ikki xil kesh kaliti chiqardi');
+  assert.strictEqual(normalizeChoices({ ...yaxshi, variant: 2 }).variant, 2, 'haqiqiy variant o\'tsin');
+  for (const yomon of [-1, 0.5, VARIANT_MAX + 1, 'ikki']) {
+    assert.throws(() => normalizeChoices({ ...yaxshi, variant: yomon }), undefined,
+      `yaroqsiz variant rad etilsin: ${JSON.stringify(yomon)}`);
+  }
+  assert.notStrictEqual(choicesHash(normalizeChoices(yaxshi)),
+    choicesHash(normalizeChoices({ ...yaxshi, variant: 1 })),
+    'boshqa variant boshqa kesh kaliti bersin — aks holda tugma bosilar, rasm o\'zgarmasdi');
+
+  // ---- Eskirgan javob GALEREYADAN chiqib ketsin (2026-08-09) ----
+  // `normalizeChoices` ning O'ZI bu yerda YETARLI EMAS va aynan shuning
+  // uchun `joriyJavobmi` yozildi: guruh butunlay olib tashlanganda
+  // (`kim`), eski qatordagi ortiqcha kalit shunchaki e'tibordan chetda
+  // qolardi va o'chirilgan variantlar lentaga qaytardi.
+  assert.ok(joriyJavobmi(yaxshi), 'joriy javob galereyada qolsin');
+  assert.ok(!joriyJavobmi({ ...yaxshi, kim: 'ayol' }),
+    'olib tashlangan GURUH kaliti bo\'lgan eski qator galereyadan chiqsin');
+  assert.ok(!joriyJavobmi({ ...yaxshi, kiyim: 'kosmonavt' }),
+    'yaroqsiz kalitli qator galereyadan chiqsin');
+  assert.ok(!joriyJavobmi(null), 'javobsiz qator galereyadan chiqsin');
 
   console.log('✅ Test 14i: Javoblar oq ro\'yxati qat\'iy — PASS');
 }
@@ -1770,7 +1797,7 @@ function testChoiceLabelsCoverKeys() {
 //     ~$0.04 to'lanardi (yoki tasodif keshga urilib umuman ko'rinmasdi).
 function testSceneVariety() {
   const { SAHNA, sceneFor, buildImagePrompt, IMAGE_CHOICES } = require('./lib/ai');
-  const javob = { kiyim: 'koylak', kim: 'ayol', uslub: 'kundalik', dizayn: 'zamonaviy' };
+  const javob = { kiyim: 'koylak', uslub: 'kundalik', dizayn: 'zamonaviy' };
   const mahsulot = (id) => ({ id, name_uz: 'Atlas', comp_uz: '100% ipak', cat_key: 'atlas' });
 
   // db/014 darsi: ikki ro'yxat ajralib ketmasin. `uslub` ga yangi qiymat
@@ -1824,6 +1851,99 @@ function testSceneVariety() {
   console.log(`✅ Test 14k: Orqa fon xilma-xil, kesh buzilmagan — PASS (${jami} sahna)`);
 }
 
+// ============ TEST 14p: Fason xilma-xil, LEKIN kesh buzilmagan ===========
+// Founder bahosi 2026-08-09: "ko'ylak fasonini zo'r qilmayapti har safar,
+// bir xil defolt fason turibdi".
+//
+// Test 14k (sahna) ning aynan juftligi va SABABI HAM BIR XIL — lekin bu
+// yerda uchinchi band bor: fason `ODOB` bilan bitta promptda yashaydi va
+// ular BIR-BIRIGA ZID BO'LMASLIGI shart. Zid ibora qo'shilsa (masalan
+// yengsiz yoqa) model ikki buyruq orasida qolardi va uni odatdagicha —
+// o'rtacha, ya'ni aynan tuzatilayotgan "defolt fason" bilan hal qilardi.
+function testFasonVariety() {
+  const { FASON, FASON_OQLARI, fasonFor, buildImagePrompt, IMAGE_CHOICES } = require('./lib/ai');
+  const javob = { kiyim: 'koylak', uslub: 'kundalik', dizayn: 'zamonaviy' };
+  const mahsulot = (id) => ({ id, name_uz: 'Atlas', comp_uz: '100% ipak', cat_key: 'atlas' });
+
+  // ---- db/014 darsi: ikki jadval AJRALIB KETMASIN ----
+  // `kiyim` ga yangi tur qo'shilib `FASON_OQLARI` ga qo'shilmasa, o'sha
+  // turdagi HAR QANDAY so'rov yiqilardi — qorovul AI chaqiruvidan oldin.
+  for (const k of Object.keys(IMAGE_CHOICES.kiyim)) {
+    const oqlar = FASON_OQLARI[k];
+    assert.ok(Array.isArray(oqlar) && oqlar.length >= 2,
+      `"${k}" uchun kamida 2 ta fason o'qi bo'lsin (FASON_OQLARI, lib/ai.js)`);
+    for (const oq of oqlar) {
+      assert.ok(Array.isArray(FASON[oq]) && FASON[oq].length >= 4,
+        `"${oq}" o'qi uchun kamida 4 ta ibora bo'lsin (FASON, lib/ai.js)`);
+    }
+  }
+
+  // ---- Ro'yxatda takror bo'lmasin ----
+  for (const [oq, ro] of Object.entries(FASON)) {
+    assert.strictEqual(new Set(ro).size, ro.length, `"${oq}" ro'yxatida takroriy ibora bor`);
+  }
+
+  // ---- Ayni so'rov — AYNI fason (kesh kaliti bilan kelishilgan) ----
+  assert.strictEqual(fasonFor(mahsulot('p-1'), javob), fasonFor(mahsulot('p-1'), javob),
+    'ayni mahsulot + ayni javob ayni fasonni bersin — aks holda kesh ma\'nosini yo\'qotadi');
+
+  // ---- Boshqa mahsulot — boshqa fason ----
+  const fasonlar = new Set();
+  for (let i = 0; i < 60; i++) fasonlar.add(fasonFor(mahsulot(`p-${i}`), javob));
+  assert.ok(fasonlar.size >= 30,
+    `60 mahsulotda kamida 30 xil fason chiqsin — chiqqani ${fasonlar.size} ta`);
+
+  // ---- O'qlar MUSTAQIL aylansin ----
+  // Bitta seed'dan olinsa ular birga siljirdi: 6 xil yoqa emas, 6 xil
+  // TO'PLAM chiqardi va xilma-xillik o'nlab marta kamayardi.
+  for (const [n, oq] of FASON_OQLARI.koylak.entries()) {
+    const koringan = new Set();
+    for (let i = 0; i < 60; i++) koringan.add(fasonFor(mahsulot(`q-${i}`), javob).split(', ')[n]);
+    assert.ok(koringan.size >= Math.min(3, FASON[oq].length),
+      `"${oq}" o'qi mustaqil aylansin — 60 mahsulotda faqat ${koringan.size} xil ibora chiqdi`);
+  }
+
+  // ---- "Boshqa fason" HAQIQATAN boshqa fason bersin ----
+  // Tugma bosilib rasm o'zgarmasa, xaridor kreditni bekorga sarflagan
+  // bo'lardi — bu esa "jimgina yolg'on" oilasidan.
+  assert.notStrictEqual(fasonFor(mahsulot('p-1'), javob),
+    fasonFor(mahsulot('p-1'), { ...javob, variant: 1 }),
+    'variant o\'zgarsa fason ham o\'zgarsin');
+
+  // ---- Fason ODOBGA ZID BO'LMASIN ----
+  // Ro'yxatdagi HAR BIR ibora yopiq yoqa / uzun yeng / tizzadan uzun
+  // chegarasi ichida bo'lishi kerak. Zid ibora qo'shilsa prompt o'zi bilan
+  // urishardi va model uni o'rtacha javob bilan hal qilardi.
+  const ZID = /\b(sleeveless|strapless|short sleeve|mini|deep v|low[- ]cut|bare|cropped top|off[- ]shoulder|backless)\b/i;
+  for (const [oq, ro] of Object.entries(FASON)) {
+    for (const ibora of ro) {
+      assert.ok(!ZID.test(ibora), `"${oq}" ro'yxatidagi ibora ODOB bilan zid: ${JSON.stringify(ibora)}`);
+    }
+  }
+
+  // ---- Fason PROMPTGA tushsin va ODOBDAN OLDIN tursin ----
+  // Tartib sababi ODOB izohidagi bilan bir xil: model oxirgi ko'rsatmaga
+  // ko'proq og'irlik beradi, ya'ni odob chegarasi fasondan KEYIN kelishi
+  // shart — aks holda fason uni bosib ketardi.
+  const prompt = buildImagePrompt(mahsulot('p-1'), javob);
+  const fason = fasonFor(mahsulot('p-1'), javob);
+  assert.ok(prompt.includes(fason), 'tanlangan fason promptga tushsin');
+  assert.ok(prompt.indexOf(fason) < prompt.indexOf('modest but elegant'),
+    'ODOB fasondan KEYIN tursin');
+
+  // ---- Har bir kiyim turi chizila olsin ----
+  // `romol` boshqa o'qlarda yuradi (yeng ham, etak ham yo'q) — u ham
+  // yiqilmasligi shu yerda tekshiriladi.
+  for (const k of Object.keys(IMAGE_CHOICES.kiyim)) {
+    assert.ok(buildImagePrompt(mahsulot('p-1'), { ...javob, kiyim: k }).length > 100,
+      `"${k}" uchun prompt qurilsin`);
+  }
+
+  const jami = Object.values(FASON).reduce((n, r) => n + r.length, 0);
+  const koylakJami = FASON_OQLARI.koylak.reduce((n, oq) => n * FASON[oq].length, 1);
+  console.log(`✅ Test 14p: Fason xilma-xil, kesh buzilmagan — PASS (${jami} ibora, ko'ylak uchun ${koylakJami} birikma)`);
+}
+
 // ============ TEST 14l: Prompt o'zgarsa PROMPT_VERSION ham oshadi =========
 // Test 16 ning (`?v=` kesh qorovuli) AI uchun juftligi, aynan bir sabab bilan:
 // keshning kaliti o'zgarmasa, YANGI kod ESKI natijani ko'rsatib turadi.
@@ -1842,55 +1962,95 @@ function testSceneVariety() {
 //     o'zgarsa → versiya oshsin. Variant qo'shilsa yoki olib tashlansa —
 //     qolganlarning rasmi eskirmaydi, demak versiya SHART EMAS.
 const PROMPT_QOROVUL = {
-  3: {
-    skelet: '1f5abfb40215',
+  4: {
+    skelet: "efe834380cb5",
     variantlar: {
-      'kiyim:koylak_milliy': '738c7323fbfc',
-      'kiyim:koylak': '5a0e94de7981',
-      'kiyim:kostyum': '6d41bfc16371',
-      'kiyim:palto': '524fdd74234c',
-      'kiyim:yubka': 'a2fd1b2d401d',
-      'kiyim:romol': '1b410fae7e41',
-      'kim:ayol': '8afb03104bf5',
-      'kim:bola': 'ba2361e587b1',
-      'uslub:kundalik': 'cd31c3df42fe',
-      'uslub:bayram': 'f1bf194da6b1',
-      'uslub:ish': '8b23543f45dd',
-      'dizayn:neoklassika': 'c652cf9f5c5d',
-      'dizayn:zamonaviy': 'c3fe5185e4b2',
-      'dizayn:minimalistik': 'b3b8112fe14f',
-      'dizayn:combo': '3ca662e5b1d1',
-      'rang:oq': '018fa96a4471',
-      'rang:qora': 'c006c7e3ab14',
-      'rang:bej': 'b4f0534e651a',
-      'rang:kok': '476f0b52edaa',
-      'rang:yashil': 'e9b985814f8c',
-      'rang:bordo': 'b8cfbefe5fc5',
-      'rang:oltin': '24d7f03d8dc3',
-      'qoshimcha:yoq': 'e3b0c44298fc',
-      'qoshimcha:charm': '5022472b2831',
-      'qoshimcha:jinsi': '99b94ab3f768',
-      'qoshimcha:bahmal': 'f4c44266a2df',
-      'qoshimcha:dantel': '97eb1d612853',
-      'qoshimcha:trikotaj': '3daffef15126',
-      'sahna:kundalik:0': 'ba7a9231573d',
-      'sahna:kundalik:1': '480f279a69c0',
-      'sahna:kundalik:2': '99f8c5829834',
-      'sahna:kundalik:3': '9675677dd977',
-      'sahna:kundalik:4': '25ce627ae101',
-      'sahna:kundalik:5': 'd346f85f393f',
-      'sahna:bayram:0': '347a09c41a3f',
-      'sahna:bayram:1': '2a864b86c1bb',
-      'sahna:bayram:2': '6a4e93a16886',
-      'sahna:bayram:3': 'd34fadf95f83',
-      'sahna:bayram:4': '2f98b91dbeb9',
-      'sahna:bayram:5': 'b9dc07a2eb3c',
-      'sahna:ish:0': 'd891732de509',
-      'sahna:ish:1': 'e687d14f2c67',
-      'sahna:ish:2': 'a4c384acd4c3',
-      'sahna:ish:3': 'f41c0c039869',
-      'sahna:ish:4': 'd46c7a834928',
-      'sahna:ish:5': 'a9cc3e8f46d0',
+      "kiyim:koylak_milliy": "738c7323fbfc",
+      "kiyim:koylak": "5a0e94de7981",
+      "kiyim:kostyum": "6d41bfc16371",
+      "kiyim:palto": "524fdd74234c",
+      "kiyim:yubka": "a2fd1b2d401d",
+      "kiyim:romol": "1b410fae7e41",
+      "uslub:kundalik": "cd31c3df42fe",
+      "uslub:bayram": "f1bf194da6b1",
+      "uslub:ish": "8b23543f45dd",
+      "dizayn:neoklassika": "5bf4ed80c704",
+      "dizayn:zamonaviy": "696210e51e83",
+      "dizayn:minimalistik": "df6d1cf5194b",
+      "dizayn:combo": "3ca662e5b1d1",
+      "rang:oq": "018fa96a4471",
+      "rang:qora": "c006c7e3ab14",
+      "rang:bej": "b4f0534e651a",
+      "rang:kok": "476f0b52edaa",
+      "rang:yashil": "e9b985814f8c",
+      "rang:bordo": "b8cfbefe5fc5",
+      "rang:oltin": "24d7f03d8dc3",
+      "qoshimcha:yoq": "e3b0c44298fc",
+      "qoshimcha:charm": "5022472b2831",
+      "qoshimcha:jinsi": "99b94ab3f768",
+      "qoshimcha:bahmal": "f4c44266a2df",
+      "qoshimcha:dantel": "97eb1d612853",
+      "qoshimcha:trikotaj": "3daffef15126",
+      "sahna:kundalik:0": "ba7a9231573d",
+      "sahna:kundalik:1": "480f279a69c0",
+      "sahna:kundalik:2": "99f8c5829834",
+      "sahna:kundalik:3": "9675677dd977",
+      "sahna:kundalik:4": "25ce627ae101",
+      "sahna:kundalik:5": "d346f85f393f",
+      "sahna:bayram:0": "347a09c41a3f",
+      "sahna:bayram:1": "2a864b86c1bb",
+      "sahna:bayram:2": "6a4e93a16886",
+      "sahna:bayram:3": "d34fadf95f83",
+      "sahna:bayram:4": "2f98b91dbeb9",
+      "sahna:bayram:5": "b9dc07a2eb3c",
+      "sahna:ish:0": "d891732de509",
+      "sahna:ish:1": "e687d14f2c67",
+      "sahna:ish:2": "a4c384acd4c3",
+      "sahna:ish:3": "f41c0c039869",
+      "sahna:ish:4": "d46c7a834928",
+      "sahna:ish:5": "a9cc3e8f46d0",
+      "fason:yoqa:0": "e444f63e01cb",
+      "fason:yoqa:1": "0db7cde5858d",
+      "fason:yoqa:2": "aaf6ea30e107",
+      "fason:yoqa:3": "f288181a29cc",
+      "fason:yoqa:4": "ac6d57c75d2a",
+      "fason:yoqa:5": "8ba6d3fd1ece",
+      "fason:yeng:0": "58a1e0f87b9a",
+      "fason:yeng:1": "7497443de570",
+      "fason:yeng:2": "0a233cb5a27a",
+      "fason:yeng:3": "69058b8bff9a",
+      "fason:yeng:4": "49f1147e716e",
+      "fason:yeng:5": "2298c37b0ec2",
+      "fason:bel:0": "181cd3f9eb58",
+      "fason:bel:1": "61ac405d4a75",
+      "fason:bel:2": "de363698f6b9",
+      "fason:bel:3": "410aeb10d72a",
+      "fason:bel:4": "8e6b49b94a77",
+      "fason:etak:0": "6eff9da2aeb5",
+      "fason:etak:1": "33f8a8fc3f23",
+      "fason:etak:2": "d0e7262afdc3",
+      "fason:etak:3": "88865b029a73",
+      "fason:etak:4": "5d127beebece",
+      "fason:shim:0": "3b87636d7e58",
+      "fason:shim:1": "805793f75fe1",
+      "fason:shim:2": "f3478c78a385",
+      "fason:shim:3": "eb437f36d69a",
+      "fason:bogla:0": "63d312c14800",
+      "fason:bogla:1": "89b2553aa3f6",
+      "fason:bogla:2": "f02b20960bb4",
+      "fason:bogla:3": "4c476b7bcaa4",
+      "fason:bogla:4": "2fa3821899f1",
+      "fason:ost:0": "044a43cc9146",
+      "fason:ost:1": "982db518d60d",
+      "fason:ost:2": "4675671b4a08",
+      "fason:ost:3": "d304a65160eb",
+      "fason:ost:4": "db7ac96a028a",
+      "fason:detal:0": "2f8eb3092939",
+      "fason:detal:1": "a13d2e056dcc",
+      "fason:detal:2": "eb06537ad089",
+      "fason:detal:3": "034e4cc1b476",
+      "fason:detal:4": "747ca503b90d",
+      "fason:detal:5": "419caeecc88b",
     },
   },
 };
@@ -1914,6 +2074,15 @@ function promptQorovulHisobla() {
   for (const [uslub, ro] of Object.entries(ai.SAHNA)) {
     ro.forEach((t, n) => { variantlar[`sahna:${uslub}:${n}`] = sha8(t); });
   }
+  // Fason iboralari — SAHNA bilan aynan bir xil qoida bo'yicha (2026-08-09):
+  // indeks bo'yicha kalitlanadi, ya'ni bittasining matni o'zgarsa faqat
+  // o'sha ibora bilan chizilgan rasmlar eskiradi, oxiriga yangisi
+  // qo'shilsa esa hech biri eskirmaydi. Ular SKELETGA kirmasligi shart —
+  // aks holda bitta yoqa iborasini tuzatish HAMMA rasmni qayta chizdirardi
+  // (~$0.04 dan) va qorovul pul sarflashga majburlagan bo'lardi.
+  for (const [oq, ro] of Object.entries(ai.FASON)) {
+    ro.forEach((t, n) => { variantlar[`fason:${oq}:${n}`] = sha8(t); });
+  }
 
   // ---- Skelet ----
   // Namuna prompt yasaladi va undagi HAR BIR ibora o'z guruhining nomiga
@@ -1921,7 +2090,6 @@ function promptQorovulHisobla() {
   const p = { id: 'skelet', name_uz: 'MATO', comp_uz: 'TARKIB', cat_key: 'TUR' };
   const c = {
     kiyim: Object.keys(ai.IMAGE_CHOICES.kiyim)[0],
-    kim: Object.keys(ai.IMAGE_CHOICES.kim)[0],
     uslub: Object.keys(ai.IMAGE_CHOICES.uslub)[0],
     dizayn: 'combo',
     rang: Object.keys(ai.COMBO_CHOICES.rang)[0],
@@ -1931,9 +2099,13 @@ function promptQorovulHisobla() {
   let skelet = ai.buildImagePrompt(p, c);
   const almashtir = [
     ai.sceneFor(p, c), 'namunaviy matn',
-    ai.IMAGE_CHOICES.kiyim[c.kiyim], ai.IMAGE_CHOICES.kim[c.kim],
+    ai.IMAGE_CHOICES.kiyim[c.kiyim],
     ai.IMAGE_CHOICES.uslub[c.uslub], ai.IMAGE_CHOICES.dizayn[c.dizayn],
     ai.COMBO_CHOICES.rang[c.rang], ai.COMBO_CHOICES.qoshimcha[c.qoshimcha],
+    // ⚠️ HAMMA fason iborasi ro'yxatga qo'shiladi, faqat tanlangani emas:
+    // tanlangani seed'ga bog'liq va u boshqa o'zgarish sababli siljisa,
+    // skelet hech narsa o'zgarmagan holda "o'zgardi" bo'lib chiqardi.
+    ...Object.values(ai.FASON).flat(),
   ];
   // Uzunidan qisqasiga: qisqa ibora uzunining ichida bo'lsa, avval uzuni
   // almashsin — aks holda skeletda yarim ibora qolib ketardi.
@@ -2034,7 +2206,7 @@ function testComboText() {
   assert.strictEqual(cleanComboText('Синий бархат'), 'синий бархат', 'kirill harflari o\'tsin');
 
   // ---- Matn faqat COMBO da o'qilsin ----
-  const asos = { kiyim: 'koylak', kim: 'ayol', uslub: 'bayram' };
+  const asos = { kiyim: 'koylak', uslub: 'bayram' };
   const combosiz = normalizeChoices({ ...asos, dizayn: 'zamonaviy', rang: 'oq', qoshimcha: 'charm', matn: 'qora charm' });
   assert.ok(!('matn' in combosiz) && !('rang' in combosiz),
     'combo tanlanmagan bo\'lsa qo\'shimcha javoblar tashlansin (promptga ham, kesh kalitiga ham kirmasin)');
@@ -2101,6 +2273,7 @@ async function runTests() {
     testNormalizeChoices();
     testChoiceLabelsCoverKeys();
     testSceneVariety();
+    testFasonVariety();
     testPromptVersionGuard();
     testComboText();
 

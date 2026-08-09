@@ -81,14 +81,18 @@ const STR = {
     // qolsa, foydalanuvchi ertaga bekorga qaytardi.
     aiRetry: "Qayta urinish",
     aiErr: "Hozir generatsiya qilib bo'lmadi, birozdan keyin urinib ko'ring",
+    // ⚠️ `kim` savoli va uning `ayol`/`bola` yorliqlari 2026-08-09 da
+    // O'CHIRILDI — server tomonda butun guruh ketdi (founder: "defolt ayol
+    // tura qolsin"). Yorliqlar dead-code bo'lib QOLDIRILMADI: Test 14j
+    // faqat serverdagi kalitlar qoplanganini tekshiradi, ya'ni ortiqcha
+    // yorliq testni QIZIL QILMASDI va shu yerda jimgina yotib qolardi.
     aiQ: {
-      kiyim: "Nima tikilsin?", kim: "Kim uchun?", uslub: "Qayerga?",
+      kiyim: "Nima tikilsin?", uslub: "Qayerga?",
       dizayn: "Dizayn yo'nalishi", rang: "Qo'shimcha rang", qoshimcha: "Qo'shimcha material",
     },
     aiO: {
       koylak_milliy: "Milliy ko'ylak", koylak: "Ko'ylak", kostyum: "Kostyum",
       palto: "Palto", yubka: "Yubka", romol: "Ro'mol",
-      ayol: "Ayol", bola: "Bola",
       kundalik: "Kundalik", bayram: "Bayram / to'y", ish: "Ish",
       neoklassika: "Neoklassika", zamonaviy: "Zamonaviy",
       minimalistik: "Minimalistik", combo: "Combo",
@@ -100,6 +104,13 @@ const STR = {
     aiTextQ: "Yana nima qo'shilsin? (ixtiyoriy)",
     aiTextPh: "masalan: oltin tugma, qora yoqa",
     aiTextBad: "Matnda ruxsat etilmagan belgi bor — faqat harf, raqam, vergul va chiziqcha",
+    // "Boshqa fason" (2026-08-09). ⚠️ Matnda narx AYTILADI: tugma yangi rasm
+    // chizdiradi, ya'ni kredit yeydi. "Boshqacha chizish" (`aiAgain`) esa
+    // TEKIN — u faqat savollarga qaytaradi. Ikkalasi yonma-yon turgani
+    // uchun farqi ko'rinib turishi shart, aks holda xaridor bilmagan holda
+    // pul sarflardi.
+    aiOtherCut: "Boshqa fason",
+    aiOtherCutHint: "Yangi fason — {n} credit",
     aiCredits: "Lola credit",
     aiCreditCost: "Bitta rasm — {n} credit",
     aiCreditLeft: "{n} credit qoldi",
@@ -221,13 +232,12 @@ const STR = {
     aiRetry: "Повторить",
     aiErr: "Сейчас не удалось сгенерировать, попробуйте чуть позже",
     aiQ: {
-      kiyim: "Что сшить?", kim: "Для кого?", uslub: "Куда?",
+      kiyim: "Что сшить?", uslub: "Куда?",
       dizayn: "Направление дизайна", rang: "Дополнительный цвет", qoshimcha: "Доп. материал",
     },
     aiO: {
       koylak_milliy: "Нац. платье", koylak: "Платье", kostyum: "Костюм",
       palto: "Пальто", yubka: "Юбка", romol: "Платок",
-      ayol: "Женщина", bola: "Ребёнок",
       kundalik: "Повседневно", bayram: "Праздник / свадьба", ish: "Работа",
       neoklassika: "Неоклассика", zamonaviy: "Современный",
       minimalistik: "Минимализм", combo: "Комбо",
@@ -239,6 +249,8 @@ const STR = {
     aiTextQ: "Что ещё добавить? (необязательно)",
     aiTextPh: "например: золотые пуговицы, чёрный воротник",
     aiTextBad: "В тексте недопустимый символ — только буквы, цифры, запятая и дефис",
+    aiOtherCut: "Другой фасон",
+    aiOtherCutHint: "Новый фасон — {n} credit",
     aiCredits: "Lola credit",
     aiCreditCost: "Одно изображение — {n} credit",
     aiCreditLeft: "Осталось {n} credit",
@@ -527,7 +539,7 @@ const S = {
   // Savol guruhlari va kalitlari SERVERDAN keladi (`aiImageChoices`).
   // Bu yerda qo'lda ro'yxat YO'Q — u serverda tug'iladi (db/014 darsi).
   aiChoiceKeys: null,
-  // productId -> { kiyim, kim, uslub } — xaridor tanlagan javoblar.
+  // productId -> { kiyim, uslub, dizayn } — xaridor tanlagan javoblar.
   // Har mahsulotga alohida: bir matoga ko'ylak, boshqasiga palto so'ralishi
   // mumkin va biri ikkinchisini bosib ketmasligi kerak.
   aiChoices: {},
@@ -537,6 +549,15 @@ const S = {
   // Erkin matn chegarasi ham SERVERDAN: bu yerda 100, u yerda 60 bo'lib
   // qolsa xaridor yozib bo'lgach 400 xato ko'rardi (db/014 darsi).
   aiComboTextMax: 60,
+  // "Boshqa fason" chegarasi — AYNI sabab bilan serverdan (`aiVariantMax`).
+  // ⚠️ Boshlang'ich qiymat `0` va bu ATAYLAB: javob kelmaguncha tugma
+  // UMUMAN chizilmaydi. Zaxira raqam qo'yilsa (masalan 5), server esa
+  // boshqa chegara bilan ishlasa — xaridor tugmani bosib "javob yaroqsiz"
+  // xatosini ko'rardi, ustiga bu pullik yo'l.
+  aiVariantMax: 0,
+  // productId -> nechanchi fason so'ralgan (0 = birinchisi). Kesh kalitiga
+  // kiradi, ya'ni har oshirish YANGI rasm va YANGI kredit demak.
+  aiVariant: {},
   aiText: {},            // productId -> combo erkin matni
   // Lola credit — { balance, cost, unlimited }. `null` = hali bilinmaydi va
   // shunda ko'rsatkich UMUMAN chizilmaydi (o'ylab topilgan raqam emas).
@@ -1462,12 +1483,36 @@ function aiImageSection(productId) {
       <figcaption class="ai-note"><span>⚠️</span><span>${T.aiImgNote}</span></figcaption>
     </figure>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
+      ${otherCutBtn(productId)}
       <button class="ai-ghost" data-action="resetAiImage" data-arg="${esc(productId)}">${T.aiAgain}</button>
       <button class="ai-ghost" data-action="shareAiImage" data-arg="${esc(st.url)}">${T.aiShare}</button>
       ${S.screen === 'ai' ? `<button class="ai-ghost" data-action="openProduct" data-arg="${esc(productId)}">${T.aiOrder}</button>` : ''}
     </div>
     ${creditQator()}
   </div>`;
+}
+
+// ============ "BOSHQA FASON" TUGMASI (2026-08-09) ============
+// Founder bahosi: "ko'ylak fasonini zo'r qilmayapti har safar, bir xil
+// defolt fason turibdi". Fason banki serverda buni MATOLAR ORASIDA hal
+// qiladi, lekin BITTA mato uchun kesh qoidasi o'zgarmadi: ayni javoblar =
+// ayni rasm, abadiy. Ya'ni fason yoqmasa xaridorning qo'lida hech narsa
+// yo'q edi.
+//
+// ⚠️ Tugma YONIDAGI "Boshqacha chizish" dan farqi PULDA: bu yangi kesh
+// kaliti, ya'ni yangi rasm va yangi kredit. Shuning uchun narx tugmaning
+// O'ZIDA aytiladi — bosishdan OLDIN, keyin emas.
+//
+// ⚠️ Chegaraga yetganda tugma UMUMAN chizilmaydi (o'chirilgan holda
+// qoldirilmaydi): bosilmaydigan tugma xaridorga nima qilish kerakligini
+// aytmasdi, yo'q tugma esa savol tug'dirmaydi.
+function otherCutBtn(productId) {
+  const T = STR[S.lang];
+  const joriy = S.aiVariant[String(productId)] || 0;
+  if (!S.aiVariantMax || joriy >= S.aiVariantMax) return '';
+  const narx = S.aiCredits && S.aiCredits.cost;
+  const izoh = narx ? ` · ${T.aiOtherCutHint.replace('{n}', narx)}` : '';
+  return `<button class="ai-ghost" data-action="otherCutAiImage" data-arg="${esc(productId)}">✦ ${esc(T.aiOtherCut + izoh)}</button>`;
 }
 
 // Kredit qatori. `null` bo'lsa UMUMAN chizilmaydi — CLAUDE.md: ma'lumot
@@ -1505,6 +1550,10 @@ function pickAiChoice(arg) {
   const [productId, guruh, kalit] = String(arg).split('|');
   if (!productId || !guruh || !kalit) return;
   S.aiChoices[productId] = { ...(S.aiChoices[productId] || {}), [guruh]: kalit };
+  // ⚠️ Javob o'zgarsa variant NOLGA qaytadi. Aks holda xaridor "palto" dan
+  // "ko'ylak" ga o'tganda darrov 3-fason so'ralgan bo'lardi — ya'ni u
+  // so'ramagan variant uchun kredit ketardi va sababi ko'rinmasdi.
+  delete S.aiVariant[productId];
   repaintDetail(productId);
 }
 
@@ -1513,7 +1562,31 @@ function pickAiChoice(arg) {
 // uchalasini qaytadan tanlatish ortiqcha ish bo'lardi.
 function resetAiImage(productId) {
   delete S.aiImages[String(productId)];
+  // Variant ham nolga qaytadi — "boshqacha chizish" birinchi fasondan
+  // boshlaydi, aks holda tekin bo'lishi kerak bo'lgan qaytish jimgina
+  // pullik variantda qolib ketardi.
+  delete S.aiVariant[String(productId)];
   repaintDetail(String(productId));
+}
+
+// "Boshqa fason" — javoblar SAQLANADI, faqat variant raqami oshadi va
+// darrov yangi so'rov ketadi.
+//
+// ⚠️ Savollarga QAYTARILMAYDI (`resetAiImage` dan farqi shu): xaridor
+// javoblaridan mamnun, unga yoqmagani — chizilgan fason. Uni yana uch
+// savoldan o'tkazish o'zi javob bermagan savolga javob berishga majburlash
+// bo'lardi.
+//
+// ⚠️ Chegara SERVERDAN kelgan qiymat bilan tekshiriladi va bu YAGONA
+// tekshiruv emas: server ham `VARIANT_MAX` dan mustaqil o'tkazadi. Bu yerda
+// tekshirilishining sababi — xatoni pul sarflanadigan yo'ldan OLDIN
+// ushlash, himoya esa baribir serverda.
+function otherCutAiImage(productId) {
+  const id = String(productId);
+  const keyingi = (S.aiVariant[id] || 0) + 1;
+  if (!S.aiVariantMax || keyingi > S.aiVariantMax) return;
+  S.aiVariant[id] = keyingi;
+  askAiImage(id);
 }
 
 // Tugma bosilganda. Kimlik header'dagi imzolangan initData'dan — mahsulot
@@ -1536,7 +1609,13 @@ async function askAiImage(productId) {
         // Matn har doim yuboriladi — server `dizayn = combo` bo'lmasa uni
         // O'ZI tashlaydi. Klientda "combo tanlanganmi" degan ikkinchi
         // tekshiruv yozilmadi: u serverdagi qoidaning nusxasi bo'lardi.
-        choices: { ...(S.aiChoices[id] || {}), matn: S.aiText[id] || '' },
+        // `variant` ham shu naqshda: `0` bo'lsa server uni O'ZI tashlaydi
+        // va kesh kaliti variantsiz shakl bilan bir xil qoladi.
+        choices: {
+          ...(S.aiChoices[id] || {}),
+          matn: S.aiText[id] || '',
+          variant: S.aiVariant[id] || 0,
+        },
       }),
     });
     const j = await r.json().catch(() => null);
@@ -2871,6 +2950,13 @@ async function loginTelegram() {
       S.aiComboKeys = d.aiComboChoices || null;
       if (Number.isInteger(d.aiComboTextMax) && d.aiComboTextMax > 0) {
         S.aiComboTextMax = d.aiComboTextMax;
+      }
+      // ⚠️ Yaroqsiz javobda `0` da QOLADI (yuqoridagi izohga qara) — ya'ni
+      // "boshqa fason" tugmasi umuman chizilmaydi. Bu jimgina yolg'ondan
+      // ko'ra ko'rinadigan yo'qlik: funksiya yo'qligi sezilardi, noto'g'ri
+      // chegara esa faqat bosilgandan keyin, kredit bilan bilinardi.
+      if (Number.isInteger(d.aiVariantMax) && d.aiVariantMax > 0) {
+        S.aiVariantMax = d.aiVariantMax;
       }
       // Javob kech kelsa foydalanuvchi allaqachon mahsulot sahifasida
       // bo'lishi mumkin — o'shanda tugma o'zi paydo bo'lsin.

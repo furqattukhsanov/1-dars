@@ -1274,3 +1274,192 @@ biri kredit yo'lidan keldi.
 - Yangi xato yo'llari production'da hali KO'RILMAGAN: `ai_busy` va
   `ai_blocked` ekranlari faqat testda tekshirilgan. Deploy'dan keyin
   haqiqiy 503 kutiladi va xabar QO'LDA tasdiqlansin
+
+---
+
+## 2026-08-09 — FASON banki: "har safar bir xil ko'ylak" yopildi
+
+Sprint 10 hamon `tugadi` holatida — bu bo'lim funksiya TIRIK ishlab turgan
+holda founderning **sifat bahosidan** chiqqan o'zgarish haqida.
+
+Founder AI rasm sifatini **10 dan 4** deb baholadi. Quiz o'tkazildi va asosiy
+shikoyat aniqlandi: *"ko'ylak fasonini zo'r qilmayapti har safar, bir xil
+defolt fason turibdi"*.
+
+### Tashxis — taxmin emas, KODDA tasdiqlangan
+
+Nuqson modelda emas, **promptning muvozanatida** edi va uni prompt matnining
+o'zini o'qib ko'rish ochdi:
+
+| Band | Qanday yozilgan | Kuchi |
+|---|---|---|
+| `kiyim` | `a modern long dress` — **4 so'z** | bo'sh |
+| `ODOB` | yopiq yoqa, uzun yeng, tizzadan uzun, tanaga yopishmasin | to'rt tomondan aniq chegara |
+
+**Aniq ko'rsatma bo'sh ko'rsatmani HAR DOIM yengadi.** Shuning uchun har
+rasmda odob g'olib chiqib fason yo'qolardi va model o'sha qutiga eng xavfsiz
+javobni — bitta shaklsiz uzun ko'ylakni — qaytaraverardi.
+
+⚠️ Muhim tafsilot: shikoyat "AI yomon" degan taassurot berardi, sabab esa
+**bizning promptimizda** edi. Model almashtirilganda hech narsa o'zgarmasdi.
+
+### Bajarilgani
+
+| Band | Natija |
+|---|---|
+| FASON banki | 7 o'q (yoqa 6, yeng 6, bel 5, etak 5, shim 4, bogla 5, ost 5, detal 6) — **42 ibora**, ko'ylak uchun **5400** birikma |
+| `fasonFor()` | `SAHNA` naqshi — kesh kalitidan hosil qilinadi, har o'q MUSTAQIL seed bilan |
+| `FASON_OQLARI` | qaysi buyumga qaysi o'q qo'llanadi (ro'molda yeng ham, etak ham yo'q) |
+| `kim` savoli | **BUTUNLAY olib tashlandi** — model promptda qotib turadi (`MODEL_ODAM`) |
+| Rasm nisbati | `imageConfig.aspectRatio = '3:4'` — ilgari `generationConfig` UMUMAN yo'q edi |
+| `KADR` | to'liq bo'y poyabzalgacha, ko'z darajasi, 85mm, yuz yon/pastga, aksessuar yo'q |
+| `KADR_SOCH` | alohida ajratildi va bosh kiyimda TASHLANADI |
+| `TAQIQ` | maneken, ikkinchi odam, kollaj, ko'zgu, flat-lay, buzilgan qo'l |
+| `comp_uz` | endi TALAB qilinadi: "let the garment drape the way this composition really behaves" |
+| `dizayn` uchala iborasi | abstrakt tilakdan aniq konstruksiyaga qayta yozildi |
+| "Boshqa fason" tugmasi | `variant` (1..5) kesh kalitida — yangi rasm, yangi kredit, narx tugmaning O'ZIDA |
+| `joriyJavobmi()` | galereya filtri — eski tekshiruv `kim` guruhi ketgach JIMGINA ishlamay qolardi |
+| `PROMPT_VERSION` | 3 → 4 |
+| Testlar | **43 → 44** (yangi 14p; 14i kengaytirildi; 14j/14k/14m `kim` siz holatga moslandi) |
+| Kesh | `app.js?v=72` → `?v=73` |
+
+### Qilingan ishlar
+
+- [2026-08-09] **FASON banki qo'shildi** (`server/lib/ai.js`) — 7 o'q, 42 ibora.
+  `fasonFor()` ularni SAHNA naqshi bo'yicha kesh kalitidan hosil qiladi, har
+  o'q MUSTAQIL seed bilan. Har bir ibora ODOBGA MOS (yopiq yoqa, uzun yeng,
+  tizzadan uzun) — aks holda prompt o'zi bilan urishardi va model ziddiyatni
+  yana o'rtacha javob bilan hal qilardi
+- [2026-08-09] `FASON_OQLARI` jadvali — qaysi buyumga qaysi o'q qo'llanadi.
+  Bu `IMAGE_CHOICES.kiyim` ning ikkinchi ro'yxati EMAS: u kalitlarni
+  takrorlamaydi, ularga XOSSA biriktiradi. Farqni Test 14p ushlab turadi
+- [2026-08-09] **`kim` savoli BUTUNLAY olib tashlandi** (founder: "bola kerak
+  emas, defolt ayol tura qolsin"). Kalit emas, BUTUN SAVOL ketdi — bitta
+  variantli savol savol emas. Xaridorga 4 emas **3 savol** qoldi
+- [2026-08-09] **Rasm nisbati qo'shildi** — API so'rovida `generationConfig`
+  UMUMAN yo'q edi, endi `imageConfig.aspectRatio = '3:4'` (founder tanlovi)
+- [2026-08-09] `KADR` bloki — to'liq bo'y poyabzalgacha, ko'z darajasi, 85mm,
+  yuz yon/pastga qaragan, aksessuar yo'q. Ilgari kadr haqida BITTA ibora bor
+  edi ("full-body photograph") va u kamera haqida hech narsa aytmasdi
+- [2026-08-09] `KADR_SOCH` alohida ajratildi va bosh kiyimda tashlanadi.
+  Shart `kiyim === 'romol'` emas, **o'qdan** olinadi (`db/014` darsi)
+- [2026-08-09] `TAQIQ` salbiy ro'yxati — maneken, ikkinchi odam, kollaj,
+  ko'zgu, flat-lay, buzilgan qo'l
+- [2026-08-09] `comp_uz` endi faqat AYTILMAYDI, undan TALAB qilinadi
+- [2026-08-09] `dizayn` uchala iborasi qayta yozildi — abstrakt tilakdan
+  ("relaxed modern cut") aniq konstruksiyaga
+- [2026-08-09] **"Boshqa fason" tugmasi** (`telegram-app/app.js`) — `variant`
+  (1..`VARIANT_MAX`=5) kesh kalitiga kiradi. Chegara SERVERDAN keladi
+  (`aiVariantMax`, `/api/auth/telegram`). Javob o'zgarsa yoki "boshqacha
+  chizish" bosilsa variant nolga qaytadi
+- [2026-08-09] `joriyJavobmi()` qo'shildi — galereya filtri. Ro'yxat qo'lda
+  emas, jadvallardan hosil qilinadi
+- [2026-08-09] `PROMPT_VERSION` 3 → 4 — butun kesh eskiradi, har rasm bir
+  marta qayta chiziladi (~$0.04), **faqat so'ralganda**
+- [2026-08-09] Yangi **Test 14p** (fason xilma-xilligi, kesh buzilmasligi,
+  ODOB bilan ziddiyat yo'qligi, o'qlar mustaqilligi, har kiyim turi
+  chizilishi). Test 14i ga `variant` va `joriyJavobmi` qorovullari qo'shildi.
+  `PROMPT_QOROVUL` v4 ga yangilandi (86 variant). 14j/14k/14m `kim` siz
+  holatga moslandi
+- [2026-08-09] `telegram-app/index.html` — `app.js?v=72` → `?v=73`
+- [2026-08-09] `loyiha-panel.html` — `panel.js?v=9` → `?v=10`, Test 16
+  jadvali yangilandi
+
+### Sinov
+
+- **44 test PASS.** ⚠️ Raqam IKKI MUSTAQIL usul bilan olindi:
+  `grep -c "✅ Test "` = **44** va `node server/test.js` chiqishidagi qatorlar
+  = **44**. HEAD dagi holat 43 edi
+- `node --check` barcha o'zgargan fayllarda o'tdi
+- **Prompt uch xil kiyim turi uchun CHOP ETILIB ko'zdan kechirildi** va aynan
+  shu yo'l bilan ikkita ziddiyat topildi: ro'mol + "sochi ko'rinib tursin",
+  kostyum + "floor-skimming hem". **Ikkalasini ham test tutmagan bo'lardi** —
+  har ikkala jumla alohida to'g'ri, ziddiyat faqat BIRGA o'qilganda ko'rinadi
+
+### Qarorlar
+
+- [2026-08-09] Qaror: **fason TASODIFIY EMAS, kesh kalitidan hosil qilinadi**
+  (`fasonFor`). `SAHNA` qarorining aynan takrori va u ataylab: naqsh shu
+  loyihada allaqachon SINALGAN. `Math.random()` ikki yo'ldan birini berardi
+  va ikkalasi ham nuqson — kesh kalitiga kirmasa tasodif KO'RINMAYDI, kirsa
+  kesh o'ladi va ayni mato uchun qayta-qayta ~$0.04 to'lanadi
+- [2026-08-09] Qaror: **har o'q MUSTAQIL seed oladi.** Bitta seed'dan hamma
+  o'q olinsa ular birga harakatlanardi — 6 xil yoqa emas, 6 xil TO'PLAM
+  chiqardi va xilma-xillik o'nlab marta kamayardi. O'q nomi seed'ga
+  qo'shilgani uchun ular bir-biridan mustaqil aylanadi: ko'ylak uchun
+  6×6×5×5×6 = **5400** fason
+- [2026-08-09] Qaror: **har bir fason iborasi ODOBGA MOS bo'lishi SHART.**
+  Aks holda ikki band bir-biriga zid buyruq berardi va tuzatilayotgan
+  nuqsonning O'ZI qaytardi. Ro'yxatga yangi ibora qo'shilsa shu chegara
+  saqlansin
+- [2026-08-09] Qaror (founder): **`kim` guruhi butunlay olib tashlanadi.**
+  2026-08-07 da `erkak` kaliti ketgandi, bugun `bola` ham ketdi va guruh
+  bitta variant bilan qoldi — bitta variantli savol savol emas, u shunchaki
+  bosiladigan tugma bo'lardi. Model `MODEL_ODAM` da qotib turadi va yosh
+  oralig'i ATAYLAB yozilgan: aytilmasa har rasmda boshqa yosh chiqib lenta
+  bir butun ko'rinmasdi
+- [2026-08-09] ⚠️ **Yozib qoldirilgan TEKSHIRILMAGAN gumon:** Google rasm
+  modellari fotorealistik BOLA tasvirini bloklaydi deb o'ylaymiz va
+  production'dagi `IMAGE_PROHIBITED_CONTENT` ning bir qismi shundan bo'lishi
+  mumkin edi. **Buni O'LCHAMADIK** — guruh boshqa sababga ko'ra ketdi.
+  Ya'ni rad etishlar shundan keyin ham davom etsa, sabab bola EMAS edi.
+  Gumon kod izohida ham turibdi — "hujjatdagi raqam tekshirilmagan da'vo"
+  qoidasining oldini olish shakli: taxmin taxmin deb belgilandi
+- [2026-08-09] Qaror: **soch qoidasi kadrdan AJRATILADI.** Ro'mol sochni
+  yopadi, ya'ni "sochi yig'ilgan va ko'rinib turadi" bilan bitta promptda
+  tursa gap o'zi bilan urishardi. Shart o'qdan olinadi, `kiyim === 'romol'`
+  dan emas — aks holda `IMAGE_CHOICES.kiyim` ning ikkinchi ro'yxati paydo
+  bo'lardi
+- [2026-08-09] Qaror: **"Boshqa fason" tugmasi variantni AVTOMATIK
+  oshirmaydi.** Har variant alohida kesh kaliti, ya'ni alohida ~$0.04 va
+  alohida kredit — pul sarflaydigan qarorni foydalanuvchi qabul qiladi.
+  Narx tugmaning O'ZIDA yozilgan, bosishdan OLDIN: yonidagi "Boshqacha
+  chizish" TEKIN va farqi ko'rinmasa xaridor bilmagan holda pul sarflardi
+- [2026-08-09] Qaror: **`VARIANT_MAX` serverdan keladi va chegaraga
+  yetganda tugma UMUMAN chizilmaydi.** Klientdagi boshlang'ich qiymat `0` —
+  javob kelmaguncha tugma yo'q. Zaxira raqam qo'yilsa va server boshqa
+  chegara bilan ishlasa xaridor tugmani bosib "javob yaroqsiz" xatosini
+  ko'rardi, ustiga bu pullik yo'l (`db/014` darsi, `aiComboTextMax` bilan
+  bitta oilada)
+- [2026-08-09] Qaror: **`variant = 0` kalitni UMUMAN qo'shmaydi.**
+  `{variant:0}` va variantsiz so'rov ikki xil kesh kaliti berardi va
+  birinchi rasm uchun ikki marta to'langan bo'lardi (`matn` bilan aynan bir
+  sabab)
+- [2026-08-09] **Dars: guruh olib tashlash galereya filtrini JIMGINA
+  buzardi.** `joriyMi` to'g'ridan-to'g'ri `normalizeChoices` ni chaqirardi va
+  2026-08-07 da bu YETARLI edi — o'shanda olib tashlangan narsa guruh
+  ICHIDAGI kalit edi (`kim: erkak`). Bugun butun GURUH ketdi va
+  `normalizeChoices` faqat O'ZI biladigan guruhlarni aylangani uchun
+  notanish `kim` kaliti e'tibordan chetda qolardi — bazadagi `kim=erkak` va
+  `kim=bola` rasmlari lentaga QAYTIB kelardi. Nuqson jimgina: kod yangi,
+  test yashil, lentada esa olib tashlangan variantlar. Farq
+  `joriyJavobmi()` da: `normalizeChoices` "javob yetarlimi" ni tekshiradi,
+  `joriyJavobmi` esa "javob ORTIQCHA emasmi" ni ham
+- [2026-08-09] **Dars: ziddiyatni TEST emas, promptni CHOP ETISH topdi.**
+  Ikkita nuqson (ro'mol + soch, kostyum + "floor-skimming hem") faqat
+  shu yo'l bilan ko'rindi va ularni test tuta olmasdi — har ikkala jumla
+  ALOHIDA to'g'ri, ziddiyat faqat birga o'qilganda paydo bo'ladi. Ya'ni
+  prompt — kod emas, MATN, va matnni o'qish kerak
+- [2026-08-09] **Dars: sessiya hisobotidagi test soni YANA noto'g'ri
+  bo'ldi** — "34 test" deb aytilgandi, o'lchov **44** berdi. Bu
+  `hujjatdagi raqam — tekshirilmagan da'vo` qoidasining **to'rtinchi**
+  takrori (avvallari: «85 mahsulot» → 12, «250 KB shrift» → 131 KB,
+  «32 → 36» → 34 → 37, «45 test» → 42). Raqam yozilishidan oldin
+  `node server/test.js` bilan sanalsin
+
+### Ochiq qolgani
+
+1. ⚠️ **Rasm nisbati o'zgarishi production'da TEKSHIRILMAGAN.** Ilgari nisbat
+   qanday bo'lgani ham O'LCHANMAGAN (lokalda API kaliti yo'q) — ya'ni bu
+   hozircha **tekshirilmagan da'vo**. Agar `imageConfig` ni model qabul
+   qilmasa **HTTP 400** keladi va sabab javob tanasida ko'rinadi. Orqaga
+   qaytarish — faqat o'sha blokni olib tashlash, boshqa hech narsaga tegmaydi.
+   Deploy'dan keyin BIRINCHI rasmda tasdiqlansin
+2. **Fason banki sifatni oshirgani hali QO'LDA baholanmagan** — bu sprintning
+   o'z darsi: testlar o'tishi rasm CHIROYLI chiqqanini isbotlamaydi, u faqat
+   ro'yxatlar mos va kesh buzilmaganini isbotlaydi. Founder bahosi 4 edi;
+   yangi baho deploy'dan keyin olinsin
+3. **Bola gumoni o'lchanmagan** (yuqoridagi qarorga qara) — rad etishlar
+   davom etsa sabab boshqa joyda
+4. `PROMPT_VERSION` 4 ga o'tgani uchun mavjud har bir rasm bir marta qayta
+   chiziladi (~$0.04 × so'ralganlari). Bu ATAYLAB va narxi ochiq yozildi

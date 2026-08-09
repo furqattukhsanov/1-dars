@@ -159,6 +159,25 @@
   bilan bitta oilada: **yozilgan qoida himoya emas — uni tekshiradigan test
   himoya**, va aynan bu qoida 2026-08-06 gacha faqat odat bo'lgani uchun
   buzilgan edi.
+- **Prompt — kod emas, MATN: uni CHOP ETIB O'QISH kerak** (2026-08-09).
+  AI prompti bo'laklardan yig'iladi (`server/lib/ai.js` → `buildImagePrompt`)
+  va har bo'lak alohida to'g'ri bo'lishi mumkin, **birga o'qilganda esa zid**.
+  Test bunday nuqsonni TUTMAYDI: u satrlar borligini tekshiradi, ma'nosini
+  emas. Shuning uchun prompt o'zgarganda u HAR BIR kiyim turi uchun chop
+  etilib ko'z bilan o'qilsin.
+  Sabab: o'sha kuni ikkita ziddiyat aynan shu yo'l bilan topildi —
+  ro'mol tanlanganda "sochi yig'ilgan va **ko'rinib turadi**" bandi qolib
+  ketardi (ro'mol sochni yopadi), kostyumda esa "floor-skimming **hem**"
+  deyilardi (shimda etak yo'q). Ikkalasi ham 44 ta yashil testdan o'tib
+  kelgan edi. Ziddiyat modelni "o'z didiga" qaytaradi, ya'ni zid buyruq
+  olgan model eng o'rtacha javobni beradi — aynan tuzatilayotgan nuqsonning
+  o'zi.
+  ⚠️ Buni test bilan qulflab bo'lmaydi va shuning uchun bu **qoida
+  emas, ODAT**: `test.js` faqat ro'yxatlarni qamraydi (Test 14p —
+  ODOB bilan zid so'zlar, o'qlar mustaqilligi), gapning MA'NOSI esa
+  faqat o'qilganda ko'rinadi. Bu "yozilgan qoida himoya emas" oilasidan
+  **istisno**: bu yerda test yozib bo'lmaydi, shuning uchun qadam qo'lda
+  bajariladi.
 - **Hujjatdagi raqam — TEKSHIRILMAGAN DA'VO** (2026-08-06). Optimizatsiya yoki
   tuzatish bandi ochilganda **bazaviy raqamning O'ZI qayta o'lchansin**, undan
   ish boshlanmasin. Sabab: raqam bandning kattaligini va navbatdagi o'rnini
