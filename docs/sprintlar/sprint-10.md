@@ -1611,24 +1611,52 @@ o'lchanmagan» bandi bilan bitta toifada va shu holicha e'lon qilinadi.
 
 ### DEPLOY DALILI (2026-08-13)
 
-> ⚠️ **BO'SH — deploy'dan KEYIN to'ldiriladi.** Bu bo'lim ataylab ochiq
-> qoldirilgan: oldingi sessiyalarda aynan shu joy hujjat qarzi tug'dirgan
-> (sprintda "production'da tasdiqlandi" deb yozilgan, aslida o'lchanmagan
-> holat — `ALERT_CHAT_ID` darsi). **Yozilmaguncha bu ish "deploy qilindi"
-> deb hisoblanmaydi.**
+> **Qisman to'ldirildi (2026-08-13).** 1–3 O'LCHANDI, 4–6 hamon OCHIQ va
+> ular founder ishtirokini talab qiladi (Telegram orqali kirish). Bandlar
+> ataylab ochiq qoldirilyapti: oldingi sessiyalarda aynan shu joy hujjat
+> qarzi tug'dirgan (sprintda "production'da tasdiqlandi" deb yozilgan,
+> aslida o'lchanmagan holat — `ALERT_CHAT_ID` darsi).
+> ⚠️ **4-band bajarilmaguncha "saytda AI ishlayapti" DEYILMAYDI** — hozir
+> tasdiqlangani "yo'l ochiq", "yo'ldan o'tildi" emas.
 
-To'ldirilishi kerak bo'lgan bandlar:
-
-1. [ ] `server/` qo'lda rsync qilindi + servis restart (founder bajaradi —
-       CI `server/` ni CHIQARMAYDI)
-2. [ ] `curl` bilan tekshirildi: `/api/auth/web/me` javobida `aiImageEnabled`
-       va `aiImageChoices` bor (kirmagan holatda ham)
-3. [ ] `style.css?v=41` va `script.js?v=31` production'dan `Content-Type`
-       bo'yicha tekshirildi (soft-200 tuzog'i)
+1. [x] `server/` rsync + servis restart — **2026-08-13 03:58:05**.
+       ⚠️ **Birinchi urinish JIMGINA muvaffaqiyatsiz bo'ldi:** founder
+       rsync + restart qildi, servis HAQIQATAN qayta ishga tushdi
+       (`ActiveEnterTimestamp` 00:10:44), lekin fayllar diskda ESKI qoldi
+       (`lib/ai.js` 08-09 dan) va `/api/version` hamon `6dd041f` berardi.
+       Dalil servis holatida emas, **javob tarkibida** ekani shu yerda
+       yana tasdiqlandi. Ikkinchi rsync'dan keyin diskdagi kod
+       `grep -c aiClientConfig` bilan to'g'ridan-to'g'ri tekshirildi.
+2. [x] `/api/auth/web/me` (kirmagan holatda): `aiImageEnabled: true`,
+       `aiImageChoices` — `kiyim`/`uslub`/`dizayn`, `aiComboChoices` —
+       `rang`/`qoshimcha`, `aiComboTextMax: 60`, `aiVariantMax: 5`.
+       `/api/version` → `c82deb0`. Kesh chetlab o'tildi
+       (`cf-cache-status: DYNAMIC`, ya'ni javob origin'dan).
+3. [x] `script.js?v=31` → `200 application/javascript` va TARKIBIDA yangi
+       kod (9 ta moslik); `style.css?v=41` → `200 text/css`, AI uslublari
+       joyida; `index.html` ikkalasini yangi versiya bilan chaqiryapti.
+       Soft-200 tuzog'i chetlab o'tildi — kodga emas, TUR va TARKIBGA
+       qaraldi. Brauzerda: blok chizildi (3 savol, 13 chip, tugma
+       "Kirish — rasm chizish uchun"), konsolda xato 0.
+       Yo'l-yo'lakay: `/api/ai/image` va `/api/ai/my` sessiyasiz **401**
+       (500 emas), Mini App kanali buzilmagan (soxta `initData` → 401),
+       `/api/ai/gallery` CDN'dan rasm qaytaryapti.
 4. [ ] **Saytda BIRINCHI HAQIQIY RASM chizildi** — kredit yechildi, rasm
        ko'rindi, "AI tasavvuri" yorlig'i joyida
-5. [ ] Sayt sessiyasi bilan `/api/ai/my` javob berdi (401 EMAS)
+5. [ ] Sayt sessiyasi bilan `/api/ai/my` javob berdi (401 EMAS).
+       ⚠️ Hozir faqat SALBIY holat sinalgan (sessiyasiz → 401); ijobiy
+       holat kirishni talab qiladi
 6. [ ] Rasm Mini App galereyasida ham ko'rindi (egasi BITTA Telegram ID)
+
+**Yo'l-yo'lakay tozalangan:** serverdagi `.env` da `AI_PROVIDER`,
+`AI_API_KEY`, `AI_DAILY_LIMIT` ikki martadan yozilgan edi (qiymatlar aynan
+bir xil). 23 → 19 qator. `.env` ni `EnvironmentFile=` orqali **systemd**
+o'qiydi (dotenv EMAS), ya'ni oxirgi qiymat yutadi — shuning uchun aynan
+yutayotgan nusxa saqlandi. Hal qilingan muhit o'zgarmagani `sha256`
+barmoq izi bilan tasdiqlandi (oldin va keyin `2ac4324097b8d60b`), keyin
+`systemd-run --property=EnvironmentFile=...` bilan systemd faylni
+HAQIQATAN o'qiy olishi sinaldi — servisga tegmasdan, chunki buzuq fayl
+faqat KEYINGI restartda chiqib, sababi noma'lum bo'lib qolardi.
 
 ### Qarorlar
 
