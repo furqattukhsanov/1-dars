@@ -627,6 +627,73 @@ button:active { opacity: .88; }
   100% { transform: translateX(305%); }
 }
 
+/* ==== AI kutish — atelye holati (2026-08-13) ====
+   Sayt `style.css` bilan BIR XIL blok. 3:4 skelet — rasm chiqadigan
+   joyning o'zi (serverdagi `aspectRatio 3:4` bilan bir nisbat), ichida
+   tikuv choki "tikilib boradi" — spinner o'rniga. */
+.ai-skel {
+  position: relative;
+  aspect-ratio: 3 / 4;
+  max-width: 210px;
+  margin: 0 auto 13px;
+  border-radius: var(--radius-md);
+  background: var(--ink-100);
+  overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+}
+.ai-skel::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(105deg, transparent 38%, rgba(255, 255, 255, .5) 50%, transparent 62%);
+  transform: translateX(-100%);
+  animation: ai-shimmer 1.7s ease-in-out infinite;
+}
+@keyframes ai-shimmer { to { transform: translateX(100%); } }
+.ai-stitch { width: 72%; overflow: visible; }
+.ai-stitch-path {
+  stroke: var(--pom-400); stroke-width: 2.5;
+  stroke-linecap: round; stroke-dasharray: 7 7;
+  animation: ai-stitch-run 1.1s linear infinite;
+}
+@keyframes ai-stitch-run { to { stroke-dashoffset: -14; } }
+.ai-needle {
+  fill: var(--pom-700);
+  transform-origin: 118px 18px;
+  animation: ai-needle-rock 1.1s ease-in-out infinite;
+}
+@keyframes ai-needle-rock { 50% { transform: translate(2px, 2px) rotate(5deg); } }
+.ai-wait-msg {
+  text-align: center;
+  font-size: 13.5px; font-weight: 600; color: var(--text-body);
+  margin-bottom: 11px;
+}
+/* ~30 soniyalik halol chiziq: 92% da TO'XTAYDI — javob kelganda blok
+   butunlay almashadi ("tayyor bo'ldi-yu chiqmadi" va'dasi bo'lmasin). */
+.ai-bar30 { height: 4px; border-radius: 999px; background: var(--ink-100); overflow: hidden; }
+.ai-bar30 span {
+  display: block; height: 100%; border-radius: 999px;
+  background: linear-gradient(90deg, var(--pom-400), var(--pom-700));
+  animation: ai-fill30 32s cubic-bezier(.15, .55, .35, 1) forwards;
+}
+@keyframes ai-fill30 { 0% { width: 2%; } 55% { width: 68%; } 100% { width: 92%; } }
+
+/* Natija ochilishi — faqat YANGI chizilgan rasmda (`ai-reveal`). */
+.ai-reveal { position: relative; }
+.ai-reveal img { animation: ai-reveal .8s ease-out both; }
+@keyframes ai-reveal {
+  from { opacity: 0; filter: blur(14px); transform: scale(1.02); }
+  to   { opacity: 1; filter: blur(0);   transform: none; }
+}
+.ai-reveal::after {
+  content: '✨'; position: absolute; top: 10px; right: 12px;
+  font-size: 22px; pointer-events: none;
+  animation: ai-spark 1.3s ease-out .25s both;
+}
+@keyframes ai-spark {
+  0%   { opacity: 0; transform: scale(.4) rotate(-14deg); }
+  35%  { opacity: 1; transform: scale(1.15) rotate(6deg); }
+  100% { opacity: 0; transform: scale(.9) translateY(-9px); }
+}
+
 /* Xabar qutilari — xato, limit va "surat yo'q" uchun bitta shakl */
 .ai-msg { padding: 14px 15px; border-radius: var(--radius-md); font-size: 13px; line-height: 1.5; color: var(--text-body); }
 .ai-msg-plain { border: 1px solid var(--border-hair); background: var(--glass-fill); }

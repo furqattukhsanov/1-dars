@@ -84,8 +84,20 @@ async function currentSeller(tgUser) {
 }
 
 // Sotuvchi endpointlari uchun yagona qorovul: rol 'seller' VA sellers yozuvi bo'lishi shart
+//
+// ⚠️ Kimlik IKKALA KANALDAN (2026-08-13, C2). Ilgari bu yerda `authUser()`
+// turardi, ya'ni butun sotuvchi kabineti — mahsulotlar, buyurtmalar, bahs
+// javobi, sharhlar — saytda JIMGINA 401 berardi. Bu C1 dagi AYNI tuzoq,
+// faqat kengroq: bitta funksiya beshta endpointni qo'riqlaydi.
+//
+// ⚠️ `tg` endi FAQAT `{ id }` bo'ladi (`requestUser` shakli), `authUser`
+// qaytaradigan `first_name`/`username` esa YO'Q. Bu tekshirilgan: chaqiruvchi
+// kodda ulardan birortasi ishlatilmaydi — faqat `me.tg.id` (`routes/seller.js`
+// da bildirishnoma manzili va tarix `actorTg`). Yangi joyda ism kerak bo'lsa
+// u BAZADAN olinsin (`users.full_name`), `initData` dan emas: sayt kanalida
+// `initData` umuman yo'q va ism jimgina `undefined` bo'lib qolardi.
 async function requireSeller(req, res) {
-  const u = authUser(req);
+  const u = await requestUser(req);
   if (!u || !u.id) { fail(res, 'unauthorized', 401); return null; }
   const me = await currentSeller(u);
   if (!me || me.role !== 'seller' || !me.seller_id) { fail(res, 'sotuvchi emas', 403); return null; }

@@ -1,6 +1,6 @@
 const { ADMIN_CHAT_ID } = require('../config');
 const { pool } = require('../db');
-const { authUser, isAdmin, currentSeller, requireSeller } = require('../lib/auth');
+const { requestUser, isAdmin, currentSeller, requireSeller } = require('../lib/auth');
 const { escapeHtml, dateLabel } = require('../lib/format');
 const { validate } = require('../lib/validate');
 const { rateLimited, readBody, ok, fail } = require('../lib/http');
@@ -15,7 +15,11 @@ const { restoreStock } = require('./orders');
 // ============ /api/me — men kimman (rol + sotuvchi profili) ============
 async function handleMe(req, res, ip) {
   if (rateLimited(`me:${ip}`, 60)) return fail(res, 'too many requests', 429);
-  const u = authUser(req);
+  // Kimlik ikkala kanaldan (2026-08-13, C2) — `requireSeller` bilan bitta
+  // qoida. Bu endpoint "men kimman" degan savolga javob beradi va sayt
+  // sotuvchisi uni birinchi bo'lib so'raydi: `authUser()` da qolsa kabinet
+  // ochilishidan OLDIN 401 kelardi va sabab ko'rinmasdi.
+  const u = await requestUser(req);
   if (!u || !u.id) return fail(res, 'unauthorized', 401);
   try {
     const me = await currentSeller(u);

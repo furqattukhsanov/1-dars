@@ -1715,3 +1715,37 @@ faqat KEYINGI restartda chiqib, sababi noma'lum bo'lib qolardi.
    `navigator.share` bo'lgan holatda o'lchandi** — desktop zaxira yo'li
    (havolani nusxalash) ko'z bilan ko'rildi, lekin haqiqiy rasm URL bilan
    sinalmagan
+
+## 2026-08-13 (davomi) — AI kutish holati: spinner o'rniga atelye animatsiyasi
+
+30 soniyagacha davom etadigan kutish jim spinner bilan turardi — foydalanuvchi
+ilova qotib qoldi deb o'ylashi mumkin edi. Endi kutish holatining o'zi
+mahsulot: **ikkala kanalda BIR XIL** (`script.js` → `aiSection`,
+`telegram-app/app.js` → `aiImageSection`).
+
+### Qilingan ishlar
+
+- [2026-08-13] **Kutish bloki:** 3:4 nisbatli skelet (rasm chiqadigan joyning
+  O'ZI — serverdagi `aspectRatio 3:4` bilan bir nisbat) + shimmer; ichida
+  spinner o'rniga SVG **igna-chok animatsiyasi** (chok `stroke-dasharray`
+  bilan "tikilib boradi", igna tebranadi); matn «Rasm chizilmoqda… (30
+  soniyagacha)» → «Mo'jiza tayyor bo'lmoqda… ✨» (ru: «Чудо готовится… ✨»)
+- [2026-08-13] **~30 soniyalik HALOL progress-chiziq** — tez boshlanib
+  sekinlashadi va **92% da TO'XTAYDI**: javob kelganda blok butunlay
+  almashadi. 100% ga yetkazib qo'yish "tayyor bo'ldi-yu chiqmadi" degan
+  yolg'on va'da bo'lardi — bu «jimgina yolg'on yo'qlikdan yomonroq»
+  oilasidagi qaror, faqat UI darajasida
+- [2026-08-13] **Natija blur'dan ochiladi + bir martalik ✨ uchqun.**
+  `fresh` bayrog'i bir MARTALIK: o'qilgach o'chiriladi — yorliq almashib
+  qayta chizilganda animatsiya TAKRORLANMAYDI (har qayta chizishda "yangi
+  rasm" effekti yolg'on bo'lardi). Mini App'da qo'shimcha haptic
+  (`notificationOccurred('success')`, `try/catch` bilan — haptic ixtiyoriy)
+- [2026-08-13] Kesh: `telegram-app/styles.css?v=21 → 22`,
+  `telegram-app/app.js?v=73 → 74`; sayt tomoni C2/C3 bilan birga
+  `style.css?v=43` / `script.js?v=33` ichida. Test 16 jadvali yangilandi
+
+### Ochiq qolgani
+
+- Animatsiya lokal brauzerda ko'rildi; haqiqiy 30 soniyalik chizish bilan
+  (jonli Gemini) hali kuzatilmagan — bu «saytda birinchi haqiqiy rasm»
+  ochiq bandi bilan birga yopiladi

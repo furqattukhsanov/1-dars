@@ -3,7 +3,7 @@ const crypto = require('crypto');
 const { pool } = require('../db');
 const { BOT_TOKEN, ADMIN_PANEL_TOKEN, AI_IMAGE_ENABLED } = require('../config');
 const { aiClientConfig } = require('../lib/ai');
-const { verifyInitData, authUser, isAdmin, currentSeller } = require('../lib/auth');
+const { verifyInitData, authUser, requestUser, isAdmin, currentSeller } = require('../lib/auth');
 const { escapeHtml, money, safeEqual } = require('../lib/format');
 const { validate } = require('../lib/validate');
 const { rateLimited, readBody, sendJson, ok, fail } = require('../lib/http');
@@ -246,7 +246,13 @@ async function handleGetProducts(req, res, ip) {
 // holatida saqlanadi — admin tasdiqlamaguncha katalogda KO'RINMAYDI (approval workflow).
 async function handleSubmitProduct(req, res, ip) {
   if (rateLimited(`submitproduct:${ip}`, 10)) return fail(res, 'too many requests', 429);
-  const u = authUser(req);
+  // Kimlik ikkala kanaldan (2026-08-13, C2): sotuvchi kabineti saytda ham
+  // ochilgach, "e'lon qo'shish" faqat Mini App'da ishlaydigan bo'lib qolardi —
+  // ya'ni kabinet YARIM bo'lardi. Faqat `u.id` ishlatiladi, shuning uchun
+  // `requestUser` ning qisqaroq shakli hech narsani yo'qotmaydi.
+  // ⚠️ Rasm baribir BOT orqali so'raladi (`awaiting_image` + `notify`) —
+  // sayt fayl yuklashni qo'shmaydi, xabar sotuvchining Telegramiga boradi.
+  const u = await requestUser(req);
   if (!u || !u.id) return fail(res, 'unauthorized', 401);
   try {
     const body = await readBody(req, 20_000);

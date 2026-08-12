@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>LolaMarket — To'qima materiallar uchun B2B platforma</title>
   <meta name="description" content="LolaMarket — O'zbekistondagi to'qima materiallar uchun B2B platforma. Tasdiqlangan fabrikalar, rulon formatida ulgurji xarid, himoyalangan to'lov." />
-  <link rel="icon" href="Photo/logo/loga kvadrat/telegram-cloud-document-2-5318910387247161220.jpg" />
-  <link rel="apple-touch-icon" href="Photo/logo/loga kvadrat/telegram-cloud-document-2-5318910387247161220.jpg" />
+  <link rel="icon" href="assets/pwa/icon-192.png" />
+  <link rel="apple-touch-icon" href="assets/pwa/icon-192.png" />
 
   <!-- PWA: uy ekraniga qo'shish va offline sahifa -->
   <link rel="manifest" href="manifest.json">
@@ -27,7 +27,7 @@
        ko'p uchraydigan xatosi shu. -->
   <link rel="preconnect" href="https://telegram.org">
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@24,600..800&family=Hanken+Grotesk:wght@400..700&family=Geist+Mono:wght@600..700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=41" />
+  <link rel="stylesheet" href="style.css?v=43" />
   <!-- DIQQAT: uchala skript ham `defer` — TARTIB shu sababli saqlanadi
        (telegram → script.js → pwa.js). Bittasidan `defer` olib tashlansa,
        u tananing ichida parse paytida ishlaydi va DEFER'liklardan OLDIN
@@ -55,23 +55,31 @@
       <div class="search-wrap">
         <div class="search-box">
           <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M20 20l-3.5-3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-          <input id="search-inp" type="text" autocomplete="off" data-input="onSearch" placeholder="Mato yoki ishlab chiqaruvchi" />
-          <button class="search-x" id="search-x" data-action="clearSearch" aria-label="Tozalash" hidden>
+          <input id="search-inp" type="text" autocomplete="off" data-input="onSearch" data-i18n-ph="searchPh" placeholder="Mato yoki ishlab chiqaruvchi" />
+          <button class="search-x" id="search-x" data-action="clearSearch" data-i18n-aria="clear" aria-label="Tozalash" hidden>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
           </button>
         </div>
-        <button class="filter-btn" id="filter-btn" type="button" data-action="focusPriceFilter" aria-label="Narx bo'yicha filtr">
+        <button class="filter-btn" id="filter-btn" type="button" data-action="focusPriceFilter" data-i18n-aria="priceFilterAria" aria-label="Narx bo'yicha filtr">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M4 6h16M7 12h10M10 18h4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
         </button>
       </div>
 
       <div class="nav-actions">
+        <!-- Til almashtirish. Tanlov `localStorage` da saqlanadi; HTML
+             o'zbekcha qoladi (SEO), ruscha tarjima `data-i18n` orqali
+             tepasiga qo'yiladi. -->
+        <div class="lang-switch" role="group" aria-label="Til / Язык">
+          <button type="button" class="lang-btn on" data-lang-btn="uz" data-action="setLang" data-arg="uz">UZ</button>
+          <button type="button" class="lang-btn" data-lang-btn="ru" data-action="setLang" data-arg="ru">RU</button>
+        </div>
+
         <button class="login-btn" id="login-btn" data-action="onLogin" aria-label="Kirish">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M4.8 19.6a7.4 7.4 0 0 1 14.4 0"/></svg>
-          <span class="login-txt">Kirish</span>
+          <span class="login-txt" data-i18n="login">Kirish</span>
         </button>
 
-        <button class="cart-btn fav-head-btn" id="fav-btn" data-action="openFav" aria-label="Saralanganlar">
+        <button class="cart-btn fav-head-btn" id="fav-btn" data-action="openFav" data-i18n-aria="favorites" aria-label="Saralanganlar">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 20.8s-6.9-4.3-9-8a5.2 5.2 0 0 1-.5-3.7A4.8 4.8 0 0 1 6.3 5.5c1.9 0 3.4 1 4.3 2.3.4.6 1 .6 1.4 0 .9-1.3 2.4-2.3 4.3-2.3a4.8 4.8 0 0 1 3.8 3.6 5.2 5.2 0 0 1-.5 3.7c-2.1 3.7-9 8-9 8z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
         </button>
         <button class="cart-btn" id="cart-btn" data-action="openCart" aria-label="Savat">
@@ -103,10 +111,10 @@
           </picture>
           <div class="ad-shade"></div>
           <div class="ad-content">
-            <h2 class="ad-title">Tasdiqlangan fabrikalardan to'g'ridan-to'g'ri</h2>
-            <p class="ad-sub">Rulon formatida ulgurji xarid — vositachisiz, himoyalangan to'lov bilan.</p>
+            <h2 class="ad-title" data-i18n="ad1t">Tasdiqlangan fabrikalardan to'g'ridan-to'g'ri</h2>
+            <p class="ad-sub" data-i18n="ad1s">Rulon formatida ulgurji xarid — vositachisiz, himoyalangan to'lov bilan.</p>
             <button class="ad-cta" type="button" data-action="adGoCatalog">
-              Katalogni ko'rish
+              <span data-i18n="viewCatalog">Katalogni ko'rish</span>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M13 6l6 6-6 6"/></svg>
             </button>
           </div>
@@ -119,8 +127,8 @@
           </picture>
           <div class="ad-shade"></div>
           <div class="ad-content">
-            <h2 class="ad-title">Gulli naqsh — ipak kolleksiya</h2>
-            <p class="ad-sub">Marg'ilon va Andijon ustaxonalaridan qo'lbola ipak matolar.</p>
+            <h2 class="ad-title" data-i18n="ad2t">Gulli naqsh — ipak kolleksiya</h2>
+            <p class="ad-sub" data-i18n="ad2s">Marg'ilon va Andijon ustaxonalaridan qo'lbola ipak matolar.</p>
             <button class="ad-cta" type="button" data-action="adGoCat" data-arg="silk">
               Ipak matolar
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M13 6l6 6-6 6"/></svg>
@@ -135,8 +143,8 @@
           </picture>
           <div class="ad-shade"></div>
           <div class="ad-content">
-            <h2 class="ad-title">Telegram orqali ham buyurtma bering</h2>
-            <p class="ad-sub">Katalog, savat va buyurtma holati — ilova o'rnatmasdan.</p>
+            <h2 class="ad-title" data-i18n="tgOrder">Telegram orqali ham buyurtma bering</h2>
+            <p class="ad-sub" data-i18n="tgOrderSub">Katalog, savat va buyurtma holati — ilova o'rnatmasdan.</p>
             <a class="ad-cta" href="https://t.me/lolamarketbot" target="_blank" rel="noopener">
               Botni ochish
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M13 6l6 6-6 6"/></svg>
@@ -154,26 +162,26 @@
     </div>
 
     <div class="chips fade-up" id="chips">
-      <button class="chip active" data-cat="all">Barchasi</button>
-      <button class="chip" data-cat="ikat">Ikat va adras</button>
-      <button class="chip" data-cat="suzani">So'zana</button>
-      <button class="chip" data-cat="silk">Ipak</button>
-      <button class="chip" data-cat="cotton">Paxta</button>
-      <button class="chip" data-cat="wool">Jun</button>
+      <button class="chip active" data-cat="all" data-i18n="catAll">Barchasi</button>
+      <button class="chip" data-cat="ikat" data-i18n="catIkat">Ikat va adras</button>
+      <button class="chip" data-cat="suzani" data-i18n="catSuzani">So'zana</button>
+      <button class="chip" data-cat="silk" data-i18n="catSilk">Ipak</button>
+      <button class="chip" data-cat="cotton" data-i18n="catCotton">Paxta</button>
+      <button class="chip" data-cat="wool" data-i18n="catWool">Jun</button>
       <button class="chip" data-cat="linen">Zig'ir</button>
     </div>
 
     <div class="price-filter fade-up">
-      <span class="price-filter-label">Narx, so'm / rulon</span>
+      <span class="price-filter-label" data-i18n="priceLabel">Narx, so'm / rulon</span>
       <div class="price-filter-row">
         <input id="price-min" class="price-inp" type="text" inputmode="numeric" autocomplete="off"
-               placeholder="Eng kam" aria-label="Eng kam narx"
+               data-i18n-ph="priceMin" placeholder="Eng kam" data-i18n-aria="priceMin" aria-label="Eng kam narx"
                data-enter="applyPrice" />
         <span class="price-dash">–</span>
         <input id="price-max" class="price-inp" type="text" inputmode="numeric" autocomplete="off"
-               placeholder="Eng ko'p" aria-label="Eng ko'p narx"
+               data-i18n-ph="priceMax" placeholder="Eng ko'p" data-i18n-aria="priceMax" aria-label="Eng ko'p narx"
                data-enter="applyPrice" />
-        <button class="price-apply" type="button" data-action="applyPrice">Qo'llash</button>
+        <button class="price-apply" type="button" data-action="applyPrice" data-i18n="apply">Qo'llash</button>
       </div>
       <div id="price-err" class="price-err" role="alert"></div>
       <div id="price-chip" class="price-chip" hidden>
@@ -209,7 +217,7 @@
             <span class="verified" title="LolaMarket tomonidan tasdiqlangan ishlab chiqaruvchi" aria-label="LolaMarket tomonidan tasdiqlangan ishlab chiqaruvchi"><svg width="12" height="12" viewBox="0 0 24 24" fill="#7a140d"><path d="M12 2l2.4 1.8 3-.2 1 2.8 2.6 1.5-.9 2.9.9 2.9-2.6 1.5-1 2.8-3-.2L12 22l-2.4-1.8-3 .2-1-2.8L3 16.3l.9-2.9L3 10.5l2.6-1.5 1-2.8 3 .2z"/><path d="M9 12l2 2 4-4" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
           </div>
           <div class="product-price">
-            <span class="price-label">1 dona rulon narxi</span>
+            <span class="price-label" data-i18n="unitPrice">1 dona rulon narxi</span>
             <span class="price-value">850 000 so'm</span>
           </div>
           <div class="card-action" id="act-ik-1402">
@@ -239,7 +247,7 @@
             <span class="verified" title="LolaMarket tomonidan tasdiqlangan ishlab chiqaruvchi" aria-label="LolaMarket tomonidan tasdiqlangan ishlab chiqaruvchi"><svg width="12" height="12" viewBox="0 0 24 24" fill="#7a140d"><path d="M12 2l2.4 1.8 3-.2 1 2.8 2.6 1.5-.9 2.9.9 2.9-2.6 1.5-1 2.8-3-.2L12 22l-2.4-1.8-3 .2-1-2.8L3 16.3l.9-2.9L3 10.5l2.6-1.5 1-2.8 3 .2z"/><path d="M9 12l2 2 4-4" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
           </div>
           <div class="product-price">
-            <span class="price-label">1 dona rulon narxi</span>
+            <span class="price-label" data-i18n="unitPrice">1 dona rulon narxi</span>
             <span class="price-value">730 000 so'm</span>
           </div>
           <div class="card-action" id="act-ad-0890">
@@ -269,7 +277,7 @@
             <span class="verified" title="LolaMarket tomonidan tasdiqlangan ishlab chiqaruvchi" aria-label="LolaMarket tomonidan tasdiqlangan ishlab chiqaruvchi"><svg width="12" height="12" viewBox="0 0 24 24" fill="#7a140d"><path d="M12 2l2.4 1.8 3-.2 1 2.8 2.6 1.5-.9 2.9.9 2.9-2.6 1.5-1 2.8-3-.2L12 22l-2.4-1.8-3 .2-1-2.8L3 16.3l.9-2.9L3 10.5l2.6-1.5 1-2.8 3 .2z"/><path d="M9 12l2 2 4-4" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
           </div>
           <div class="product-price">
-            <span class="price-label">1 dona rulon narxi</span>
+            <span class="price-label" data-i18n="unitPrice">1 dona rulon narxi</span>
             <span class="price-value">890 000 so'm</span>
           </div>
           <div class="card-action" id="act-sz-3310">
@@ -298,7 +306,7 @@
             <span class="verified" title="LolaMarket tomonidan tasdiqlangan ishlab chiqaruvchi" aria-label="LolaMarket tomonidan tasdiqlangan ishlab chiqaruvchi"><svg width="12" height="12" viewBox="0 0 24 24" fill="#7a140d"><path d="M12 2l2.4 1.8 3-.2 1 2.8 2.6 1.5-.9 2.9.9 2.9-2.6 1.5-1 2.8-3-.2L12 22l-2.4-1.8-3 .2-1-2.8L3 16.3l.9-2.9L3 10.5l2.6-1.5 1-2.8 3 .2z"/><path d="M9 12l2 2 4-4" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
           </div>
           <div class="product-price">
-            <span class="price-label">1 dona rulon narxi</span>
+            <span class="price-label" data-i18n="unitPrice">1 dona rulon narxi</span>
             <span class="price-value">700 000 so'm</span>
           </div>
           <div class="card-action" id="act-ck-2201">
@@ -328,7 +336,7 @@
             <span class="verified" title="LolaMarket tomonidan tasdiqlangan ishlab chiqaruvchi" aria-label="LolaMarket tomonidan tasdiqlangan ishlab chiqaruvchi"><svg width="12" height="12" viewBox="0 0 24 24" fill="#7a140d"><path d="M12 2l2.4 1.8 3-.2 1 2.8 2.6 1.5-.9 2.9.9 2.9-2.6 1.5-1 2.8-3-.2L12 22l-2.4-1.8-3 .2-1-2.8L3 16.3l.9-2.9L3 10.5l2.6-1.5 1-2.8 3 .2z"/><path d="M9 12l2 2 4-4" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
           </div>
           <div class="product-price">
-            <span class="price-label">1 dona rulon narxi</span>
+            <span class="price-label" data-i18n="unitPrice">1 dona rulon narxi</span>
             <span class="price-value">870 000 so'm</span>
           </div>
           <div class="card-action" id="act-hb-7740">
@@ -357,7 +365,7 @@
             <span class="verified" title="LolaMarket tomonidan tasdiqlangan ishlab chiqaruvchi" aria-label="LolaMarket tomonidan tasdiqlangan ishlab chiqaruvchi"><svg width="12" height="12" viewBox="0 0 24 24" fill="#7a140d"><path d="M12 2l2.4 1.8 3-.2 1 2.8 2.6 1.5-.9 2.9.9 2.9-2.6 1.5-1 2.8-3-.2L12 22l-2.4-1.8-3 .2-1-2.8L3 16.3l.9-2.9L3 10.5l2.6-1.5 1-2.8 3 .2z"/><path d="M9 12l2 2 4-4" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
           </div>
           <div class="product-price">
-            <span class="price-label">1 dona rulon narxi</span>
+            <span class="price-label" data-i18n="unitPrice">1 dona rulon narxi</span>
             <span class="price-value">750 000 so'm</span>
           </div>
           <div class="card-action" id="act-lk-5512">
@@ -394,7 +402,7 @@
             <span class="verified" title="LolaMarket tomonidan tasdiqlangan ishlab chiqaruvchi" aria-label="LolaMarket tomonidan tasdiqlangan ishlab chiqaruvchi"><svg width="12" height="12" viewBox="0 0 24 24" fill="#7a140d"><path d="M12 2l2.4 1.8 3-.2 1 2.8 2.6 1.5-.9 2.9.9 2.9-2.6 1.5-1 2.8-3-.2L12 22l-2.4-1.8-3 .2-1-2.8L3 16.3l.9-2.9L3 10.5l2.6-1.5 1-2.8 3 .2z"/><path d="M9 12l2 2 4-4" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
           </div>
           <div class="product-price">
-            <span class="price-label">1 dona rulon narxi</span>
+            <span class="price-label" data-i18n="unitPrice">1 dona rulon narxi</span>
             <span class="price-value">700 000 so'm</span>
           </div>
           <div class="card-action" id="act-pl-3320">
@@ -424,7 +432,7 @@
             <span class="verified" title="LolaMarket tomonidan tasdiqlangan ishlab chiqaruvchi" aria-label="LolaMarket tomonidan tasdiqlangan ishlab chiqaruvchi"><svg width="12" height="12" viewBox="0 0 24 24" fill="#7a140d"><path d="M12 2l2.4 1.8 3-.2 1 2.8 2.6 1.5-.9 2.9.9 2.9-2.6 1.5-1 2.8-3-.2L12 22l-2.4-1.8-3 .2-1-2.8L3 16.3l.9-2.9L3 10.5l2.6-1.5 1-2.8 3 .2z"/><path d="M9 12l2 2 4-4" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
           </div>
           <div class="product-price">
-            <span class="price-label">1 dona rulon narxi</span>
+            <span class="price-label" data-i18n="unitPrice">1 dona rulon narxi</span>
             <span class="price-value">880 000 so'm</span>
           </div>
           <div class="card-action" id="act-tx-4401">
@@ -456,7 +464,7 @@
             <span class="verified" title="LolaMarket tomonidan tasdiqlangan ishlab chiqaruvchi" aria-label="LolaMarket tomonidan tasdiqlangan ishlab chiqaruvchi"><svg width="12" height="12" viewBox="0 0 24 24" fill="#7a140d"><path d="M12 2l2.4 1.8 3-.2 1 2.8 2.6 1.5-.9 2.9.9 2.9-2.6 1.5-1 2.8-3-.2L12 22l-2.4-1.8-3 .2-1-2.8L3 16.3l.9-2.9L3 10.5l2.6-1.5 1-2.8 3 .2z"/><path d="M9 12l2 2 4-4" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
           </div>
           <div class="product-price">
-            <span class="price-label">1 dona rulon narxi</span>
+            <span class="price-label" data-i18n="unitPrice">1 dona rulon narxi</span>
             <span class="price-value">860 000 so'm</span>
           </div>
           <div class="card-action" id="act-tx-4402">
@@ -485,7 +493,7 @@
             <span class="verified" title="LolaMarket tomonidan tasdiqlangan ishlab chiqaruvchi" aria-label="LolaMarket tomonidan tasdiqlangan ishlab chiqaruvchi"><svg width="12" height="12" viewBox="0 0 24 24" fill="#7a140d"><path d="M12 2l2.4 1.8 3-.2 1 2.8 2.6 1.5-.9 2.9.9 2.9-2.6 1.5-1 2.8-3-.2L12 22l-2.4-1.8-3 .2-1-2.8L3 16.3l.9-2.9L3 10.5l2.6-1.5 1-2.8 3 .2z"/><path d="M9 12l2 2 4-4" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
           </div>
           <div class="product-price">
-            <span class="price-label">1 dona rulon narxi</span>
+            <span class="price-label" data-i18n="unitPrice">1 dona rulon narxi</span>
             <span class="price-value">710 000 so'm</span>
           </div>
           <div class="card-action" id="act-tx-4403">
@@ -515,7 +523,7 @@
             <span class="verified" title="LolaMarket tomonidan tasdiqlangan ishlab chiqaruvchi" aria-label="LolaMarket tomonidan tasdiqlangan ishlab chiqaruvchi"><svg width="12" height="12" viewBox="0 0 24 24" fill="#7a140d"><path d="M12 2l2.4 1.8 3-.2 1 2.8 2.6 1.5-.9 2.9.9 2.9-2.6 1.5-1 2.8-3-.2L12 22l-2.4-1.8-3 .2-1-2.8L3 16.3l.9-2.9L3 10.5l2.6-1.5 1-2.8 3 .2z"/><path d="M9 12l2 2 4-4" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
           </div>
           <div class="product-price">
-            <span class="price-label">1 dona rulon narxi</span>
+            <span class="price-label" data-i18n="unitPrice">1 dona rulon narxi</span>
             <span class="price-value">760 000 so'm</span>
           </div>
           <div class="card-action" id="act-tx-4404">
@@ -531,15 +539,15 @@
 
     <div class="no-result" id="no-result" hidden>
       <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5" stroke-linecap="round"/></svg>
-      <div class="no-result-title">Hech narsa topilmadi</div>
-      <div class="no-result-sub">Boshqa so'z bilan qidiring yoki filtrni o'zgartiring.</div>
+      <div class="no-result-title" data-i18n="nothingFound">Hech narsa topilmadi</div>
+      <div class="no-result-sub" data-i18n="nothingFoundSub">Boshqa so'z bilan qidiring yoki filtrni o'zgartiring.</div>
     </div>
   </section>
 
   <!-- ===== CTA — TELEGRAM BOT ===== -->
   <section class="section container" id="bot">
     <div class="cta-panel fade-up">
-      <h2 class="cta-title">Telegram orqali ham buyurtma bering</h2>
+      <h2 class="cta-title" data-i18n="tgOrder">Telegram orqali ham buyurtma bering</h2>
       <p class="cta-sub">
         Botni oching — katalog, savat va buyurtma holati Telegram ichida,
         ilova o'rnatmasdan ishlaydi.
@@ -571,10 +579,10 @@
 
     <footer class="drawer-foot" id="drawer-foot" hidden>
       <div class="drawer-total">
-        <span>Jami</span>
+        <span data-i18n="total">Jami</span>
         <span class="drawer-total-val" id="cart-total">0 so'm</span>
       </div>
-      <button class="btn-order" id="btn-order" data-action="goCheckout">Buyurtma berish</button>
+      <button class="btn-order" id="btn-order" data-action="goCheckout" data-i18n="order">Buyurtma berish</button>
     </footer>
   </aside>
 
@@ -600,26 +608,26 @@
     <div class="m-nav-pill">
       <button class="m-tab is-active" id="m-tab-catalog" data-action="mNav" data-arg="catalog">
         <svg width="21" height="21" viewBox="0 0 24 24" fill="currentColor"><rect x="3.5" y="3.5" width="7.5" height="7.5" rx="2"/><rect x="13" y="3.5" width="7.5" height="7.5" rx="2"/><rect x="3.5" y="13" width="7.5" height="7.5" rx="2"/><rect x="13" y="13" width="7.5" height="7.5" rx="2"/></svg>
-        <span class="m-tab-label">Katalog</span>
+        <span class="m-tab-label" data-i18n="catalog">Katalog</span>
       </button>
       <button class="m-tab" id="m-tab-fav" data-action="mNav" data-arg="fav">
         <svg width="21" height="21" viewBox="0 0 24 24" fill="none"><path d="M12 20.8s-6.9-4.3-9-8a5.2 5.2 0 0 1-.5-3.7A4.8 4.8 0 0 1 6.3 5.5c1.9 0 3.4 1 4.3 2.3.4.6 1 .6 1.4 0 .9-1.3 2.4-2.3 4.3-2.3a4.8 4.8 0 0 1 3.8 3.6 5.2 5.2 0 0 1-.5 3.7c-2.1 3.7-9 8-9 8z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
-        <span class="m-tab-label">Saralangan</span>
+        <span class="m-tab-label" data-i18n="favorites">Saralangan</span>
       </button>
       <button class="m-tab" id="m-tab-cart" data-action="mNav" data-arg="cart">
         <span class="m-icon-wrap">
           <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12l-1 11.5H7z"/><path d="M9 8V6.2a3 3 0 0 1 6 0V8"/></svg>
           <span class="m-badge" id="m-cart-count" hidden>0</span>
         </span>
-        <span class="m-tab-label">Savat</span>
+        <span class="m-tab-label" data-i18n="cart">Savat</span>
       </button>
     </div>
-    <button class="m-profile-btn" id="m-tab-login" data-action="mNav" data-arg="login" aria-label="Kirish">
+    <button class="m-profile-btn" id="m-tab-login" data-action="mNav" data-arg="login" data-i18n-aria="login" aria-label="Kirish">
       <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M4.8 19.6a7.4 7.4 0 0 1 14.4 0"/></svg>
     </button>
   </nav>
 
-  <script defer src="script.js?v=31"></script>
+  <script defer src="script.js?v=33"></script>
   <script defer src="pwa.js?v=2"></script>
 </body>
 </html>

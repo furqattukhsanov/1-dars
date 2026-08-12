@@ -138,7 +138,7 @@ const STR = {
     // rasmda MAVJUD BO'LMAGAN buyum ko'rinadi. Uni olib tashlash mumkin emas.
     aiImgT: "AI kiyim rasmi", aiImgBtn: "Shu matodan kiyim rasmini ko'rish",
     aiImgSub: "Mahsulot suratidan chiziladi",
-    aiImgLoading: "Rasm chizilmoqda… (30 soniyagacha)",
+    aiImgLoading: "Mo'jiza tayyor bo'lmoqda… ✨",
     aiImgNote: "AI tasavvuri — haqiqiy mahsulot emas",
     aiImgNoPhoto: "Bu mahsulotda surat yo'q, shuning uchun rasm chizib bo'lmaydi",
     // ⚠️ "Kreditingiz qaytarildi" AYTILADI — server uni haqiqatan qaytaradi
@@ -276,7 +276,7 @@ const STR = {
     aiAgain: "Нарисовать иначе",
     aiImgT: "AI-изображение одежды", aiImgBtn: "Показать одежду из этой ткани",
     aiImgSub: "Рисуется по фото товара",
-    aiImgLoading: "Рисуем изображение… (до 30 секунд)",
+    aiImgLoading: "Чудо готовится… ✨",
     aiImgNote: "Представление AI — это не реальный товар",
     aiImgNoPhoto: "У этого товара нет фото, поэтому изображение не построить",
     aiBusy: "Сервис AI сейчас перегружен. Кредит возвращён — попробуйте через несколько минут",
@@ -1390,16 +1390,21 @@ function aiImageSection(productId) {
     </div>`;
   }
 
-  // Holat 2 — yuklanmoqda. Kutish vaqti AYTILADI: rasm sekin chiziladi va
-  // jim spinner yonida foydalanuvchi ilova qotib qolgan deb o'ylardi.
+  // Holat 2 — yuklanmoqda: 3:4 skelet (rasm chiqadigan joyning o'zi) ichida
+  // tikuv choki "tikilib boradi", pastda ~30 soniyaga mo'ljallangan sekin
+  // to'ladigan chiziq (92% da to'xtaydi — javob kelganda blok almashadi).
+  // Sayt bilan BIR XIL holat (`script.js` → `aiSection`).
   if (st.state === 'loading') {
     return `<div>${head}
       <div class="ai-wait">
-        <div class="ai-wait-row">
-          <span class="ai-spin"></span>
-          <span>${T.aiImgLoading}</span>
+        <div class="ai-skel" aria-hidden="true">
+          <svg class="ai-stitch" viewBox="0 0 132 44" fill="none">
+            <path class="ai-stitch-path" d="M6 30 C 30 10, 52 38, 78 20 S 114 26, 126 14" />
+            <path class="ai-needle" d="M112 22 L127 13 L124 19 Z" />
+          </svg>
         </div>
-        <div class="ai-bar"></div>
+        <div class="ai-wait-msg">${T.aiImgLoading}</div>
+        <div class="ai-bar30"><span></span></div>
       </div>
     </div>`;
   }
@@ -1477,8 +1482,11 @@ function aiImageSection(productId) {
   // URL server bergan `/api/product-photo?...` — `esc()` dan o'tadi, chunki
   // u `vm()` chegarasidan o'tmaydi (CLAUDE.md: `vm()` dan o'tmaydigan
   // narsalar chizish joyida o'raladi).
+  // `fresh` bir MARTALIK: o'qilgach o'chiriladi — keyingi qayta chizishlar
+  // (yorliq almashdi, ekran qaytdi) animatsiyani takrorlamaydi.
+  const yangi = st.fresh; st.fresh = false;
   return `<div>${head}
-    <figure class="ai-figure">
+    <figure class="ai-figure${yangi ? ' ai-reveal' : ''}">
       <img src="${esc(st.url)}" alt="${T.aiImgT}" loading="lazy">
       <figcaption class="ai-note"><span>⚠️</span><span>${T.aiImgNote}</span></figcaption>
     </figure>
@@ -1644,7 +1652,11 @@ async function askAiImage(productId) {
       // undardi (va har urinish kvota yeb ketardi).
       S.aiImages[id] = { state: 'nophoto' };
     } else if (j && j.ok && j.data && j.data.image) {
-      S.aiImages[id] = { state: 'done', url: j.data.image };
+      // `fresh` — rasm HOZIR chizildi: ochilish animatsiyasi bir marta
+      // o'ynaydi. Haptic ham shu yerda: Telegram'da telefon yengil
+      // titraydi — "mo'jiza tayyor" hissi.
+      S.aiImages[id] = { state: 'done', url: j.data.image, fresh: true };
+      try { window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('success'); } catch (e) { /* haptic ixtiyoriy */ }
     } else {
       S.aiImages[id] = { state: 'error' };
     }

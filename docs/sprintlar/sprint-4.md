@@ -84,6 +84,53 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
 
 ## Qilingan ishlar
 
+- [2026-08-13] **C2 — Sotuvchi kabineti SAYTDA.** C1 (AI saytda) bilan AYNI
+  tuzoq, faqat kengroq: `requireSeller()` (`server/lib/auth.js`) `authUser()`
+  da edi — **bitta funksiya beshta endpointni qo'riqlaydi**, ya'ni butun
+  kabinet (mahsulotlar, buyurtmalar, bahs javobi) sayt sotuvchisiga JIMGINA
+  401 berardi. `handleMe` (`routes/seller.js`) va `handleSubmitProduct`
+  (`routes/catalog.js`) ham o'sha holatda edi — uchalasi `requestUser()` ga
+  o'tkazildi. Moderatsiya endpointlari ATAYLAB `authUser()` da qoldi (sayt
+  ularni chaqirmaydi — Mini App admin oqimi; CLAUDE.md dagi istisno aynan
+  shu holat uchun). Saytga qo'shilgani (`script.js` sotuvchi bloki,
+  `style.css` +~150 qator kabinet CSS'i): kabinet uch ko'rinishda (e'lonlar /
+  forma / buyurtmalar), profilda kirish tugmasi, e'lon qo'shish va tahrirlash,
+  yashirish (`draft`) / ko'rsatish (`pending`), buyurtma qabul / rad /
+  jo'natish + kuzatuv raqami (raqamsiz so'rov KETMAYDI), bahs javobi.
+  **Rasm yuklash saytga ATAYLAB qo'shilmadi** — bot orqali so'raladi
+  (`awaiting_image` + Telegram xabari), Sprint 7 dagi "fayl yuklash o'rniga
+  file_id" qarori bilan bitta chiziqda.
+  🔴 **Qorovulda HAQIQIY teshik topildi va tuzatildi:** Test 3f faqat
+  marshrut faylining ichini ochardi, `requireSeller` esa `lib/auth.js` da —
+  uni chaqiradigan handler "kimlik so'ramaydi" (ochiq endpoint) deb sanalib,
+  mutatsiya JIMGINA o'tib ketdi. Endi `kengaytir()` modul chegarasidan
+  o'tadi (`lib/auth.js` ham qaraladi); shundan keyin mutatsiyalar ushlandi.
+  **Dars: qorovulning o'zi ham mutatsiya bilan sinalmasa qorovul emas.**
+  Brauzerda stub bilan o'lchandi: kabinet ochilishi, holat belgilari,
+  yashirish/ko'rsatish, PATCH/POST tanalari, rad etishda tasdiq (bekor
+  qilinsa so'rov ketmaydi), mobil ko'rinish; XSS sinovi — xaridor yozgan
+  olti maydonga `<img src=x onerror=…>` qo'yildi, hech biri bajarilmadi.
+  ⚠️ Haqiqiy backend bilan sinalmagan (lokal Postgres yo'q); `server/`
+  deploy'i qo'lda — founder bajaradi
+
+- [2026-08-13] **C3 boshlandi — sayt ikki tilli (UZ/RU).** Header'da til
+  almashtirgich (`data-lang-btn`), tanlov `localStorage` da. **HTML o'zbekcha
+  QOLADI (SEO)** — ruscha tarjima `data-i18n` / `data-i18n-ph` /
+  `data-i18n-aria` atributlari orqali ustiga qo'yiladi (`applyLang()`);
+  JS chizadigan matnlar `t('kalit')` bilan `STR` jadvalidan (Mini App'dagi
+  naqshning o'zi). `index.html` da ~24 ta `data-i18n`, `script.js` da
+  `STR.uz` / `STR.ru` jadvallari va `t()` / `L()` / `setLang()`.
+  **Yangi Test 20** (`server/test.js`) — tarjima kalitlari to'liqligini
+  qo'riqlaydi: kalit yo'q bo'lsa `t()` kalitning O'ZINI qaytaradi, ya'ni
+  foydalanuvchi tugmada `sDisputeSend` degan yozuvni ko'radi — sahifa
+  buzilmaydi, xato chiqmaydi, JIMGINA nuqson. Ro'yxat qo'lda yozilmaydi:
+  `t('...')` chaqiruvlari va HTML `data-i18n` kalitlari KODDAN o'qiladi,
+  ikkala jadvalda borligi, jadvallar bir xil kalitga egaligi va bo'sh
+  tarjima yo'qligi tekshiriladi. ⚠️ Bu C3 ning BOSHI: bazadagi `ru`
+  maydonlari (mahsulot nomi/tavsifi) hali saytda ishlatilmayapti.
+  Kesh: `style.css?v=41 → 43` (index.html VA admin/index.html birga),
+  `script.js?v=31 → 33`, Test 16 jadvali yangilandi. Testlar: 54 → **55**
+
 - [2026-08-13] **AI kiyim rasmi saytga qo'shildi** — sayt xaridori endi Mini
   App'dagi AI oqimini to'liq oladi (savollar, kredit, natija, xato holatlari).
   ⚠️ **To'liq yozuv bu yerda EMAS** — `docs/sprintlar/sprint-10.md` →

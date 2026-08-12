@@ -1,3 +1,426 @@
+/* ====================================================
+   IKKI TILLILIK — uz / ru (2026-08-13, C3)
+
+   Mini App boshidan ikki tilli edi (`STR[S.lang]`), sayt esa faqat
+   o'zbekcha. Bazada `name_ru` / `business_name_ru` allaqachon bor va
+   ulardan foydalanilmasdi.
+
+   ⚠️ HTML O'ZBEKCHA QOLADI va bu ATAYLAB: sahifa manbasidagi matn — SEO
+   uchun ko'rinadigan yagona tarkib, asosiy bozor esa o'zbek tilida qidiradi.
+   Ruscha tarjima `data-i18n` orqali TEPASIGA qo'yiladi, ya'ni birinchi
+   chizilishda hech narsa "sakramaydi" va tarjima yuklanmasa ham sayt
+   to'liq ishlaydi.
+
+   ⚠️ MAHSULOT MATNI TARJIMA QILINMAYDI — u BAZADAN keladi (`{uz, ru}`).
+   `ruYoq` bo'lsa o'zbekchasiga qaytadi: o'lchandi (2026-08-13) — 22
+   e'londan faqat 11 tasida `name.ru` bor, ya'ni "hammasi to'lgan" degan
+   eski yozuv YOLG'ON edi. Zaxirasiz qilinsa yarim katalog RUS TILIDA
+   BO'SH nom bilan chiqardi.
+   ==================================================== */
+
+/* Tarjima jadvali. Kalitlar BO'LIMLAR bo'yicha guruhlangan — yangi matn
+   qo'shilganda qayerga tushishi ko'rinib tursin. Ikkala til ham TO'LIQ
+   bo'lishi shart: qorovul (`server/test.js` → Test 20) `t('...')` bilan
+   chaqirilgan har bir kalit ikkala jadvalda ham borligini tekshiradi. */
+const STR = {
+  uz: {
+    // ---- Header / navigatsiya ----
+    searchPh: 'Mato yoki ishlab chiqaruvchi',
+    clear: 'Tozalash',
+    priceFilterAria: "Narx bo'yicha filtr",
+    login: 'Kirish',
+    profile: 'Profil',
+    favorites: 'Saralanganlar',
+    cart: 'Savat',
+    catalog: 'Katalog',
+    // ---- Katalog / filtr ----
+    priceLabel: "Narx, so'm / rulon",
+    priceMin: 'Eng kam',
+    priceMax: "Eng ko'p",
+    apply: "Qo'llash",
+    nothingFound: 'Hech narsa topilmadi',
+    nothingFoundSub: "Boshqa so'z bilan qidiring yoki filtrni o'zgartiring.",
+    catAll: 'Barchasi',
+    ad1t: "Tasdiqlangan fabrikalardan to'g'ridan-to'g'ri",
+    ad1s: "Rulon formatida ulgurji xarid — vositachisiz, himoyalangan to'lov bilan.",
+    ad2t: 'Gulli naqsh — ipak kolleksiya',
+    ad2s: "Marg'ilon va Andijon ustaxonalaridan qo'lbola ipak matolar.",
+    tgOrder: 'Telegram orqali ham buyurtma bering',
+    tgOrderSub: "Katalog, savat va buyurtma holati — ilova o'rnatmasdan.",
+    viewCatalog: "Katalogni ko'rish",
+    catIkat: 'Ikat va adras',
+    catSuzani: "So'zana",
+    catSilk: 'Ipak',
+    catCotton: 'Paxta',
+    catWool: 'Jun',
+    // ---- Zaxira holati ----
+    stIn: 'Sotuvda', stLow: 'Kam qoldi', stMade: 'Buyurtmaga', stOut: 'Tugadi',
+    // ---- Mahsulot ----
+    product: 'Mahsulot',
+    unitPrice: '1 dona rulon narxi',
+    unitPricePanel: '1 dona panel narxi',
+    addToCart: "Savatga qo'shish",
+    specWidth: 'Eni', specWeight: 'Zichlik', specComp: 'Tarkibi',
+    specLead: 'Yetkazish muddati', specMoq: 'Minimal buyurtma',
+    days: 'kun', pcs: 'dona',
+    reviews: 'Sharhlar',
+    noReviews: "Hali sharh yo'q",
+    noReviewsSub: 'Sharhni faqat shu matoni sotib olgan xaridor yoza oladi.',
+    reviewsCount: 'sharh',
+    decrease: 'Kamaytirish', increase: "Ko'paytirish",
+    // ---- Savat / buyurtma ----
+    total: 'Jami',
+    order: 'Buyurtma berish',
+    checkout: 'Buyurtmani rasmiylashtirish',
+    sending: 'Yuborilmoqda…',
+    send: 'Yuborish',
+    sendDispute: 'Murojaat yuborish',
+    submitOrder: 'Buyurtmani yuborish',
+    orderAccepted: 'Buyurtma qabul qilindi',
+    btsHint: 'BTS Pochta orqali yetkaziladi — sizga eng qulay nuqtani tanlang.',
+    // ---- Profil ----
+    myOrders: 'Mening buyurtmalarim',
+    noOrders: "Hozircha buyurtma yo'q. Katalogdan mato tanlab birinchi buyurtmangizni bering.",
+    logout: 'Hisobdan chiqish',
+    loggedOut: 'Hisobdan chiqdingiz',
+    buyer: 'Xaridor',
+    loading: 'Yuklanmoqda…',
+    // ---- Sharh ----
+    rateFabric: 'Matoni baholang',
+    reviewThanks: "Rahmat! Sharhingiz qo'shildi",
+    // ---- Bahs ----
+    problemTitle: "Muammo bo'yicha murojaat",
+    // ---- AI ----
+    aiTitle: 'AI kiyim rasmi',
+    aiSub: 'Mahsulot suratidan chiziladi',
+    aiGo: 'Rasmni chizish',
+    aiLoginCta: 'Kirish — rasm chizish uchun',
+    aiPicked: '{m} tadan {n} tasi tanlandi',
+    aiWaitMsg: "Mo'jiza tayyor bo'lmoqda… ✨",
+    aiNote: 'AI tasavvuri — haqiqiy mahsulot emas',
+    aiNoPhoto: "Bu mahsulotda surat yo'q, shuning uchun rasm chizib bo'lmaydi",
+    aiNoCredit: "Kredit qoldig'i tugadi — yangi rasm chizib bo'lmaydi.",
+    aiBadText: "Matnda ruxsat etilmagan belgi bor — faqat harf, raqam, vergul va chiziqcha",
+    aiBusy: 'AI xizmati hozir band. Kreditingiz qaytarildi — bir necha daqiqadan keyin urinib ko\'ring',
+    aiBlocked: 'AI bu so\'rov bo\'yicha rasm chizishdan bosh tortdi. Kreditingiz qaytarildi — javoblarni o\'zgartirib ko\'ring',
+    aiNoAuth: 'Sessiya tugagan — rasm chizish uchun qaytadan kiring',
+    aiError: 'Hozir generatsiya qilib bo\'lmadi, birozdan keyin urinib ko\'ring',
+    aiRetry: 'Qayta urinish',
+    aiAgain: 'Boshqacha chizish',
+    aiShare: 'Ulashish',
+    aiOtherCut: 'Boshqa fason',
+    aiOtherCutHint: 'Yangi fason — {n} credit',
+    aiCreditsUnlimited: 'Lola credit: ∞ Cheksiz',
+    aiCreditsLeft: '{n} credit qoldi · Bitta rasm — {c} credit',
+    aiTextQ: "Yana nima qo'shilsin? (ixtiyoriy)",
+    aiTextPh: 'masalan: oltin tugma, qora yoqa',
+    // ---- Telegram orqali kirish ----
+    tgLogin: 'Telegram orqali kirish',
+    tgLoginSub: "Parol ham, SMS ham kerak emas. Kirsangiz — buyurtmalaringiz bir joyda turadi va holat o'zgarishi haqidagi xabar Telegram'ga keladi.",
+    tgPrivacy: "Biz faqat ismingiz va Telegram'dagi nomingizni ko'ramiz. Yozishmalaringizga kirish imkonimiz yo'q.",
+    tgConfirm: "Telegram'da tasdiqlang",
+    tgStart: '«Boshlash»',
+    tgOpen: 'Telegramni ochish',
+    cancel: 'Bekor qilish',
+    cancelShort: 'Bekor',
+    backToCart: 'Savatga qaytish',
+    // ---- Buyurtma qatori ----
+    sellerReply: 'Ishlab chiqaruvchi javobi:',
+    refundLabel: 'Qaytariladi:',
+    disputeBtn: "Muammo bo'yicha murojaat",
+    rateBtn: '★ Baholash',
+    // ---- Bo'sh holatlar ----
+    favEmpty: "Saralanganlar bo'sh",
+    favEmptySub: "Yoqqan matolarni yurakcha tugmasi bilan belgilang — keyin shu yerdan topasiz.",
+    cartEmpty: "Savat bo'sh",
+    cartEmptySub: "Katalogdan mato tanlang — buyurtmangizni shu yerda rasmiylashtirasiz.",
+    // ---- Checkout ----
+    deliveryEst: 'Yetkazish (taxminiy)',
+    payNow: "Hozir to'lanadi",
+    payLater: "Mato tayyor bo'lgach",
+    deliveryNote: "Yetkazish BTS nuqtasida to'g'ridan-to'g'ri to'lanadi, yuqoridagi jamiga kirmaydi.",
+    tgLoginHint: 'Telegram orqali kiring',
+    fName: 'Ismingiz *',
+    fPhone: 'Telefon *',
+    fPhoneHint: "Buyurtmani tasdiqlash uchun shu raqamga bog'lanamiz.",
+    fCompany: 'Kompaniya',
+    fBts: 'BTS olish nuqtasi *',
+    btsPick: '— Nuqtani tanlang —',
+    fComment: 'Izoh',
+    orderDone: 'Buyurtmangiz qabul qilindi',
+    orderWord: 'Buyurtma',
+    reviewPh: 'Sifati haqida qisqacha yozing (ixtiyoriy)',
+    coHintIn: "Buyurtma holati Telegram'dagi hisobingizga xabar bo'lib keladi — to'lov hozir olinmaydi.",
+    coHintOut: "Buyurtma Telegram orqali bizga yetib boradi — to'lov hozir olinmaydi.",
+    doneHintIn: "Tez orada ko'rsatilgan telefon raqamingizga bog'lanamiz. Holat o'zgarganda Telegram'ga xabar keladi.",
+    doneHintOut: "Tez orada ko'rsatilgan telefon raqamingizga bog'lanamiz. Buyurtma holatini Telegram bot orqali ham kuzatishingiz mumkin.",
+    openBot: 'Botni ochish',
+    // ---- Sharh / bahs formasi ----
+    reviewHint: 'Faqat siz olgan mato haqida — bahoyingiz boshqa xaridorlarga yordam beradi.',
+    disputeHint: "Muammoni tanlang. Yuborgach botda sizdan rasm so'raladi — dalil moderator qarorini tezlashtiradi.",
+    // ---- Sotuvchi kabineti ----
+    sCabinet: 'Sotuvchi kabineti',
+    sVerified: 'tasdiqlangan',
+    sMyProducts: "E'lonlarim",
+    sOrders: 'Buyurtmalar',
+    sIncoming: 'Kelgan buyurtmalar',
+    sActive: 'Faol', sHidden: 'Yashirilgan',
+    sNoProducts: "Hali e'lon yo'q",
+    sNoHidden: "Yashirilgan e'lon yo'q",
+    sNoProductsSub: "Pastdagi tugma bilan birinchi e'loningizni qo'shing. Rasm Telegram bot orqali so'raladi.",
+    sEdit: 'Tahrirlash', sHide: 'Yashirish', sShow: "Ko'rsatish",
+    sNew: "Yangi e'lon", sEditTitle: "E'lonni tahrirlash",
+    sStock: 'Zaxira', sStockUnlimited: 'cheksiz',
+    sImgWaiting: "Botga rasm yuboring — e'lon rasmsiz katalogda ko'rinmaydi",
+    sImgAdd: "Rasm qo'shish",
+    sImgRequested: "Telegram botga o'ting — rasm so'raldi",
+    stPublished: 'Katalogda', stPending: 'Moderatsiyada', stRejected: 'Rad etilgan', stDraft: 'Yashirilgan',
+    sName: 'Nomi', sPrice: "Narxi (so'm)", sMoq: 'Minimal buyurtma',
+    sStockField: "Zaxira (bo'sh = cheksiz)", sType: 'Turi', sComp: 'Tarkibi',
+    sFormHint: "Saqlangach e'lon moderatsiyaga yuboriladi va tekshiruvdan keyin katalogda ko'rinadi. Rasm Telegram bot orqali so'raladi.",
+    sSave: 'Saqlash',
+    sSaved: 'Saqlandi — moderatsiyaga yuborildi',
+    sHiddenToast: 'Yashirildi', sShownToast: 'Moderatsiyaga yuborildi',
+    sNeedName: 'Nomini kiriting', sNeedPrice: 'Narxini kiriting', sBadStock: "Zaxira noto'g'ri",
+    sNoOrdersTab: "Bu bo'limda buyurtma yo'q",
+    sTabNew: 'Yangi', sTabProgress: 'Jarayonda', sTabDone: 'Yakunlangan',
+    sPrepaid: "Oldindan to'langan", sYourPart: 'Sizning ulushingiz',
+    sPrepay: 'Oldindan', sRest: 'qolgani',
+    sPickup: 'Yetkazish', sTracking: 'Kuzatuv',
+    sAccept: 'Qabul qilish', sReject: 'Rad etish', sShip: "Jo'natdim",
+    sTrackingPh: 'BTS kuzatuv raqami',
+    sConfirmReject: "Buyurtma rad etilsinmi? Bu amalni qaytarib bo'lmaydi.",
+    sNeedTracking: 'Kuzatuv raqamini kiriting',
+    sAccepted: 'Qabul qilindi', sRejected: 'Rad etildi', sShipped: "Jo'natildi",
+    sDispute: 'Xaridor murojaati',
+    sDisputeMine: 'Sizning javobingiz',
+    sDisputePh: "Nima bo'lganini tushuntiring",
+    sDisputeSend: 'Javobni yuborish',
+    sDisputeShort: 'Javob juda qisqa', sDisputeSent: 'Javob yuborildi',
+    sExpired: 'Sessiya tugagan — qaytadan kiring',
+    sForbidden: 'Bu amal uchun sotuvchi huquqi kerak',
+    sFailed: 'Amal bajarilmadi',
+  },
+  ru: {
+    searchPh: 'Ткань или производитель',
+    clear: 'Очистить',
+    priceFilterAria: 'Фильтр по цене',
+    login: 'Войти',
+    profile: 'Профиль',
+    favorites: 'Избранное',
+    cart: 'Корзина',
+    catalog: 'Каталог',
+    priceLabel: 'Цена, сум / рулон',
+    priceMin: 'От',
+    priceMax: 'До',
+    apply: 'Применить',
+    nothingFound: 'Ничего не найдено',
+    nothingFoundSub: 'Попробуйте другой запрос или измените фильтр.',
+    catAll: 'Все',
+    ad1t: 'Напрямую с проверенных фабрик',
+    ad1s: 'Оптовая закупка рулонами — без посредников, с защищённой оплатой.',
+    ad2t: 'Цветочный узор — шёлковая коллекция',
+    ad2s: 'Ручные шёлковые ткани из мастерских Маргилана и Андижана.',
+    tgOrder: 'Заказывайте и через Telegram',
+    tgOrderSub: 'Каталог, корзина и статус заказа — без установки приложения.',
+    viewCatalog: 'Смотреть каталог',
+    catIkat: 'Икат и адрас',
+    catSuzani: 'Сюзане',
+    catSilk: 'Шёлк',
+    catCotton: 'Хлопок',
+    catWool: 'Шерсть',
+    stIn: 'В продаже', stLow: 'Мало осталось', stMade: 'Под заказ', stOut: 'Закончилось',
+    product: 'Товар',
+    unitPrice: 'Цена за рулон',
+    unitPricePanel: 'Цена за панель',
+    addToCart: 'В корзину',
+    specWidth: 'Ширина', specWeight: 'Плотность', specComp: 'Состав',
+    specLead: 'Срок поставки', specMoq: 'Минимальный заказ',
+    days: 'дн.', pcs: 'шт.',
+    reviews: 'Отзывы',
+    noReviews: 'Пока нет отзывов',
+    noReviewsSub: 'Отзыв может оставить только покупатель этой ткани.',
+    reviewsCount: 'отз.',
+    decrease: 'Уменьшить', increase: 'Увеличить',
+    total: 'Итого',
+    order: 'Оформить заказ',
+    checkout: 'Оформление заказа',
+    sending: 'Отправляем…',
+    send: 'Отправить',
+    sendDispute: 'Отправить обращение',
+    submitOrder: 'Отправить заказ',
+    orderAccepted: 'Заказ принят',
+    btsHint: 'Доставка через BTS Pochta — выберите удобный пункт выдачи.',
+    myOrders: 'Мои заказы',
+    noOrders: 'Пока заказов нет. Выберите ткань в каталоге и оформите первый заказ.',
+    logout: 'Выйти',
+    loggedOut: 'Вы вышли из аккаунта',
+    buyer: 'Покупатель',
+    loading: 'Загрузка…',
+    rateFabric: 'Оцените ткань',
+    reviewThanks: 'Спасибо! Отзыв добавлен',
+    problemTitle: 'Обращение по проблеме',
+    aiTitle: 'AI-изображение одежды',
+    aiSub: 'Рисуется по фото товара',
+    aiGo: 'Нарисовать',
+    aiLoginCta: 'Войдите, чтобы нарисовать',
+    aiPicked: 'Выбрано {n} из {m}',
+    aiWaitMsg: 'Чудо уже создаётся… ✨',
+    aiNote: 'Представление AI — это не реальный товар',
+    aiNoPhoto: 'У этого товара нет фото, поэтому изображение не построить',
+    aiNoCredit: 'Остаток кредитов исчерпан — новое изображение не построить.',
+    aiBadText: 'В тексте недопустимый символ — только буквы, цифры, запятая и дефис',
+    aiBusy: 'Сервис AI сейчас перегружен. Кредит возвращён — попробуйте через несколько минут',
+    aiBlocked: 'AI отказался рисовать по этому запросу. Кредит возвращён — попробуйте изменить ответы',
+    aiNoAuth: 'Сессия истекла — войдите снова, чтобы нарисовать',
+    aiError: 'Сейчас не удалось сгенерировать, попробуйте чуть позже',
+    aiRetry: 'Повторить',
+    aiAgain: 'Нарисовать иначе',
+    aiShare: 'Поделиться',
+    aiOtherCut: 'Другой фасон',
+    aiOtherCutHint: 'Новый фасон — {n} credit',
+    aiCreditsUnlimited: 'Lola credit: ∞ Безлимит',
+    aiCreditsLeft: 'Осталось {n} credit · Одно изображение — {c} credit',
+    aiTextQ: 'Что ещё добавить? (необязательно)',
+    aiTextPh: 'например: золотые пуговицы, чёрный воротник',
+    tgLogin: 'Вход через Telegram',
+    tgLoginSub: 'Ни пароля, ни SMS. После входа все заказы будут в одном месте, а об изменении статуса придёт уведомление в Telegram.',
+    tgPrivacy: 'Мы видим только ваше имя и ник в Telegram. Доступа к вашей переписке у нас нет.',
+    tgConfirm: 'Подтвердите в Telegram',
+    tgStart: '«Начать»',
+    tgOpen: 'Открыть Telegram',
+    cancel: 'Отмена',
+    cancelShort: 'Отмена',
+    backToCart: 'Вернуться в корзину',
+    sellerReply: 'Ответ производителя:',
+    refundLabel: 'К возврату:',
+    disputeBtn: 'Обращение по проблеме',
+    rateBtn: '★ Оценить',
+    favEmpty: 'В избранном пусто',
+    favEmptySub: 'Отмечайте понравившиеся ткани сердечком — они появятся здесь.',
+    cartEmpty: 'Корзина пуста',
+    cartEmptySub: 'Выберите ткань в каталоге — заказ оформляется здесь.',
+    deliveryEst: 'Доставка (примерно)',
+    payNow: 'К оплате сейчас',
+    payLater: 'Когда ткань готова',
+    deliveryNote: 'Доставка оплачивается напрямую в пункте BTS и не входит в сумму выше.',
+    tgLoginHint: 'Войдите через Telegram',
+    fName: 'Ваше имя *',
+    fPhone: 'Телефон *',
+    fPhoneHint: 'Мы свяжемся по этому номеру для подтверждения заказа.',
+    fCompany: 'Компания',
+    fBts: 'Пункт выдачи BTS *',
+    btsPick: '— Выберите пункт —',
+    fComment: 'Комментарий',
+    orderDone: 'Ваш заказ принят',
+    orderWord: 'Заказ',
+    reviewPh: 'Кратко о качестве (необязательно)',
+    coHintIn: 'Статус заказа придёт уведомлением в ваш Telegram — оплата сейчас не списывается.',
+    coHintOut: 'Заказ придёт к нам через Telegram — оплата сейчас не списывается.',
+    doneHintIn: 'Скоро свяжемся по указанному номеру. При изменении статуса придёт уведомление в Telegram.',
+    doneHintOut: 'Скоро свяжемся по указанному номеру. Статус заказа можно отслеживать и через Telegram-бот.',
+    openBot: 'Открыть бот',
+    reviewHint: 'Только о купленной вами ткани — ваша оценка поможет другим покупателям.',
+    disputeHint: 'Выберите проблему. После отправки бот попросит фото — доказательство ускорит решение модератора.',
+    sCabinet: 'Кабинет продавца',
+    sVerified: 'проверен',
+    sMyProducts: 'Мои объявления',
+    sOrders: 'Заказы',
+    sIncoming: 'Входящие заказы',
+    sActive: 'Активные', sHidden: 'Скрытые',
+    sNoProducts: 'Пока нет объявлений',
+    sNoHidden: 'Скрытых объявлений нет',
+    sNoProductsSub: 'Добавьте первое объявление кнопкой ниже. Фото запросит Telegram-бот.',
+    sEdit: 'Изменить', sHide: 'Скрыть', sShow: 'Показать',
+    sNew: 'Новое объявление', sEditTitle: 'Редактирование объявления',
+    sStock: 'Остаток', sStockUnlimited: 'без ограничений',
+    sImgWaiting: 'Отправьте фото боту — без фото объявление не появится в каталоге',
+    sImgAdd: 'Добавить фото',
+    sImgRequested: 'Перейдите в Telegram-бот — фото запрошено',
+    stPublished: 'В каталоге', stPending: 'На модерации', stRejected: 'Отклонено', stDraft: 'Скрыто',
+    sName: 'Название', sPrice: 'Цена (сум)', sMoq: 'Минимальный заказ',
+    sStockField: 'Остаток (пусто = без ограничений)', sType: 'Тип', sComp: 'Состав',
+    sFormHint: 'После сохранения объявление отправится на модерацию и появится в каталоге после проверки. Фото запросит Telegram-бот.',
+    sSave: 'Сохранить',
+    sSaved: 'Сохранено — отправлено на модерацию',
+    sHiddenToast: 'Скрыто', sShownToast: 'Отправлено на модерацию',
+    sNeedName: 'Введите название', sNeedPrice: 'Введите цену', sBadStock: 'Неверный остаток',
+    sNoOrdersTab: 'В этом разделе заказов нет',
+    sTabNew: 'Новые', sTabProgress: 'В работе', sTabDone: 'Завершённые',
+    sPrepaid: 'Предоплачено', sYourPart: 'Ваша доля',
+    sPrepay: 'Предоплата', sRest: 'остаток',
+    sPickup: 'Доставка', sTracking: 'Трек-номер',
+    sAccept: 'Принять', sReject: 'Отклонить', sShip: 'Отправлено',
+    sTrackingPh: 'Трек-номер BTS',
+    sConfirmReject: 'Отклонить заказ? Это действие нельзя отменить.',
+    sNeedTracking: 'Введите трек-номер',
+    sAccepted: 'Принято', sRejected: 'Отклонено', sShipped: 'Отправлено',
+    sDispute: 'Обращение покупателя',
+    sDisputeMine: 'Ваш ответ',
+    sDisputePh: 'Объясните, что произошло',
+    sDisputeSend: 'Отправить ответ',
+    sDisputeShort: 'Ответ слишком короткий', sDisputeSent: 'Ответ отправлен',
+    sExpired: 'Сессия истекла — войдите снова',
+    sForbidden: 'Нужны права продавца',
+    sFailed: 'Действие не выполнено',
+  },
+};
+
+/** Joriy til. `localStorage` da saqlanadi — qaytib kelgan foydalanuvchi
+    tanlovini qayta qilmasin. Standart — o'zbekcha (HTML ham shunday). */
+let LANG = (function () {
+  try {
+    const v = localStorage.getItem('lm_lang');
+    return v === 'ru' ? 'ru' : 'uz';
+  } catch (_) { return 'uz'; }
+})();
+
+/** Tarjima. Kalit topilmasa KALITNING O'ZI qaytadi — jimgina bo'sh joy
+    qolgandan ko'ra ko'rinib turgani yaxshi (qorovul: Test 20). */
+function t(k) {
+  const tbl = STR[LANG] || STR.uz;
+  return (tbl && tbl[k] !== undefined) ? tbl[k] : (STR.uz[k] !== undefined ? STR.uz[k] : k);
+}
+
+/** Bazadan kelgan `{uz, ru}` maydonidan joriy tilni oladi.
+    ⚠️ Zaxira SHART — yuqoridagi izohga qara. */
+function L(obj) {
+  if (!obj || typeof obj !== 'object') return obj || '';
+  return obj[LANG] || obj.uz || obj.ru || '';
+}
+
+function setLang(v) {
+  const yangi = v === 'ru' ? 'ru' : 'uz';
+  if (yangi === LANG) return;
+  LANG = yangi;
+  try { localStorage.setItem('lm_lang', LANG); } catch (_) {}
+  applyLang();
+  // Ochiq oyna ham qayta chiziladi — aks holda til almashardi, oynadagi
+  // matn esa eski tilda qolardi va sabab ko'rinmasdi.
+  if (isOpen()) renderDrawer();
+  // Katalog kartochkalari bazadan kelgan nom bilan qayta chiziladi
+  if (catalogMeta) mergeCatalog(Object.keys(catalogMeta).map((k) => catalogMeta[k]));
+}
+
+/** `data-i18n` belgilangan hamma elementni joriy tilga keltiradi.
+    Uch xil joy qoplanadi: matn, `placeholder` va `aria-label`. */
+function applyLang() {
+  document.documentElement.setAttribute('lang', LANG);
+  document.querySelectorAll('[data-i18n]').forEach((el) => {
+    el.textContent = t(el.dataset.i18n);
+  });
+  document.querySelectorAll('[data-i18n-ph]').forEach((el) => {
+    el.setAttribute('placeholder', t(el.dataset.i18nPh));
+  });
+  document.querySelectorAll('[data-i18n-aria]').forEach((el) => {
+    el.setAttribute('aria-label', t(el.dataset.i18nAria));
+  });
+  document.querySelectorAll('[data-lang-btn]').forEach((el) => {
+    el.classList.toggle('on', el.dataset.langBtn === LANG);
+  });
+  refreshAuthUi();
+}
+
 /* ── data-action delegatsiyasi ──
    HTML'dagi onclick="fn(...)" o'rniga data-action/data-arg ishlatiladi —
    funksiyalar qachon e'lon qilinishidan qat'i nazar ishlaydi (delegatsiya
@@ -471,6 +894,7 @@ function onLoggedIn(user) {
   refreshAuthUi();
   showToast(me && me.name ? `Xush kelibsiz, ${firstName(me.name)}!` : 'Kirdingiz');
   loadAiCredits();
+  loadSellerMe();
   // Checkout'dan kirgan bo'lsa — formaga qaytamiz, savat yo'qolmaydi
   if (afterLoginView === 'checkout' && cartCount()) {
     afterLoginView = null;
@@ -514,11 +938,16 @@ function logout() {
   // tugadi" yozuvi yangi hisobda jimgina yolg'on bo'lardi.
   aiCredits = null;
   Object.keys(aiImages).forEach((k) => { delete aiImages[k]; });
+  // Sotuvchi holati ham AVVALGI hisobniki — qolib ketsa keyingi kirgan odam
+  // begona e'lon va buyurtmalarni ko'rib qolardi.
+  sellerMe = null; sProducts = []; sOrders = []; sEditId = null;
+  Object.keys(sTracking).forEach((k) => { delete sTracking[k]; });
+  Object.keys(sDispReply).forEach((k) => { delete sDispReply[k]; });
   refreshAuthUi();
   drawerView = 'login';
   loginState = 'idle';
   renderDrawer();
-  showToast('Hisobdan chiqdingiz');
+  showToast(t('loggedOut'));
 }
 
 /** Kirishdan keyin buyurtma formasiga qaytish uchun */
@@ -573,6 +1002,12 @@ function refreshAuthUi() {
   }
 }
 
+/* Til sahifa ochilishi bilan qo'llanadi. Skript `defer` — DOM tayyor, ya'ni
+   `DOMContentLoaded` kutilmaydi (CLAUDE.md: `load` ishlatilmaydi).
+   ⚠️ O'zbekcha bo'lsa ham chaqiriladi: `data-lang-btn` tugmasi va `lang`
+   atributi to'g'ri holatga kelishi kerak. */
+applyLang();
+
 /* Sahifa ochilganda sessiyani tiklaymiz — cookie serverda tekshiriladi */
 apiJson('/api/auth/web/me')
   .then((d) => {
@@ -604,6 +1039,7 @@ apiJson('/api/auth/web/me')
       me = d.user;
       refreshAuthUi();
       loadAiCredits();
+      loadSellerMe();
     }
   })
   .catch(() => { /* server yo'q — sayt kirishsiz ham to'liq ishlaydi */ });
@@ -614,15 +1050,15 @@ function loginHtml() {
     return `
       <div class="auth-wrap">
         <div class="auth-spinner" aria-hidden="true"></div>
-        <div class="drawer-empty-title">Telegram'da tasdiqlang</div>
+        <div class="drawer-empty-title">${t('tgConfirm')}</div>
         <div class="drawer-empty-sub">
-          Ochilgan botda <b>«Boshlash»</b> (Start) tugmasini bosing — shundan keyin
+          Ochilgan botda <b>${t('tgStart')}</b> (Start) tugmasini bosing — shundan keyin
           bu sahifa o'zi profilingizga o'tadi.
         </div>
         ${loginSession
-          ? `<a class="btn-tg" href="${loginSession.url}" target="_blank" rel="noopener">Telegramni ochish</a>`
+          ? `<a class="btn-tg" href="${loginSession.url}" target="_blank" rel="noopener">${t('tgOpen')}</a>`
           : ''}
-        <button class="auth-ghost" data-action="cancelLogin">Bekor qilish</button>
+        <button class="auth-ghost" data-action="cancelLogin">${t('cancel')}</button>
       </div>`;
   }
 
@@ -631,19 +1067,17 @@ function loginHtml() {
       <div class="auth-badge" aria-hidden="true">
         <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M21.7 4.2 2.9 11.4c-1 .4-1 1.2-.1 1.5l4.7 1.5 1.8 5.4c.2.6.4.8 1 .4l2.6-2.1 4.7 3.5c.9.5 1.4.2 1.6-.8l3-14c.2-1-.4-1.4-1.5-1.1zM8.7 14.1 17.3 8c.4-.3.8-.1.5.2l-7.1 6.5-.3 3z"/></svg>
       </div>
-      <div class="drawer-empty-title">Telegram orqali kirish</div>
+      <div class="drawer-empty-title">${t('tgLogin')}</div>
       <div class="drawer-empty-sub">
-        Parol ham, SMS ham kerak emas. Kirsangiz — buyurtmalaringiz bir joyda turadi
-        va holat o'zgarishi haqidagi xabar Telegram'ga keladi.
+        ${t('tgLoginSub')}
       </div>
       ${loginErr ? `<div class="co-err" style="margin-top:2px">${esc(loginErr)}</div>` : ''}
       <button class="btn-tg" data-action="startLogin">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M21.7 4.2 2.9 11.4c-1 .4-1 1.2-.1 1.5l4.7 1.5 1.8 5.4c.2.6.4.8 1 .4l2.6-2.1 4.7 3.5c.9.5 1.4.2 1.6-.8l3-14c.2-1-.4-1.4-1.5-1.1zM8.7 14.1 17.3 8c.4-.3.8-.1.5.2l-7.1 6.5-.3 3z"/></svg>
-        Telegram orqali kirish
+        ${t('tgLogin')}
       </button>
       <div class="co-hint" style="text-align:center;max-width:290px">
-        Biz faqat ismingiz va Telegram'dagi nomingizni ko'ramiz. Yozishmalaringizga
-        kirish imkonimiz yo'q.
+        ${t('tgPrivacy')}
       </div>
     </div>`;
 }
@@ -662,10 +1096,10 @@ const ORDER_STATUS = {
 function profileHtml() {
   const u = me || {};
   const orders = myOrders === null
-    ? `<div class="co-hint" style="text-align:center;padding:14px 0">Yuklanmoqda…</div>`
+    ? `<div class="co-hint" style="text-align:center;padding:14px 0">${t('loading')}</div>`
     : !myOrders.length
       ? `<div class="co-hint" style="text-align:center;padding:14px 0">
-           Hozircha buyurtma yo'q. Katalogdan mato tanlab birinchi buyurtmangizni bering.
+           ${t('noOrders')}
          </div>`
       : myOrders.map(orderRowHtml).join('');
 
@@ -679,10 +1113,16 @@ function profileHtml() {
       </div>
     </div>
 
-    <div class="profile-sec-title">Mening buyurtmalarim</div>
+    ${sellerMe && sellerMe.seller ? `
+    <button class="s-enter" data-action="openSellerCabinet">
+      <span class="s-enter-main">${t('sCabinet')}</span>
+      <span class="s-enter-sub">${esc(L(sellerMe.seller.name))}${sellerMe.seller.verified ? ` · ${t('sVerified')}` : ''}</span>
+    </button>` : ''}
+
+    <div class="profile-sec-title">${t('myOrders')}</div>
     ${orders}
 
-    <button class="auth-ghost" style="margin-top:18px;width:100%" data-action="logout">Hisobdan chiqish</button>`;
+    <button class="auth-ghost" style="margin-top:18px;width:100%" data-action="logout">${t('logout')}</button>`;
 }
 
 // Sharh faqat mato yetib kelgandan keyin — server bilan bir xil ro'yxat
@@ -779,11 +1219,11 @@ function orderRowHtml(o) {
           <span class="order-disp-st ${disp.status === 'open' ? 'warn' : 'ok'}">${esc(DISPUTE_STATUS[disp.status] || disp.status)}</span>
         </div>
         <div class="order-disp-reason">${esc(disp.reason || '')}</div>
-        ${disp.sellerResponse ? `<div class="order-disp-reply"><b>Ishlab chiqaruvchi javobi:</b> ${esc(disp.sellerResponse)}</div>` : ''}
-        ${disp.refundAmount ? `<div class="order-disp-reply"><b>Qaytariladi:</b> ${money(disp.refundAmount)}</div>` : ''}
+        ${disp.sellerResponse ? `<div class="order-disp-reply"><b>${t('sellerReply')}</b> ${esc(disp.sellerResponse)}</div>` : ''}
+        ${disp.refundAmount ? `<div class="order-disp-reply"><b>${t('refundLabel')}</b> ${money(disp.refundAmount)}</div>` : ''}
       </div>`
         : DISPUTE_OK_STATUS.includes(o.status)
-        ? `<button class="order-disp-btn" data-action="openDispute" data-arg="${esc(o.id)}">Muammo bo'yicha murojaat</button>`
+        ? `<button class="order-disp-btn" data-action="openDispute" data-arg="${esc(o.id)}">${t('disputeBtn')}</button>`
         : ''}
 
       ${items.length ? `
@@ -795,7 +1235,7 @@ function orderRowHtml(o) {
           <span class="order-rev-name">${esc(it.name || it.id)}</span>
           ${done
             ? `<span class="order-rev-done">${starsHtml(done.stars, 'sm')} Baholandi</span>`
-            : `<button class="order-rev-btn" data-action="openReview" data-arg="${esc(o.id)}|${esc(it.id)}">★ Baholash</button>`}
+            : `<button class="order-rev-btn" data-action="openReview" data-arg="${esc(o.id)}|${esc(it.id)}">${t('rateBtn')}</button>`}
         </div>`;
         }).join('')}
       </div>` : ''}
@@ -881,7 +1321,12 @@ function loadCatalogMeta() {
 
 /** Zaxira chegarasi — Mini App'dagi `LOW_STOCK` bilan bir xil qiymat */
 const LOW_STOCK = 5;
-const STOCK_TXT = { in: 'Sotuvda', low: 'Kam qoldi', made: 'Buyurtmaga', out: 'Tugadi' };
+/* Zaxira yorliqlari — endi TILGA bog'liq, shuning uchun jadval emas FUNKSIYA:
+   ilgari modul yuklanganda bir marta hisoblanardi va til almashganda eski
+   tilda qotib qolardi. */
+function stockTxt(k) {
+  return { in: t('stIn'), low: t('stLow'), made: t('stMade'), out: t('stOut') }[k] || '';
+}
 /** `badge_tone` → mavjud CSS sinfi */
 const BADGE_TONE = { primary: 'tone-primary', teal: 'tone-teal', saffron: 'tone-saffron', neutral: 'tone-neutral' };
 
@@ -894,12 +1339,12 @@ const soldOutIds = new Set();
 function stockView(p) {
   const n = p.stock;
   if (n === null || n === undefined) {
-    const k = STOCK_TXT[p.stockKey] ? p.stockKey : 'made';
-    return { txt: STOCK_TXT[k], key: k, soldOut: false };
+    const k = stockTxt(p.stockKey) ? p.stockKey : 'made';
+    return { txt: stockTxt(k), key: k, soldOut: false };
   }
-  if (n <= 0) return { txt: STOCK_TXT.out, key: 'out', soldOut: true };
-  if (n <= LOW_STOCK) return { txt: `${STOCK_TXT.low} · ${n}`, key: 'low', soldOut: false };
-  return { txt: STOCK_TXT.in, key: 'in', soldOut: false };
+  if (n <= 0) return { txt: stockTxt('out'), key: 'out', soldOut: true };
+  if (n <= LOW_STOCK) return { txt: `${stockTxt('low')} · ${n}`, key: 'low', soldOut: false };
+  return { txt: stockTxt('in'), key: 'in', soldOut: false };
 }
 
 /* Rasm manzili.
@@ -930,13 +1375,13 @@ function apiImgUrl(u) {
     bir xil tuzilma (`data-*`, `act-<id>`, `fav-<id>`), aks holda savat va
     saralanganlar bu kartochkalarni ko'rmasdi. */
 function apiCardHtml(p) {
-  const name = p.name && p.name.uz ? p.name.uz : p.id;
-  const supplier = (p.supplier && p.supplier.uz) || '';
+  const name = L(p.name) || p.id;
+  const supplier = L(p.supplier) || '';
   const img = apiImgUrl(p.img);
   const st = stockView(p);
   // Belgi: sotuvchi bergani ustun, bo'lmasa zaxira holati (faqat diqqat
   // talab qiladigani — "Sotuvda" har kartochkada takrorlansa shovqin bo'ladi)
-  const badgeTxt = (p.badge && p.badge.uz) || (st.key === 'low' || st.key === 'out' || st.key === 'made' ? st.txt : '');
+  const badgeTxt = L(p.badge) || (st.key === 'low' || st.key === 'out' || st.key === 'made' ? st.txt : '');
   const badgeCls = BADGE_TONE[p.badgeTone] || (st.key === 'out' ? 'tone-neutral' : st.key === 'low' ? 'tone-saffron' : 'tone-teal');
 
   return `
@@ -955,7 +1400,7 @@ function apiCardHtml(p) {
           ${p.verified ? `<span class="verified" title="LolaMarket tomonidan tasdiqlangan ishlab chiqaruvchi" aria-label="LolaMarket tomonidan tasdiqlangan ishlab chiqaruvchi"><svg width="12" height="12" viewBox="0 0 24 24" fill="#7a140d"><path d="M12 2l2.4 1.8 3-.2 1 2.8 2.6 1.5-.9 2.9.9 2.9-2.6 1.5-1 2.8-3-.2L12 22l-2.4-1.8-3 .2-1-2.8L3 16.3l.9-2.9L3 10.5l2.6-1.5 1-2.8 3 .2z"/><path d="M9 12l2 2 4-4" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span>` : ''}
         </div>
         <div class="product-price">
-          <span class="price-label">1 dona ${esc(p.unit === 'panel' ? 'panel' : 'rulon')} narxi</span>
+          <span class="price-label">${t(p.unit === 'panel' ? 'unitPricePanel' : 'unitPrice')}</span>
           <span class="price-value">${money(Number(p.price) || 0)}</span>
         </div>
         <div class="card-action" id="act-${esc(p.id)}"></div>
@@ -1003,6 +1448,29 @@ function mergeCatalog(list) {
       el.dataset.price = String(price);
       const box = el.querySelector('.price-value');
       if (box) box.textContent = money(price);
+    }
+
+    // ---- Nom va sotuvchi — JORIY TILDA (2026-08-13, C3) ----
+    // ⚠️ Bu qadam sinovda TOPILDI va usiz til almashtirish yarim ishlardi:
+    // sahifa chetlari ruschaga o'tar, kartochkalar esa o'zbekcha nom bilan
+    // qolardi — ya'ni "til almashdi" degan taassurot YOLG'ON bo'lardi.
+    // `data-name` ham yangilanadi, chunki qidiruv aynan shundan o'qiydi
+    // (`applyFilter`) — aks holda rus tilida yozib qidirgan odam hech narsa
+    // topmasdi.
+    const nom = L(p.name);
+    if (nom && el.dataset.name !== nom) {
+      el.dataset.name = nom;
+      const t1 = el.querySelector('.product-name');
+      if (t1) t1.textContent = nom;
+    }
+    const sup = L(p.supplier);
+    if (sup && el.dataset.supplier !== sup) {
+      el.dataset.supplier = sup;
+      // ⚠️ `.product-supplier` ICHIDA tasdiqlangan belgisi (`.verified`) ham
+      // bor — butun blokka `textContent` berilsa u O'CHIB KETARDI. Shuning
+      // uchun faqat BIRINCHI `<span>` almashtiriladi.
+      const t2 = el.querySelector('.product-supplier span:not(.verified)');
+      if (t2) t2.textContent = sup;
     }
   });
 
@@ -1155,8 +1623,8 @@ function readAiConfig(d) {
 function aiCreditLine() {
   if (!aiCredits) return '';
   const matn = aiCredits.unlimited
-    ? 'Lola credit: ∞ Cheksiz'
-    : `${aiCredits.balance} credit qoldi · Bitta rasm — ${aiCredits.cost} credit`;
+    ? t('aiCreditsUnlimited')
+    : t('aiCreditsLeft').replace('{n}', aiCredits.balance).replace('{c}', aiCredits.cost);
   return `<div class="ai-count" style="margin-top:8px">✦ ${esc(matn)}</div>`;
 }
 
@@ -1169,13 +1637,13 @@ function aiOtherCutBtn(id) {
   if (!aiCfg || !aiCfg.variantMax || joriy >= aiCfg.variantMax) return '';
   const narx = aiCredits && aiCredits.cost;
   return `<button class="ai-ghost" data-action="otherCutAiImage" data-arg="${esc(id)}">✦ ${
-    esc('Boshqa fason' + (narx ? ` · Yangi fason — ${narx} credit` : ''))}</button>`;
+    esc(t('aiOtherCut') + (narx ? ` · ${t('aiOtherCutHint').replace('{n}', narx)}` : ''))}</button>`;
 }
 
 /** Mahsulot tafsilotidagi AI bloki. Bo'sh satr = blok umuman yo'q. */
 function aiSection(id) {
   if (!aiCfg) return '';
-  const head = '<div class="pd-sec-title">AI kiyim rasmi</div>';
+  const head = `<div class="pd-sec-title">${t('aiTitle')}</div>`;
   const st = aiImages[id];
 
   // Holat 1 — savollar.
@@ -1205,11 +1673,11 @@ function aiSection(id) {
     const matnBlok = combo ? `
       <div class="ai-q" style="margin-top:12px">
         <span class="ai-q-num">✎</span>
-        <span class="ai-q-label">Yana nima qo'shilsin? (ixtiyoriy)</span>
+        <span class="ai-q-label">${t('aiTextQ')}</span>
       </div>
       <input class="ai-text" type="text" data-input="setAiText" data-arg="${esc(id)}"
              value="${esc(aiText[id] || '')}" maxlength="${aiCfg.textMax}"
-             placeholder="masalan: oltin tugma, qora yoqa" />` : '';
+             placeholder="${t('aiTextPh')}" />` : '';
 
     const nechta = guruhlar.filter((g) => tanlov[g]).length;
     const tayyor = nechta === guruhlar.length;
@@ -1219,50 +1687,58 @@ function aiSection(id) {
     // o'shanda funksiya kirmagan odam uchun MAVJUD EMASday ko'rinardi va u
     // nima uchun kirishi kerakligini bilmasdi.
     const cta = me
-      ? `<button class="ai-cta" data-action="askAiImage" data-arg="${esc(id)}"${tayyor ? '' : ' disabled'}>${tayyor ? '✦ ' : ''}Rasmni chizish</button>`
-      : `<button class="ai-cta" data-action="loginForAi">Kirish — rasm chizish uchun</button>`;
+      ? `<button class="ai-cta" data-action="askAiImage" data-arg="${esc(id)}"${tayyor ? '' : ' disabled'}>${tayyor ? '✦ ' : ''}${t('aiGo')}</button>`
+      : `<button class="ai-cta" data-action="loginForAi">${t('aiLoginCta')}</button>`;
 
     return `${head}
       <div class="ai-card">
         <div class="ai-lead">
           <span class="ai-lead-icon">🧵</span>
-          <span>Mahsulot suratidan chiziladi</span>
+          <span>${t('aiSub')}</span>
         </div>
         ${savollar}
         ${matnBlok}
-        ${tayyor || !me ? '' : `<div class="ai-count">${esc(`${guruhlar.length} tadan ${nechta} tasi tanlandi`)}</div>`}
+        ${tayyor || !me ? '' : `<div class="ai-count">${esc(t('aiPicked').replace('{m}', guruhlar.length).replace('{n}', nechta))}</div>`}
         ${me ? aiCreditLine() : ''}
         ${cta}
       </div>`;
   }
 
-  // Holat 2 — yuklanmoqda. Kutish vaqti AYTILADI: rasm sekin chiziladi va
-  // jim spinner yonida foydalanuvchi sayt qotib qolgan deb o'ylardi.
+  // Holat 2 — yuklanmoqda: 3:4 skelet (rasm chiqadigan joyning o'zi) ichida
+  // tikuv choki "tikilib boradi", pastda ~30 soniyaga mo'ljallangan sekin
+  // to'ladigan chiziq. Chiziq 92% da to'xtaydi — javob kelganda blok butunlay
+  // almashadi, ya'ni "100% bo'ldi-yu hech narsa chiqmadi" holati bo'lmaydi.
   if (st.state === 'loading') {
     return `${head}
       <div class="ai-wait">
-        <div class="ai-wait-row"><span class="ai-spin"></span><span>Rasm chizilmoqda… (30 soniyagacha)</span></div>
-        <div class="ai-bar"></div>
+        <div class="ai-skel" aria-hidden="true">
+          <svg class="ai-stitch" viewBox="0 0 132 44" fill="none">
+            <path class="ai-stitch-path" d="M6 30 C 30 10, 52 38, 78 20 S 114 26, 126 14" />
+            <path class="ai-needle" d="M112 22 L127 13 L124 19 Z" />
+          </svg>
+        </div>
+        <div class="ai-wait-msg">${t('aiWaitMsg')}</div>
+        <div class="ai-bar30"><span></span></div>
       </div>`;
   }
 
   // Holat 3 — surat yo'q. Bu XATO EMAS, shuning uchun qayta urinish tugmasi
   // ham YO'Q: qayta bosish natijani o'zgartirmasdi va kredit yeyilardi.
   if (st.state === 'nophoto') {
-    return `${head}<div class="ai-msg ai-msg-plain">Bu mahsulotda surat yo'q, shuning uchun rasm chizib bo'lmaydi</div>`;
+    return `${head}<div class="ai-msg ai-msg-plain">${t('aiNoPhoto')}</div>`;
   }
 
   // Holat 4 — kredit tugadi. ⚠️ "Ertaga yangilanadi" DEYILMAYDI: kredit
   // qoldiq, u o'zi tiklanmaydi va bunday xabar jimgina yolg'on bo'lardi.
   if (st.state === 'nocredit') {
-    return `${head}<div class="ai-msg ai-msg-warn">Kredit qoldig'i tugadi — yangi rasm chizib bo'lmaydi.</div>`;
+    return `${head}<div class="ai-msg ai-msg-warn">${t('aiNoCredit')}</div>`;
   }
 
   if (st.state === 'badtext') {
     return `${head}
       <div class="ai-msg ai-msg-warn">
-        Matnda ruxsat etilmagan belgi bor — faqat harf, raqam, vergul va chiziqcha
-        <button class="ai-ghost" data-action="resetAiImage" data-arg="${esc(id)}">Boshqacha chizish</button>
+        ${t('aiBadText')}
+        <button class="ai-ghost" data-action="resetAiImage" data-arg="${esc(id)}">${t('aiAgain')}</button>
       </div>`;
   }
 
@@ -1271,8 +1747,8 @@ function aiSection(id) {
   if (st.state === 'busy') {
     return `${head}
       <div class="ai-msg ai-msg-warn">
-        AI xizmati hozir band. Kreditingiz qaytarildi — bir necha daqiqadan keyin urinib ko'ring
-        <button class="ai-ghost" data-action="askAiImage" data-arg="${esc(id)}">Qayta urinish</button>
+        ${t('aiBusy')}
+        <button class="ai-ghost" data-action="askAiImage" data-arg="${esc(id)}">${t('aiRetry')}</button>
       </div>`;
   }
 
@@ -1281,8 +1757,8 @@ function aiSection(id) {
   if (st.state === 'blocked') {
     return `${head}
       <div class="ai-msg ai-msg-warn">
-        AI bu so'rov bo'yicha rasm chizishdan bosh tortdi. Kreditingiz qaytarildi — javoblarni o'zgartirib ko'ring
-        <button class="ai-ghost" data-action="resetAiImage" data-arg="${esc(id)}">Boshqacha chizish</button>
+        ${t('aiBlocked')}
+        <button class="ai-ghost" data-action="resetAiImage" data-arg="${esc(id)}">${t('aiAgain')}</button>
       </div>`;
   }
 
@@ -1291,8 +1767,8 @@ function aiSection(id) {
   if (st.state === 'noauth') {
     return `${head}
       <div class="ai-msg ai-msg-warn">
-        Sessiya tugagan — rasm chizish uchun qaytadan kiring
-        <button class="ai-ghost" data-action="loginForAi">Kirish</button>
+        ${t('aiNoAuth')}
+        <button class="ai-ghost" data-action="loginForAi">${t('login')}</button>
       </div>`;
   }
 
@@ -1301,22 +1777,25 @@ function aiSection(id) {
   if (st.state === 'error') {
     return `${head}
       <div class="ai-msg ai-msg-err">
-        Hozir generatsiya qilib bo'lmadi, birozdan keyin urinib ko'ring
-        <button class="ai-ghost" data-action="askAiImage" data-arg="${esc(id)}">Qayta urinish</button>
+        ${t('aiError')}
+        <button class="ai-ghost" data-action="askAiImage" data-arg="${esc(id)}">${t('aiRetry')}</button>
       </div>`;
   }
 
   // Natija. ⚠️ Yorliq rasm bilan BITTA blokda va uning ICHIDA turadi —
   // pastda alohida qatorda emas: skrinshot olinganda kadrdan chiqib ketmasin.
+  // `fresh` bir MARTALIK: o'qilgach o'chiriladi, ya'ni keyingi qayta
+  // chizishlar (savat ochildi, filtr o'zgardi) animatsiyani takrorlamaydi.
+  const yangi = st.fresh; st.fresh = false;
   return `${head}
-    <figure class="ai-figure">
+    <figure class="ai-figure${yangi ? ' ai-reveal' : ''}">
       <img src="${esc(st.url)}" alt="AI kiyim rasmi" loading="lazy" />
-      <figcaption class="ai-note"><span>⚠️</span><span>AI tasavvuri — haqiqiy mahsulot emas</span></figcaption>
+      <figcaption class="ai-note"><span>⚠️</span><span>${t('aiNote')}</span></figcaption>
     </figure>
     <div class="ai-acts">
       ${aiOtherCutBtn(id)}
-      <button class="ai-ghost" data-action="resetAiImage" data-arg="${esc(id)}">Boshqacha chizish</button>
-      <button class="ai-ghost" data-action="shareAiImage" data-arg="${esc(st.url)}">Ulashish</button>
+      <button class="ai-ghost" data-action="resetAiImage" data-arg="${esc(id)}">${t('aiAgain')}</button>
+      <button class="ai-ghost" data-action="shareAiImage" data-arg="${esc(st.url)}">${t('aiShare')}</button>
     </div>
     ${aiCreditLine()}`;
 }
@@ -1427,7 +1906,10 @@ function askAiImage(id) {
       } else if (r.status === 422 && j && j.error === 'no_source_photo') {
         aiImages[key] = { state: 'nophoto' };
       } else if (j && j.ok && j.data && j.data.image) {
-        aiImages[key] = { state: 'done', url: j.data.image };
+        // `fresh` — rasm HOZIR chizildi: birinchi chizishda ochilish
+        // animatsiyasi o'ynaydi, keyingi qayta chizishlarda o'ynamaydi
+        // (galereyadan kelgan eski rasmlar ham animatsiyasiz).
+        aiImages[key] = { state: 'done', url: j.data.image, fresh: true };
       } else {
         aiImages[key] = { state: 'error' };
       }
@@ -1465,6 +1947,419 @@ function loadAiCredits() {
     .catch(() => { /* kredit qatori chizilmaydi — nuqson emas */ });
 }
 
+/* ====================================================
+   SOTUVCHI KABINETI — SAYTDA (2026-08-13, C2)
+
+   Mini App'dagi kabinet (`telegram-app/app.js`) saytga olib o'tildi.
+   Endpointlar AYNI: `/api/me`, `/api/seller/products`, `/api/seller/orders`,
+   `/api/seller/dispute`, `/api/products` (POST).
+
+   ⚠️ SERVER TOMONI AVVAL TUZATILDI: `requireSeller()` (`lib/auth.js`) ham
+   `authUser()` da edi, ya'ni BITTA funksiya beshta endpointni Mini App bilan
+   cheklab turardi va sayt sotuvchisi kabinetni umuman ocholmasdi. Bu C1
+   dagi AYNI tuzoq — shuning uchun Test 3f uni endi avtomatik qamraydi:
+   ro'yxat shu fayldagi `fetch('/api/...')` chaqiruvlaridan yig'iladi.
+
+   ⚠️ ROL SERVERDA ANIQLANADI (`/api/me` → `role` + `seller`). Kabinet
+   tugmasi shu javobga qarab chiziladi, lekin bu FAQAT KO'RINISH: har bir
+   endpoint rolni mustaqil qayta tekshiradi (tugmani yashirish himoya emas —
+   CLAUDE.md, Dars 11).
+
+   ⚠️ RASM YUKLASH SAYTGA QO'SHILMADI va bu ATAYLAB: rasm bot orqali
+   so'raladi (`awaiting_image` → Telegram xabari). Saytga fayl yuklashni
+   qo'shish yangi yuza, yangi validatsiya va yangi saqlash yo'li demak edi —
+   mavjud, ishlab turgan yo'l esa bepul. Sotuvchi baribir Telegram'da.
+   ==================================================== */
+
+/** `/api/me` javobi: { role, isAdmin, seller } — `null` bo'lsa hali so'ralmagan */
+let sellerMe = null;
+/** sotuvchining e'lonlari va buyurtmalari */
+let sProducts = [];
+let sOrders = [];
+let sLoading = false;
+let sProdTab = 'active';     // 'active' | 'hidden'
+let sOrdTab = 'new';         // 'new' | 'progress' | 'done'
+/** orderId → kuzatuv raqami; disputeId → javob matni */
+const sTracking = {};
+const sDispReply = {};
+/** tahrirlanayotgan e'lon id'si; `null` — yangi e'lon */
+let sEditId = null;
+let pfCat = 'silk';
+
+/* Mahsulot holati — Mini App'dagi `P_STATUS` bilan AYNI ma'no.
+   Ranglar mavjud tokenlardan; yangi rang o'ylab topilmadi. */
+const P_STATUS = {
+  published: { key: 'stPublished', cls: 'ok' },
+  pending:   { key: 'stPending', cls: 'wait' },
+  rejected:  { key: 'stRejected', cls: 'bad' },
+  draft:     { key: 'stDraft', cls: 'off' },
+};
+
+/* Buyurtma yorliqlari — Mini App'dagi `ORD_GROUP` bilan AYNI guruhlash */
+const ORD_GROUP = {
+  new: ['pending'],
+  progress: ['confirmed', 'shipped'],
+  done: ['delivered', 'cancelled', 'completed', 'refunded'],
+};
+
+const P_CATS = [
+  { k: 'silk', uz: 'Ipak', ru: 'Шёлк' }, { k: 'ikat', uz: 'Ikat', ru: 'Икат' },
+  { k: 'suzani', uz: "So'zana", ru: 'Сюзане' }, { k: 'cotton', uz: 'Paxta', ru: 'Хлопок' },
+  { k: 'wool', uz: 'Jun', ru: 'Шерсть' }, { k: 'linen', uz: "Zig'ir", ru: 'Лён' },
+];
+
+/* Sotuvchi so'rovi. Kimlik cookie sessiyasidan — `apiJson` bilan AYNI
+   naqsh, faqat bu yerda xato YUTILMAYDI: kabinet yozuv amallari qiladi
+   (e'lon o'zgartirish, buyurtma qabul qilish) va ular jimgina muvaffaqiyatsiz
+   bo'lsa sotuvchi buyurtmani qabul qildim deb o'ylab qolardi. */
+function sellerFetch(path, opts) {
+  return fetch(path, Object.assign({ credentials: 'same-origin' }, opts || {}, {
+    headers: Object.assign({ 'Content-Type': 'application/json' }, (opts && opts.headers) || {}),
+  }))
+    .then((r) => r.json().catch(() => null).then((j) => {
+      if (r.status === 401) throw new Error(t('sExpired'));
+      if (r.status === 403) throw new Error(t('sForbidden'));
+      if (!j || !j.ok) throw new Error((j && j.error) || t('sFailed'));
+      return j.data;
+    }));
+}
+
+/* "Men kimman" — rol serverdan. Xato bo'lsa JIM o'tadi va kabinet tugmasi
+   umuman chizilmaydi: xaridor uchun bu blok mavjud emas, ya'ni "yuklab
+   bo'lmadi" va "sotuvchi emassiz" o'rtasida farq yo'q. */
+function loadSellerMe() {
+  if (!me) return;
+  apiJson('/api/me')
+    .then((d) => {
+      if (!d || !d.ok || !d.data) return;
+      sellerMe = d.data;
+      if (isOpen() && drawerView === 'profile') renderDrawer();
+    })
+    .catch(() => { /* kabinet tugmasi chizilmaydi */ });
+}
+
+/** E'lonlar va buyurtmalar — ikkalasi birga, kabinet ochilganda */
+function loadSellerData() {
+  sLoading = true;
+  return Promise.all([
+    sellerFetch('/api/seller/products').catch(() => []),
+    sellerFetch('/api/seller/orders').catch(() => []),
+  ]).then(([p, o]) => {
+    sProducts = Array.isArray(p) ? p : [];
+    sOrders = Array.isArray(o) ? o : [];
+    sLoading = false;
+    if (isOpen() && drawerView.indexOf('seller') === 0) renderDrawer();
+  });
+}
+
+function openSellerCabinet() {
+  drawerView = 'seller-products';
+  renderDrawer();
+  openDrawerEl();
+  loadSellerData();
+}
+
+function sellerTab(k) {
+  drawerView = k === 'orders' ? 'seller-orders' : 'seller-products';
+  renderDrawer();
+}
+
+function setSProdTab(k) { sProdTab = k === 'hidden' ? 'hidden' : 'active'; renderDrawer(); }
+function setSOrdTab(k) { sOrdTab = ORD_GROUP[k] ? k : 'new'; renderDrawer(); }
+
+/** Kabinet sarlavhasi — ikkala ro'yxat uchun bitta yorliq qatori */
+function sellerTabsHtml(active) {
+  const yangi = sOrders.filter((o) => ORD_GROUP.new.includes(o.statusKey)).length;
+  return `
+    <div class="s-tabs">
+      <button class="s-tab${active === 'products' ? ' on' : ''}" data-action="sellerTab" data-arg="products">${t('sMyProducts')}</button>
+      <button class="s-tab${active === 'orders' ? ' on' : ''}" data-action="sellerTab" data-arg="orders">${t('sOrders')}${yangi ? ` · ${yangi}` : ''}</button>
+    </div>`;
+}
+
+/* ── E'lonlarim ──
+   ⚠️ Bu ro'yxat sotuvchi API'sidan XOM keladi va `vm()` chegarasidan
+   O'TMAYDI (u Mini App'da), shuning uchun har bir matn chizish joyida
+   `esc()` dan o'tkaziladi — CLAUDE.md dagi XSS qoidasi. */
+function sellerProductsHtml() {
+  const active = sProducts.filter((p) => p.status !== 'draft');
+  const hidden = sProducts.filter((p) => p.status === 'draft');
+  const list = sProdTab === 'hidden' ? hidden : active;
+
+  const cards = sLoading
+    ? `<div class="co-hint" style="text-align:center;padding:14px 0">${t('loading')}</div>`
+    : !list.length
+      ? `<div class="pd-rev-empty">
+           <div class="pd-rev-empty-t">${sProdTab === 'hidden' ? t('sNoHidden') : t('sNoProducts')}</div>
+           <div class="pd-rev-empty-s">${t('sNoProductsSub')}</div>
+         </div>`
+      : list.map((p) => {
+        const st = P_STATUS[p.status] || P_STATUS.draft;
+        const nom = L(p.name) || p.id;
+        return `
+        <div class="s-card">
+          <div class="s-row">
+            <div class="s-thumb">${p.img ? `<img src="${esc(p.img)}" alt="" loading="lazy" />` : ''}</div>
+            <div class="s-info">
+              <div class="s-name">${esc(nom)}</div>
+              <div class="s-meta">${money(p.price)} · min ${esc(String(p.moq || 1))}</div>
+              <div class="s-meta${p.stock === 0 ? ' is-out' : ''}">${t('sStock')}: ${p.stock == null ? t('sStockUnlimited') : esc(String(p.stock))}</div>
+              <div class="s-status ${esc(st.cls)}">${esc(t(st.key))}</div>
+            </div>
+          </div>
+          ${p.status === 'rejected' && p.rejectReason
+            ? `<div class="s-note bad">${esc(p.rejectReason)}</div>` : ''}
+          ${!p.img
+            ? `<div class="s-note warn">
+                 ${p.awaitingImage
+                   ? t('sImgWaiting')
+                   : `<button class="s-mini" data-action="requestProductImage" data-arg="${esc(p.id)}">${t('sImgAdd')}</button>`}
+               </div>` : ''}
+          <div class="s-acts">
+            <button class="s-btn" data-action="editProduct" data-arg="${esc(p.id)}">${t('sEdit')}</button>
+            <button class="s-btn ghost" data-action="toggleProductArg" data-arg="${esc(p.id)}|${p.status === 'draft' ? 'show' : 'hide'}">${p.status === 'draft' ? t('sShow') : t('sHide')}</button>
+          </div>
+        </div>`;
+      }).join('');
+
+  return `
+    ${sellerTabsHtml('products')}
+    <div class="s-subtabs">
+      <button class="s-subtab${sProdTab === 'active' ? ' on' : ''}" data-action="setSProdTab" data-arg="active">${t('sActive')} ${active.length}</button>
+      <button class="s-subtab${sProdTab === 'hidden' ? ' on' : ''}" data-action="setSProdTab" data-arg="hidden">${t('sHidden')} ${hidden.length}</button>
+    </div>
+    ${cards}
+    <button class="pd-add" style="margin-top:16px" data-action="newProductForm">+ ${t('sNew')}</button>`;
+}
+
+/* ── E'lon formasi ──
+   Qiymatlar saqlash paytida DOM'dan o'qiladi (Mini App bilan ayni naqsh):
+   har harfda `renderDrawer()` chaqirilsa kursor maydondan uchib ketardi. */
+function sellerFormHtml() {
+  const p = sEditId ? sProducts.find((x) => String(x.id) === String(sEditId)) : null;
+  const nom = p ? L(p.name) : '';
+  return `
+    <div class="s-form">
+      <label class="s-lbl">${t('sName')}</label>
+      <input class="s-inp" id="pf-name" value="${esc(nom)}" placeholder="Marg'ilon ipak ikat" />
+
+      <label class="s-lbl">${t('sPrice')}</label>
+      <input class="s-inp mono" id="pf-price" type="number" inputmode="numeric" value="${p ? esc(String(p.price)) : ''}" />
+
+      <label class="s-lbl">${t('sMoq')}</label>
+      <input class="s-inp mono" id="pf-moq" type="number" inputmode="numeric" value="${p ? esc(String(p.moq || 1)) : '1'}" />
+
+      <label class="s-lbl">${t('sStockField')}</label>
+      <input class="s-inp mono" id="pf-stock" type="number" inputmode="numeric" min="0" placeholder="cheksiz" value="${p && p.stock != null ? esc(String(p.stock)) : ''}" />
+
+      ${p ? '' : `
+      <label class="s-lbl">${t('sType')}</label>
+      <div class="s-cats">
+        ${P_CATS.map((c) => `<button class="s-cat${pfCat === c.k ? ' on' : ''}" data-action="pickPfCat" data-arg="${esc(c.k)}">${esc(L(c))}</button>`).join('')}
+      </div>`}
+
+      <label class="s-lbl">${t('sComp')}</label>
+      <textarea class="s-inp" id="pf-comp" rows="2" placeholder="100% tut ipagi"></textarea>
+
+      <div class="s-note warn" style="margin-top:14px">
+        ${t('sFormHint')}
+      </div>
+
+      <div class="s-acts" style="margin-top:16px">
+        <button class="s-btn ghost" data-action="sellerTab" data-arg="products">${t('cancel')}</button>
+        <button class="pd-add" style="flex:1.4" data-action="saveProduct">${t('sSave')}</button>
+      </div>
+    </div>`;
+}
+
+function pickPfCat(k) { pfCat = String(k); renderDrawer(); }
+
+/* ⚠️ `String()` ataylab: delegatsiya sof raqamli `data-arg` ni `Number` ga
+   aylantiradi, forma esa `String(x.id) === String(sEditId)` bilan qidiradi.
+   Bugungi id lar `p-…` prefiksli, lekin raqamli id paydo bo'lgan kuni forma
+   JIMGINA bo'sh ochilardi (PATCH esa to'g'ri id bilan ketaverardi). */
+function editProduct(id) {
+  sEditId = String(id);
+  drawerView = 'seller-form';
+  renderDrawer();
+}
+
+function newProductForm() {
+  sEditId = null;
+  pfCat = 'silk';
+  drawerView = 'seller-form';
+  renderDrawer();
+}
+
+function saveProduct() {
+  const val = (id) => { const el = document.getElementById(id); return el ? el.value.trim() : ''; };
+  const name = val('pf-name');
+  const price = parseInt(val('pf-price'), 10);
+  const moq = parseInt(val('pf-moq'), 10) || 1;
+  const comp = val('pf-comp');
+  // Bo'sh qoldirilsa CHEKSIZ (null). `0` esa haqiqiy qiymat — "tugadi".
+  const stockRaw = val('pf-stock');
+  const stock = stockRaw === '' ? null : parseInt(stockRaw, 10);
+
+  if (name.length < 2) return showToast(t('sNeedName'));
+  if (!Number.isInteger(price) || price < 1) return showToast(t('sNeedPrice'));
+  if (stock !== null && (!Number.isInteger(stock) || stock < 0)) return showToast(t('sBadStock'));
+
+  const so4rov = sEditId
+    ? sellerFetch('/api/seller/products', {
+      method: 'PATCH',
+      body: JSON.stringify({ id: sEditId, name_uz: name, price, moq, comp_uz: comp, stock }),
+    })
+    : sellerFetch('/api/products', {
+      method: 'POST',
+      body: JSON.stringify({ name_uz: name, price, moq, comp_uz: comp, stock, cat_key: pfCat || 'silk' }),
+    });
+
+  so4rov
+    .then(() => loadSellerData())
+    .then(() => {
+      showToast(t('sSaved'));
+      drawerView = 'seller-products';
+      renderDrawer();
+    })
+    .catch((e) => showToast(e.message));
+}
+
+function toggleProductArg(arg) {
+  const [id, action] = String(arg).split('|');
+  sellerFetch('/api/seller/products', { method: 'PATCH', body: JSON.stringify({ id, action }) })
+    .then(() => loadSellerData())
+    .then(() => showToast(action === 'hide' ? t('sHiddenToast') : t('sShownToast')))
+    .catch((e) => showToast(e.message));
+}
+
+function requestProductImage(id) {
+  sellerFetch('/api/seller/products', { method: 'PATCH', body: JSON.stringify({ id: String(id), action: 'request_image' }) })
+    .then(() => loadSellerData())
+    .then(() => showToast(t('sImgRequested')))
+    .catch((e) => showToast(e.message));
+}
+
+/* ── Kelgan buyurtmalar ──
+   ⚠️ `buyerName`, `address`, `comment` va bahs sababini XARIDOR yozadi,
+   chiziladigan joy esa SOTUVCHI ekrani — ya'ni bu yerda `esc()` shart
+   (CLAUDE.md: saqlanuvchi XSS aynan shu yo'l bilan ishlaydi). */
+function sellerOrdersHtml() {
+  const counts = {
+    new: sOrders.filter((o) => ORD_GROUP.new.includes(o.statusKey)).length,
+    progress: sOrders.filter((o) => ORD_GROUP.progress.includes(o.statusKey)).length,
+    done: sOrders.filter((o) => ORD_GROUP.done.includes(o.statusKey)).length,
+  };
+  const list = sOrders.filter((o) => ORD_GROUP[sOrdTab].includes(o.statusKey));
+
+  const cards = sLoading
+    ? `<div class="co-hint" style="text-align:center;padding:14px 0">${t('loading')}</div>`
+    : !list.length
+      ? `<div class="pd-rev-empty"><div class="pd-rev-empty-t">${t('sNoOrdersTab')}</div></div>`
+      : list.map((o) => {
+        const yangi = o.statusKey === 'pending';
+        const joNatish = o.statusKey === 'confirmed';
+        return `
+        <div class="s-card">
+          <div class="s-ord-top">
+            <div>
+              <div class="s-ord-id">${esc(o.id)}</div>
+              <div class="s-ord-date">${esc(L(o.date) || o.date || '')}</div>
+            </div>
+            ${o.prepay ? `<span class="s-paid">${t('sPrepaid')}</span>` : ''}
+          </div>
+
+          ${(o.items || []).map((it) => `
+            <div class="s-line">
+              <span>${esc(it.name || '')} · ${esc(String(it.qty))}</span>
+              <span class="mono">${money(it.unitPrice * it.qty)}</span>
+            </div>`).join('')}
+
+          <div class="s-ord-foot">
+            <div>${t('sYourPart')}: <b class="mono">${money(o.sellerTotal)}</b></div>
+            ${o.prepay ? `<div>${t('sPrepay')}: <b class="mono">${money(o.prepay)}</b> · ${t('sRest')} <span class="mono">${money(o.rest || 0)}</span></div>` : ''}
+            <div>${t('buyer')}: <b>${esc(o.buyerName || '—')}</b></div>
+            <div>${t('sPickup')}: <b>${esc(o.address || '—')}</b></div>
+            ${o.tracking ? `<div>${t('sTracking')}: <b class="mono">${esc(o.tracking)}</b></div>` : ''}
+            ${o.comment ? `<div class="s-comment">"${esc(o.comment)}"</div>` : ''}
+          </div>
+
+          ${yangi ? `
+          <div class="s-acts">
+            <button class="s-btn danger" data-action="sellerOrderArg" data-arg="${esc(o.id)}|reject">${t('sReject')}</button>
+            <button class="pd-add" style="flex:1" data-action="sellerOrderArg" data-arg="${esc(o.id)}|accept">${t('sAccept')}</button>
+          </div>` : ''}
+
+          ${joNatish ? `
+          <div style="margin-top:11px">
+            <input class="s-inp mono" data-input="setSTracking" data-arg="${esc(o.id)}"
+                   value="${esc(sTracking[o.id] || '')}" placeholder="${t('sTrackingPh')}" />
+            <button class="pd-add" style="width:100%;margin-top:8px" data-action="sellerOrderArg" data-arg="${esc(o.id)}|ship">${t('sShip')}</button>
+          </div>` : ''}
+
+          ${o.dispute ? sellerDisputeHtml(o.dispute) : ''}
+        </div>`;
+      }).join('');
+
+  return `
+    ${sellerTabsHtml('orders')}
+    <div class="s-subtabs">
+      <button class="s-subtab${sOrdTab === 'new' ? ' on' : ''}" data-action="setSOrdTab" data-arg="new">${t('sTabNew')} ${counts.new}</button>
+      <button class="s-subtab${sOrdTab === 'progress' ? ' on' : ''}" data-action="setSOrdTab" data-arg="progress">${t('sTabProgress')} ${counts.progress}</button>
+      <button class="s-subtab${sOrdTab === 'done' ? ' on' : ''}" data-action="setSOrdTab" data-arg="done">${t('sTabDone')} ${counts.done}</button>
+    </div>
+    ${cards}`;
+}
+
+/* Bahs bloki. Javob bir marta yozilgach o'zgartirilmaydi — moderator ko'rgan
+   matn o'sha holicha qolsin. */
+function sellerDisputeHtml(d) {
+  return `
+    <div class="s-dispute">
+      <div class="s-dispute-t">⚖️ ${t('sDispute')}</div>
+      <div class="s-dispute-body">${esc(d.reason || '')}</div>
+      ${d.sellerResponse
+        ? `<div class="s-dispute-mine"><b>${t('sDisputeMine')}:</b> ${esc(d.sellerResponse)}</div>`
+        : `<textarea class="s-inp" rows="3" data-input="setSDispReply" data-arg="${esc(String(d.id))}"
+              placeholder="${t('sDisputePh')}">${esc(sDispReply[d.id] || '')}</textarea>
+           <button class="pd-add" style="width:100%;margin-top:7px" data-action="sendDisputeReply" data-arg="${esc(String(d.id))}">${t('sDisputeSend')}</button>`}
+    </div>`;
+}
+
+function setSTracking(v, orderId) { sTracking[String(orderId)] = String(v || ''); }
+function setSDispReply(v, disputeId) { sDispReply[String(disputeId)] = String(v || ''); }
+
+function sendDisputeReply(disputeId) {
+  const key = String(disputeId);
+  const text = (sDispReply[key] || '').trim();
+  if (text.length < 3) return showToast(t('sDisputeShort'));
+  sellerFetch('/api/seller/dispute', {
+    method: 'POST',
+    body: JSON.stringify({ disputeId, response: text }),
+  })
+    .then(() => { delete sDispReply[key]; return loadSellerData(); })
+    .then(() => showToast(t('sDisputeSent')))
+    .catch((e) => showToast(e.message));
+}
+
+function sellerOrderArg(arg) {
+  const [orderId, action] = String(arg).split('|');
+  // ⚠️ Rad etish QAYTARIB BO'LMAYDI (zaxira qaytadi, xaridorga xabar ketadi) —
+  // shuning uchun tasdiq so'raladi. Mini App'da Telegram'ning o'z dialogi
+  // ishlatiladi, saytda esa oddiy `confirm` yetarli.
+  if (action === 'reject' && !window.confirm(t('sConfirmReject'))) return;
+  const tracking = action === 'ship' ? (sTracking[orderId] || '').trim() : undefined;
+  if (action === 'ship' && !tracking) return showToast(t('sNeedTracking'));
+
+  sellerFetch('/api/seller/orders', {
+    method: 'POST',
+    body: JSON.stringify({ orderId, action, tracking }),
+  })
+    .then(() => { if (action === 'ship') delete sTracking[orderId]; return loadSellerData(); })
+    .then(() => showToast(action === 'accept' ? t('sAccepted') : action === 'reject' ? t('sRejected') : t('sShipped')))
+    .catch((e) => showToast(e.message));
+}
+
 function detailHtml(id) {
   const p = product(id);
   if (!p) return '';
@@ -1475,9 +2370,9 @@ function detailHtml(id) {
   // Tafsilotlar faqat API'dan keladi — bo'lmasa qatorning o'zi chizilmaydi
   // (bo'sh "Eni: —" ko'rsatish ma'lumot emas, shovqin)
   const specs = m ? [
-    ['Eni', m.width], ['Zichlik', m.weight], ['Tarkibi', m.comp && m.comp.uz],
-    ['Yetkazish muddati', m.lead ? m.lead + ' kun' : null],
-    ['Minimal buyurtma', m.moq ? m.moq + ' dona' : null],
+    [t('specWidth'), m.width], [t('specWeight'), m.weight], [t('specComp'), L(m.comp)],
+    [t('specLead'), m.lead ? m.lead + ' ' + t('days') : null],
+    [t('specMoq'), m.moq ? m.moq + ' ' + t('pcs') : null],
   ].filter(([, v]) => v) : [];
 
   return `
@@ -1488,14 +2383,14 @@ function detailHtml(id) {
         <h3 class="pd-name">${esc(p.name)}</h3>
         ${m && m.rating != null
           ? `<span class="pd-rating">${starsHtml(m.rating)}<b>${esc(String(m.rating))}</b>
-               <span class="pd-rating-n">· ${esc(String(m.reviews || 0))} sharh</span></span>`
+               <span class="pd-rating-n">· ${esc(String(m.reviews || 0))} ${t('reviewsCount')}</span></span>`
           : ''}
       </div>
 
       <div class="pd-sup">${esc(p.supplier)}</div>
 
       <div class="pd-price">
-        <span class="pd-price-label">1 dona rulon narxi</span>
+        <span class="pd-price-label">${t('unitPrice')}</span>
         <span class="pd-price-val">${money(p.price)}</span>
       </div>
 
@@ -1509,35 +2404,35 @@ function detailHtml(id) {
 
       <div class="pd-act" id="pd-act">
         ${soldOutIds.has(id)
-          ? `<button class="pd-add is-out" type="button" disabled>${esc(STOCK_TXT.out)}</button>`
+          ? `<button class="pd-add is-out" type="button" disabled>${esc(stockTxt('out'))}</button>`
           : qty
           ? `<div class="qty-row">
-               <button class="qty-circle qty-minus" data-action="qtyStepDetail" data-arg="${esc(id)}|-1" aria-label="Kamaytirish">
+               <button class="qty-circle qty-minus" data-action="qtyStepDetail" data-arg="${esc(id)}|-1" aria-label="${t('decrease')}">
                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 12h14"/></svg>
                </button>
                <span class="qty-num">${qty} dona</span>
-               <button class="qty-circle qty-plus" data-action="qtyStepDetail" data-arg="${esc(id)}|1" aria-label="Ko'paytirish">
+               <button class="qty-circle qty-plus" data-action="qtyStepDetail" data-arg="${esc(id)}|1" aria-label="${t('increase')}">
                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
                </button>
              </div>`
-          : `<button class="pd-add" data-action="addFromDetail" data-arg="${esc(id)}">Savatga qo'shish</button>`}
+          : `<button class="pd-add" data-action="addFromDetail" data-arg="${esc(id)}">${t('addToCart')}</button>`}
       </div>
 
       ${aiSection(id)}
 
-      <div class="pd-sec-title">Sharhlar</div>
+      <div class="pd-sec-title">${t('reviews')}</div>
       ${list === undefined
         // Yuklanmoqda — "sharh yo'q" DEYILMAYDI, aks holda yuklanish paytida
         // yolg'on gap ko'rsatilardi
         ? `<div class="pd-rev-wait"></div>`
         : !list.length
         ? `<div class="pd-rev-empty">
-             <div class="pd-rev-empty-t">Hali sharh yo'q</div>
-             <div class="pd-rev-empty-s">Sharhni faqat shu matoni sotib olgan xaridor yoza oladi.</div>
+             <div class="pd-rev-empty-t">${t('noReviews')}</div>
+             <div class="pd-rev-empty-s">${t('noReviewsSub')}</div>
            </div>`
         : list.map((r) => `
           <div class="pd-rev">
-            <div class="pd-rev-top">${starsHtml(r.stars)}<span class="pd-rev-date">${esc(r.date && r.date.uz || '')}</span></div>
+            <div class="pd-rev-top">${starsHtml(r.stars)}<span class="pd-rev-date">${esc(L(r.date))}</span></div>
             ${r.body ? `<div class="pd-rev-body">${esc(r.body)}</div>` : ''}
             <div class="pd-rev-who">${esc(r.author || '—')}</div>
           </div>`).join('')}
@@ -1610,24 +2505,24 @@ function backToProfile() {
 }
 
 function reviewFormHtml() {
-  const t = reviewTarget;
-  if (!t) return '';
+  const nishon = reviewTarget;
+  if (!nishon) return '';
   return `
     <div class="rv">
-      <div class="rv-target">${esc(t.productName)}</div>
-      <div class="rv-sub">Faqat siz olgan mato haqida — bahoyingiz boshqa xaridorlarga yordam beradi.</div>
+      <div class="rv-target">${esc(nishon.productName)}</div>
+      <div class="rv-sub">${t('reviewHint')}</div>
 
       <div class="rv-stars">
         ${[1, 2, 3, 4, 5].map((n) => `
         <button class="rv-star ${n <= reviewStars ? 'on' : ''}" data-action="setReviewStars" data-arg="${n}" aria-label="${n} yulduz">★</button>`).join('')}
       </div>
 
-      <textarea class="rv-text" rows="4" placeholder="Sifati haqida qisqacha yozing (ixtiyoriy)"
+      <textarea class="rv-text" rows="4" placeholder="${t('reviewPh')}"
         data-input="onReviewBody">${esc(reviewBody)}</textarea>
 
       <div class="rv-btns">
-        <button class="auth-ghost" data-action="backToProfile">Bekor</button>
-        <button class="pd-add" data-action="submitReview" ${reviewSending ? 'disabled' : ''}>${reviewSending ? 'Yuborilmoqda…' : 'Yuborish'}</button>
+        <button class="auth-ghost" data-action="backToProfile">${t('cancelShort')}</button>
+        <button class="pd-add" data-action="submitReview" ${reviewSending ? 'disabled' : ''}>${reviewSending ? t('sending') : t('send')}</button>
       </div>
     </div>`;
 }
@@ -1636,23 +2531,23 @@ function submitReview() {
   if (!reviewTarget || reviewSending) return;
   reviewSending = true;
   renderDrawer();
-  const t = reviewTarget;
+  const nishon = reviewTarget;
   apiJson('/api/reviews', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      orderId: t.orderId,
-      productId: t.productId,
+      orderId: nishon.orderId,
+      productId: nishon.productId,
       stars: reviewStars,
       body: reviewBody.trim() || undefined,
     }),
   })
     .then((d) => {
       if (!d || d.ok !== true) throw new Error((d && d.error) || 'Sharh yuborilmadi');
-      showToast('Rahmat! Sharhingiz qo\'shildi');
+      showToast(t('reviewThanks'));
       // Reyting serverda qayta hisoblandi — keshlarni bekor qilamiz, aks holda
       // xaridor o'z sharhini yozib, eski reytingni ko'rib turardi
-      delete reviewsCache[t.productId];
+      delete reviewsCache[nishon.productId];
       catalogMeta = null;
       catalogMetaTried = false;
       loadMyReviews();
@@ -1703,12 +2598,12 @@ function setDisputeReason(k) {
 function onDisputeComment(v) { disputeComment = v; }
 
 function disputeFormHtml() {
-  const t = disputeTarget;
-  if (!t) return '';
+  const nishon = disputeTarget;
+  if (!nishon) return '';
   return `
     <div class="rv">
-      <div class="rv-target">Buyurtma ${esc(t.orderId)}</div>
-      <div class="rv-sub">Muammoni tanlang. Yuborgach botda sizdan rasm so'raladi — dalil moderator qarorini tezlashtiradi.</div>
+      <div class="rv-target">${t('orderWord')} ${esc(nishon.orderId)}</div>
+      <div class="rv-sub">${t('disputeHint')}</div>
 
       <div class="dsp-reasons">
         ${Object.keys(DISPUTE_REASONS).map((k) => `
@@ -1721,8 +2616,8 @@ function disputeFormHtml() {
         data-input="onDisputeComment">${esc(disputeComment)}</textarea>
 
       <div class="rv-btns">
-        <button class="auth-ghost" data-action="backToProfile">Bekor</button>
-        <button class="pd-add" data-action="submitDispute" ${disputeSending ? 'disabled' : ''}>${disputeSending ? 'Yuborilmoqda…' : 'Murojaat yuborish'}</button>
+        <button class="auth-ghost" data-action="backToProfile">${t('cancelShort')}</button>
+        <button class="pd-add" data-action="submitDispute" ${disputeSending ? 'disabled' : ''}>${disputeSending ? t('sending') : t('sendDispute')}</button>
       </div>
     </div>`;
 }
@@ -1731,12 +2626,12 @@ function submitDispute() {
   if (!disputeTarget || disputeSending) return;
   disputeSending = true;
   renderDrawer();
-  const t = disputeTarget;
+  const nishon = disputeTarget;
   apiJson('/api/disputes', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      orderId: t.orderId,
+      orderId: nishon.orderId,
       reasonKey: disputeReason,
       comment: disputeComment.trim() || undefined,
     }),
@@ -1938,7 +2833,7 @@ function paintBtsInfo() {
     box.textContent = `${p.addr} · Ish vaqti ${p.hours}`;
   } else {
     box.className = 'co-hint';
-    box.textContent = 'BTS Pochta orqali yetkaziladi — sizga eng qulay nuqtani tanlang.';
+    box.textContent = t('btsHint');
   }
   old.replaceWith(box);
 }
@@ -1979,7 +2874,7 @@ function renderCardAction(id) {
   // ham chizilmaydi: savatda turgan mahsulot tugab qolsa "+" bosish
   // xaridorni serverdagi xatoga olib borardi.
   if (soldOutIds.has(id)) {
-    box.innerHTML = `<button class="add-btn is-out" type="button" disabled>${esc(STOCK_TXT.out)}</button>`;
+    box.innerHTML = `<button class="add-btn is-out" type="button" disabled>${esc(stockTxt('out'))}</button>`;
     return;
   }
 
@@ -1994,11 +2889,11 @@ function renderCardAction(id) {
 
   box.innerHTML = `
     <div class="qty-row">
-      <button class="qty-circle qty-minus" data-action="qtyStep" data-arg="${esc(id)}|-1" aria-label="Kamaytirish">
+      <button class="qty-circle qty-minus" data-action="qtyStep" data-arg="${esc(id)}|-1" aria-label="${t('decrease')}">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 12h14"/></svg>
       </button>
       <span class="qty-num">${qty} dona</span>
-      <button class="qty-circle qty-plus" data-action="qtyStep" data-arg="${esc(id)}|1" aria-label="Ko'paytirish">
+      <button class="qty-circle qty-plus" data-action="qtyStep" data-arg="${esc(id)}|1" aria-label="${t('increase')}">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
       </button>
     </div>`;
@@ -2162,76 +3057,99 @@ function renderDrawer() {
   if (!body || !foot || !title) return;
 
   if (drawerView === 'done') {
-    title.textContent = 'Buyurtma qabul qilindi';
+    title.textContent = t('orderAccepted');
     body.innerHTML = doneHtml();
     foot.hidden = true;
     return;
   }
 
   if (drawerView === 'checkout') {
-    title.textContent = 'Buyurtmani rasmiylashtirish';
+    title.textContent = t('checkout');
     body.innerHTML = checkoutHtml();
     foot.hidden = true;
     return;
   }
 
   if (drawerView === 'login') {
-    title.textContent = 'Kirish';
+    title.textContent = t('login');
     body.innerHTML = loginHtml();
     foot.hidden = true;
     return;
   }
 
   if (drawerView === 'profile') {
-    title.textContent = 'Profil';
+    title.textContent = t('profile');
     body.innerHTML = profileHtml();
     foot.hidden = true;
     return;
   }
 
   if (drawerView === 'detail') {
-    title.textContent = 'Mahsulot';
+    title.textContent = t('product');
     body.innerHTML = detailHtml(detailId);
     foot.hidden = true;
     return;
   }
 
+  // Sotuvchi kabineti (2026-08-13, C2). Uchta ko'rinish bitta oynada —
+  // saytda alohida sahifa yo'q, savat/checkout/profil bilan bir xil naqsh.
+  if (drawerView === 'seller-products') {
+    title.textContent = t('sMyProducts');
+    body.innerHTML = sellerProductsHtml();
+    foot.hidden = true;
+    return;
+  }
+
+  if (drawerView === 'seller-form') {
+    title.textContent = sEditId ? t('sEditTitle') : t('sNew');
+    body.innerHTML = sellerFormHtml();
+    foot.hidden = true;
+    return;
+  }
+
+  if (drawerView === 'seller-orders') {
+    title.textContent = t('sIncoming');
+    body.innerHTML = sellerOrdersHtml();
+    foot.hidden = true;
+    return;
+  }
+
   if (drawerView === 'review') {
-    title.textContent = 'Matoni baholang';
+    title.textContent = t('rateFabric');
     body.innerHTML = reviewFormHtml();
     foot.hidden = true;
     return;
   }
 
   if (drawerView === 'dispute') {
-    title.textContent = 'Muammo bo\'yicha murojaat';
+    title.textContent = t('problemTitle');
     body.innerHTML = disputeFormHtml();
     foot.hidden = true;
     return;
   }
 
   if (drawerView === 'fav') {
-    title.textContent = 'Saralanganlar';
+    title.textContent = t('favorites');
     foot.hidden = true;
     body.innerHTML = favs.length
       ? favs.map(favLineHtml).join('')
       : `<div class="drawer-empty">
            <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M12 20.8s-6.9-4.3-9-8a5.2 5.2 0 0 1-.5-3.7A4.8 4.8 0 0 1 6.3 5.5c1.9 0 3.4 1 4.3 2.3.4.6 1 .6 1.4 0 .9-1.3 2.4-2.3 4.3-2.3a4.8 4.8 0 0 1 3.8 3.6 5.2 5.2 0 0 1-.5 3.7c-2.1 3.7-9 8-9 8z"/></svg>
-           <div class="drawer-empty-title">Saralanganlar bo'sh</div>
-           <div class="drawer-empty-sub">Yoqqan matolarni yurakcha tugmasi bilan belgilang — keyin shu yerdan topasiz.</div>
+           <div class="drawer-empty-title">${t('favEmpty')}</div>
+           <div class="drawer-empty-sub">${t('favEmptySub')}</div>
          </div>`;
     return;
   }
 
-  title.textContent = 'Savat';
+  title.textContent = t('cart');
   const ids = Object.keys(cart);
 
   if (!ids.length) {
     body.innerHTML = `
       <div class="drawer-empty">
         <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12l-1 11.5H7z"/><path d="M9 8V6.2a3 3 0 0 1 6 0V8"/></svg>
-        <div class="drawer-empty-title">Savat bo'sh</div>
-        <div class="drawer-empty-sub">Katalogdan mato tanlang — buyurtmangizni shu yerda rasmiylashtirasiz.</div>
+        <div class="drawer-empty-title">${t('cartEmpty')}</div>
+        <div class="drawer-empty-sub">${t('cartEmptySub')}</div>
       </div>`;
     foot.hidden = true;
     return;
@@ -2265,11 +3183,11 @@ function lineHtml(id) {
         <div class="cart-line-sup">${esc(p.supplier)}</div>
         <div class="cart-line-bot">
           <div class="qty">
-            <button class="qty-btn" data-action="qtyStep" data-arg="${esc(id)}|-1" aria-label="Kamaytirish">
+            <button class="qty-btn" data-action="qtyStep" data-arg="${esc(id)}|-1" aria-label="${t('decrease')}">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 12h14"/></svg>
             </button>
             <span class="qty-val">${qty} dona</span>
-            <button class="qty-btn" data-action="qtyStep" data-arg="${esc(id)}|1" aria-label="Ko'paytirish">
+            <button class="qty-btn" data-action="qtyStep" data-arg="${esc(id)}|1" aria-label="${t('increase')}">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
             </button>
           </div>
@@ -2331,16 +3249,16 @@ function checkoutHtml() {
   return `
     <button class="co-back" data-action="backToCart">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 6l-6 6 6 6"/></svg>
-      Savatga qaytish
+      ${t('backToCart')}
     </button>
 
     <div class="co-sum" style="margin-top:12px">
       ${lines}
       <div class="co-sum-row" style="margin-top:9px;padding-top:9px;border-top:1px solid var(--border-hair);color:var(--text-muted);font-size:13px">
-        <span>Yetkazish (taxminiy)</span><span id="co-delivery">${money(DELIVERY_FEE_ESTIMATE)}</span>
+        <span>${t('deliveryEst')}</span><span id="co-delivery">${money(DELIVERY_FEE_ESTIMATE)}</span>
       </div>
       <div class="co-sum-row" style="font-weight:700;color:var(--text-strong)">
-        <span>Jami</span><span>${money(cartTotal())}</span>
+        <span>${t('total')}</span><span>${money(cartTotal())}</span>
       </div>
 
       <!-- Oldindan to'lov — Mini App bilan bir xil bo'linish (2026-08-12).
@@ -2348,36 +3266,36 @@ function checkoutHtml() {
            to'laydi deb o'ylardi; Mini App esa AYNI buyurtma uchun 50% ni
            ko'rsatardi. Ikki kanal bir narsaga ikki xil narx aytmasin. -->
       <div class="co-sum-row co-prepay" style="margin-top:9px;padding-top:9px;border-top:1px solid var(--border-hair)">
-        <span>Hozir to'lanadi <b class="co-prepay-tag" id="co-prepay-pct">${esc(String(Math.round(PREPAY_RATE * 100)))}%</b></span>
+        <span>${t('payNow')} <b class="co-prepay-tag" id="co-prepay-pct">${esc(String(Math.round(PREPAY_RATE * 100)))}%</b></span>
         <span class="co-prepay-val" id="co-prepay-val">${money(prepayAmount(cartTotal()))}</span>
       </div>
       <div class="co-sum-row" style="color:var(--text-muted);font-size:13px">
-        <span>Mato tayyor bo'lgach</span><span id="co-rest-val">${money(restAmount(cartTotal()))}</span>
+        <span>${t('payLater')}</span><span id="co-rest-val">${money(restAmount(cartTotal()))}</span>
       </div>
     </div>
-    <div style="font-size:11px;color:var(--text-subtle);line-height:1.4;margin-top:-4px">Yetkazish BTS nuqtasida to'g'ridan-to'g'ri to'lanadi, yuqoridagi jamiga kirmaydi.</div>
+    <div style="font-size:11px;color:var(--text-subtle);line-height:1.4;margin-top:-4px">${t('deliveryNote')}</div>
 
     ${me ? '' : `
       <div class="co-login">
         <div class="co-login-txt">
-          <b>Telegram orqali kiring</b> — ism va telefon o'zi to'ladi, buyurtma
+          <b>${t('tgLoginHint')}</b> — ism va telefon o'zi to'ladi, buyurtma
           holati esa botga xabar bo'lib keladi.
         </div>
-        <button type="button" class="co-login-btn" data-action="loginFromCheckout">Kirish</button>
+        <button type="button" class="co-login-btn" data-action="loginFromCheckout">${t('login')}</button>
       </div>`}
 
     <form id="co-form" data-submit="submitOrder" style="margin-top:16px" novalidate>
       <div class="co-field">
-        <label class="co-label" for="co-name">Ismingiz *</label>
+        <label class="co-label" for="co-name">${t('fName')}</label>
         <input class="co-input" id="co-name" type="text" autocomplete="name" placeholder="Ism familiya" value="${me && me.name ? esc(me.name) : ''}" required />
       </div>
       <div class="co-field">
-        <label class="co-label" for="co-phone">Telefon *</label>
+        <label class="co-label" for="co-phone">${t('fPhone')}</label>
         <input class="co-input" id="co-phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="+998 90 123 45 67" value="${me && me.phone ? esc(me.phone) : ''}" required />
-        <div class="co-hint">Buyurtmani tasdiqlash uchun shu raqamga bog'lanamiz.</div>
+        <div class="co-hint">${t('fPhoneHint')}</div>
       </div>
       <div class="co-field">
-        <label class="co-label" for="co-company">Kompaniya</label>
+        <label class="co-label" for="co-company">${t('fCompany')}</label>
         <input class="co-input" id="co-company" type="text" autocomplete="organization" placeholder="Ixtiyoriy" />
       </div>
       <!-- Manzil ERKIN MATN emas, ro'yxatdan tanlanadi (2026-08-12).
@@ -2386,9 +3304,9 @@ function checkoutHtml() {
            ekanini topa olmasdi. Mini App boshidan ro'yxatdan tanlatadi,
            sayt esa ortda qolgandi. -->
       <div class="co-field">
-        <label class="co-label" for="co-bts">BTS olish nuqtasi *</label>
+        <label class="co-label" for="co-bts">${t('fBts')}</label>
         <select class="co-input co-select" id="co-bts" data-change="setBtsPoint" required>
-          <option value=""${btsPoint ? '' : ' selected'}>— Nuqtani tanlang —</option>
+          <option value=""${btsPoint ? '' : ' selected'}>${t('btsPick')}</option>
           ${BTS_REGIONS.map((r) => {
             const inRegion = BTS_POINTS.filter((p) => p.region === r.key);
             if (!inRegion.length) return '';
@@ -2400,23 +3318,23 @@ function checkoutHtml() {
           const p = btsById(btsPoint);
           return p
             ? `<div class="co-bts-info">${esc(p.addr)} · Ish vaqti ${esc(p.hours)}</div>`
-            : `<div class="co-hint">BTS Pochta orqali yetkaziladi — sizga eng qulay nuqtani tanlang.</div>`;
+            : `<div class="co-hint">${t('btsHint')}</div>`;
         })()}
       </div>
       <div class="co-field">
-        <label class="co-label" for="co-comment">Izoh</label>
+        <label class="co-label" for="co-comment">${t('fComment')}</label>
         <textarea class="co-area" id="co-comment" placeholder="Muddat yoki boshqa talablar (ixtiyoriy)"></textarea>
       </div>
 
       <div class="co-err" id="co-err" hidden></div>
 
       <button class="btn-order" type="submit" id="co-submit" style="margin-top:16px">
-        Buyurtmani yuborish
+        ${t('submitOrder')}
       </button>
       <div class="co-hint" style="text-align:center;margin-top:10px">
         ${me
-          ? "Buyurtma holati Telegram'dagi hisobingizga xabar bo'lib keladi — to'lov hozir olinmaydi."
-          : "Buyurtma Telegram orqali bizga yetib boradi — to'lov hozir olinmaydi."}
+          ? t('coHintIn')
+          : t('coHintOut')}
       </div>
     </form>`;
 }
@@ -2489,7 +3407,7 @@ function submitOrder(e) {
     })
     .catch((e) => {
       btn.disabled = false;
-      btn.textContent = 'Buyurtmani yuborish';
+      btn.textContent = t('submitOrder');
       // Server aniq sabab aytgan bo'lsa (MOQ, telefon, tugagan mahsulot) — o'shani
       // ko'rsatamiz. Aks holda umumiy tarmoq xatosi.
       showErr(err, e.message && e.message !== 'server'
@@ -2502,19 +3420,19 @@ function doneHtml() {
   return `
     <div class="drawer-done">
       <svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.8 2.8L16 10"/></svg>
-      <div class="drawer-done-title">Buyurtmangiz qabul qilindi</div>
+      <div class="drawer-done-title">${t('orderDone')}</div>
       <div class="order-id">${lastOrderId}</div>
       <div class="drawer-done-sub" style="margin-top:6px">
         ${me
-          ? "Tez orada ko'rsatilgan telefon raqamingizga bog'lanamiz. Holat o'zgarganda Telegram'ga xabar keladi."
-          : "Tez orada ko'rsatilgan telefon raqamingizga bog'lanamiz. Buyurtma holatini Telegram bot orqali ham kuzatishingiz mumkin."}
+          ? t('doneHintIn')
+          : t('doneHintOut')}
       </div>
       ${me
         ? `<button class="cta-bot-btn" style="margin-top:16px;height:44px;font-size:14px;background:var(--grad-pom);color:var(--pom-100)" data-action="onLogin">
-             Buyurtmalarim
+             ${t('myOrders')}
            </button>`
         : `<a class="cta-bot-btn" style="margin-top:16px;height:44px;font-size:14px;background:var(--grad-pom);color:var(--pom-100)" href="https://t.me/lolamarketbot" target="_blank" rel="noopener">
-             Botni ochish
+             ${t('openBot')}
            </a>`}
     </div>`;
 }

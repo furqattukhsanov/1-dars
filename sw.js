@@ -15,7 +15,9 @@
 // Bu raqam ko'tarilmasa keshda ESKI PRECACHE ro'yxati qolardi — ya'ni
 // `offline.js` aynan kerak bo'lgan paytda, offline holatda, yuklanmasdi va
 // tuzatish o'zi tuzatayotgan holatda ishlamas edi.
-const CACHE_VERSION = 'v3';
+// v4 (2026-08-13): PWA ikonkalar brend kvadratiga o'tdi (marun fon + oq
+// logo) — `icon-192.png` PRECACHE'da, tarkibi o'zgardi.
+const CACHE_VERSION = 'v4';
 const CACHE_NAME = `lolamarket-web-${CACHE_VERSION}`;
 
 // Faqat offline holat uchun kerak bo'lgan minimal to'plam.

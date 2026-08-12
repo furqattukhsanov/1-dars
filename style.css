@@ -2374,8 +2374,257 @@ body { padding-bottom: calc(var(--dock-h) + env(safe-area-inset-bottom, 0px)); }
   100% { transform: translateX(305%); }
 }
 
+/* ==== AI kutish — atelye holati (2026-08-13) ====
+   3:4 skelet — rasm chiqadigan joyning O'ZI (nisbat serverdagi
+   `aspectRatio 3:4` bilan bir xil): foydalanuvchi NIMA kutayotganini
+   ko'radi. Ichida tikuv choki "tikilib boradi" — spinner o'rniga. */
+.ai-skel {
+  position: relative;
+  aspect-ratio: 3 / 4;
+  max-width: 210px;
+  margin: 0 auto 13px;
+  border-radius: var(--radius-md);
+  background: var(--ink-100);
+  overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+}
+.ai-skel::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(105deg, transparent 38%, rgba(255, 255, 255, .5) 50%, transparent 62%);
+  transform: translateX(-100%);
+  animation: ai-shimmer 1.7s ease-in-out infinite;
+}
+@keyframes ai-shimmer { to { transform: translateX(100%); } }
+.ai-stitch { width: 72%; overflow: visible; }
+/* Chok naqshi dasharray'da; dashoffset yurishi choklarni "tikilayotgandek"
+   yurgizadi. Igna uchi chok tomon yengil tebranadi. */
+.ai-stitch-path {
+  stroke: var(--pom-400); stroke-width: 2.5;
+  stroke-linecap: round; stroke-dasharray: 7 7;
+  animation: ai-stitch-run 1.1s linear infinite;
+}
+@keyframes ai-stitch-run { to { stroke-dashoffset: -14; } }
+.ai-needle {
+  fill: var(--pom-700);
+  transform-origin: 118px 18px;
+  animation: ai-needle-rock 1.1s ease-in-out infinite;
+}
+@keyframes ai-needle-rock { 50% { transform: translate(2px, 2px) rotate(5deg); } }
+.ai-wait-msg {
+  text-align: center;
+  font-size: 13.5px; font-weight: 600; color: var(--text-body);
+  margin-bottom: 11px;
+}
+/* ~30 soniyalik halol chiziq: tez boshlanib sekinlashadi va 92% da
+   TO'XTAYDI — javob kelganda blok butunlay almashadi. 100% ga yetkazib
+   qo'yish "tayyor bo'ldi-yu chiqmadi" degan yolg'on va'da bo'lardi. */
+.ai-bar30 { height: 4px; border-radius: 999px; background: var(--ink-100); overflow: hidden; }
+.ai-bar30 span {
+  display: block; height: 100%; border-radius: 999px;
+  background: linear-gradient(90deg, var(--pom-400), var(--pom-700));
+  animation: ai-fill30 32s cubic-bezier(.15, .55, .35, 1) forwards;
+}
+@keyframes ai-fill30 { 0% { width: 2%; } 55% { width: 68%; } 100% { width: 92%; } }
+
+/* Natija ochilishi — faqat YANGI chizilgan rasmda (`ai-reveal` bir marta
+   qo'yiladi): blur'dan tiniqlashadi va bir lahzalik uchqun chiqadi. */
+.ai-reveal { position: relative; }
+.ai-reveal img { animation: ai-reveal .8s ease-out both; }
+@keyframes ai-reveal {
+  from { opacity: 0; filter: blur(14px); transform: scale(1.02); }
+  to   { opacity: 1; filter: blur(0);   transform: none; }
+}
+.ai-reveal::after {
+  content: '✨'; position: absolute; top: 10px; right: 12px;
+  font-size: 22px; pointer-events: none;
+  animation: ai-spark 1.3s ease-out .25s both;
+}
+@keyframes ai-spark {
+  0%   { opacity: 0; transform: scale(.4) rotate(-14deg); }
+  35%  { opacity: 1; transform: scale(1.15) rotate(6deg); }
+  100% { opacity: 0; transform: scale(.9) translateY(-9px); }
+}
+
 /* Xabar qutilari — xato, kredit va "surat yo'q" uchun bitta shakl */
 .ai-msg { padding: 14px 15px; border-radius: var(--radius-md); font-size: 13px; line-height: 1.5; color: var(--text-body); }
 .ai-msg-plain { border: 1px solid var(--border-hair); background: var(--glass-fill); }
 .ai-msg-warn  { border: 1px solid var(--saffron-500); background: var(--saffron-50); }
 .ai-msg-err   { border: 1px solid var(--danger-500); background: var(--danger-100); }
+
+/* ====================================================
+   SOTUVCHI KABINETI — saytda (2026-08-13, C2)
+
+   Mini App'dagi kabinet bilan bir xil dizayn tizimida. Qiymatlar mavjud
+   tokenlardan olinadi; mavjud sinflar (`pd-add`, `pd-rev-empty`, `co-hint`)
+   qayta ishlatiladi — kabinet uchun ikkinchi tugma uslubi yozilmadi.
+   ==================================================== */
+
+/* Profildagi kirish tugmasi — kabinet bor ekanini KO'RSATADI */
+.s-enter {
+  width: 100%; margin-top: 16px;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+  padding: 13px 15px;
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--pom-700);
+  background: var(--glass-fill);
+  cursor: pointer; text-align: left;
+}
+.s-enter-main { font-family: var(--font-sans); font-size: 14px; font-weight: 700; color: var(--pom-700); }
+.s-enter-sub { font-size: 12px; color: var(--text-muted); }
+
+/* Yorliqlar: kabinet ichidagi ikki bo'lim, va ular ostidagi filtr qatori */
+.s-tabs { display: flex; gap: 8px; margin-bottom: 14px; }
+.s-tab {
+  flex: 1; height: 40px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-hair);
+  background: var(--glass-fill);
+  font-family: var(--font-sans); font-size: 13.5px; font-weight: 600;
+  color: var(--text-body); cursor: pointer;
+}
+.s-tab.on {
+  border-color: transparent; color: #fff;
+  background: linear-gradient(150deg, var(--pom-600), var(--pom-800));
+}
+.s-subtabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.s-subtab {
+  height: 32px; padding: 0 13px;
+  border-radius: 999px;
+  border: 1px solid var(--border-hair);
+  background: var(--glass-fill);
+  font-family: var(--font-sans); font-size: 12.5px; font-weight: 600;
+  color: var(--text-muted); cursor: pointer; white-space: nowrap;
+}
+.s-subtab.on { background: var(--ink-900); border-color: var(--ink-900); color: #fff; }
+
+/* E'lon / buyurtma kartochkasi */
+.s-card {
+  padding: 13px 14px; margin-bottom: 10px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-hair);
+  background: var(--glass-fill);
+}
+.s-row { display: flex; gap: 11px; align-items: center; }
+.s-thumb {
+  flex: none; width: 46px; height: 46px;
+  border-radius: 11px; overflow: hidden;
+  background: linear-gradient(135deg, #e8c9b8, #c98f74);
+}
+.s-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.s-info { flex: 1; min-width: 0; }
+.s-name {
+  font-size: 14px; font-weight: 700; color: var(--text-strong);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.s-meta { font-family: var(--font-mono); font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.s-meta.is-out { color: var(--danger-500); }
+
+/* Holat nuqtasi — rang MA'NO tashiydi, shuning uchun matn ham yozilgan */
+.s-status { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; margin-top: 4px; }
+.s-status::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.s-status.ok { color: #0d6b45; }
+.s-status.wait { color: var(--saffron-700); }
+.s-status.bad { color: var(--danger-500); }
+.s-status.off { color: var(--text-muted); }
+
+.s-note { margin-top: 9px; padding: 9px 11px; border-radius: var(--radius-sm); font-size: 12px; line-height: 1.45; }
+.s-note.bad { background: var(--danger-100); color: #a3181c; }
+.s-note.warn { background: var(--saffron-50); color: var(--saffron-700); }
+.s-mini {
+  padding: 6px 11px; border-radius: 999px; border: none;
+  background: var(--saffron-500); color: #fff;
+  font-family: var(--font-sans); font-size: 11.5px; font-weight: 700; cursor: pointer;
+}
+
+.s-acts { display: flex; gap: 8px; margin-top: 11px; }
+.s-btn {
+  flex: 1; padding: 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-hair);
+  background: rgba(255, 255, 255, .7);
+  font-family: var(--font-sans); font-size: 13px; font-weight: 600;
+  color: var(--text-strong); cursor: pointer;
+}
+.s-btn.ghost { color: var(--text-muted); }
+.s-btn.danger { border-color: var(--danger-500); color: var(--danger-500); background: transparent; }
+
+/* Buyurtma kartochkasi */
+.s-ord-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 9px; }
+.s-ord-id { font-family: var(--font-mono); font-size: 12.5px; font-weight: 600; color: var(--text-muted); }
+.s-ord-date { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+.s-paid {
+  flex: none; font-size: 11px; font-weight: 700;
+  padding: 4px 9px; border-radius: 999px;
+  background: var(--success-100); color: #0d6b45;
+}
+.s-line { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; margin-bottom: 6px; color: var(--text-body); }
+.s-ord-foot {
+  margin-top: 9px; padding-top: 9px;
+  border-top: 1px solid var(--border-hair);
+  font-size: 12px; color: var(--text-muted); line-height: 1.6;
+}
+.s-ord-foot b { color: var(--text-strong); }
+.s-comment { margin-top: 4px; font-style: italic; }
+.mono { font-family: var(--font-mono); }
+
+.s-dispute {
+  margin-top: 11px; padding: 11px;
+  border-radius: var(--radius-sm);
+  background: var(--danger-100);
+  border: 1px solid rgba(163, 24, 28, .18);
+}
+.s-dispute-t { font-size: 12px; font-weight: 700; color: #a3181c; }
+.s-dispute-body { font-size: 12.5px; color: var(--text-body); margin-top: 5px; line-height: 1.5; }
+.s-dispute-mine { margin-top: 8px; font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+
+/* Forma. `font-size: 16px` ATAYLAB — mobil Safari undan kichik maydonga
+   fokuslanganda sahifani zumlab yuboradi. */
+.s-form { display: flex; flex-direction: column; }
+.s-lbl {
+  font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--pom-700); margin: 14px 0 7px;
+}
+.s-lbl:first-child { margin-top: 0; }
+.s-inp {
+  width: 100%; padding: 12px 14px;
+  border: 1px solid var(--border-hair);
+  border-radius: var(--radius-md);
+  background: var(--glass-fill-strong);
+  font-family: var(--font-sans); font-size: 16px;
+  color: var(--text-strong); outline: none; resize: none;
+}
+.s-inp.mono { font-family: var(--font-mono); }
+.s-cats { display: flex; flex-wrap: wrap; gap: 7px; }
+.s-cat {
+  padding: 8px 14px; border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, .8);
+  background: rgba(255, 255, 255, .66);
+  font-family: var(--font-sans); font-size: 12.5px; font-weight: 600;
+  color: var(--ink-700); cursor: pointer;
+}
+.s-cat.on { background: var(--ink-900); border-color: var(--ink-900); color: #fff; }
+
+/* Til almashtirish (2026-08-13, C3). Ikki kichik tugma — header'da joy kam,
+   shuning uchun ochiladigan ro'yxat emas: ikkita til uchun u ortiqcha bosish
+   bo'lardi. */
+.lang-switch {
+  display: inline-flex; gap: 2px;
+  padding: 2px;
+  border-radius: 999px;
+  border: 1px solid var(--border-hair);
+  background: var(--glass-fill);
+}
+.lang-btn {
+  min-width: 30px; height: 26px; padding: 0 8px;
+  border: none; border-radius: 999px;
+  background: transparent;
+  font-family: var(--font-sans); font-size: 11.5px; font-weight: 700;
+  letter-spacing: .04em; color: var(--text-muted);
+  cursor: pointer;
+}
+.lang-btn.on { background: var(--ink-900); color: #fff; }
+@media (max-width: 720px) {
+  /* Telefonda header tor — til tugmasi qidiruv qatoridan keyin, kichikroq */
+  .lang-switch { order: 3; }
+  .lang-btn { min-width: 26px; padding: 0 6px; font-size: 11px; }
+}

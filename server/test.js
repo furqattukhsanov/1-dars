@@ -1372,14 +1372,14 @@ function testAssetVersionsAreFresh() {
   // AYNI faylni `?v=36` bilan — ya'ni admin panel 15 versiya orqada
   // qotib qolgan keshni cheksiz ushlab turardi.
   const KUTILGAN = {
-    'style.css': { v: 41, hash: '4b443d30478d' },
-    'script.js': { v: 31, hash: 'bab3e4876457' },
+    'style.css': { v: 43, hash: 'ab2de2f1ad8a' },
+    'script.js': { v: 33, hash: 'dfcb1d6d1142' },
     'pwa.js': { v: 2, hash: 'f46683d58662' },
-    'panel.js': { v: 12, hash: 'fa1051b3257b' },
+    'panel.js': { v: 13, hash: 'bf0f406faad0' },
     'admin/admin.css': { v: 17, hash: 'dbefeb6757ff' },
     'admin/admin.js': { v: 22, hash: '8a8310a94f5e' },
-    'telegram-app/styles.css': { v: 21, hash: '6dddba75c0bc' },
-    'telegram-app/app.js': { v: 73, hash: '52235fc61a17' },
+    'telegram-app/styles.css': { v: 22, hash: '6e0d7e73cf36' },
+    'telegram-app/app.js': { v: 74, hash: 'ff0baf6c184f' },
     'telegram-app/pwa.js': { v: 6, hash: '798ab85e1cde' },
   };
 
@@ -1455,7 +1455,7 @@ function testServiceWorkerCacheVersion() {
   // (`lolamarket-web-*` va `lolamarket-mini-*`), shuning uchun versiyalari
   // ham bir-biriga bog'liq emas va alohida oshiriladi.
   const KUTILGAN = {
-    'sw.js': { v: 'v3', hash: '8e5d407b4efa' },
+    'sw.js': { v: 'v4', hash: '1c83a63f22ca' },
     'telegram-app/sw.js': { v: 'v3', hash: 'ea6ae3946dba' },
   };
 
@@ -2656,20 +2656,29 @@ function funksiyaTanasi(src, nom) {
 }
 
 // Handler kimlikni O'ZI olmasligi mumkin — o'ram funksiya orqali oladi
-// (`reviewAuthor`). Shuning uchun tana bir pog'ona KENGAYTIRILADI: shu
-// modulda aniqlangan va shu handlerdan chaqirilgan funksiyalarning tanasi
-// ham qo'shiladi. Bir pog'ona yetarli — kimlik zanjiri bu loyihada hech
+// (`reviewAuthor` — shu modulda, `requireSeller` — `lib/auth.js` da).
+// Shuning uchun tana bir pog'ona KENGAYTIRILADI: chaqirilgan o'ramlarning
+// tanasi qo'shiladi. Bir pog'ona yetarli — kimlik zanjiri bu loyihada hech
 // qachon bundan chuqur emas, chuqurroq qidiruv esa tekshiruvni tushunib
 // bo'lmaydigan qilardi.
-function kengaytir(src, tana) {
+//
+// ⚠️ MODUL CHEGARASIDAN O'TADI va bu sinovda TOPILGAN teshik: dastlab faqat
+// marshrut faylining ichi ochilardi, `requireSeller` esa `lib/auth.js` da
+// yashaydi. Natijada uni chaqiradigan handler tanasida na `authUser(`, na
+// `requestUser(` bo'lardi — ya'ni tekshiruv uni "ochiq endpoint" deb
+// hisoblab, JIMGINA o'tkazib yuborardi. Mutatsiya (`requireSeller` ichida
+// `requestUser` → `authUser`) aynan shu yo'l bilan qorovuldan o'tib ketdi.
+function kengaytir(manbalar, tana) {
   let natija = tana;
-  for (const m of src.matchAll(/(?:async\s+)?function\s+([A-Za-z0-9_]+)\s*\(/g)) {
-    const nom = m[1];
-    if (tana.includes(`${nom}(`) && !tana.startsWith(`function ${nom}(`) &&
-        !tana.startsWith(`async function ${nom}(`)) {
-      natija += '\n' + (funksiyaTanasi(src, nom) || '');
+  manbalar.forEach((src) => {
+    for (const m of src.matchAll(/(?:async\s+)?function\s+([A-Za-z0-9_]+)\s*\(/g)) {
+      const nom = m[1];
+      if (tana.includes(`${nom}(`) && !tana.startsWith(`function ${nom}(`) &&
+          !tana.startsWith(`async function ${nom}(`)) {
+        natija += '\n' + (funksiyaTanasi(src, nom) || '');
+      }
     }
-  }
+  });
   return natija;
 }
 
@@ -2718,6 +2727,10 @@ function testSiteEndpointsKnowWebSession() {
   const routesDir = path.join(__dirname, 'routes');
   const manbalar = fs.readdirSync(routesDir).filter((f) => f.endsWith('.js'))
     .map((f) => ({ fayl: f, src: kodSofi(fs.readFileSync(path.join(routesDir, f), 'utf8')) }));
+  // Kimlik o'ramlari `lib/auth.js` da ham yashaydi (`requireSeller`) — tana
+  // kengaytirilganda u ham qaraladi, aks holda o'sha o'ramni chaqiradigan
+  // handler "kimlik so'ramaydi" deb hisoblanardi.
+  const authSrc = kodSofi(fs.readFileSync(path.join(__dirname, 'lib', 'auth.js'), 'utf8'));
 
   let tekshirilgan = 0;
   let ochiq = 0;
@@ -2727,7 +2740,7 @@ function testSiteEndpointsKnowWebSession() {
       if (metod && !metodlar.has(metod)) return;
       const joy = manbalar.find((m) => funksiyaTanasi(m.src, nom));
       if (!joy) return;   // handler `routes/` dan tashqarida (server.js ichida)
-      const tana = kengaytir(joy.src, funksiyaTanasi(joy.src, nom));
+      const tana = kengaytir([joy.src, authSrc], funksiyaTanasi(joy.src, nom));
       const ikkiKanal = IKKI_KANALLI.some((k) => tana.includes(k));
       // Kimlik umuman so'ralmasa — bu OCHIQ endpoint (`/api/products`,
       // `/api/ai/gallery`) va tekshiradigan narsa yo'q.
@@ -2744,6 +2757,73 @@ function testSiteEndpointsKnowWebSession() {
 
   assert.ok(tekshirilgan >= 2, `kimlik talab qiladigan endpoint topilmadi (${tekshirilgan} ta) — tahlil buzilgan`);
   console.log(`✅ Test 3f: Sayt chaqirgan endpointlar sayt kimligini biladi — PASS (${siteYollar.size} yo'l, ${tekshirilgan} ta kimlikli, ${ochiq} ta ochiq)`);
+}
+
+// ============ TEST 20: TARJIMA KALITLARI TO'LIQ (2026-08-13, C3) ============
+// Sayt ikki tilli bo'ldi (`t('kalit')`). Bu testning sababi oddiy: kalit
+// YO'Q bo'lsa `t()` kalitning O'ZINI qaytaradi, ya'ni foydalanuvchi
+// tugmada `sDisputeSend` degan yozuvni ko'radi — sahifa buzilmaydi, xato
+// ham chiqmaydi, shunchaki INGLIZCHA KALIT chiqib qoladi. Aynan shunday
+// jimgina nuqsonlar bu loyihada eng qimmatga tushgan.
+//
+// Ro'yxat QO'LDA yozilmaydi: `script.js` dan `t('...')` chaqiruvlari
+// O'QILADI va har biri IKKALA jadvalda ham borligi tekshiriladi. Yangi
+// tarjima qo'shilsa u avtomatik qamraladi; bittasini rus tiliga
+// o'girishni unutsangiz test QIZIL bo'ladi.
+//
+// ⚠️ Ikkinchi tomoni ham tekshiriladi: jadvalda BOR, lekin hech qayerda
+// ishlatilmaydigan kalit — o'lik yuk. U xato emas, lekin ro'yxat o'sib
+// borgani sari qaysi matn qayerda ekanini topish qiyinlashadi, shuning
+// uchun ogohlantirish sifatida sanaladi (test qizil QILMAYDI).
+function testTranslationKeys() {
+  const fs = require('fs');
+  const path = require('path');
+  const src = fs.readFileSync(path.join(__dirname, '..', 'script.js'), 'utf8');
+
+  const m = src.match(/const STR = \{[\s\S]*?\n\};/);
+  assert.ok(m, "script.js da `const STR = {...}` topilmadi — tarjima jadvali ko'chirilgan bo'lishi mumkin");
+  // eslint-disable-next-line no-eval
+  const STR = eval('(' + m[0].replace(/^const STR = /, '').replace(/;$/, '') + ')');
+  assert.ok(STR.uz && STR.ru, 'STR da `uz` va `ru` jadvallari bo\'lishi shart');
+
+  // Ishlatilayotgan kalitlar — izohlardan TASHQARI (kodSofi bilan tozalanadi,
+  // aks holda izohda eslatilgan kalit ham "ishlatilgan" bo'lib ko'rinardi).
+  const toza = kodSofi(src);
+  const ishlatilgan = new Set([...toza.matchAll(/\bt\('([A-Za-z0-9_]+)'\)/g)].map((x) => x[1]));
+  assert.ok(ishlatilgan.size >= 50, `t() chaqiruvlari topilmadi (${ishlatilgan.size} ta) — regex eskirgan bo'lishi mumkin`);
+
+  const yoq = { uz: [], ru: [] };
+  ishlatilgan.forEach((k) => {
+    if (STR.uz[k] === undefined) yoq.uz.push(k);
+    if (STR.ru[k] === undefined) yoq.ru.push(k);
+  });
+  assert.strictEqual(yoq.uz.length, 0,
+    `Bu kalitlar KODDA ishlatiladi, o'zbekcha jadvalda esa YO'Q: ${yoq.uz.join(', ')}`);
+  assert.strictEqual(yoq.ru.length, 0,
+    `Bu kalitlar KODDA ishlatiladi, ruscha jadvalda esa YO'Q — foydalanuvchi tugmada ` +
+    `kalit nomini ko'radi: ${yoq.ru.join(', ')}`);
+
+  // Ikkala jadval bir xil kalitlarga ega bo'lsin
+  const uzK = Object.keys(STR.uz), ruK = Object.keys(STR.ru);
+  const faqatUz = uzK.filter((k) => !(k in STR.ru));
+  const faqatRu = ruK.filter((k) => !(k in STR.uz));
+  assert.strictEqual(faqatUz.length, 0, `faqat o'zbekchada bor: ${faqatUz.join(', ')}`);
+  assert.strictEqual(faqatRu.length, 0, `faqat ruschada bor: ${faqatRu.join(', ')}`);
+
+  // Bo'sh tarjima ham nuqson: `t()` bo'sh satr qaytaradi va blok ko'rinmay qoladi
+  const bosh = uzK.filter((k) => !String(STR.uz[k]).trim() || !String(STR.ru[k]).trim());
+  assert.strictEqual(bosh.length, 0, `bo'sh tarjima: ${bosh.join(', ')}`);
+
+  // HTML dagi `data-i18n` kalitlari ham jadvalda bo'lsin
+  const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+  const htmlKeys = [...html.matchAll(/data-i18n(?:-ph|-aria)?="([A-Za-z0-9_]+)"/g)].map((x) => x[1]);
+  const htmlYoq = htmlKeys.filter((k) => STR.uz[k] === undefined || STR.ru[k] === undefined);
+  assert.strictEqual(htmlYoq.length, 0, `index.html dagi data-i18n kalitlari jadvalda yo'q: ${htmlYoq.join(', ')}`);
+
+  const olik = uzK.filter((k) => !ishlatilgan.has(k) && !htmlKeys.includes(k));
+  console.log(`✅ Test 20: Tarjima kalitlari to'liq — PASS (${uzK.length} kalit × 2 til, ` +
+    `${ishlatilgan.size} ta koddan, ${htmlKeys.length} ta HTML dan` +
+    (olik.length ? `, ⚠️ ${olik.length} ta ishlatilmagan: ${olik.slice(0, 5).join(', ')}${olik.length > 5 ? '…' : ''}` : '') + ')');
 }
 
 // ============ TEST RUNNER ============
@@ -2764,6 +2844,7 @@ async function runTests() {
     testDeliveryFeeConfig();
     await testRequestUserBothChannels();
     testSiteEndpointsKnowWebSession();
+    testTranslationKeys();
     testChatIdValidation();
     await testDecrementStock();
     await testRecalcRating();
