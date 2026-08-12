@@ -330,6 +330,18 @@ document.addEventListener('input', (e) => {
   if (typeof fn === 'function') fn(e.target.value);
 });
 
+/* ── `change` delegatsiyasi ──
+   `<select>` uchun. Zamonaviy brauzerlar tanlovda `input` ni ham otadi,
+   ya'ni yuqoridagi qatlam KO'PINCHA yetardi — lekin `change` bu element
+   uchun kanonik hodisa va hamma joyda otiladi. BTS nuqtasi buyurtmaning
+   yetkazish manzili, ya'ni "ko'pincha ishlaydi" yetarli emas. */
+document.addEventListener('change', (e) => {
+  const el = e.target.closest('[data-change]');
+  if (!el) return;
+  const fn = window[el.dataset.change];
+  if (typeof fn === 'function') fn(e.target.value);
+});
+
 /* ====================================================
    TELEGRAM ORQALI KIRISH
 
@@ -472,6 +484,10 @@ function logout() {
   apiJson('/api/auth/web/logout', { method: 'POST' }).catch(() => {});
   me = null;
   myOrders = null;
+  // Sharh va bahslar ham tozalanadi — ular AVVALGI hisobning ma'lumoti.
+  // Qolib ketsa keyingi kirgan odam begona bahs matnini ko'rib qolardi.
+  myReviews = [];
+  myDisputes = [];
   refreshAuthUi();
   drawerView = 'login';
   loginState = 'idle';
@@ -492,6 +508,9 @@ function loadMyOrders() {
   // Sharhlar ham yuklanadi — profildagi buyurtma qatori "Baholash" tugmasini
   // ko'rsatishdan oldin qaysi mahsulot allaqachon baholanganini bilishi kerak
   loadMyReviews();
+  // Bahslar ham: qatorda "murojaat" tugmasi yoki ochiq bahs holati
+  // ko'rsatiladi — ikkinchi marta bahs ochib bo'lmaydi (server 409 beradi)
+  loadMyDisputes();
   apiJson('/api/web/orders')
     .then((d) => {
       myOrders = d && d.ok && Array.isArray(d.orders) ? d.orders : [];
@@ -531,7 +550,22 @@ function refreshAuthUi() {
 /* Sahifa ochilganda sessiyani tiklaymiz — cookie serverda tekshiriladi */
 apiJson('/api/auth/web/me')
   .then((d) => {
-    if (d && d.ok && d.user) {
+    if (!d || !d.ok) return;
+    // To'lov sozlamalari — faqat SHAKLI to'g'ri bo'lsa qabul qilinadi.
+    // `!= null` tekshiruvining O'ZI yetarli emas: bo'sh satr yoki `0` ham
+    // "keldi" bo'lib ko'rinardi va zaxira qiymatni bosib o'tardi
+    // (CLAUDE.md — "sozlama qiymati bo'sh emasligi uni haqiqiy qilmaydi").
+    if (Number.isFinite(d.prepayRate) && d.prepayRate > 0 && d.prepayRate <= 1) {
+      PREPAY_RATE = d.prepayRate;
+    }
+    if (Number.isFinite(d.deliveryFee) && d.deliveryFee >= 0) {
+      DELIVERY_FEE_ESTIMATE = d.deliveryFee;
+    }
+    // ⚠️ Bu yerda ham `renderDrawer()` chaqirilMAYDI — `setBtsPoint` dagi
+    // bilan bitta sabab: checkout ochiq bo'lsa xaridor yozgan maydonlar
+    // o'chib ketardi. Faqat raqamlar joyida almashtiriladi.
+    paintCheckoutTotals();
+    if (d.user) {
       me = d.user;
       refreshAuthUi();
     }
@@ -619,9 +653,59 @@ function profileHtml() {
 // (server/routes/reviews.js → REVIEW_ALLOWED_ORDER_STATUS)
 const REVIEW_OK_STATUS = ['delivered', 'completed'];
 
+/* Bahs faqat mato yo'lga chiqqandan keyin — server bilan BIR XIL ro'yxat
+   (server/routes/disputes.js → DISPUTE_ALLOWED_ORDER_STATUS). Undan oldingi
+   muammo "buyurtma" muammosi (bekor qilish), bahs emas. */
+const DISPUTE_OK_STATUS = ['shipped', 'delivered', 'completed'];
+
+/* Bahs sabablari — kalitlar SERVERDAGI `DISPUTE_REASONS` bilan bir xil
+   bo'lishi SHART (`server/routes/disputes.js`). Server `enum` bilan
+   tekshiradi: kalit mos kelmasa xaridor formani to'ldirib bo'lgach 400
+   xato ko'rardi. */
+const DISPUTE_REASONS = {
+  not_delivered: 'Mato yetib kelmadi',
+  damaged:       'Mato shikastlangan',
+  wrong_item:    'Boshqa mato keldi',
+  quality:       'Sifat mos emas',
+  quantity:      'Miqdor kam chiqdi',
+  other:         'Boshqa muammo',
+};
+const DISPUTE_STATUS = {
+  open:     "Ko'rib chiqilmoqda",
+  resolved: 'Hal qilindi',
+  rejected: 'Rad etildi',
+  closed:   'Yopildi',
+};
+
+/** buyurtma id → tarix ochiqmi */
+const openHistory = {};
+/** serverdan kelgan bahslar (kirgan bo'lsa) */
+let myDisputes = [];
+
+function disputeOf(orderId) {
+  return myDisputes.find((d) => d.orderId === orderId) || null;
+}
+
+function toggleHistory(orderId) {
+  openHistory[orderId] = !openHistory[orderId];
+  if (drawerView === 'profile') renderDrawer();
+}
+
+function loadMyDisputes() {
+  if (!me) { myDisputes = []; return; }
+  apiJson('/api/disputes')
+    .then((d) => { myDisputes = d && d.ok && Array.isArray(d.data) ? d.data : []; })
+    .catch(() => { myDisputes = []; })
+    .then(() => { if (isOpen() && drawerView === 'profile') renderDrawer(); });
+}
+
 function orderRowHtml(o) {
   const st = ORDER_STATUS[o.status] || { label: o.status, tone: 'wait' };
   const items = REVIEW_OK_STATUS.includes(o.status) ? (o.items || []) : [];
+  const hist = Array.isArray(o.history) ? o.history : [];
+  const open = openHistory[o.id];
+  const disp = disputeOf(o.id);
+
   return `
     <div class="order-row">
       <div class="order-row-top">
@@ -632,6 +716,40 @@ function orderRowHtml(o) {
         <span>${esc(o.date || '')}</span>
         <span class="order-row-sum">${o.total === null ? '' : money(o.total)}</span>
       </div>
+
+      <!-- Holat tarixi — BAZADAGI haqiqiy yozuvlar (order_status_history).
+           Qadamlar ro'yxati oldindan chizilmaydi: "1-2-3-4" ko'rinishidagi
+           progress hali bo'lmagan qadamni ham ko'rsatib, buyurtma qayerdaligi
+           haqida yolg'on gapirardi. Tarix yo'q bo'lsa blok umuman yo'q. -->
+      ${hist.length ? `
+      <button class="order-hist-btn" data-action="toggleHistory" data-arg="${esc(o.id)}" aria-expanded="${open ? 'true' : 'false'}">
+        ${open ? 'Tarixni yashirish' : `Holat tarixi (${hist.length})`}
+      </button>
+      ${open ? `
+      <ol class="order-hist">
+        ${hist.map((h) => {
+          const hs = ORDER_STATUS[h.status] || { label: h.status };
+          return `<li class="order-hist-line"><span class="order-hist-dot"></span>
+            <span class="order-hist-txt">${esc(hs.label)}</span>
+            <span class="order-hist-date">${esc(h.date || '')}</span></li>`;
+        }).join('')}
+      </ol>` : ''}` : ''}
+
+      <!-- Bahs: ochilgan bo'lsa holati, bo'lmasa tugma -->
+      ${disp ? `
+      <div class="order-disp">
+        <div class="order-disp-top">
+          <b>Bahs #${esc(String(disp.id))}</b>
+          <span class="order-disp-st ${disp.status === 'open' ? 'warn' : 'ok'}">${esc(DISPUTE_STATUS[disp.status] || disp.status)}</span>
+        </div>
+        <div class="order-disp-reason">${esc(disp.reason || '')}</div>
+        ${disp.sellerResponse ? `<div class="order-disp-reply"><b>Ishlab chiqaruvchi javobi:</b> ${esc(disp.sellerResponse)}</div>` : ''}
+        ${disp.refundAmount ? `<div class="order-disp-reply"><b>Qaytariladi:</b> ${money(disp.refundAmount)}</div>` : ''}
+      </div>`
+        : DISPUTE_OK_STATUS.includes(o.status)
+        ? `<button class="order-disp-btn" data-action="openDispute" data-arg="${esc(o.id)}">Muammo bo'yicha murojaat</button>`
+        : ''}
+
       ${items.length ? `
       <div class="order-rev">
         ${items.map((it) => {
@@ -692,9 +810,205 @@ function loadCatalogMeta() {
       if (!Array.isArray(list)) return;
       catalogMeta = {};
       list.forEach((p) => { catalogMeta[p.id] = p; });
+      mergeCatalog(list);
       if (isOpen() && drawerView === 'detail') renderDrawer();
     })
-    .catch(() => { /* detal data-* atributlari bilan ishlayveradi */ });
+    .catch(() => { /* detal data-* atributlari bilan ishlayveradi */ })
+    // Savat/saralanganlarni tozalash SO'ROV TUGAGACH bo'ladi — muvaffaqiyatda
+    // ham, xatoda ham. Sabab pastda, `settleCatalog()` izohida.
+    .then(settleCatalog);
+}
+
+/* ====================================================
+   KATALOGNI BAZA BILAN BIRLASHTIRISH (2026-08-12)
+
+   2026-08-12 gacha saytdagi katalog `index.html` ichiga QO'LDA yozilgan 12 ta
+   kartochkadan iborat edi, Mini App esa o'shanda ham `/api/products` dan
+   o'qirdi. Natijada sotuvchi e'lon qo'shsa u Mini App'da chiqar, saytda esa
+   HECH QACHON ko'rinmasdi — o'lchandi: bazada 22 ta nashr etilgan e'lon,
+   saytda 12 ta. Teskarisi ham bor edi: `ik-9001` saytda turardi, bazada esa
+   yo'q — xaridor uni savatga solib buyurtma bersa server rad etardi.
+
+   Yechim — ALMASHTIRISH emas, BIRLASHTIRISH:
+     * HTML'dagi kartochkalar joyida qoladi. Ular SEO uchun ham, tarmoq sekin
+       bo'lganda darhol chiziladigan tarkib uchun ham kerak — katalog butunlay
+       JS'ga o'tkazilsa qidiruv tizimi bo'sh sahifa ko'rardi;
+     * bazada bor, HTML'da yo'q e'lon — gridga QO'SHILADI;
+     * ikkalasida bor e'lonning narxi va zaxirasi bazadagiga TENGLASHTIRILADI;
+     * HTML'da bor, bazada yo'q kartochka — OLIB TASHLANADI (`ik-9001` toifasi).
+
+   Kartochka DOM'ga haqiqiy `.product-card` bo'lib tushadi, shuning uchun
+   filtr, qidiruv, narx oralig'i, savat, saralanganlar va detal oynasi
+   qo'shimcha kodsiz ishlayveradi — ularning hammasi `data-*` atributlarini
+   o'qiydi (`product()`), alohida ro'yxatni emas.
+   ==================================================== */
+
+/** Zaxira chegarasi — Mini App'dagi `LOW_STOCK` bilan bir xil qiymat */
+const LOW_STOCK = 5;
+const STOCK_TXT = { in: 'Sotuvda', low: 'Kam qoldi', made: 'Buyurtmaga', out: 'Tugadi' };
+/** `badge_tone` → mavjud CSS sinfi */
+const BADGE_TONE = { primary: 'tone-primary', teal: 'tone-teal', saffron: 'tone-saffron', neutral: 'tone-neutral' };
+
+/** zaxirasi tugagan mahsulot id'lari — savat tugmasi o'rniga "Tugadi" chiqadi */
+const soldOutIds = new Set();
+
+/* Zaxira ko'rinishi — Mini App'dagi `stockView()` bilan AYNAN bir xil qoida
+   (`telegram-app/app.js`). `stock === null` CHEKSIZ degani: `made`
+   mahsulotlar va sotuvchi son kiritmagan e'lonlar. */
+function stockView(p) {
+  const n = p.stock;
+  if (n === null || n === undefined) {
+    const k = STOCK_TXT[p.stockKey] ? p.stockKey : 'made';
+    return { txt: STOCK_TXT[k], key: k, soldOut: false };
+  }
+  if (n <= 0) return { txt: STOCK_TXT.out, key: 'out', soldOut: true };
+  if (n <= LOW_STOCK) return { txt: `${STOCK_TXT.low} · ${n}`, key: 'low', soldOut: false };
+  return { txt: STOCK_TXT.in, key: 'in', soldOut: false };
+}
+
+/* Rasm manzili.
+
+   ⚠️ Bazadagi eski e'lonlarda `img` — `assets/products/textile-01.jpg`, ya'ni
+   NISBIY yo'l. U Mini App uchun yozilgan va serverda `/mini-app/assets/...`
+   ostida yotadi; sayt ildizida esa bunday fayl YO'Q. Nisbiy yo'l shundoq
+   qo'yilsa `lolamarket.uz/assets/products/textile-01.jpg` so'raladi va nginx
+   `try_files ... /index.html` bilan **HTTP 200 va HTML** qaytaradi — ya'ni
+   rasm sindi, lekin holat kodi sog'lom ko'rinadi (CLAUDE.md dagi o'sha
+   soft-200 tuzog'i; 2026-08-12 da `curl` bilan o'lchandi:
+   `200 text/html`). Shuning uchun nisbiy yo'l Mini App papkasiga
+   yo'naltiriladi — fayl HAQIQATAN o'sha yerda (`200 image/jpeg`).
+
+   Sotuvchi qo'shgan yangi e'lonlarda `img` allaqachon to'liq manzil bo'ladi:
+   `https://cdn.lolamarket.uz/...` (R2) yoki `/api/product-photo?...`
+   (Telegram proksi) — ular tegilmaydi. */
+function apiImgUrl(u) {
+  const s = String(u || '');
+  if (!s) return '';
+  if (/^(https?:)?\/\//.test(s) || s.charAt(0) === '/') return s;
+  // Mutlaq yo'l — nisbiy emas: nisbiysi joriy sahifa manziliga bog'lanadi va
+  // katalog ildizdan boshqa yo'lda ochilsa jimgina sinardi.
+  return '/mini-app/' + s.replace(/^\.?\//, '');
+}
+
+/** API yozuvidan kartochka HTML'i — HTML'dagi qo'lda yozilgan kartochka bilan
+    bir xil tuzilma (`data-*`, `act-<id>`, `fav-<id>`), aks holda savat va
+    saralanganlar bu kartochkalarni ko'rmasdi. */
+function apiCardHtml(p) {
+  const name = p.name && p.name.uz ? p.name.uz : p.id;
+  const supplier = (p.supplier && p.supplier.uz) || '';
+  const img = apiImgUrl(p.img);
+  const st = stockView(p);
+  // Belgi: sotuvchi bergani ustun, bo'lmasa zaxira holati (faqat diqqat
+  // talab qiladigani — "Sotuvda" har kartochkada takrorlansa shovqin bo'ladi)
+  const badgeTxt = (p.badge && p.badge.uz) || (st.key === 'low' || st.key === 'out' || st.key === 'made' ? st.txt : '');
+  const badgeCls = BADGE_TONE[p.badgeTone] || (st.key === 'out' ? 'tone-neutral' : st.key === 'low' ? 'tone-saffron' : 'tone-teal');
+
+  return `
+    <article class="product-card fade-up" data-id="${esc(p.id)}" data-name="${esc(name)}" data-price="${esc(String(p.price))}" data-supplier="${esc(supplier)}" data-cat="${esc(p.catKey || '')}">
+      <div class="product-media">
+        ${img ? `<img src="${esc(img)}" alt="${esc(name)}" loading="lazy" />` : ''}
+        ${badgeTxt ? `<span class="badge-pill ${badgeCls}">${esc(badgeTxt)}</span>` : ''}
+        <button class="fav-btn" id="fav-${esc(p.id)}" data-action="toggleFav" data-arg="${esc(p.id)}" aria-label="Saralanganlarga qo'shish" aria-pressed="false">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 20.8s-6.9-4.3-9-8a5.2 5.2 0 0 1-.5-3.7A4.8 4.8 0 0 1 6.3 5.5c1.9 0 3.4 1 4.3 2.3.4.6 1 .6 1.4 0 .9-1.3 2.4-2.3 4.3-2.3a4.8 4.8 0 0 1 3.8 3.6 5.2 5.2 0 0 1-.5 3.7c-2.1 3.7-9 8-9 8z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+      <div class="product-body">
+        <div class="product-name">${esc(name)}</div>
+        <div class="product-supplier">
+          <span>${esc(supplier)}</span>
+          ${p.verified ? `<span class="verified" title="LolaMarket tomonidan tasdiqlangan ishlab chiqaruvchi" aria-label="LolaMarket tomonidan tasdiqlangan ishlab chiqaruvchi"><svg width="12" height="12" viewBox="0 0 24 24" fill="#7a140d"><path d="M12 2l2.4 1.8 3-.2 1 2.8 2.6 1.5-.9 2.9.9 2.9-2.6 1.5-1 2.8-3-.2L12 22l-2.4-1.8-3 .2-1-2.8L3 16.3l.9-2.9L3 10.5l2.6-1.5 1-2.8 3 .2z"/><path d="M9 12l2 2 4-4" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span>` : ''}
+        </div>
+        <div class="product-price">
+          <span class="price-label">1 dona ${esc(p.unit === 'panel' ? 'panel' : 'rulon')} narxi</span>
+          <span class="price-value">${money(Number(p.price) || 0)}</span>
+        </div>
+        <div class="card-action" id="act-${esc(p.id)}"></div>
+      </div>
+    </article>`;
+}
+
+/** Yangi kartochka HTML'dagilar bilan bir xil imkoniyatga ega bo'lsin:
+    ko'rinish animatsiyasi va klaviatura bilan ochilishi. Init blokidagi
+    sozlash faqat sahifa yuklanganda mavjud kartochkalar ustidan yurgan. */
+function equipCard(card) {
+  observer.observe(card);
+  card.tabIndex = 0;
+  card.setAttribute('role', 'button');
+  card.setAttribute('aria-label', (card.dataset.name || 'Mahsulot') + ' — batafsil');
+  card.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    if (e.target !== card) return;
+    e.preventDefault();
+    openDetail(card.dataset.id);
+  });
+}
+
+function mergeCatalog(list) {
+  if (!grid || !Array.isArray(list) || !list.length) return;
+
+  const seen = new Set();
+  const added = [];
+
+  list.forEach((p) => {
+    if (!p || !p.id) return;
+    seen.add(p.id);
+    if (stockView(p).soldOut) soldOutIds.add(p.id); else soldOutIds.delete(p.id);
+
+    const el = productEl(p.id);
+    if (!el) { added.push(apiCardHtml(p)); return; }
+
+    // ---- Allaqachon HTML'da bor: narxni bazadagiga tenglashtiramiz ----
+    // Ko'rsatilgan narx bazadagidan ajralib ketmasin. Buyurtma summasini
+    // baribir server hisoblaydi (`submitOrder` izohi), ya'ni eskirgan narx
+    // xaridorga BOSHQA raqam va'da qilib, checkout'da uchinchisini
+    // ko'rsatardi.
+    const price = Number(p.price) || 0;
+    if (price && Number(el.dataset.price) !== price) {
+      el.dataset.price = String(price);
+      const box = el.querySelector('.price-value');
+      if (box) box.textContent = money(price);
+    }
+  });
+
+  // ---- Bazada yo'q kartochkalarni olib tashlaymiz ----
+  // Aynan `ik-9001` toifasi: kartochka savat tugmasi bilan turadi, lekin
+  // buyurtma serverda rad etiladi. Bu qadam nuqsonni O'ZI TUZATADIGAN
+  // qiladi — kelajakda e'lon bazadan olinsa saytda qolib ketmaydi.
+  grid.querySelectorAll('.product-card[data-id]').forEach((el) => {
+    if (!seen.has(el.dataset.id)) el.remove();
+  });
+
+  if (added.length) {
+    const box = document.createElement('div');
+    box.innerHTML = added.join('');
+    [...box.children].forEach((card) => { grid.appendChild(card); equipCard(card); });
+  }
+
+  renderAllCardActions();
+  renderAllFavBtns();
+  applyFilter();
+}
+
+/* Katalog so'rovi tugagach (muvaffaqiyat ham, xato ham) bir marta chaqiriladi.
+
+   Savat va saralanganlar `localStorage` da yotadi va ilgari sahifa
+   yuklanayotganda DOM'ga qarab tozalanardi. Endi bu MUMKIN EMAS: o'sha
+   ondagi DOM'da faqat HTML'dagi kartochkalar bor, sotuvchi e'lonlari esa
+   hali kelmagan — ya'ni tozalash xaridorning savatidagi haqiqiy mahsulotni
+   "yo'q ekan" deb tashlab yuborardi. Shuning uchun tozalash katalog
+   joyiga tushgandan KEYINGA suriladi. */
+function settleCatalog() {
+  let changed = false;
+  Object.keys(cart).forEach((id) => {
+    if (!productEl(id)) { delete cart[id]; changed = true; }
+  });
+  const keepFavs = favs.filter((id) => productEl(id));
+  if (keepFavs.length !== favs.length) { favs = keepFavs; saveFavs(); }
+  if (changed) saveCart();
+
+  updateBadge();
+  updateFavBadge();
+  if (isOpen()) renderDrawer();
 }
 
 function loadReviews(id) {
@@ -763,8 +1077,12 @@ function detailHtml(id) {
         <div class="pd-spec"><span>${esc(k)}</span><b>${esc(String(v))}</b></div>`).join('')}
       </div>` : ''}
 
+      ${m ? `<div class="pd-stock ${esc(stockView(m).key)}">${esc(stockView(m).txt)}</div>` : ''}
+
       <div class="pd-act" id="pd-act">
-        ${qty
+        ${soldOutIds.has(id)
+          ? `<button class="pd-add is-out" type="button" disabled>${esc(STOCK_TXT.out)}</button>`
+          : qty
           ? `<div class="qty-row">
                <button class="qty-circle qty-minus" data-action="qtyStepDetail" data-arg="${esc(id)}|-1" aria-label="Kamaytirish">
                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 12h14"/></svg>
@@ -917,6 +1235,95 @@ function submitReview() {
     });
 }
 
+/* ====================================================
+   BAHS OCHISH (xaridor tomoni, 2026-08-12)
+
+   Sayt kafolat va'da qilardi, lekin muammoni bildiradigan MEXANIZM yo'q edi —
+   xaridor faqat Mini App orqali bahs ocha olardi. Endpoint ham faqat
+   Telegram initData'ni qabul qilardi; u `requestUser()` bilan ikkala kanalga
+   ochildi (`server/lib/auth.js`).
+
+   Dalil rasmi shu yerda YIG'ILMAYDI: bahs ochilgach bot xaridordan rasm
+   so'raydi va Telegram faqat `file_id` ni beradi — fayl bizning serverga
+   tushmaydi. Sayt xaridorida Telegram hisobi bor (kirish o'sha orqali
+   bo'lgan), ya'ni bot xabari unga yetib boradi.
+   ==================================================== */
+
+let disputeTarget = null;      // { orderId }
+let disputeReason = 'damaged';
+let disputeComment = '';
+let disputeSending = false;
+
+function openDispute(orderId) {
+  const o = (myOrders || []).find((x) => x.id === orderId);
+  if (!o) return;
+  disputeTarget = { orderId };
+  disputeReason = 'damaged';
+  disputeComment = '';
+  disputeSending = false;
+  drawerView = 'dispute';
+  renderDrawer();
+}
+
+function setDisputeReason(k) {
+  if (DISPUTE_REASONS[k]) disputeReason = k;
+  renderDrawer();
+}
+
+function onDisputeComment(v) { disputeComment = v; }
+
+function disputeFormHtml() {
+  const t = disputeTarget;
+  if (!t) return '';
+  return `
+    <div class="rv">
+      <div class="rv-target">Buyurtma ${esc(t.orderId)}</div>
+      <div class="rv-sub">Muammoni tanlang. Yuborgach botda sizdan rasm so'raladi — dalil moderator qarorini tezlashtiradi.</div>
+
+      <div class="dsp-reasons">
+        ${Object.keys(DISPUTE_REASONS).map((k) => `
+        <button class="dsp-reason ${k === disputeReason ? 'on' : ''}" data-action="setDisputeReason" data-arg="${esc(k)}">
+          ${esc(DISPUTE_REASONS[k])}
+        </button>`).join('')}
+      </div>
+
+      <textarea class="rv-text" rows="4" placeholder="Qisqacha tafsilot (ixtiyoriy)"
+        data-input="onDisputeComment">${esc(disputeComment)}</textarea>
+
+      <div class="rv-btns">
+        <button class="auth-ghost" data-action="backToProfile">Bekor</button>
+        <button class="pd-add" data-action="submitDispute" ${disputeSending ? 'disabled' : ''}>${disputeSending ? 'Yuborilmoqda…' : 'Murojaat yuborish'}</button>
+      </div>
+    </div>`;
+}
+
+function submitDispute() {
+  if (!disputeTarget || disputeSending) return;
+  disputeSending = true;
+  renderDrawer();
+  const t = disputeTarget;
+  apiJson('/api/disputes', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      orderId: t.orderId,
+      reasonKey: disputeReason,
+      comment: disputeComment.trim() || undefined,
+    }),
+  })
+    .then((d) => {
+      if (!d || d.ok !== true) throw new Error((d && d.error) || "Murojaat yuborilmadi");
+      showToast("Murojaat qabul qilindi — botda rasm so'raladi");
+      loadMyDisputes();
+      backToProfile();
+    })
+    .catch((e) => {
+      disputeSending = false;
+      renderDrawer();
+      showToast(e.message || 'Murojaat yuborilmadi');
+    });
+}
+
 /* ── Toast ── */
 let toastTimer = null;
 function showToast(msg) {
@@ -949,11 +1356,10 @@ let lastOrderId = '';
 function loadCart() {
   try {
     const raw = JSON.parse(localStorage.getItem(CART_KEY) || '{}');
-    // faqat sahifada mavjud mahsulotlarni qoldiramiz
     const clean = {};
     Object.keys(raw).forEach((id) => {
       const qty = parseInt(raw[id], 10);
-      if (productEl(id) && qty > 0) clean[id] = Math.min(qty, 999);
+      if (qty > 0) clean[id] = Math.min(qty, 999);
     });
     return clean;
   } catch (e) {
@@ -967,11 +1373,15 @@ function saveCart() {
   } catch (e) { /* private mode — jim o'tamiz */ }
 }
 
+/* DIQQAT: bu yerda ilgari `filter((id) => productEl(id))` turardi — DOM'da
+   yo'q mahsulot darhol tashlab yuborilardi. Endi katalogning bir qismi
+   `/api/products` dan KEYINROQ keladi, ya'ni o'sha tekshiruv xaridorning
+   haqiqiy tanlovini o'chirib yuborardi. Tozalash `settleCatalog()` ga
+   ko'chirildi — u so'rov tugagandan keyin ishlaydi. */
 function loadFavs() {
   try {
     const raw = JSON.parse(localStorage.getItem(FAV_KEY) || '[]');
-    // sahifada endi mavjud bo'lmagan mahsulotlarni tashlab yuboramiz
-    return Array.isArray(raw) ? raw.filter((id) => productEl(id)) : [];
+    return Array.isArray(raw) ? raw.filter((id) => typeof id === 'string') : [];
   } catch (e) {
     return [];
   }
@@ -1009,10 +1419,99 @@ function money(n) {
   return n.toLocaleString('ru-RU').replace(/ /g, ' ') + " so'm";
 }
 
-// Logistika (BTS Pochta) taxminiy narxi — server bilan bir xil qiymat
-// (server/config.js DELIVERY_FEE_ESTIMATE). Mahsulot summasiga kirmaydi:
-// xaridor buni BTS nuqtasida to'g'ridan-to'g'ri BTS'ga to'laydi.
-const DELIVERY_FEE_ESTIMATE = 25000;
+/* ── To'lov sozlamalari ──
+   Haqiqiy manba — SERVER (`/api/auth/web/me` javobi, `server/config.js`).
+   Bu yerdagi qiymatlar javob kelmaguncha ishlatiladigan zaxira, ya'ni ular
+   "taxmin", "haqiqat" emas. Sabab: `PREPAY_RATE` `.env` orqali o'zgarishi
+   mumkin va o'zgargan kuni saytdagi qo'lda yozilgan raqam jimgina yolg'onga
+   aylanardi — xaridor bir summani ko'rib, server boshqasini hisoblardi.
+
+   ⚠️ Bularning hech biri hisob-kitob uchun ishonchli emas: buyurtma summasi
+   HAR DOIM server tomonda qayta hisoblanadi (`routes/orders.js`). Bu faqat
+   xaridorga NIMA KO'RSATILISHI. */
+let DELIVERY_FEE_ESTIMATE = 25000;
+let PREPAY_RATE = 0.5;
+
+function prepayAmount(total) { return Math.round(total * PREPAY_RATE); }
+function restAmount(total) { return total - prepayAmount(total); }
+
+/* ── BTS olish nuqtalari ──
+   Mini App'dagi `BTS_POINTS` bilan AYNAN bir xil ro'yxat
+   (`telegram-app/app.js`). Vaqtinchalik: BTS integratsiyasi ulangach
+   ikkalasi ham serverdan (`/api/bts-points`) o'qiydi.
+
+   ⚠️ Ro'yxat ikki joyda turgani BILIB QILINGAN vaqtinchalik qaror, chunki
+   uchinchi nusxa (server) hali yo'q. Nomlar o'zgarsa IKKALASI birga
+   yangilansin — aks holda sayt va Mini App boshqa-boshqa nuqta nomini
+   buyurtmaga yozib yuborardi. */
+const BTS_REGIONS = [
+  { key: 'tas', name: 'Toshkent' },
+  { key: 'far', name: "Farg'ona" },
+  { key: 'sam', name: 'Samarqand' },
+  { key: 'bux', name: 'Buxoro' },
+  { key: 'and', name: 'Andijon' },
+];
+const BTS_POINTS = [
+  { id: 'bts-112', region: 'tas', name: "BTS №112 — Chilonzor",         addr: "Bunyodkor ko'ch. 45",        hours: '9:00–19:00' },
+  { id: 'bts-097', region: 'tas', name: "BTS №097 — Yunusobod",         addr: "Amir Temur ko'ch. 12",       hours: '9:00–18:00' },
+  { id: 'bts-054', region: 'tas', name: "BTS №054 — Sergeli",           addr: "Yangi Sergeli 8",            hours: '9:00–19:00' },
+  { id: 'bts-021', region: 'tas', name: "BTS №021 — Mirzo Ulug'bek",    addr: "Mustaqillik ko'ch. 78",      hours: '9:00–18:00' },
+  { id: 'bts-140', region: 'far', name: "BTS №140 — Farg'ona markaz",   addr: "Mustaqillik ko'ch. 24",      hours: '9:00–18:00' },
+  { id: 'bts-146', region: 'far', name: "BTS №146 — Marg'ilon",         addr: "Toshkent ko'ch. 5",          hours: '9:00–18:00' },
+  { id: 'bts-203', region: 'sam', name: "BTS №203 — Samarqand markaz",  addr: "Registon ko'ch. 3",          hours: '9:00–19:00' },
+  { id: 'bts-311', region: 'bux', name: "BTS №311 — Buxoro markaz",     addr: "Bahouddin Naqshband 17",     hours: '9:00–18:00' },
+  { id: 'bts-408', region: 'and', name: "BTS №408 — Andijon markaz",    addr: "Navoiy shoh ko'chasi 41",    hours: '9:00–18:00' },
+];
+function btsById(id) { return BTS_POINTS.find((p) => p.id === id) || null; }
+
+/* Tanlangan nuqta saqlanadi — B2B xaridor deyarli doim bitta nuqtadan oladi.
+   Kalit Mini App'dagi bilan AYNAN bir xil va bu ATAYLAB: sayt ham, Mini App
+   ham `lolamarket.uz` domenida, ya'ni `localStorage` ular orasida umumiy.
+   Mini App'da nuqta tanlagan xaridor saytda uni to'ldirilgan holda topadi. */
+const BTS_KEY = 'lolamarket_bts_point';
+let btsPoint = (() => {
+  try { return localStorage.getItem(BTS_KEY) || null; } catch (e) { return null; }
+})();
+
+/* ⚠️ Bu yerda `renderDrawer()` CHAQIRILMAYDI. Checkout — to'ldirilayotgan
+   forma: uni qaytadan chizish xaridor allaqachon yozgan ism, telefon va
+   izohni O'CHIRIB yuboradi (2026-08-12 da sinovda aynan shunday bo'ldi —
+   uch maydon ham bo'shab qoldi). Tanlov `<select>` da o'zi ko'rinib turadi,
+   shuning uchun faqat yonidagi izoh qatori almashtiriladi. */
+function setBtsPoint(id) {
+  btsPoint = btsById(id) ? id : null;
+  try { if (btsPoint) localStorage.setItem(BTS_KEY, btsPoint); } catch (e) { /* private mode */ }
+  paintBtsInfo();
+}
+
+/* Xulosadagi raqamlarni JOYIDA yangilaydi — butun formani qayta chizmasdan.
+   Sozlama serverdan kechroq kelsa (checkout allaqachon ochiq bo'lsa) shu
+   chaqiriladi. Checkout ochiq bo'lmasa hech narsa qilmaydi. */
+function paintCheckoutTotals() {
+  const pct = document.getElementById('co-prepay-pct');
+  if (!pct) return;
+  const total = cartTotal();
+  pct.textContent = Math.round(PREPAY_RATE * 100) + '%';
+  document.getElementById('co-prepay-val').textContent = money(prepayAmount(total));
+  document.getElementById('co-rest-val').textContent = money(restAmount(total));
+  document.getElementById('co-delivery').textContent = money(DELIVERY_FEE_ESTIMATE);
+}
+
+function paintBtsInfo() {
+  const sel = document.getElementById('co-bts');
+  const old = sel?.parentElement?.querySelector('.co-bts-info, .co-hint');
+  if (!old) return;
+  const p = btsById(btsPoint);
+  const box = document.createElement('div');
+  if (p) {
+    box.className = 'co-bts-info';
+    box.textContent = `${p.addr} · Ish vaqti ${p.hours}`;
+  } else {
+    box.className = 'co-hint';
+    box.textContent = 'BTS Pochta orqali yetkaziladi — sizga eng qulay nuqtani tanlang.';
+  }
+  old.replaceWith(box);
+}
 
 function cartCount() {
   return Object.values(cart).reduce((s, q) => s + q, 0);
@@ -1028,6 +1527,11 @@ function cartTotal() {
 /* ── Savatga qo'shish ── */
 function addToCart(id) {
   if (!product(id)) return;
+  // Zaxirasi tugagan mahsulot savatga TUSHMAYDI. Tugmani yashirish yagona
+  // qorovul emas: server ham `stock >= qty` shartida atomik tekshiradi
+  // (`routes/orders.js` → `decrementStock`). Bu yerdagi tekshiruv xaridor
+  // butun checkout'ni to'ldirib bo'lib "tugagan" xatosini ko'rmasligi uchun.
+  if (soldOutIds.has(id)) { showToast("Bu mato hozircha tugagan"); return; }
   cart[id] = (cart[id] || 0) + 1;
   saveCart();
   updateBadge();
@@ -1040,6 +1544,14 @@ function renderCardAction(id) {
   const box = document.getElementById('act-' + id);
   if (!box) return;
   const qty = cart[id] || 0;
+
+  // Zaxira tugagan — "Savatga" o'rniga o'chirilgan holat. Miqdor tanlagichi
+  // ham chizilmaydi: savatda turgan mahsulot tugab qolsa "+" bosish
+  // xaridorni serverdagi xatoga olib borardi.
+  if (soldOutIds.has(id)) {
+    box.innerHTML = `<button class="add-btn is-out" type="button" disabled>${esc(STOCK_TXT.out)}</button>`;
+    return;
+  }
 
   if (!qty) {
     box.innerHTML = `
@@ -1261,6 +1773,13 @@ function renderDrawer() {
     return;
   }
 
+  if (drawerView === 'dispute') {
+    title.textContent = 'Muammo bo\'yicha murojaat';
+    body.innerHTML = disputeFormHtml();
+    foot.hidden = true;
+    return;
+  }
+
   if (drawerView === 'fav') {
     title.textContent = 'Saralanganlar';
     foot.hidden = true;
@@ -1293,13 +1812,19 @@ function renderDrawer() {
   foot.hidden = false;
 }
 
+/* ⚠️ `p.img` ham `esc()` dan o'tadi (2026-08-12). Ilgari u xom qo'yilardi va
+   xavfsiz edi — rasm manzili `index.html` da qo'lda yozilgan bo'lardi. Endi
+   katalog BAZADAN keladi, ya'ni qiymat tashqi manba bo'lib qoldi. Qochirilmasa
+   tirnoq atributdan chiqib ketadi: `src="x" onerror="..."` — sinovda aynan
+   shunday bo'lgani ko'rildi. Bu oddiy atribut, shuning uchun `esc()` yetarli
+   (CSS `url()` ichida bo'lganda `cssUrl()` kerak bo'lardi — CLAUDE.md). */
 function lineHtml(id) {
   const p = product(id);
   if (!p) return '';
   const qty = cart[id];
   return `
     <div class="cart-line">
-      <img class="cart-line-img" src="${p.img}" alt="" loading="lazy" />
+      <img class="cart-line-img" src="${esc(p.img)}" alt="" loading="lazy" />
       <div class="cart-line-main">
         <div class="cart-line-top">
           <div class="cart-line-name">${esc(p.name)}</div>
@@ -1330,7 +1855,7 @@ function favLineHtml(id) {
   const inCart = cart[id] || 0;
   return `
     <div class="fav-line">
-      <img class="fav-line-img" src="${p.img}" alt="" loading="lazy" />
+      <img class="fav-line-img" src="${esc(p.img)}" alt="" loading="lazy" />
       <div class="fav-line-main">
         <div class="cart-line-top">
           <div class="cart-line-name">${esc(p.name)}</div>
@@ -1382,13 +1907,25 @@ function checkoutHtml() {
     <div class="co-sum" style="margin-top:12px">
       ${lines}
       <div class="co-sum-row" style="margin-top:9px;padding-top:9px;border-top:1px solid var(--border-hair);color:var(--text-muted);font-size:13px">
-        <span>Yetkazish (taxminiy)</span><span>${money(DELIVERY_FEE_ESTIMATE)}</span>
+        <span>Yetkazish (taxminiy)</span><span id="co-delivery">${money(DELIVERY_FEE_ESTIMATE)}</span>
       </div>
       <div class="co-sum-row" style="font-weight:700;color:var(--text-strong)">
         <span>Jami</span><span>${money(cartTotal())}</span>
       </div>
+
+      <!-- Oldindan to'lov — Mini App bilan bir xil bo'linish (2026-08-12).
+           Ilgari saytda faqat "Jami" turardi va xaridor butun summani hozir
+           to'laydi deb o'ylardi; Mini App esa AYNI buyurtma uchun 50% ni
+           ko'rsatardi. Ikki kanal bir narsaga ikki xil narx aytmasin. -->
+      <div class="co-sum-row co-prepay" style="margin-top:9px;padding-top:9px;border-top:1px solid var(--border-hair)">
+        <span>Hozir to'lanadi <b class="co-prepay-tag" id="co-prepay-pct">${esc(String(Math.round(PREPAY_RATE * 100)))}%</b></span>
+        <span class="co-prepay-val" id="co-prepay-val">${money(prepayAmount(cartTotal()))}</span>
+      </div>
+      <div class="co-sum-row" style="color:var(--text-muted);font-size:13px">
+        <span>Mato tayyor bo'lgach</span><span id="co-rest-val">${money(restAmount(cartTotal()))}</span>
+      </div>
     </div>
-    <div style="font-size:11px;color:var(--text-subtle);line-height:1.4;margin-top:-4px">BTS nuqtasida to'g'ridan-to'g'ri to'lanadi, yuqoridagi jamiga kirmaydi.</div>
+    <div style="font-size:11px;color:var(--text-subtle);line-height:1.4;margin-top:-4px">Yetkazish BTS nuqtasida to'g'ridan-to'g'ri to'lanadi, yuqoridagi jamiga kirmaydi.</div>
 
     ${me ? '' : `
       <div class="co-login">
@@ -1413,10 +1950,28 @@ function checkoutHtml() {
         <label class="co-label" for="co-company">Kompaniya</label>
         <input class="co-input" id="co-company" type="text" autocomplete="organization" placeholder="Ixtiyoriy" />
       </div>
+      <!-- Manzil ERKIN MATN emas, ro'yxatdan tanlanadi (2026-08-12).
+           Ilgari bu oddiy matn maydoni edi va xaridor "Chilonzor" yoki
+           "BTS 112" kabi har xil yozardi — logistika esa aynan qaysi nuqta
+           ekanini topa olmasdi. Mini App boshidan ro'yxatdan tanlatadi,
+           sayt esa ortda qolgandi. -->
       <div class="co-field">
-        <label class="co-label" for="co-address">Yetkazish manzili *</label>
-        <input class="co-input" id="co-address" type="text" autocomplete="street-address" placeholder="Viloyat, tuman, BTS Pochta nuqtasi" required />
-        <div class="co-hint">BTS Pochta orqali yetkaziladi — eng yaqin nuqtani yozing.</div>
+        <label class="co-label" for="co-bts">BTS olish nuqtasi *</label>
+        <select class="co-input co-select" id="co-bts" data-change="setBtsPoint" required>
+          <option value=""${btsPoint ? '' : ' selected'}>— Nuqtani tanlang —</option>
+          ${BTS_REGIONS.map((r) => {
+            const inRegion = BTS_POINTS.filter((p) => p.region === r.key);
+            if (!inRegion.length) return '';
+            return `<optgroup label="${esc(r.name)}">${inRegion.map((p) => `
+              <option value="${esc(p.id)}"${btsPoint === p.id ? ' selected' : ''}>${esc(p.name)}</option>`).join('')}</optgroup>`;
+          }).join('')}
+        </select>
+        ${(() => {
+          const p = btsById(btsPoint);
+          return p
+            ? `<div class="co-bts-info">${esc(p.addr)} · Ish vaqti ${esc(p.hours)}</div>`
+            : `<div class="co-hint">BTS Pochta orqali yetkaziladi — sizga eng qulay nuqtani tanlang.</div>`;
+        })()}
       </div>
       <div class="co-field">
         <label class="co-label" for="co-comment">Izoh</label>
@@ -1447,15 +2002,22 @@ function submitOrder(e) {
   const name = val('co-name');
   const phone = val('co-phone');
   const company = val('co-company');
-  const address = val('co-address');
   const comment = val('co-comment');
   const err = document.getElementById('co-err');
   const btn = document.getElementById('co-submit');
 
+  // Manzil endi ro'yxatdan keladi. Tanlangan nuqta `<select>` ning O'ZIDAN
+  // o'qiladi, `btsPoint` o'zgaruvchisidan emas: `change` hodisasi otilmay
+  // qolgan (yoki brauzer avtomatik to'ldirgan) holatda ikkalasi ajralib
+  // ketishi mumkin, forma esa ekranda ko'rinib turgan qiymatni yuborishi
+  // shart — xaridor nimani ko'rgan bo'lsa, o'sha ketsin.
+  const point = btsById(document.getElementById('co-bts')?.value || btsPoint);
+  const address = point ? `${point.name}, ${point.addr}` : '';
+
   const digits = phone.replace(/\D/g, '');
   if (!name) return showErr(err, 'Ismingizni kiriting.');
   if (digits.length < 9) return showErr(err, "Telefon raqamini to'liq kiriting.");
-  if (!address) return showErr(err, 'Yetkazish manzilini kiriting.');
+  if (!point) return showErr(err, 'BTS olish nuqtasini tanlang.');
   if (!cartCount()) return showErr(err, "Savat bo'sh.");
   if (err) err.hidden = true;
 
@@ -1472,7 +2034,11 @@ function submitOrder(e) {
     method: 'POST',
     credentials: 'same-origin',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ items, buyerName: name, phone, company, address, comment }),
+    // `pickupPointId` — Mini App yuboradigan AYNI maydon (`telegram-app/app.js`).
+    // Server uni hozircha o'qimaydi (`address` matnidan foydalanadi), lekin
+    // ikki kanal bir xil shaklda yuborsa BTS integratsiyasi ulanganda faqat
+    // server tomoni o'zgaradi.
+    body: JSON.stringify({ items, buyerName: name, phone, company, address, comment, pickupPointId: point.id }),
   })
     .then((r) => r.json().catch(() => null))
     .then((d) => {
@@ -1539,6 +2105,13 @@ function esc(s) {
     { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
   ));
 }
+
+/* ── Katalogni bazadan yuklash ──
+   Ilgari bu so'rov faqat mahsulot detali ochilganda ketardi (u paytda undan
+   olinadigan narsa tafsilotlar edi). Endi katalogning O'ZI shunga bog'liq:
+   sotuvchi e'lonlari, narxlar va zaxira shu javobdan keladi, shuning uchun
+   so'rov sahifa ochilishi bilan boshlanadi. */
+loadCatalogMeta();
 
 /* ── Boshlang'ich holat ──
    Saqlangan savat/saralanganlar bilan qaytgan mehmon darhol o'z holatini ko'radi */

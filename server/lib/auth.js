@@ -21,6 +21,31 @@ function authUser(req) {
   return verifyInitData(req.headers['x-telegram-init-data']);
 }
 
+// ---- Ikki kanal uchun BITTA kimlik (2026-08-12) ----
+// Xaridor bir xil ishni ikki joydan qiladi: Mini App'da imzolangan initData
+// bilan, saytda esa HttpOnly cookie sessiyasi bilan. Endpointlar shulardan
+// faqat BIRINCHISINI bilardi, ya'ni bahs ochish kabi amallar saytda umuman
+// ishlamasdi — sayt xaridori 401 olardi.
+//
+// ⚠️ Ikkala yo'l ham kimlikni SERVER tomonda hal qiladi va bu shart:
+//   * initData — Telegram imzolagan, soxtalashtirib bo'lmaydi;
+//   * cookie — HttpOnly, bazada `sha256` shaklida, JS o'qiy olmaydi.
+// Klient yuborgan `tg_user_id` ga hech qachon ishonilmaydi (CLAUDE.md).
+//
+// Qaytadi: `{ id }` — Telegram ID satr ko'rinishida, `authUser` bilan AYNI
+// maydonda, shunda chaqiruvchi kodda shart tarmoqlanmaydi. Topilmasa `null`.
+async function requestUser(req) {
+  const tg = authUser(req);
+  if (tg && tg.id) return { id: String(tg.id), source: 'miniapp' };
+
+  // Marshrut emas, kutubxona — qatlam buzilmaydi (`lib/web-session.js`).
+  const { webSessionUser } = require('./web-session');
+  const web = await webSessionUser(req);
+  if (web && web.tgUserId) return { id: String(web.tgUserId), source: 'web' };
+
+  return null;
+}
+
 // Foydalanuvchi admin (moderator)mi? Kimlik imzolangan initData'dan olinadi,
 // so'ng ADMIN_TG_IDS ro'yxati bilan SERVER tomonda solishtiriladi.
 // MUHIM (Dars 11): bu tekshiruv hech qachon faqat frontendda (masalan tugmani
@@ -68,5 +93,5 @@ async function requireSeller(req, res) {
 }
 
 module.exports = {
-  verifyInitData, authUser, isAdmin, adminPanelAuth, currentSeller, requireSeller,
+  verifyInitData, authUser, requestUser, isAdmin, adminPanelAuth, currentSeller, requireSeller,
 };

@@ -24,6 +24,20 @@
   ishonadigan endpoint qo'shilmasin. Sayt sessiyasi HttpOnly cookie'da yuradi
   va bazada faqat `sha256` shaklida saqlanadi (panel tokenidan farqi shu —
   u `sessionStorage`da yashaydi va XSS'da o'g'irlanishi mumkin).
+  ⚠️ **Kimlik IKKI KANALDA ham bitta nuqtadan olinadi** (2026-08-12):
+  `lib/auth.js` → `requestUser()`. U avval imzolangan `initData` ni, keyin
+  cookie sessiyasini ko'radi va ikkalasini BITTA shaklga (`{ id }` — Telegram
+  ID satr ko'rinishida) keltiradi. Endpoint `authUser()` ni TO'G'RIDAN-TO'G'RI
+  chaqirsa u faqat Mini App'ni biladi va **sayt xaridori jimgina 401 oladi** —
+  aynan shu bo'lgan: bahs ochish (`/api/disputes`) saytda UMUMAN ishlamasdi,
+  ya'ni kafolat va'da qilingan, mexanizmi esa bir kanalda edi. Nuqson
+  ko'rinmasdi, chunki Mini App'da hammasi joyida ishlardi.
+  Faqat Mini App uchun mo'ljallangan endpoint (`initData` majburiy bo'lgan
+  joy) `authUser()` da qolishi mumkin — lekin bu ATAYLAB tanlov bo'lsin.
+  Sessiya o'qish `lib/web-session.js` da turadi, `routes/` da EMAS: marshrutda
+  qolsa `lib/auth.js` uni ishlata olmasdi (qatlam `routes/ → lib/` bir tomonga
+  qaraydi). Qorovul: `server/test.js` → Test 3e — soxta imzo cookie yo'lini
+  ochib yubormasligini ham tekshiradi (3 mutatsiya bilan sinaldi).
 - **Zaxira (`products.stock`) har doim ATOMIK kamaytiriladi** (2026-07-30).
   Tekshiruv va kamaytirish bitta `UPDATE ... WHERE stock >= qty` da bo'ladi
   (`routes/orders.js` → `decrementStock`), hech qachon alohida `SELECT` +

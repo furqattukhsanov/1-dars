@@ -171,6 +171,68 @@ function request(port, method, path, payload, extraHeaders) {
   });
 }
 
+// ============ TEST 3e: ikki kanal uchun bitta kimlik ============
+// `requestUser()` Mini App (imzolangan initData) va sayt (cookie sessiya)
+// kimligini BITTA shaklga keltiradi. Test shuni qo'riqlaydi:
+//   * imzolangan initData qabul qilinadi;
+//   * initData YO'Q bo'lsa cookie sessiyasiga tushadi;
+//   * ikkalasi ham bo'lmasa `null` — ya'ni "kirmagan" jimgina "kirgan"ga
+//     aylanib qolmaydi;
+//   * SOXTA initData cookie yo'lini ochib yubormaydi.
+// Sabab: bu funksiya bahs ochish kabi amallarni himoya qiladi va u yerda
+// xato "begona buyurtmaga bahs ochish" degani bo'lardi.
+async function testRequestUserBothChannels() {
+  const { requestUser } = require('./lib/auth');
+  const webSession = require('./lib/web-session');
+  const realWebSessionUser = webSession.webSessionUser;
+
+  // Sayt sessiyasi — cookie bo'lsa foydalanuvchi qaytadi, bo'lmasa null.
+  // Haqiqiy funksiya bazaga boradi (test bazasi o'lik port), shuning uchun
+  // shu chegara o'rnida turadi: tekshirilayotgan narsa TANLASH mantig'i.
+  webSession.webSessionUser = async (req) =>
+    (req.headers.cookie || '').includes('lm_session=') ? { id: 4, tgUserId: '777' } : null;
+
+  try {
+    const now = Math.floor(Date.now() / 1000);
+    const userJson = JSON.stringify({ id: 555 });
+    const pairs = [`auth_date=${now}`, `user=${userJson}`].sort();
+    const secretKey = crypto.createHmac('sha256', 'WebAppData').update(BOT_TOKEN).digest();
+    const hash = crypto.createHmac('sha256', secretKey).update(pairs.join('\n')).digest('hex');
+    const initData = `auth_date=${now}&hash=${hash}&user=${encodeURIComponent(userJson)}`;
+
+    const miniapp = await requestUser({ headers: { 'x-telegram-init-data': initData } });
+    assert.strictEqual(miniapp && miniapp.id, '555', 'Mini App kimligi tanilishi kerak');
+    assert.strictEqual(miniapp.source, 'miniapp');
+
+    const web = await requestUser({ headers: { cookie: 'lm_session=abc' } });
+    assert.strictEqual(web && web.id, '777', 'sayt sessiyasi tanilishi kerak');
+    assert.strictEqual(web.source, 'web');
+
+    const anon = await requestUser({ headers: {} });
+    assert.strictEqual(anon, null, 'kimliksiz so\'rov null qaytarishi kerak');
+
+    // Soxta imzo cookie yo'lini OCHIB YUBORMASIN: initData yaroqsiz, cookie
+    // ham yo'q — javob `null` bo'lishi shart.
+    const fake = await requestUser({
+      headers: { 'x-telegram-init-data': `user=${encodeURIComponent('{"id":1}')}&hash=${'0'.repeat(64)}` },
+    });
+    assert.strictEqual(fake, null, 'soxta initData qabul qilinmasligi kerak');
+
+    // Soxta initData + haqiqiy cookie — cookie bo'yicha kirsin, soxta ID emas
+    const aralash = await requestUser({
+      headers: {
+        'x-telegram-init-data': `user=${encodeURIComponent('{"id":1}')}&hash=${'0'.repeat(64)}`,
+        cookie: 'lm_session=abc',
+      },
+    });
+    assert.strictEqual(aralash && aralash.id, '777', 'soxta ID emas, cookie egasi qaytishi kerak');
+
+    console.log('✅ Test 3e: Ikki kanal uchun bitta kimlik (requestUser) — PASS');
+  } finally {
+    webSession.webSessionUser = realWebSessionUser;
+  }
+}
+
 async function testRouteTable() {
   // Server modulini yuklashdan OLDIN soxta sirlar — aks holda process.exit(1)
   process.env.BOT_TOKEN = BOT_TOKEN;
@@ -1310,10 +1372,10 @@ function testAssetVersionsAreFresh() {
   // AYNI faylni `?v=36` bilan — ya'ni admin panel 15 versiya orqada
   // qotib qolgan keshni cheksiz ushlab turardi.
   const KUTILGAN = {
-    'style.css': { v: 36, hash: 'c4e8e763789f' },
-    'script.js': { v: 27, hash: 'b729d38501fe' },
+    'style.css': { v: 40, hash: 'fb1b05cb2952' },
+    'script.js': { v: 30, hash: '25b10689a2c9' },
     'pwa.js': { v: 2, hash: 'f46683d58662' },
-    'panel.js': { v: 10, hash: '738e350446bc' },
+    'panel.js': { v: 11, hash: '8bc67a9cadcf' },
     'admin/admin.css': { v: 17, hash: 'dbefeb6757ff' },
     'admin/admin.js': { v: 22, hash: '8a8310a94f5e' },
     'telegram-app/styles.css': { v: 21, hash: '6dddba75c0bc' },
@@ -2545,6 +2607,7 @@ async function runTests() {
     // uchun uni talab qiladigan testlar testRouteTable'dan KEYIN, u soxta
     // sirlarni process.env'ga yozgandan keyin ishga tushirilishi kerak.
     testDeliveryFeeConfig();
+    await testRequestUserBothChannels();
     testChatIdValidation();
     await testDecrementStock();
     await testRecalcRating();

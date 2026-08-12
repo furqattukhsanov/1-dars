@@ -2,7 +2,7 @@ const https = require('https');
 const crypto = require('crypto');
 const { ADMIN_CHAT_ID, ADMIN_PANEL_TOKEN, BOT_TOKEN } = require('../config');
 const { pool } = require('../db');
-const { authUser, adminPanelAuth, requireSeller } = require('../lib/auth');
+const { requestUser, adminPanelAuth, requireSeller } = require('../lib/auth');
 const { escapeHtml, safeEqual, dateLabel } = require('../lib/format');
 const { validate } = require('../lib/validate');
 const { rateLimited, readBody, ok, fail } = require('../lib/http');
@@ -26,8 +26,11 @@ const DISPUTE_ALLOWED_ORDER_STATUS = ['shipped', 'delivered', 'completed'];
 
 async function handleCreateDispute(req, res, ip) {
   if (rateLimited(`dispute:${ip}`, 10)) return fail(res, 'too many requests', 429);
-  const u = authUser(req);
-  if (!u || !u.id) return fail(res, 'unauthorized', 401);
+  // Mini App (initData) ham, sayt (cookie sessiya) ham — ikkalasi ham
+  // qabul qilinadi. Ilgari faqat initData bo'lgani uchun sayt xaridori
+  // bahs ocholmasdi: kafolat va'da qilingan, mexanizmi esa yo'q edi.
+  const u = await requestUser(req);
+  if (!u) return fail(res, 'unauthorized', 401);
   try {
     const data = JSON.parse(await readBody(req, 20_000));
     const v = validate(data, {
@@ -99,8 +102,8 @@ async function handleCreateDispute(req, res, ip) {
 // GET /api/disputes — xaridorning o'z bahslari (Mini App'da holatni ko'rsatish uchun)
 async function handleGetDisputes(req, res, ip) {
   if (rateLimited(`disputelist:${ip}`, 60)) return fail(res, 'too many requests', 429);
-  const u = authUser(req);
-  if (!u || !u.id) return fail(res, 'unauthorized', 401);
+  const u = await requestUser(req);   // Mini App yoki sayt — ikkalasi ham
+  if (!u) return fail(res, 'unauthorized', 401);
   try {
     const { rows } = await pool.query(
       `SELECT id, order_id, reason, status, decision, refund_amount,

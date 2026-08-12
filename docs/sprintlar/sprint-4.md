@@ -42,6 +42,14 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
 ### Buyurtma oqimi
 - [x] Rulon soni tanlash (minimum 1)
 - [ ] Eng yaqin BTS nuqtasini ko'rsatish (telefon/manzil asosida)
+  — **YARIM (2026-08-12): nuqta ro'yxatdan TANLANADI, lekin "eng yaqini" hamon
+  o'zi topilmaydi.** Shu kunga qadar saytda umuman ro'yxat yo'q edi — xaridor
+  manzilni erkin matn bilan yozardi va u BTS nuqtasi bo'lishi ham shart emasdi.
+  Endi ikkala kanalda AYNI ro'yxat turadi (5 viloyat, 9 nuqta) va tanlov ikkalasi
+  uchun umumiy (`localStorage` → `lolamarket_bts_point`). Band OCHIQ qoladi, chunki
+  bandda yozilgani "ko'rsatish" emas, **"eng yaqinini telefon/manzil asosida
+  aniqlash"** — u hozir ham yo'q va uni "bajarildi" deb belgilash bandning o'zini
+  yolg'onga aylantirardi
 - [x] Buyurtma xulosasi: mahsulot narxi + logistika narxi alohida — taxminiy summa (`DELIVERY_FEE_ESTIMATE`), jamiga qo'shilmaydi
 - [ ] Buyurtma tasdiqlash → `orders` jadvalida `created` holati
 
@@ -75,6 +83,148 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
 ---
 
 ## Qilingan ishlar
+
+- [2026-08-12] **Sayt Mini App darajasiga tortildi — va ish davomida ma'lum
+  bo'ldiki, sayt bilan Mini App orasidagi farq dizayn emas, IKKI XIL HAQIQAT edi.**
+
+  **Boshlanish nuqtasi bitta kartochka bo'ldi.** `index.html` da `ik-9001`
+  "Kelinlik ikat" savatga qo'shish tugmasi bilan turardi, `/api/products` da esa
+  u YO'Q — bazada nashr etilmagan. Ya'ni xaridor uni savatga solib checkout'ga
+  borsa, server e'lonni topa olmay buyurtmani rad etardi. **Mini App aynan shu
+  nuqsonni 2026-08-02 da tuzatgan** (o'sha kungi ikkita yozuv yuqorida), sayt esa
+  o'sha tuzatishni olmagan edi — chunki tuzatish `app.js` ga yozilgandi va saytga
+  o'tishning hech qanday yo'li yo'q edi. Kartochka olib tashlandi (`ik-9001`
+  bugun ham API'da yo'qligi `curl` bilan tasdiqlandi).
+
+  **Lekin bitta kartochkani o'chirish nuqsonni EMAS, uning bugungi ko'rinishini
+  yopardi.** Ildiz sabab shu: saytdagi katalog HTML ichida QO'LDA yozilgan, baza
+  esa alohida yashaydi — ikkalasi orasida hech qanday bog' yo'q. Shuning uchun
+  sotuvchilar qo'shgan e'lonlar saytda **hech qachon** ko'rinmasdi va HTML
+  eskirganini bilish yo'li ham yo'q edi: u ekranni qulatmasdi, shunchaki jimgina
+  yolg'on katalog ko'rsatib turardi.
+
+  **Yechim — almashtirish emas, BIRLASHTIRISH** (`script.js` → `mergeCatalog`).
+  HTML kartochkalari JOYIDA qoladi (SEO va birinchi chizilish tezligi shundan —
+  ular bo'sh gridni almashtirsa sahifa API javobini kutib turardi), baza kelgach
+  esa uch amal bajariladi: (1) bazada bor-u HTML da yo'q e'lon gridga QO'SHILADI;
+  (2) ikkalasida bor e'lonning narxi bazadagiga TENGLASHTIRILADI; (3) bazada yo'q
+  kartochka OLIB TASHLANADI. Uchinchi qadam muhim: u `ik-9001` toifasidagi
+  nuqsonni **o'zini o'zi tuzatadigan** qiladi — kelajakda e'lon bazadan olinsa,
+  saytda qolib ketmaydi va yana qo'lda tuzatish kerak bo'lmaydi.
+
+  **Natija o'lchandi (taxmin emas, ikki manba solishtirildi):** `/api/products`
+  da **22** e'lon, `index.html` da **11** kartochka, kesishmasi — 11 ta, ya'ni
+  **11 ta sotuvchi e'loni saytda BIRINCHI marta ko'rinadi** va olib tashlanadigan
+  kartochka qolmadi (`ik-9001` allaqachon ketgan).
+
+  **Yo'l-yo'lakay uchta jimgina nuqson topildi va yopildi:**
+
+  **(a) Rasm yo'li — soft-200 tuzog'ining aniq o'zi.** Bazadagi 11 ta eski
+  e'londa `img` NISBIY (`assets/products/textile-01.jpg`) va u Mini App uchun
+  yozilgan — serverda `/mini-app/assets/...` ostida yotadi, sayt ildizida esa
+  bunday fayl YO'Q. Nisbiy yo'l shundoq qo'yilsa nginx `try_files ... /index.html`
+  bilan javob beradi. **O'lchandi:** `lolamarket.uz/assets/products/textile-01.jpg`
+  → `200 text/html` (rasm sindi, holat kodi sog'lom), `/mini-app/...` bilan esa
+  → `200 image/jpeg`. Ya'ni `curl -w %{http_code}` bilan tekshirilsa hammasi
+  joyidek ko'rinardi — CLAUDE.md dagi CI tuzog'ining aynan o'zi, faqat bu safar
+  deploy emas, rasm yo'lida. `apiImgUrl()` nisbiy yo'lni `/mini-app/` ga
+  yo'naltiradi; to'liq manzillar (`cdn.lolamarket.uz`, `/api/product-photo`)
+  tegilmaydi.
+
+  **(b) XSS teshigi — u BUGUN ochildi, o'zi turgan joyda emas.** `lineHtml` va
+  `favLineHtml` da `<img src="${p.img}">` qochirilmagan edi va **kechagacha bu
+  xavfsiz edi**: `p.img` HTML dagi o'z `data-*` idan kelardi. Katalog bazadan
+  kela boshlagan ondan boshlab o'sha qiymat TASHQI manbaga aylandi. `esc()`
+  qo'shildi. Dars aniq: xavfsiz kod xavfsizligini o'zidan emas, **ma'lumot
+  manbaidan** oladi — manba o'zgarganda tegilmagan kod teshikka aylanadi.
+
+  **(c) Savat sahifa yangilanganda o'chib ketardi.** Tozalash (savatdagi ID
+  DOM'da bormi) sahifa yuklanayotganda ishlardi, o'sha ondagi DOM'da esa faqat
+  HTML kartochkalari bor — sotuvchi e'loni hali kelmagan. Ya'ni xaridorning
+  savatidagi HAQIQIY mahsulot "yo'q ekan" deb tashlab yuborilardi. Tozalash
+  `settleCatalog()` ga ko'chirildi va u so'rov tugagach — **muvaffaqiyatda ham,
+  xatoda ham** — bir marta chaqiriladi. Ikkinchi shart: tarmoq uzilsa tozalash
+  umuman bo'lmay qolsa, savat abadiy eskirgan qolardi.
+
+  **B BOSQICHI — saytda yo'q bo'lgan uchta narsa qo'shildi.**
+
+  **BTS nuqtasi ro'yxatdan tanlanadi.** Ilgari saytda erkin matnli manzil maydoni
+  bor edi va unga BTS nuqtasi bo'lmagan har qanday narsa yozilardi. Endi Mini
+  App'dagi AYNI ro'yxat (5 viloyat, 9 nuqta) va **AYNI `localStorage` kaliti**
+  (`lolamarket_bts_point`) — nuqta ikki kanal orasida umumiy, ya'ni saytda
+  tanlagan odam Mini App'da qaytadan tanlamaydi. Serverga ham AYNI shaklda
+  ketadi: `address` = "<nom>, <manzil>" + `pickupPointId`.
+
+  **50% oldindan to'lov saytda KO'RSATILADI va stavka SERVERDAN keladi**
+  (`/api/auth/web/me` javobiga `prepayRate` va `deliveryFee` qo'shildi). Saytda
+  qo'lda yozilgan raqam qoldirilmadi: `PREPAY_RATE` `.env` dan o'zgarishi mumkin
+  va o'zgargan kuni sayt xaridorga bitta raqam ko'rsatib, server boshqasini
+  hisoblardi. ⚠️ Bu KO'RSATISH uchun — haqiqiy summa har doim serverda qayta
+  hisoblanadi (2026-07-25 qarori o'zgarmadi).
+
+  **Buyurtma holati tarixi profilda ko'rinadi** — `order_status_history`
+  jadvalidan (03-avgustda qurilgan tarix birinchi marta XARIDORGA ko'rsatildi).
+  Bu **soxta "1-2-3-4 bosqich" progress EMAS**: tarix yo'q bo'lsa blok umuman
+  chizilmaydi. `actor_kind` va ichki `note` ataylab berilmaydi — xaridorga kim
+  o'zgartirgani kerak emas.
+
+  **Bahs (dispute) ochish saytda ishlaydi — va bu shunchaki tugma qo'shish
+  emasdi.** `handleCreateDispute` faqat imzolangan `initData` ni bilardi, ya'ni
+  sayt xaridori `401` olardi: **kafolat va'da qilingan, mexanizmi esa faqat bitta
+  kanalda bor edi.** Yechim uchun `requestUser()` yaratildi (`server/lib/auth.js`)
+  — u Mini App (Telegram imzolagan `initData`) va sayt (HttpOnly cookie sessiyasi)
+  kimligini BITTA shaklga keltiradi, shunda chaqiruvchi kodda shart tarmoqlanmaydi.
+  Ikkala yo'l ham kimlikni SERVER tomonda hal qiladi — klient yuborgan
+  `tg_user_id` ga hech qachon ishonilmaydi (CLAUDE.md o'zgarmadi, kengaydi).
+  Buning uchun sessiya o'qish kodi `routes/web-auth.js` dan yangi
+  `server/lib/web-session.js` ga ko'chirildi: u marshrutda qolganda `lib/auth.js`
+  uni ishlata olmasdi (kutubxona marshrutga bog'lanib qolardi). `web-auth.js`
+  qayta eksport qiladi, ya'ni tashqi chaqiruvchilar tegilmadi.
+
+  **`logout()` endi sharh va bahslarni ham tozalaydi** — aks holda chiqib ketgan
+  odamning bahsi keyingi kirgan odamning ekranida qolardi.
+
+  **IKKI NUQSON ISHLAB CHIQISH PAYTIDA TUTILDI — ikkalasi ham testdan o'tib
+  ketgan bo'lardi:**
+
+  **(1) Tarix SQL'i production'da 500 berardi.** Birinchi variantda
+  `GROUP BY h.history` bor edi — PostgreSQL `json` turi uchun tenglik operatorini
+  bilmaydi (*"could not identify an equality operator for type json"*), ya'ni
+  so'rov umuman ishga tushmasdi. **`server/test.js` buni KO'RMASDI**, chunki
+  lokalda `DATABASE_URL` o'lik portga qaraydi va SQL matni hech qachon haqiqiy
+  Postgres'ga bormaydi — bu 08-avgustdagi `takeCredits` (`unknown - unknown`)
+  darsining AYNAN takrori: **taqlid qilingan baza SQL ni tekshirmaydi.** Bu safar
+  farq shunda: nuqson production'ga chiqmadi, chunki so'rov pglite (WASM Postgres)
+  da bajarib ko'rildi. Qayta yozildi — ikkita LATERAL, `GROUP BY` umuman yo'q
+  (yonidagi ikkinchi sabab: bitta `GROUP BY` da ikkita `json_agg` bo'lsa tarkib
+  qatorlari tarix qatorlariga ko'payib ketardi — dekart ko'paytmasi).
+
+  **(2) BTS nuqtasini tanlash yozilgan ism va telefonni o'chirib yuborardi** —
+  tanlov butun checkout formasini qayta chizardi. Endi faqat izoh qatori
+  almashtiriladi.
+
+  **QOROVULLAR.** Yangi **Test 3e** (`server/test.js`) `requestUser()` ni
+  qulflaydi: imzolangan `initData` qabul qilinadi; `initData` yo'q bo'lsa cookie
+  yo'liga tushadi; ikkalasi ham yo'q bo'lsa `null` — "kirmagan" jimgina
+  "kirgan"ga aylanmaydi; SOXTA `initData` cookie yo'lini ochib yubormaydi; soxta
+  imzo + haqiqiy cookie birikmasida cookie EGASI qaytadi, soxta ID emas. Oxirgi
+  ikkitasi bekorga emas — bu funksiya bahs ochishni himoya qiladi va u yerdagi
+  xato "begona buyurtmaga bahs ochish" degani bo'lardi. **3 mutatsiya bilan
+  sinaldi, 3 tasi ham ushlandi.**
+
+  **SINOV.** `node server/test.js` — **53 test PASS, 0 ta ❌** (raqam
+  `grep -c "^✅ Test"` bilan mustaqil sanaldi). Kesh-bust:
+  `style.css?v=36→40` (**`index.html` VA `admin/index.html` da — ikkalasi bir
+  xil raqamda**, 06-avgustdagi 15 versiyalik farq darsi), `script.js?v=27→30`,
+  Test 16 hash jadvali yangilandi.
+
+  ⚠️ **OCHIQ QOLGANI.** (a) `mergeCatalog` HAQIQIY brauzerda, jonli API bilan
+  hali ko'rilmagan — 22 e'lonning gridga tushishi, 11 yangi kartochkaning
+  rasmi va filtr bilan kesishishi **deploy'dan keyin QO'LDA tasdiqlansin**;
+  o'lchangani API javobi va HTML tarkibi, ya'ni "chizilishi kerak", "chizildi"
+  emas. (b) Sayt bahsi production'da hali ochilmagan — cookie yo'li `requestUser`
+  orqali BIRINCHI marta ishlaydi. (c) Tarix SQL'i pglite'da tekshirildi, haqiqiy
+  Postgres'da hali ishlamagan — pglite AYNI dvigatel emas.
 
 - [2026-08-03] **Buyurtma oqimining har bir holat o'zgarishi endi tarixga yoziladi**
   (`order_status_history`). Buyurtma tug'ilishi (Mini App va sayt), sotuvchining
@@ -388,6 +538,49 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
 ---
 
 ## Qarorlar
+
+- [2026-08-12] Qaror: **sayt katalogi HTML dagi kartochkalarni bazaga
+  ALMASHTIRMAYDI — ikkalasi BIRLASHTIRILADI** (`script.js` → `mergeCatalog`).
+  HTML kartochkalari qoladi (SEO va birinchi chizilish: bo'sh grid API javobini
+  kutib turardi), baza esa **HAKAM** bo'ladi — u yerda yo'q kartochka olib
+  tashlanadi, narx bazadagiga tenglashtiriladi, yangi e'lon qo'shiladi. Sabab:
+  ikkita mustaqil katalog (qo'lda yozilgan HTML va baza) 29-iyulda ID darajasida
+  birlashtirilgandi, TARKIB darajasida esa hamon ikkiga bo'lingan edi va farqni
+  hech narsa ko'rsatmasdi — `ik-9001` saytda savat tugmasi bilan turib, buyurtmasi
+  serverda rad etilardi. Endi farq MUMKIN EMAS: baza nima desa, sayt shuni
+  ko'rsatadi
+- [2026-08-12] Qaror: **foydalanuvchi kimligi ikkala kanalda BITTA nuqtadan
+  olinadi — `requestUser()`** (`server/lib/auth.js`). Mini App'da imzolangan
+  `initData`, saytda HttpOnly cookie sessiyasi; funksiya ikkalasini AYNI shaklga
+  (`{ id, source }`) keltiradi. Sabab: endpointlar faqat BIRINCHISINI bilardi va
+  buning narxi ko'rinmasdi — bahs ochish saytda `401` qaytarardi, ya'ni **kafolat
+  va'da qilingan, mexanizmi esa bitta kanalda bor edi**. Har endpointga
+  `if (miniapp) ... else if (web) ...` yozish yo'li ATAYLAB tanlanmadi: u
+  takrorlanadigan shart bo'lardi va yangi endpoint uni unutgan kuni jimgina
+  bitta kanalni tashlab ketardi. Sessiya kodi shu sabab `routes/web-auth.js` dan
+  `lib/web-session.js` ga ko'chirildi — kutubxona marshrutga bog'lanmasin.
+  ⚠️ Ikkala yo'l ham kimlikni SERVER tomonda hal qiladi; klient yuborgan
+  `tg_user_id` ga ishonadigan uchinchi yo'l qo'shilmasin (CLAUDE.md).
+  Qorovul: Test 3e
+- [2026-08-12] Qaror: **to'lov sozlamalari (`prepayRate`, `deliveryFee`) saytga
+  SERVERDAN keladi** (`/api/auth/web/me`), frontendda qo'lda yozilmaydi. Sabab:
+  `PREPAY_RATE` `.env` dan o'zgaradi va o'zgargan kuni sayt xaridorga bitta
+  raqamni ko'rsatib, server ikkinchisini hisoblardi — xaridor buni faqat
+  to'lov paytida bilardi. Bu KO'RSATISH uchun, HISOB uchun emas: haqiqiy summa
+  har doim serverda qayta hisoblanadi (2026-07-25 qarori kuchida qoladi)
+- [2026-08-12] Qaror: **buyurtma holati saytda HAQIQIY tarixdan ko'rsatiladi
+  (`order_status_history`), soxta "1-2-3-4 bosqich" progress chizilmaydi.**
+  Tarix yo'q bo'lsa blok UMUMAN ko'rsatilmaydi. Sabab: bosqich chizig'i eng
+  ishonarli ko'rinadigan yolg'on shakli — u har doim to'la ko'rinadi va
+  buyurtma qayerda qolganini bilmasa ham "ketyapti" deb turaveradi. Bu `NULL`
+  reyting va `ALERT_CHAT_ID` qarorlari bilan bitta oilada
+- [2026-08-12] Qaror: **BTS nuqtasi erkin matn emas, RO'YXATDAN tanlanadi va
+  tanlov ikki kanal orasida UMUMIY** (`localStorage` → `lolamarket_bts_point`,
+  Mini App bilan ayni kalit). Sabab: erkin matn maydoniga BTS nuqtasi bo'lmagan
+  har qanday narsa yozilardi va admin uni telefon orqali qayta aniqlashi kerak
+  edi (22-iyuldagi manzil qarori shu yerda oxiriga yetdi). Kalit ataylab bir xil:
+  ikki xil kalit bir odamning ikkita nuqtasi bo'lib, ular jimgina bir-biridan
+  uzoqlashardi — `db/014` darsi
 
 - [2026-08-02] Qaror: **`app.js` ichidagi zaxira mahsulot massivi bazaning
   MOSLASHGAN nusxasi bo'lsin — unga bazada yo'q mahsulot qo'shilmasin.** Sabab:

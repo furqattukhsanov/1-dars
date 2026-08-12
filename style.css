@@ -258,6 +258,30 @@ body {
 .tone-primary { background: var(--color-primary); color: #fff; }
 .tone-teal    { background: var(--teal-50);    color: var(--teal-700); }
 .tone-saffron { background: var(--saffron-50); color: var(--saffron-700); }
+/* Mini App'dagi `BADGE_COLORS.neutral` bilan bir xil — zaxirasi tugagan
+   e'lon shu belgi bilan chiqadi (2026-08-12) */
+.tone-neutral { background: var(--ink-100);    color: var(--ink-700); }
+
+/* ── Zaxirasi tugagan mahsulot ──
+   Tugma YASHIRILMAYDI, o'chiriladi: yo'q tugma "nega savatga qo'sha
+   olmayapman?" degan savol tug'diradi, o'chirilgani esa sababini aytadi. */
+.add-btn.is-out,
+.pd-add.is-out {
+  background: var(--ink-100);
+  color: var(--ink-700);
+  border-color: transparent;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+.pd-stock {
+  font-size: 12.5px;
+  font-weight: 600;
+  margin-top: 10px;
+}
+.pd-stock.in   { color: var(--success-500); }
+.pd-stock.low  { color: var(--saffron-500); }
+.pd-stock.made { color: var(--teal-500); }
+.pd-stock.out  { color: var(--danger-500); }
 
 /* Gradient ikonka plitka (app.js:503 retsepti) */
 /* Gradient halqa — logo/avatar (styles.css:177-183) */
@@ -1484,6 +1508,44 @@ body {
 }
 .co-area { resize: none; min-height: 74px; }
 .co-hint { margin-top: 6px; font-size: 11.5px; color: var(--text-muted); }
+
+/* ── BTS nuqtasi tanlagichi (2026-08-12) ──
+   `appearance: none` bilan mahalliy o'q olib tashlanadi va o'rniga SVG
+   qo'yiladi — aks holda select boshqa maydonlardan butunlay boshqacha
+   ko'rinardi. `background-image` ichidagi rang qat'iy: `currentColor`
+   data-URI ichida ishlamaydi. */
+.co-select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 38px;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%237a6a63' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 13px center;
+}
+.co-bts-info {
+  margin-top: 6px;
+  font-size: 11.5px;
+  color: var(--teal-700);
+  background: var(--teal-50);
+  padding: 7px 10px;
+  border-radius: var(--radius-sm);
+  line-height: 1.45;
+}
+
+/* ── Oldindan to'lov qatori ── */
+.co-prepay { font-weight: 700; color: var(--text-strong); align-items: center; }
+.co-prepay-tag {
+  font-size: 10px;
+  font-weight: 700;
+  background: var(--pom-100);
+  color: #7a140d;
+  padding: 2px 6px;
+  border-radius: 999px;
+  margin-left: 4px;
+  vertical-align: 1px;
+}
+.co-prepay-val { color: #7a140d; }
 .co-err {
   margin-top: 10px;
   font-size: 13px;
@@ -1635,6 +1697,88 @@ body {
 .order-tag.wait { background: var(--ink-100); color: var(--ink-700); }
 .order-tag.ok   { background: var(--success-100); color: #0F7A4F; }
 .order-tag.warn { background: var(--danger-100); color: #A32126; }
+
+/* ===== HOLAT TARIXI VA BAHS (2026-08-12) ===== */
+.order-hist-btn,
+.order-disp-btn {
+  margin-top: 9px;
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--teal-700);
+  cursor: pointer;
+}
+.order-disp-btn { color: var(--danger-500); }
+.order-hist-btn:hover, .order-disp-btn:hover { text-decoration: underline; }
+/* Tarix yopiq bo'lsa ikkala havola bitta qatorda yonma-yon turadi —
+   oralig'isiz ular bitta uzun matnga qo'shilib ketardi */
+.order-hist-btn + .order-disp-btn { margin-left: 14px; }
+
+.order-hist {
+  list-style: none;
+  margin: 9px 0 0;
+  padding: 0 0 0 4px;
+  border-left: 1.5px solid var(--border-hair);
+}
+.order-hist-line {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0 4px 12px;
+  font-size: 12px;
+}
+.order-hist-dot {
+  position: absolute;
+  left: -5px;
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--teal-500);
+}
+/* Oxirgi qadam — joriy holat, shuning uchun to'qroq */
+.order-hist-line:last-child .order-hist-dot { background: var(--color-primary); }
+.order-hist-txt { flex: 1; color: var(--text-body); font-weight: 600; }
+.order-hist-date { color: var(--text-subtle); font-size: 11px; white-space: nowrap; }
+
+.order-disp {
+  margin-top: 9px;
+  padding: 9px 11px;
+  border-radius: var(--radius-sm);
+  background: var(--danger-100);
+}
+.order-disp-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 12.5px; }
+.order-disp-st {
+  flex: none;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 10.5px; font-weight: 700;
+}
+.order-disp-st.warn { background: var(--saffron-50); color: var(--saffron-700); }
+.order-disp-st.ok   { background: var(--success-100); color: #0F7A4F; }
+.order-disp-reason { margin-top: 5px; font-size: 12px; color: var(--text-body); line-height: 1.45; }
+.order-disp-reply {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(0,0,0,.07);
+  font-size: 12px; color: var(--text-body); line-height: 1.45;
+}
+
+/* --- Bahs sababi tugmalari --- */
+.dsp-reasons { display: flex; flex-wrap: wrap; gap: 7px; margin: 14px 0 4px; }
+.dsp-reason {
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1.5px solid var(--border-hair);
+  background: var(--glass-fill-strong);
+  font-family: var(--font-sans);
+  font-size: 12.5px; font-weight: 600;
+  color: var(--text-body);
+  cursor: pointer;
+  transition: border-color var(--dur-fast), color var(--dur-fast);
+}
+.dsp-reason.on { border-color: var(--color-primary); color: var(--color-primary); }
 
 /* --- Checkout ustidagi kirish taklifi --- */
 .co-login {

@@ -1,8 +1,11 @@
-const { BOT_USERNAME } = require('../config');
+const { BOT_USERNAME, PREPAY_RATE, DELIVERY_FEE_ESTIMATE } = require('../config');
 const { pool } = require('../db');
 const { safeEqual, dateLabel, sha256, randHex } = require('../lib/format');
 const { rateLimited, sendJson, fail, parseCookies } = require('../lib/http');
 const { callTelegram } = require('../lib/telegram-api');
+const {
+  SESSION_COOKIE, WEB_SESSION_TTL_DAYS, setSessionCookie, clearSessionCookie, webSessionUser,
+} = require('../lib/web-session');
 
 // ============ SAYTDA TELEGRAM ORQALI KIRISH (deep-link + cookie sessiya) ============
 // Sayt xaridorida imzolangan initData yo'q (u Mini App ichida emas), shuning
@@ -13,48 +16,11 @@ const { callTelegram } = require('../lib/telegram-api');
 //      yuboradi, ya'ni ID brauzerdan kelmaydi va soxtalashtirib bo'lmaydi;
 //   4) brauzer code+verifier bilan so'raydi va HttpOnly cookie sessiya oladi.
 const WEB_LOGIN_TTL_MS = 10 * 60 * 1000;      // kod 10 daqiqa yashaydi
-const WEB_SESSION_TTL_DAYS = 30;
-const SESSION_COOKIE = 'lm_session';
 
-// Sessiya tokeni faqat HttpOnly cookie'da yuradi — sahifadagi JS uni o'qiy
-// olmaydi, shuning uchun XSS bo'lsa ham token o'g'irlanmaydi (admin panel
-// tokenidan farqi shu: u sessionStorage'da yashaydi).
-function setSessionCookie(res, token) {
-  const maxAge = WEB_SESSION_TTL_DAYS * 24 * 60 * 60;
-  res.setHeader('Set-Cookie',
-    `${SESSION_COOKIE}=${token}; Path=/; Max-Age=${maxAge}; HttpOnly; Secure; SameSite=Lax`);
-}
-
-function clearSessionCookie(res) {
-  res.setHeader('Set-Cookie', `${SESSION_COOKIE}=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax`);
-}
-
-// Cookie'dagi tokendan foydalanuvchini qaytaradi (yoki null).
-// Har bir himoyalangan endpoint shu orqali "bu kim" ekanini biladi.
-async function webSessionUser(req) {
-  const token = parseCookies(req)[SESSION_COOKIE];
-  if (!token || !/^[0-9a-f]{32,128}$/.test(token)) return null;
-  const { rows } = await pool.query(
-    `UPDATE web_sessions s SET last_seen_at = now()
-      WHERE s.token_hash = $1 AND s.expires_at > now()
-      RETURNING s.user_id, s.tg_user_id`,
-    [sha256(token)]
-  );
-  if (!rows.length) return null;
-  const { rows: u } = await pool.query(
-    `SELECT id, full_name, phone, role, tg_user_id, tg_username FROM users WHERE id = $1`,
-    [rows[0].user_id]
-  );
-  if (!u.length) return null;
-  return {
-    id: u[0].id,
-    tgUserId: String(u[0].tg_user_id || rows[0].tg_user_id),
-    name: u[0].full_name,
-    phone: u[0].phone,
-    username: u[0].tg_username,
-    role: u[0].role,
-  };
-}
+// Sessiya kodi `lib/web-session.js` ga ko'chirildi (2026-08-12): u yerdan
+// `lib/auth.js` ham o'qiy oladi va saytdagi kimlik Mini App kimligi bilan
+// bitta nuqtadan (`requestUser`) olinadi. Bu yerda faqat qayta eksport
+// qilinadi — tashqi chaqiruvchilar (server.js) o'zgarmasin.
 
 function publicUser(u) {
   return u && { name: u.name, username: u.username, phone: u.phone, role: u.role };
@@ -150,7 +116,19 @@ async function handleWebMe(req, res, ip) {
   if (rateLimited(`webme:${ip}`, 60)) return fail(res, 'too many requests', 429);
   try {
     const u = await webSessionUser(req);
-    sendJson(res, 200, { ok: true, user: publicUser(u) || null });
+    sendJson(res, 200, {
+      ok: true,
+      user: publicUser(u) || null,
+      // To'lov sozlamalari SERVERDAN keladi. Sayt ularni o'zida qo'lda
+      // yozib qo'ymasin: `PREPAY_RATE` `.env` dan o'zgarishi mumkin va
+      // o'zgargan kuni sayt xaridorga BOSHQA raqam ko'rsatib turardi,
+      // server esa uchinchisini hisoblardi. Ayni naqsh Mini App'da
+      // allaqachon qo'llanadi (`aiComboTextMax` — routes/catalog.js).
+      // ⚠️ Bu KO'RSATISH uchun, hisob uchun emas: haqiqiy summa har doim
+      // server tomonda qayta hisoblanadi (`routes/orders.js`).
+      prepayRate: PREPAY_RATE,
+      deliveryFee: DELIVERY_FEE_ESTIMATE,
+    });
   } catch (e) {
     console.error('webMe xatosi:', e.message);
     fail(res, 'server error', 500);
@@ -180,17 +158,33 @@ async function handleWebMyOrders(req, res, ip) {
     // MAHSULOTGA alohida "Baholash" tugmasi ko'rsatadi (sharh mahsulotga
     // yoziladi, buyurtmaga emas). `FILTER` kerak: tarkibsiz buyurtmada
     // `json_agg` bitta `null` elementli massiv qaytarardi.
+    // Tarix HAQIQIY jadvaldan keladi (`order_status_history`, db/015) —
+    // "1-2-3-4 bosqich" ko'rinishidagi o'ylab topilgan progress emas.
+    // CLAUDE.md: ma'lumot bazadan kelmasa blok umuman ko'rsatilmaydi;
+    // soxta bosqich esa xaridorga buyurtma qayerdaligini YOLG'ON aytardi.
+    // Ikkala ro'yxat ham ALOHIDA LATERAL da yig'iladi va `GROUP BY` umuman
+    // ishlatilmaydi. Ikki sabab:
+    //   1) bitta `GROUP BY` da ikkita `json_agg` bo'lsa tarkib qatorlari
+    //      tarix qatorlariga ko'payib ketardi (dekart ko'paytmasi);
+    //   2) `GROUP BY h.history` PostgreSQL'da UMUMAN ishlamaydi — `json`
+    //      turida tenglik operatori yo'q ("could not identify an equality
+    //      operator for type json"), ya'ni so'rov ishga tushmasdi.
     const { rows } = await pool.query(
       `SELECT o.id, o.status, o.created_at, o.total_amount,
-              COALESCE(
-                json_agg(json_build_object('id', oi.product_id, 'name', oi.name))
-                  FILTER (WHERE oi.product_id IS NOT NULL),
-                '[]'
-              ) AS items
+              i.items, h.history
          FROM orders o
-         LEFT JOIN order_items oi ON oi.order_id = o.id
+         LEFT JOIN LATERAL (
+           SELECT json_agg(json_build_object('id', oi.product_id, 'name', oi.name)) AS items
+             FROM order_items oi
+            WHERE oi.order_id = o.id AND oi.product_id IS NOT NULL
+         ) i ON true
+         LEFT JOIN LATERAL (
+           SELECT json_agg(json_build_object('to', x.to_status, 'at', x.created_at)
+                           ORDER BY x.created_at) AS history
+             FROM order_status_history x
+            WHERE x.order_id = o.id
+         ) h ON true
         WHERE o.tg_user_id = $1
-        GROUP BY o.id
         ORDER BY o.created_at DESC LIMIT 30`,
       [u.tgUserId]
     );
@@ -202,6 +196,12 @@ async function handleWebMyOrders(req, res, ip) {
         date: dateLabel(new Date(o.created_at)).uz,
         total: o.total_amount === null ? null : Number(o.total_amount),
         items: o.items || [],
+        // `actor_kind` va `note` ATAYLAB berilmaydi: xaridorga kim
+        // o'zgartirgani (admin/sotuvchi) va ichki izoh kerak emas.
+        history: (o.history || []).map((h) => ({
+          status: h.to,
+          date: dateLabel(new Date(h.at)).uz,
+        })),
       })),
     });
   } catch (e) {
