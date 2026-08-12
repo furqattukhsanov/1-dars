@@ -1,5 +1,6 @@
-const { BOT_USERNAME, PREPAY_RATE, DELIVERY_FEE_ESTIMATE } = require('../config');
+const { BOT_USERNAME, PREPAY_RATE, DELIVERY_FEE_ESTIMATE, AI_IMAGE_ENABLED } = require('../config');
 const { pool } = require('../db');
+const { aiClientConfig } = require('../lib/ai');
 const { safeEqual, dateLabel, sha256, randHex } = require('../lib/format');
 const { rateLimited, sendJson, fail, parseCookies } = require('../lib/http');
 const { callTelegram } = require('../lib/telegram-api');
@@ -128,6 +129,14 @@ async function handleWebMe(req, res, ip) {
       // server tomonda qayta hisoblanadi (`routes/orders.js`).
       prepayRate: PREPAY_RATE,
       deliveryFee: DELIVERY_FEE_ESTIMATE,
+      // AI rasm sozlamasi — Mini App'dagi `/api/auth/telegram` bilan AYNI
+      // funksiyadan (2026-08-13, C1). Sayt bu blokni ilgari umuman
+      // olmasdi, ya'ni AI savollarini chizishning iloji yo'q edi.
+      // ⚠️ Bu javob KIRMAGAN foydalanuvchiga ham keladi (`user: null`) va
+      // sozlama shunda ham beriladi: sayt blokni ko'rsatib, tugma o'rniga
+      // "Kirish" taklif qiladi. Aks holda AI funksiyasi kirmagan odam uchun
+      // MAVJUD EMASday ko'rinardi va u nima uchun kirishini bilmasdi.
+      ...aiClientConfig(AI_IMAGE_ENABLED),
     });
   } catch (e) {
     console.error('webMe xatosi:', e.message);

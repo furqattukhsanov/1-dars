@@ -1372,10 +1372,10 @@ function testAssetVersionsAreFresh() {
   // AYNI faylni `?v=36` bilan — ya'ni admin panel 15 versiya orqada
   // qotib qolgan keshni cheksiz ushlab turardi.
   const KUTILGAN = {
-    'style.css': { v: 40, hash: 'fb1b05cb2952' },
-    'script.js': { v: 30, hash: '25b10689a2c9' },
+    'style.css': { v: 41, hash: '4b443d30478d' },
+    'script.js': { v: 31, hash: 'bab3e4876457' },
     'pwa.js': { v: 2, hash: 'f46683d58662' },
-    'panel.js': { v: 11, hash: '8bc67a9cadcf' },
+    'panel.js': { v: 12, hash: 'fa1051b3257b' },
     'admin/admin.css': { v: 17, hash: 'dbefeb6757ff' },
     'admin/admin.js': { v: 22, hash: '8a8310a94f5e' },
     'telegram-app/styles.css': { v: 21, hash: '6dddba75c0bc' },
@@ -2591,6 +2591,161 @@ function testBannerVersionGuard() {
   console.log(`✅ Test 19d: Tasma versiyasi kesh bilan bog'langan — PASS (v${BANNER_VERSION})`);
 }
 
+// ============ TEST 3f: SAYT CHAQIRGAN ENDPOINT SAYT KIMLIGINI BILSIN ======
+// Test 3e `requestUser()` ning O'ZI to'g'ri ishlashini tekshiradi. Bu test
+// boshqa savolga javob beradi: u ISHLATILYAPTIMI?
+//
+// Nuqson ikki marta AYNAN bir xil shaklda chiqdi:
+//   * 2026-08-12 — bahs ochish (`/api/disputes`) saytda UMUMAN ishlamasdi;
+//   * 2026-08-13 — AI rasm (`/api/ai/image`) saytda 401 berardi.
+// Ikkalasida ham sabab bitta: handler `authUser()` ni chaqirardi, u esa
+// FAQAT imzolangan `initData` ni biladi. Mini App'da hammasi joyida
+// ko'rinardi, ya'ni nuqson KO'RINMASDI — sayt xaridori jimgina 401 olardi.
+//
+// Ro'yxat QO'LDA yozilmaydi (bu bilib qilingan tanlov — qo'lda yozilgan
+// ro'yxat eskiradi va aynan yangi endpoint unutilardi):
+//   1) saytning O'Z manbasidan (`script.js`) chaqirilayotgan `/api/...`
+//      yo'llari yig'iladi;
+//   2) `server.js` router'idan har bir yo'lning handler nomlari topiladi;
+//   3) `routes/*.js` dan o'sha funksiyaning TANASI kesib olinadi va
+//      kimlikni qaysi funksiya bilan olishi ko'riladi.
+// Ya'ni saytga yangi `fetch('/api/...')` qo'shilsa u AVTOMATIK qamraladi.
+//
+// Qoida: handler tanasida `authUser(` bo'lib, ikki kanalli yo'llardan
+// (`requestUser` / `webSessionUser` / `reviewAuthor`) BIRORTASI bo'lmasa —
+// test QIZIL. Kimlik umuman so'ralmasa muammo yo'q: bu ochiq endpoint
+// (`/api/products`, `/api/ai/gallery`).
+// ⚠️ Ro'yxatda faqat IKKITA nom bor va bu ataylab: ular kimlikning HAQIQIY
+// manbalari. Kimlikni o'ram funksiya orqali oladigan joy (`reviewAuthor` —
+// `routes/reviews.js`) ro'yxatga QO'SHILMADI, chunki NOM bo'yicha ishonch
+// teshik ochadi: sinovda `reviewAuthor` ning cookie yo'li o'chirildi va
+// tekshiruv baribir yashil qoldi — o'ram nomi joyida turgani uchun. Buning
+// o'rniga o'ramning ICHI ochib ko'riladi (`kengaytir`).
+const IKKI_KANALLI = ['requestUser(', 'webSessionUser('];
+
+// ⚠️ IZOH KOD EMAS. Bu qadam sinov paytida QO'SHILDI: `handleAiImage`
+// tanasidagi izohda "`requestUser()`" so'zi bor edi va matn bo'yicha qidirgan
+// tekshiruv uni HAQIQIY chaqiruv deb qabul qildi — ya'ni mutatsiya
+// (`requestUser` → `authUser`) qorovuldan JIMGINA o'tib ketdi. Qorovulning
+// o'zi ham tekshirilmasa qorovul emas.
+// Izoh uslubi: bu loyihada izohlar deyarli har doim ALOHIDA qatorda turadi,
+// shuning uchun (1) `/* */` bloklari va (2) izoh bilan boshlanadigan qatorlar
+// olib tashlanadi. Qator oxiridagi izoh ham kesiladi — lekin `://` (URL)
+// bo'lgan qatorga tegilmaydi.
+function kodSofi(src) {
+  return src
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .split('\n')
+    .map((q) => {
+      const t = q.trim();
+      if (t.startsWith('//') || t.startsWith('*')) return '';
+      return q.includes('://') ? q : q.replace(/\s\/\/.*$/, '');
+    })
+    .join('\n');
+}
+
+// Handler tanasi: `function nom(` dan boshlab BIRINCHI ustundagi `}` gacha.
+// Fayllar 2 probel bilan chekinadi, ya'ni ustundagi yopuvchi qavs — funksiya
+// oxiri.
+function funksiyaTanasi(src, nom) {
+  const m = src.match(new RegExp(`(?:async\\s+)?function\\s+${nom}\\s*\\(`));
+  if (!m) return null;
+  const boshi = m.index;
+  const oxiri = src.indexOf('\n}', boshi);
+  return oxiri === -1 ? src.slice(boshi) : src.slice(boshi, oxiri + 2);
+}
+
+// Handler kimlikni O'ZI olmasligi mumkin — o'ram funksiya orqali oladi
+// (`reviewAuthor`). Shuning uchun tana bir pog'ona KENGAYTIRILADI: shu
+// modulda aniqlangan va shu handlerdan chaqirilgan funksiyalarning tanasi
+// ham qo'shiladi. Bir pog'ona yetarli — kimlik zanjiri bu loyihada hech
+// qachon bundan chuqur emas, chuqurroq qidiruv esa tekshiruvni tushunib
+// bo'lmaydigan qilardi.
+function kengaytir(src, tana) {
+  let natija = tana;
+  for (const m of src.matchAll(/(?:async\s+)?function\s+([A-Za-z0-9_]+)\s*\(/g)) {
+    const nom = m[1];
+    if (tana.includes(`${nom}(`) && !tana.startsWith(`function ${nom}(`) &&
+        !tana.startsWith(`async function ${nom}(`)) {
+      natija += '\n' + (funksiyaTanasi(src, nom) || '');
+    }
+  }
+  return natija;
+}
+
+function testSiteEndpointsKnowWebSession() {
+  const fs = require('fs');
+  const path = require('path');
+  const ildiz = path.join(__dirname, '..');
+
+  // 1. Sayt qaysi endpointlarni, QAYSI METOD bilan chaqiradi.
+  // ⚠️ Metod SHART: `/api/products` GET — ochiq katalog (sayt shuni oladi),
+  // POST esa sotuvchining e'lon yuborishi (faqat Mini App). Metodsiz
+  // tekshiruv ikkinchisini ham saytniki deb hisoblab, YOLG'ON ogohlantirish
+  // berardi — va yolg'on ogohlantiruvchi qorovul o'chirib qo'yiladigan
+  // qorovuldir.
+  const siteSrc = fs.readFileSync(path.join(ildiz, 'script.js'), 'utf8');
+  const siteYollar = new Map();   // yo'l → metodlar to'plami
+  for (const m of siteSrc.matchAll(/['"](\/api\/[a-zA-Z0-9/_-]+)/g)) {
+    // Chaqiruv oynasi: metod parametri shu yerda bo'ladi. Oyna bo'sh
+    // qatorda tugaydi — keyingi chaqiruvning metodi bu yerga tushmasin.
+    const oyna = siteSrc.slice(m.index, m.index + 220).split('\n\n')[0];
+    const met = oyna.match(/method:\s*'([A-Z]+)'/);
+    if (!siteYollar.has(m[1])) siteYollar.set(m[1], new Set());
+    siteYollar.get(m[1]).add(met ? met[1] : 'GET');
+  }
+  assert.ok(siteYollar.size >= 8, `saytdan endpoint topilmadi (${siteYollar.size} ta) — regex eskirgan bo'lishi mumkin`);
+
+  // 2. Router: yo'l + metod → handler nomlari. Blokda metod sharti bo'lmasa
+  // handler HAR QANDAY metodga ishlaydi, ya'ni u har doim hisobga olinadi.
+  const serverSrc = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
+  const bloklar = serverSrc.split(/(?=path\s*===\s*'\/api\/)/);
+  const handlerlar = {};
+  bloklar.forEach((b) => {
+    const y = b.match(/^path\s*===\s*'(\/api\/[^']+)'/);
+    if (!y) return;
+    handlerlar[y[1]] = b.split('\n')
+      .map((q) => {
+        const h = q.match(/\b(handle[A-Za-z0-9]+)\s*\(req,\s*res/);
+        if (!h) return null;
+        const met = q.match(/req\.method\s*===\s*'([A-Z]+)'/);
+        return { nom: h[1], metod: met ? met[1] : null };
+      })
+      .filter(Boolean);
+  });
+
+  // 3. Har bir handler qayerda yozilgani va kimlikni qanday olishi
+  const routesDir = path.join(__dirname, 'routes');
+  const manbalar = fs.readdirSync(routesDir).filter((f) => f.endsWith('.js'))
+    .map((f) => ({ fayl: f, src: kodSofi(fs.readFileSync(path.join(routesDir, f), 'utf8')) }));
+
+  let tekshirilgan = 0;
+  let ochiq = 0;
+  siteYollar.forEach((metodlar, yol) => {
+    (handlerlar[yol] || []).forEach(({ nom, metod }) => {
+      // Handler boshqa metodga bog'langan bo'lsa sayt unga umuman bormaydi.
+      if (metod && !metodlar.has(metod)) return;
+      const joy = manbalar.find((m) => funksiyaTanasi(m.src, nom));
+      if (!joy) return;   // handler `routes/` dan tashqarida (server.js ichida)
+      const tana = kengaytir(joy.src, funksiyaTanasi(joy.src, nom));
+      const ikkiKanal = IKKI_KANALLI.some((k) => tana.includes(k));
+      // Kimlik umuman so'ralmasa — bu OCHIQ endpoint (`/api/products`,
+      // `/api/ai/gallery`) va tekshiradigan narsa yo'q.
+      if (!tana.includes('authUser(') && !ikkiKanal) { ochiq++; return; }
+      tekshirilgan++;
+      assert.ok(
+        ikkiKanal,
+        `${joy.fayl} → ${nom}() (${metod || 'ANY'} ${yol}) kimlikni faqat authUser() bilan oladi, saytda esa ` +
+        'imzolangan initData YO\'Q — sayt xaridori JIMGINA 401 oladi. ' +
+        'Yechim: requestUser() (lib/auth.js) — u ikkala kanalni ham biladi.'
+      );
+    });
+  });
+
+  assert.ok(tekshirilgan >= 2, `kimlik talab qiladigan endpoint topilmadi (${tekshirilgan} ta) — tahlil buzilgan`);
+  console.log(`✅ Test 3f: Sayt chaqirgan endpointlar sayt kimligini biladi — PASS (${siteYollar.size} yo'l, ${tekshirilgan} ta kimlikli, ${ochiq} ta ochiq)`);
+}
+
 // ============ TEST RUNNER ============
 async function runTests() {
   console.log('\n🧪 LolaMarket Server Testlari\n');
@@ -2608,6 +2763,7 @@ async function runTests() {
     // sirlarni process.env'ga yozgandan keyin ishga tushirilishi kerak.
     testDeliveryFeeConfig();
     await testRequestUserBothChannels();
+    testSiteEndpointsKnowWebSession();
     testChatIdValidation();
     await testDecrementStock();
     await testRecalcRating();

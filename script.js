@@ -322,12 +322,23 @@ function clearSearch() {
    `addEventListener` emas: sharh matni maydoni DINAMIK chiziladi (oyna har
    ochilganda qaytadan), ya'ni bir marta biriktirilgan tinglovchi keyingi
    nusxada yo'q bo'lardi. `data-input` qiymati — global funksiya nomi,
-   unga maydon qiymati uzatiladi. */
+   unga maydon qiymati uzatiladi.
+
+   ⚠️ IKKINCHI argument — `data-arg` (2026-08-13). Maydon QAYSI narsaga
+   tegishli ekanini bilish kerak bo'lgan joy paydo bo'ldi: AI erkin matni
+   mahsulotga bog'langan (`setAiText(qiymat, productId)`). Mini App
+   delegatsiyasi buni ALLAQACHON shunday qiladi, ya'ni bu yerda yangi
+   konvensiya emas — ikki yuza o'rtasidagi FARQ yopildi.
+   Farq jimgina zarar keltirgan edi: `data-arg` uzatilmagani uchun matn
+   `aiText[undefined]` ga yozilardi va xaridor yozgan izoh so'rovga UMUMAN
+   tushmasdi — konsolda xato yo'q, tugma ishlaydi, natija esa boshqa.
+   Bitta argument oladigan eski chaqiruvlar (`onSearch`, `onReviewBody`,
+   `onDisputeComment`) ortiqcha argumentni shunchaki e'tiborsiz qoldiradi. */
 document.addEventListener('input', (e) => {
   const el = e.target.closest('[data-input]');
   if (!el) return;
   const fn = window[el.dataset.input];
-  if (typeof fn === 'function') fn(e.target.value);
+  if (typeof fn === 'function') fn(e.target.value, el.dataset.arg);
 });
 
 /* ── `change` delegatsiyasi ──
@@ -459,11 +470,21 @@ function onLoggedIn(user) {
   loginSession = null;
   refreshAuthUi();
   showToast(me && me.name ? `Xush kelibsiz, ${firstName(me.name)}!` : 'Kirdingiz');
+  loadAiCredits();
   // Checkout'dan kirgan bo'lsa — formaga qaytamiz, savat yo'qolmaydi
   if (afterLoginView === 'checkout' && cartCount()) {
     afterLoginView = null;
     drawerView = 'checkout';
     renderDrawer();
+    return;
+  }
+  // AI blokidan kirgan bo'lsa — AYNI mahsulotga qaytamiz, aks holda xaridor
+  // profilga tushib qolib, qaysi matoni ko'rayotganini qaytadan qidirardi.
+  if (afterLoginView === 'detail' && detailId && product(detailId)) {
+    afterLoginView = null;
+    drawerView = 'detail';
+    renderDrawer();
+    if (!isOpen()) openDrawerEl();
     return;
   }
   afterLoginView = null;
@@ -488,6 +509,11 @@ function logout() {
   // Qolib ketsa keyingi kirgan odam begona bahs matnini ko'rib qolardi.
   myReviews = [];
   myDisputes = [];
+  // Kredit qoldig'i ham AVVALGI hisobniki — qolib ketsa keyingi kirgan odam
+  // begona balansni ko'rib turardi. Rasm holatlari ham tozalanadi: "kredit
+  // tugadi" yozuvi yangi hisobda jimgina yolg'on bo'lardi.
+  aiCredits = null;
+  Object.keys(aiImages).forEach((k) => { delete aiImages[k]; });
   refreshAuthUi();
   drawerView = 'login';
   loginState = 'idle';
@@ -565,9 +591,19 @@ apiJson('/api/auth/web/me')
     // bilan bitta sabab: checkout ochiq bo'lsa xaridor yozgan maydonlar
     // o'chib ketardi. Faqat raqamlar joyida almashtiriladi.
     paintCheckoutTotals();
+    // AI sozlamasi — kalitlar SERVERDAN (`aiClientConfig`). Kirmagan
+    // foydalanuvchi ham oladi: bo'lim ko'rinadi, tugma o'rniga "Kirish".
+    // ⚠️ Tafsilot oynasi ALLAQACHON ochiq bo'lsa u qayta chiziladi: bu so'rov
+    // asinxron, ya'ni sekin tarmoqda xaridor mahsulotni sozlama kelgunicha
+    // ochib ulgurishi mumkin va o'shanda AI bloki JIMGINA yo'q bo'lardi
+    // (xato yo'q, sabab ko'rinmaydi). Checkout va boshqa ko'rinishlarga
+    // TEGILMAYDI — u yerda xaridor yozayotgan maydonlar o'chib ketardi.
+    aiCfg = readAiConfig(d);
+    if (aiCfg && isOpen() && drawerView === 'detail') renderDrawer();
     if (d.user) {
       me = d.user;
       refreshAuthUi();
+      loadAiCredits();
     }
   })
   .catch(() => { /* server yo'q — sayt kirishsiz ham to'liq ishlaydi */ });
@@ -1037,6 +1073,398 @@ function starsHtml(n, cls) {
     '★'.repeat(full)}<span class="stars-empty">${'☆'.repeat(5 - full)}</span></span>`;
 }
 
+/* ====================================================
+   AI KIYIM RASMI — SAYTDA (2026-08-13, C1)
+
+   Mini App'dagi bo'lim (`telegram-app/app.js` → `aiImageSection`) saytga
+   olib o'tildi. Endpointlar AYNI: `/api/ai/image`, `/api/ai/my`. Ikki
+   kanalning yagona farqi KIMLIKDA:
+     * Mini App — imzolangan `initData` header'da;
+     * sayt — HttpOnly cookie sessiyasi, ya'ni bu yerda hech qanday header
+       qo'shilmaydi, faqat `credentials: 'same-origin'` (`apiJson` shuni
+       qiladi).
+   Server ikkalasini `requestUser()` bilan BITTA shaklga keltiradi
+   (CLAUDE.md — "kimlik ikki kanalda bitta nuqtadan").
+
+   ⚠️ SAVOL KALITLARI SERVERDAN keladi (`/api/auth/web/me` → `aiClientConfig`)
+   va bu yerda QO'LDA yozilmaydi. Yorliqlar (o'zbekcha matn) esa frontendda —
+   Mini App'dagi bilan bir xil bo'linish. Sabab: kalit ikki joyda yozilsa
+   ular ajralib ketardi va sayt xaridori serverning oq ro'yxatidan
+   o'tmaydigan javob yuborib, tugmani bosgach 400 xato ko'rardi — ustiga bu
+   PULLIK so'rov (db/014 darsi).
+
+   ⚠️ AVTOMATIK YUKLASH YO'Q — bu qaror Mini App'dan ko'chdi va sabab
+   XARAJATDA: bitta rasm ~$0.04 va 2 Lola credit. Kirish nuqtasi doim TUGMA.
+   ==================================================== */
+
+/** Serverdan kelgan sozlama. `null` — hali kelmagan yoki AI o'chiq */
+let aiCfg = null;
+/** productId → { state: 'loading'|'done'|'error'|... , url } */
+const aiImages = {};
+/** productId → { guruh: kalit } */
+const aiChoices = {};
+/** productId → erkin matn (faqat combo) */
+const aiText = {};
+/** productId → "boshqa fason" varianti (0 = birinchi) */
+const aiVariant = {};
+/** { balance, cost, unlimited } — serverdan. `null` bo'lsa qator CHIZILMAYDI */
+let aiCredits = null;
+
+/* Yorliqlar — kalitlar serverdan, matn shu yerda (Mini App bilan bir xil).
+   ⚠️ Yorliq topilmasa kalitning O'ZI chiziladi: jimgina yo'qolib qolgandan
+   ko'ra "notanish kalit" ko'rinib turgani yaxshi. */
+const AI_Q = {
+  kiyim: "Nima tikilsin?", uslub: "Qayerga?", dizayn: "Dizayn yo'nalishi",
+  rang: "Qo'shimcha rang", qoshimcha: "Qo'shimcha material",
+};
+const AI_O = {
+  koylak_milliy: 'Milliy ko\'ylak', koylak: 'Ko\'ylak', kostyum: 'Kostyum',
+  palto: 'Palto', yubka: 'Yubka', romol: 'Ro\'mol',
+  kundalik: 'Kundalik', bayram: 'Bayram / to\'y', ish: 'Ish',
+  neoklassika: 'Neoklassika', zamonaviy: 'Zamonaviy',
+  minimalistik: 'Minimalistik', combo: 'Combo',
+  oq: 'Oq', qora: 'Qora', bej: 'Bej', kok: 'Ko\'k',
+  yashil: 'Yashil', bordo: 'Bordo', oltin: 'Oltin',
+  yoq: 'Yo\'q', charm: 'Charm', jinsi: 'Jinsi',
+  bahmal: 'Bahmal', dantel: 'Dantel', trikotaj: 'Trikotaj',
+};
+
+/** Serverdan kelgan AI sozlamasini SHAKLI bo'yicha qabul qiladi.
+    ⚠️ `!= null` yetarli emas (CLAUDE.md — "sozlama qiymati bo'sh emasligi
+    uni haqiqiy qilmaydi"): bo'sh obyekt kelsa bo'lim savolsiz chizilib,
+    tugma bosilgach server 400 berardi. Shakl noto'g'ri bo'lsa `aiCfg` `null`
+    qoladi va bo'lim UMUMAN ko'rsatilmaydi. */
+function readAiConfig(d) {
+  if (!d || !d.aiImageEnabled) return null;
+  const g = d.aiImageChoices;
+  if (!g || typeof g !== 'object' || !Object.keys(g).length) return null;
+  const toza = {};
+  Object.keys(g).forEach((k) => { if (Array.isArray(g[k]) && g[k].length) toza[k] = g[k]; });
+  if (Object.keys(toza).length !== Object.keys(g).length) return null;
+  const combo = d.aiComboChoices && typeof d.aiComboChoices === 'object' ? d.aiComboChoices : null;
+  return {
+    keys: toza,
+    comboKeys: combo,
+    textMax: Number.isInteger(d.aiComboTextMax) && d.aiComboTextMax > 0 ? d.aiComboTextMax : 60,
+    variantMax: Number.isInteger(d.aiVariantMax) && d.aiVariantMax > 0 ? d.aiVariantMax : 0,
+  };
+}
+
+/** Kredit qatori. `null` bo'lsa UMUMAN chizilmaydi — CLAUDE.md: ma'lumot
+    bazadan kelmasa blok ko'rsatilmaydi (o'ylab topilgan raqam qo'yilmaydi). */
+function aiCreditLine() {
+  if (!aiCredits) return '';
+  const matn = aiCredits.unlimited
+    ? 'Lola credit: ∞ Cheksiz'
+    : `${aiCredits.balance} credit qoldi · Bitta rasm — ${aiCredits.cost} credit`;
+  return `<div class="ai-count" style="margin-top:8px">✦ ${esc(matn)}</div>`;
+}
+
+/* "Boshqa fason" tugmasi. Chegaraga yetganda UMUMAN chizilmaydi (o'chirilgan
+   holda qoldirilmaydi): bosilmaydigan tugma xaridorga nima qilish kerakligini
+   aytmaydi, yo'q tugma esa savol tug'dirmaydi. Narx tugmaning O'ZIDA — bu
+   YANGI kesh kaliti, ya'ni yangi rasm va yangi kredit. */
+function aiOtherCutBtn(id) {
+  const joriy = aiVariant[id] || 0;
+  if (!aiCfg || !aiCfg.variantMax || joriy >= aiCfg.variantMax) return '';
+  const narx = aiCredits && aiCredits.cost;
+  return `<button class="ai-ghost" data-action="otherCutAiImage" data-arg="${esc(id)}">✦ ${
+    esc('Boshqa fason' + (narx ? ` · Yangi fason — ${narx} credit` : ''))}</button>`;
+}
+
+/** Mahsulot tafsilotidagi AI bloki. Bo'sh satr = blok umuman yo'q. */
+function aiSection(id) {
+  if (!aiCfg) return '';
+  const head = '<div class="pd-sec-title">AI kiyim rasmi</div>';
+  const st = aiImages[id];
+
+  // Holat 1 — savollar.
+  // ⚠️ Zaxira javob ATAYLAB YO'Q: hammasi tanlanmaguncha tugma o'chiq turadi.
+  // Sabab pulda — oldindan to'ldirilgan javob bilan xaridor o'zi tanlamagan
+  // narsani chizdirib yuborardi.
+  if (!st) {
+    const tanlov = aiChoices[id] || {};
+    // Combo savollari SHARTLI: `dizayn = combo` tanlanmaguncha chizilmaydi
+    // va majburiy ham emas.
+    const combo = tanlov.dizayn === 'combo' && aiCfg.comboKeys;
+    const guruhlar = Object.keys(aiCfg.keys).concat(combo ? Object.keys(aiCfg.comboKeys) : []);
+    const kalitlar = (g) => aiCfg.keys[g] || (aiCfg.comboKeys && aiCfg.comboKeys[g]) || [];
+
+    const savollar = guruhlar.map((guruh, i) => `
+      <div class="ai-q">
+        <span class="ai-q-num">${i + 1}</span>
+        <span class="ai-q-label">${esc(AI_Q[guruh] || guruh)}</span>
+      </div>
+      <div class="ai-chips">
+        ${kalitlar(guruh).map((k) => `
+          <button class="ai-chip${tanlov[guruh] === k ? ' on' : ''}" data-action="pickAiChoice" data-arg="${esc(id)}|${esc(guruh)}|${esc(k)}">${esc(AI_O[k] || k)}</button>`).join('')}
+      </div>`).join('');
+
+    // Erkin matn (faqat combo). Belgilar ro'yxati bu yerda TAKRORLANMAYDI —
+    // tekshiruv faqat serverda (`cleanComboText`); `maxlength` ham serverdan.
+    const matnBlok = combo ? `
+      <div class="ai-q" style="margin-top:12px">
+        <span class="ai-q-num">✎</span>
+        <span class="ai-q-label">Yana nima qo'shilsin? (ixtiyoriy)</span>
+      </div>
+      <input class="ai-text" type="text" data-input="setAiText" data-arg="${esc(id)}"
+             value="${esc(aiText[id] || '')}" maxlength="${aiCfg.textMax}"
+             placeholder="masalan: oltin tugma, qora yoqa" />` : '';
+
+    const nechta = guruhlar.filter((g) => tanlov[g]).length;
+    const tayyor = nechta === guruhlar.length;
+
+    // ⚠️ Kirmagan foydalanuvchiga bo'lim BARIBIR ko'rsatiladi, faqat tugma
+    // o'rniga "Kirish" turadi. Blokni butunlay yashirish oson yo'l edi, lekin
+    // o'shanda funksiya kirmagan odam uchun MAVJUD EMASday ko'rinardi va u
+    // nima uchun kirishi kerakligini bilmasdi.
+    const cta = me
+      ? `<button class="ai-cta" data-action="askAiImage" data-arg="${esc(id)}"${tayyor ? '' : ' disabled'}>${tayyor ? '✦ ' : ''}Rasmni chizish</button>`
+      : `<button class="ai-cta" data-action="loginForAi">Kirish — rasm chizish uchun</button>`;
+
+    return `${head}
+      <div class="ai-card">
+        <div class="ai-lead">
+          <span class="ai-lead-icon">🧵</span>
+          <span>Mahsulot suratidan chiziladi</span>
+        </div>
+        ${savollar}
+        ${matnBlok}
+        ${tayyor || !me ? '' : `<div class="ai-count">${esc(`${guruhlar.length} tadan ${nechta} tasi tanlandi`)}</div>`}
+        ${me ? aiCreditLine() : ''}
+        ${cta}
+      </div>`;
+  }
+
+  // Holat 2 — yuklanmoqda. Kutish vaqti AYTILADI: rasm sekin chiziladi va
+  // jim spinner yonida foydalanuvchi sayt qotib qolgan deb o'ylardi.
+  if (st.state === 'loading') {
+    return `${head}
+      <div class="ai-wait">
+        <div class="ai-wait-row"><span class="ai-spin"></span><span>Rasm chizilmoqda… (30 soniyagacha)</span></div>
+        <div class="ai-bar"></div>
+      </div>`;
+  }
+
+  // Holat 3 — surat yo'q. Bu XATO EMAS, shuning uchun qayta urinish tugmasi
+  // ham YO'Q: qayta bosish natijani o'zgartirmasdi va kredit yeyilardi.
+  if (st.state === 'nophoto') {
+    return `${head}<div class="ai-msg ai-msg-plain">Bu mahsulotda surat yo'q, shuning uchun rasm chizib bo'lmaydi</div>`;
+  }
+
+  // Holat 4 — kredit tugadi. ⚠️ "Ertaga yangilanadi" DEYILMAYDI: kredit
+  // qoldiq, u o'zi tiklanmaydi va bunday xabar jimgina yolg'on bo'lardi.
+  if (st.state === 'nocredit') {
+    return `${head}<div class="ai-msg ai-msg-warn">Kredit qoldig'i tugadi — yangi rasm chizib bo'lmaydi.</div>`;
+  }
+
+  if (st.state === 'badtext') {
+    return `${head}
+      <div class="ai-msg ai-msg-warn">
+        Matnda ruxsat etilmagan belgi bor — faqat harf, raqam, vergul va chiziqcha
+        <button class="ai-ghost" data-action="resetAiImage" data-arg="${esc(id)}">Boshqacha chizish</button>
+      </div>`;
+  }
+
+  // Provayder band — bu NOSOZLIK EMAS: server allaqachon uch marta urinib
+  // ko'rgan va kredit qaytarilgan. Shuning uchun qayta urinish MA'NOLI.
+  if (st.state === 'busy') {
+    return `${head}
+      <div class="ai-msg ai-msg-warn">
+        AI xizmati hozir band. Kreditingiz qaytarildi — bir necha daqiqadan keyin urinib ko'ring
+        <button class="ai-ghost" data-action="askAiImage" data-arg="${esc(id)}">Qayta urinish</button>
+      </div>`;
+  }
+
+  // Model rad etdi. ⚠️ Tugma "qayta urinish" EMAS: ayni javoblar ayni rad
+  // javobini beradi. Yagona foydali harakat — javoblarni o'zgartirish.
+  if (st.state === 'blocked') {
+    return `${head}
+      <div class="ai-msg ai-msg-warn">
+        AI bu so'rov bo'yicha rasm chizishdan bosh tortdi. Kreditingiz qaytarildi — javoblarni o'zgartirib ko'ring
+        <button class="ai-ghost" data-action="resetAiImage" data-arg="${esc(id)}">Boshqacha chizish</button>
+      </div>`;
+  }
+
+  // Kirish talab qilindi (sessiya eskirgan). Alohida holat: umumiy xato
+  // ko'rsatilsa xaridor qayta-qayta bosib, hech qachon kirmasdi.
+  if (st.state === 'noauth') {
+    return `${head}
+      <div class="ai-msg ai-msg-warn">
+        Sessiya tugagan — rasm chizish uchun qaytadan kiring
+        <button class="ai-ghost" data-action="loginForAi">Kirish</button>
+      </div>`;
+  }
+
+  // Texnik xato. ⚠️ Zaxira sifatida "namunaviy rasm" ATAYLAB ko'rsatilmaydi:
+  // u AI ishlamayotganini yashirardi ("jimgina yolg'on yo'qlikdan yomonroq").
+  if (st.state === 'error') {
+    return `${head}
+      <div class="ai-msg ai-msg-err">
+        Hozir generatsiya qilib bo'lmadi, birozdan keyin urinib ko'ring
+        <button class="ai-ghost" data-action="askAiImage" data-arg="${esc(id)}">Qayta urinish</button>
+      </div>`;
+  }
+
+  // Natija. ⚠️ Yorliq rasm bilan BITTA blokda va uning ICHIDA turadi —
+  // pastda alohida qatorda emas: skrinshot olinganda kadrdan chiqib ketmasin.
+  return `${head}
+    <figure class="ai-figure">
+      <img src="${esc(st.url)}" alt="AI kiyim rasmi" loading="lazy" />
+      <figcaption class="ai-note"><span>⚠️</span><span>AI tasavvuri — haqiqiy mahsulot emas</span></figcaption>
+    </figure>
+    <div class="ai-acts">
+      ${aiOtherCutBtn(id)}
+      <button class="ai-ghost" data-action="resetAiImage" data-arg="${esc(id)}">Boshqacha chizish</button>
+      <button class="ai-ghost" data-action="shareAiImage" data-arg="${esc(st.url)}">Ulashish</button>
+    </div>
+    ${aiCreditLine()}`;
+}
+
+/* Detalni qayta chizish — foydalanuvchi boshqa ko'rinishga o'tib ketgan
+   bo'lsa hech narsa qilmaydi (`loadReviews` dagi bilan bir xil naqsh). */
+function repaintDetail(id) {
+  if (isOpen() && drawerView === 'detail' && detailId === id) renderDrawer();
+}
+
+/* Chip bosilganda. Argument `id|guruh|kalit` — delegatsiya bitta `data-arg`
+   beradi, shuning uchun `|` bilan kodlanadi (`qtyStep` dagi bilan ayni
+   konvensiya).
+   ⚠️ Bu yerda TEKSHIRUV yo'q: serverdan kelmagan kalit umuman chizilmaydi,
+   server esa har so'rovda o'z oq ro'yxatidan mustaqil o'tkazadi. */
+function pickAiChoice(arg) {
+  const [id, guruh, kalit] = String(arg).split('|');
+  if (!id || !guruh || !kalit) return;
+  aiChoices[id] = Object.assign({}, aiChoices[id] || {}, { [guruh]: kalit });
+  // ⚠️ Javob o'zgarsa variant NOLGA qaytadi. Aks holda xaridor "palto" dan
+  // "ko'ylak" ga o'tganda darrov 3-fason so'ralgan bo'lardi — ya'ni u
+  // so'ramagan variant uchun kredit ketardi va sababi ko'rinmasdi.
+  delete aiVariant[id];
+  repaintDetail(id);
+}
+
+/* Erkin matn. ⚠️ Bu yerda QAYTA CHIZISH YO'Q: `renderDrawer()` butun tanani
+   qayta yozadi va har harfda kursor maydondan uchib ketardi (saytdagi boshqa
+   matn maydonlari ham shu naqshda — `onReviewBody`, `onDisputeComment`). */
+function setAiText(qiymat, id) {
+  aiText[String(id)] = String(qiymat || '');
+}
+
+/* "Boshqacha chizish" — natijani tozalaydi va savollarga QAYTARADI.
+   Javoblar SAQLANADI: xaridor odatda bittasini o'zgartirmoqchi bo'ladi. */
+function resetAiImage(id) {
+  delete aiImages[String(id)];
+  // Variant ham nolga qaytadi — aks holda tekin bo'lishi kerak bo'lgan
+  // qaytish jimgina pullik variantda qolib ketardi.
+  delete aiVariant[String(id)];
+  repaintDetail(String(id));
+}
+
+/* "Boshqa fason" — javoblar SAQLANADI, faqat variant raqami oshadi va darrov
+   yangi so'rov ketadi. Savollarga QAYTARILMAYDI: xaridor javoblaridan
+   mamnun, unga yoqmagani — chizilgan fason.
+   ⚠️ Chegara SERVERDAN kelgan qiymat bilan tekshiriladi va bu YAGONA
+   tekshiruv emas: server ham mustaqil o'tkazadi. Bu yerdagisi xatoni pul
+   sarflanadigan yo'ldan OLDIN ushlaydi. */
+function otherCutAiImage(id) {
+  const key = String(id);
+  const keyingi = (aiVariant[key] || 0) + 1;
+  if (!aiCfg || !aiCfg.variantMax || keyingi > aiCfg.variantMax) return;
+  aiVariant[key] = keyingi;
+  askAiImage(key);
+}
+
+/* Kirish — AI blokidan. Kirgandan keyin AYNI mahsulot tafsilotiga qaytadi
+   (`afterLoginView`), aks holda xaridor profilga tushib qolib, qaysi matoni
+   ko'rayotganini qaytadan qidirardi. */
+function loginForAi() {
+  afterLoginView = 'detail';
+  drawerView = 'login';
+  loginState = 'idle';
+  loginErr = '';
+  renderDrawer();
+}
+
+/* Tugma bosilganda. Kimlik cookie sessiyasidan — brauzer hech qanday ID
+   yubormaydi (CLAUDE.md: `tg_user_id` klientdan olinmaydi), server uni
+   `requestUser()` bilan o'zi aniqlaydi. */
+function askAiImage(id) {
+  const key = String(id);
+  aiImages[key] = { state: 'loading' };
+  repaintDetail(key);
+
+  fetch('/api/ai/image', {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      productId: key,
+      // Matn va variant HAR DOIM yuboriladi — server `dizayn = combo`
+      // bo'lmasa matnni, `variant = 0` bo'lsa variantni O'ZI tashlaydi.
+      // Klientda ikkinchi tekshiruv yozilmadi: u serverdagi qoidaning
+      // nusxasi bo'lardi.
+      choices: Object.assign({}, aiChoices[key] || {}, {
+        matn: aiText[key] || '',
+        variant: aiVariant[key] || 0,
+      }),
+    }),
+  })
+    .then((r) => r.json().catch(() => null).then((j) => ({ r, j })))
+    .then(({ r, j }) => {
+      if (j && j.data && j.data.credits) aiCredits = j.data.credits;
+      if (r.status === 401) {
+        // Sessiya eskirgan yoki umuman kirilmagan.
+        aiImages[key] = { state: 'noauth' };
+      } else if (r.status === 429 && j && j.error === 'no_credit') {
+        if (j.credits) aiCredits = Object.assign({}, aiCredits || {}, j.credits);
+        aiImages[key] = { state: 'nocredit' };
+      } else if (r.status === 400 && j && j.error === 'bad_choices') {
+        aiImages[key] = { state: 'badtext' };
+      } else if (j && j.error === 'ai_busy') {
+        aiImages[key] = { state: 'busy' };
+      } else if (r.status === 422 && j && j.error === 'ai_blocked') {
+        aiImages[key] = { state: 'blocked' };
+      } else if (r.status === 422 && j && j.error === 'no_source_photo') {
+        aiImages[key] = { state: 'nophoto' };
+      } else if (j && j.ok && j.data && j.data.image) {
+        aiImages[key] = { state: 'done', url: j.data.image };
+      } else {
+        aiImages[key] = { state: 'error' };
+      }
+    })
+    .catch(() => { aiImages[key] = { state: 'error' }; })
+    .then(() => repaintDetail(key));
+}
+
+/* Ulashish — rasm Telegram'da yoki CDN'da yashaydi, ya'ni bu deyarli tekin
+   kanal. Mini App'dagi `openTelegramLink` bu yerda yo'q: saytda oddiy
+   `window.open` ishlaydi. */
+function shareAiImage(url) {
+  const s = String(url || '');
+  const toliq = s.indexOf('http') === 0 ? s : location.origin + s;
+  window.open(
+    'https://t.me/share/url?url=' + encodeURIComponent(toliq) +
+    '&text=' + encodeURIComponent('AI bilan chizilgan — lolamarket.uz'),
+    '_blank'
+  );
+}
+
+/* Kredit qoldig'ini so'raymiz — SO'RALMASDAN ko'rsatiladi, ya'ni xaridor
+   chegarani u TUGAGANDA emas, pul sarflashdan OLDIN ko'radi.
+   ⚠️ Xato bo'lsa JIM o'tadi va kredit qatori umuman chizilmaydi: bu yerda
+   o'ylab topilgan raqam ko'rsatishdan ko'ra hech narsa ko'rsatmagan yaxshi. */
+function loadAiCredits() {
+  if (!me || !aiCfg || aiCredits) return;
+  apiJson('/api/ai/my')
+    .then((d) => {
+      if (d && d.ok && d.data && d.data.credits) {
+        aiCredits = d.data.credits;
+        if (isOpen() && drawerView === 'detail') renderDrawer();
+      }
+    })
+    .catch(() => { /* kredit qatori chizilmaydi — nuqson emas */ });
+}
+
 function detailHtml(id) {
   const p = product(id);
   if (!p) return '';
@@ -1094,6 +1522,8 @@ function detailHtml(id) {
              </div>`
           : `<button class="pd-add" data-action="addFromDetail" data-arg="${esc(id)}">Savatga qo'shish</button>`}
       </div>
+
+      ${aiSection(id)}
 
       <div class="pd-sec-title">Sharhlar</div>
       ${list === undefined

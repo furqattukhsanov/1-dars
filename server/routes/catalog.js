@@ -2,7 +2,7 @@ const https = require('https');
 const crypto = require('crypto');
 const { pool } = require('../db');
 const { BOT_TOKEN, ADMIN_PANEL_TOKEN, AI_IMAGE_ENABLED } = require('../config');
-const { IMAGE_CHOICES, COMBO_CHOICES, COMBO_TEXT_MAX, VARIANT_MAX } = require('../lib/ai');
+const { aiClientConfig } = require('../lib/ai');
 const { verifyInitData, authUser, isAdmin, currentSeller } = require('../lib/auth');
 const { escapeHtml, money, safeEqual } = require('../lib/format');
 const { validate } = require('../lib/validate');
@@ -40,33 +40,14 @@ async function handleAuthTelegram(req, res, ip) {
     // "xato" chiqadigan tugma sozlama buzilganini yashirardi.
     // ⚠️ Bu KO'RINISH belgisi, himoya EMAS — endpointning o'zi ham mustaqil
     // tekshiradi (tugmani yashirish hech qachon yagona qorovul bo'lmaydi).
-    // `aiImageChoices` — savol guruhlari va ularning KALITLARI. Yorliqlar
-    // (uz/ru) frontendda, kalitlar esa SERVERDA tug'iladi va shu yerdan
-    // beriladi: ikkinchi ro'yxat himoya emas, kelajakdagi tuzoq (db/014).
-    // Frontend serverdan kelmagan kalitni umuman chizmaydi.
+    //
+    // ⚠️ Blok QO'LDA yig'ilmaydi — `aiClientConfig()` (`lib/ai.js`) beradi va
+    // AYNI funksiyani sayt tomoni (`/api/auth/web/me`) ham chaqiradi. Ilgari
+    // u shu yerda qo'lda yozilgandi, ya'ni sozlama faqat Mini App'ga borardi.
     sendJson(res, 200, {
       ok: true,
       user: rows[0],
-      aiImageEnabled: AI_IMAGE_ENABLED,
-      aiImageChoices: AI_IMAGE_ENABLED
-        ? Object.fromEntries(Object.entries(IMAGE_CHOICES).map(([g, v]) => [g, Object.keys(v)]))
-        : null,
-      // Combo javoblari ALOHIDA yuboriladi, chunki ular SHARTLI: faqat
-      // `dizayn = combo` tanlanganda so'raladi. Bitta ro'yxatga qo'shib
-      // yuborilsa frontend ularni doim chizardi va xaridor keraksiz ikki
-      // savolga javob berib o'tirardi.
-      aiComboChoices: AI_IMAGE_ENABLED
-        ? Object.fromEntries(Object.entries(COMBO_CHOICES).map(([g, v]) => [g, Object.keys(v)]))
-        : null,
-      // Erkin matn chegarasi — frontend `maxlength` ni SHUNDAN oladi.
-      // Qo'lda yozilsa server 60 ga, input 100 ga sozlanib qolishi mumkin
-      // edi va xaridor yozib bo'lgach 400 xato ko'rardi (db/014 darsi).
-      aiComboTextMax: AI_IMAGE_ENABLED ? COMBO_TEXT_MAX : null,
-      // "Boshqa fason" tugmasining chegarasi — AYNI sabab bilan serverdan
-      // (2026-08-09). Frontend chegaraga yetganda tugmani umuman chizmaydi;
-      // qo'lda yozilsa ikkalasi ajralib ketardi va xaridor tugmani bosib
-      // "javob yaroqsiz" xatosini ko'rardi — ustiga bu pullik so'rov.
-      aiVariantMax: AI_IMAGE_ENABLED ? VARIANT_MAX : null,
+      ...aiClientConfig(AI_IMAGE_ENABLED),
     });
   } catch (e) {
     console.error('auth xatosi:', e.message);

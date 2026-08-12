@@ -84,6 +84,17 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
 
 ## Qilingan ishlar
 
+- [2026-08-13] **AI kiyim rasmi saytga qo'shildi** — sayt xaridori endi Mini
+  App'dagi AI oqimini to'liq oladi (savollar, kredit, natija, xato holatlari).
+  ⚠️ **To'liq yozuv bu yerda EMAS** — `docs/sprintlar/sprint-10.md` →
+  «2026-08-13 — AI kiyim rasmi SAYTDA (C1)» bo'limida. Bu yerda faqat ishora:
+  bir xil ro'yxatni ikki hujjatga ko'chirish `db/014` naqshining hujjatdagi
+  ko'rinishi bo'lardi — ikki nusxa jimgina ajralib ketadi. Sayt tomoniga
+  tegishli qismi: `/api/auth/web/me` endi AI sozlamasini ham qaytaradi
+  (kirmagan foydalanuvchiga ham), AI endpointlari sayt cookie sessiyasini
+  tanidi (ilgari sayt xaridori jimgina 401 olardi), va saytning `input`
+  delegatsiyasi `data-arg` ni uzatmagani tuzatildi
+
 - [2026-08-12] **Sayt Mini App darajasiga tortildi — va ish davomida ma'lum
   bo'ldiki, sayt bilan Mini App orasidagi farq dizayn emas, IKKI XIL HAQIQAT edi.**
 

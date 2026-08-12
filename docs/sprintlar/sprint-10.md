@@ -1463,3 +1463,227 @@ javobni — bitta shaklsiz uzun ko'ylakni — qaytaraverardi.
    davom etsa sabab boshqa joyda
 4. `PROMPT_VERSION` 4 ga o'tgani uchun mavjud har bir rasm bir marta qayta
    chiziladi (~$0.04 × so'ralganlari). Bu ATAYLAB va narxi ochiq yozildi
+
+---
+
+## 2026-08-13 — AI kiyim rasmi SAYTDA (C1)
+
+Sprint 10 hamon `tugadi` holatida. Bu bo'lim funksiyaning O'ZI haqida emas —
+u ishlab turgan edi — balki **u KIMGA yetib borgani** haqida: AI rasmi faqat
+Mini App'da mavjud edi, lolamarket.uz xaridori esa uni umuman ko'rmasdi.
+
+### Tashxis — qoida YOZILGAN edi, naqsh esa TAKRORLANGAN
+
+2026-08-12 da CLAUDE.md ga "kimlik IKKI KANALDA ham bitta nuqtadan olinadi"
+qoidasi yozilgan edi. O'sha kuni u bahs ochish (`/api/disputes`) uchun
+tuzatildi. **AI endpointi esa eski holida qoldi:**
+
+| Endpoint | Kimlik | Sayt xaridori nima ko'radi |
+|---|---|---|
+| `POST /api/ai/image` | `authUser()` — faqat `initData` | jimgina **HTTP 401** |
+| `GET /api/ai/my` | `authUser()` — faqat `initData` | jimgina **HTTP 401** |
+
+⚠️ Bu qoidaning kuchsizligi emas, uning **tabiati**: qoida yozilgani uni
+bajarilgan qilmaydi. Loyihaning o'z darsi yana tasdiqlandi — **yozilgan qoida
+himoya emas, uni tekshiradigan TEST himoya** (`console.error`, `?v=`,
+`ALERT_CHAT_ID` bandlari bilan bitta oila). Shuning uchun bu safar tuzatish
+bilan BIRGA qorovul yozildi (Test 3f).
+
+Ikkinchi to'siq: sozlama. AI savol kalitlari `/api/auth/telegram` javobining
+ICHIDA qo'lda yig'ilardi, ya'ni **sayt bu blokni umuman olmasdi** — savollarni
+chizishning iloji yo'q edi. Uni ikkinchi endpointga NUSXA ko'chirish esa
+`db/014` naqshining o'zi bo'lardi (bir xil ro'yxat ikki joyda → jimgina
+ajralib ketadi).
+
+### Bajarilgani
+
+| Band | Natija |
+|---|---|
+| `routes/ai.js` | `authUser()` → `await requestUser(req)` — ikkala joyda (`handleAiImage`, `handleAiMy`) |
+| `aiClientConfig()` | YANGI (`lib/ai.js`) — mijoz sozlamasining YAGONA manbai; nusxa emas, **bitta funksiya ikki endpointda** |
+| `/api/auth/web/me` | endi AYNI sozlamani beradi — **kirmagan foydalanuvchiga ham** |
+| `script.js` | AI bloki **+432 qator**, **13 yangi funksiya** — Mini App'dagi HAMMA holat qoplandi |
+| Kirmagan holat | blok KO'RINADI, tugma o'rniga "Kirish"; kirgandan keyin AYNI mahsulotga qaytadi |
+| `style.css` | **+179 qator** — hammasi MAVJUD tokenlardan, yangi rang/o'lcham o'ylab topilmadi |
+| **Test 3f** | YANGI qorovul — sayt chaqirgan endpoint sayt kimligini bilishini tekshiradi |
+| Yo'l-yo'lakay nuqson | `input` delegatsiyasi `data-arg` ni UZATMASDI — erkin matn so'rovga TUSHMASDI |
+| Poyga tuzatildi | sozlama kech kelsa AI bloki JIMGINA yo'q bo'lardi — endi tafsilot qayta chiziladi |
+| Kesh | `style.css?v=40 → 41` (index.html VA admin/index.html), `script.js?v=30 → 31` |
+| Testlar | **53 → 54** |
+
+### Qilingan ishlar
+
+- [2026-08-13] **`routes/ai.js` kimligi ikkala kanaldan** — `authUser()` →
+  `requestUser()` (`handleAiImage`, `handleAiMy`). Ilgari sayt xaridori bir
+  xil tugmani bosib JIMGINA 401 olardi. ⚠️ Ikkala yo'l ham kimlikni SERVER
+  tomonda hal qiladi (imzolangan `initData` yoki HttpOnly cookie) — klientdan
+  `tg_user_id` baribir olinmaydi: kredit hisobi shu ID ga bog'langan, ya'ni
+  u yerdagi xato "boshqaning kreditini sarflash" degani bo'lardi
+- [2026-08-13] **`aiClientConfig()` qo'shildi** (`server/lib/ai.js`) — bayroq,
+  savol kalitlari, combo kalitlari va ikkita chegara BITTA joydan. Ikkinchi
+  endpointga nusxa KO'CHIRILMADI: yangi savol guruhi qo'shilsa u avtomatik
+  ikkala kanalga boradi. `enabled: false` bo'lsa qolgan maydonlar `null` —
+  frontend savolsiz so'rov yubora olmaydi
+- [2026-08-13] `routes/catalog.js` — `/api/auth/telegram` dagi qo'lda yig'ilgan
+  blok o'sha funksiyaga almashtirildi (xatti-harakat o'zgarmadi)
+- [2026-08-13] `routes/web-auth.js` — `/api/auth/web/me` endi AYNI sozlamani
+  qaytaradi. ⚠️ **Kirmagan foydalanuvchiga ham** (`user: null`): aks holda AI
+  funksiyasi kirmagan odam uchun MAVJUD EMASday ko'rinardi va u nima uchun
+  kirishini bilmasdi
+- [2026-08-13] **Saytga AI bloki** (`script.js`, **+432 qator, 13 funksiya** —
+  `git diff` bilan SANALDI, taxmin emas): `aiSection()`,
+  `pickAiChoice`, `askAiImage`, `resetAiImage`, `otherCutAiImage`, `setAiText`,
+  `shareAiImage`, `loginForAi`, `loadAiCredits`, `aiCreditLine`,
+  `aiOtherCutBtn`, `readAiConfig`, `repaintDetail`. Mini App'dagi hamma holat
+  qoplandi: savollar, combo shoxi (shartli 2 savol + erkin matn), kutish,
+  provayder band, model rad etdi, kredit tugadi, surat yo'q, texnik xato,
+  natija. Savol kalitlari SERVERDAN — sayt o'zi hech narsa o'ylab topmaydi
+- [2026-08-13] **Kirmagan foydalanuvchida blok YASHIRILMAYDI** — tugma o'rniga
+  "Kirish" turadi va kirgandan keyin xaridor AYNI mahsulotga qaytadi
+  (`afterLoginView = 'detail'`). Blokni yashirish funksiyani mavjud emasday
+  ko'rsatardi
+- [2026-08-13] `style.css` — AI uslublari (**+179 qator**) Mini App'dan olib
+  o'tildi. Har qiymat MAVJUD tokenlardan, aylanish animatsiyasi mavjud
+  `auth-spin` dan: yangi rang yoki o'lcham kiritilsa sayt bilan Mini App
+  jimgina ajralib ketardi
+- [2026-08-13] **Yo'l-yo'lakay nuqson: `input` delegatsiyasi `data-arg` ni
+  UZATMASDI** (`script.js`). Mini App uzatadi, sayt esa yo'q — natijada AI
+  erkin matni `aiText[undefined]` ga yozilardi va **xaridor yozgan izoh
+  so'rovga UMUMAN tushmasdi**. Konsolda xato yo'q, tugma ishlaydi, natija
+  boshqa. Delegatsiya endi `fn(qiymat, data-arg)` chaqiradi — ikkala klientda
+  BITTA shartnoma. ⚠️ Bu nuqson kodni o'qib emas, **brauzerda o'lchab** topildi
+- [2026-08-13] **Poyga tuzatildi:** `/api/auth/web/me` asinxron, ya'ni sekin
+  tarmoqda xaridor mahsulotni sozlama kelgunicha ochib ulgurardi va o'shanda
+  AI bloki JIMGINA yo'q bo'lardi. Endi sozlama kelganda ochiq turgan tafsilot
+  oynasi qayta chiziladi — FAQAT `detail`: checkout'ga tegilsa xaridor
+  yozayotgan maydonlar o'chib ketardi
+- [2026-08-13] **Yangi Test 3f** (`server/test.js`) — sayt chaqirgan endpoint
+  sayt kimligini bilishini tekshiradi. Ro'yxat QO'LDA yozilmaydi: `script.js`
+  dan saytning O'Z chaqiruvlari (yo'l + METOD) yig'iladi, `server.js`
+  router'idan handler nomi topiladi, `routes/` dagi funksiya TANASI o'qiladi.
+  Tanada `authUser(` bo'lib `requestUser(`/`webSessionUser(` bo'lmasa — QIZIL
+- [2026-08-13] `index.html` va `admin/index.html` — `style.css?v=40 → 41`
+  (IKKALASI birga), `index.html` — `script.js?v=30 → 31`. Test 16 jadvali
+  yangilandi. ⚠️ **Test 16 amalda ushladi** — jadval yangilanmagan holatda
+  test qizil bo'ldi, ya'ni qorovul haqiqiy ish qildi
+- [2026-08-13] `CLAUDE.md` — "kimlik ikki kanalda" qoidasi ostiga naqsh
+  takrorlangani va uni endi Test 3f qo'riqlashi yozildi
+- [2026-08-13] `loyiha-panel.html` — `panel.js?v=11` → `?v=12`, Test 16
+  jadvali yangilandi
+
+### Sinov — nima TASDIQLANDI
+
+- **54 test PASS.** ⚠️ Raqam IKKI MUSTAQIL usul bilan olindi:
+  `grep -c "✅ Test " server/test.js` = **54** va `npm test` chiqishidagi
+  qatorlar = **54**. HEAD dagi holat **53** edi
+- **Test 3f 5 mutatsiya bilan sinaldi, 5 tasi ham ushlandi.** Sinov IKKITA
+  TESHIK ochdi va ikkalasi ham tuzatildi:
+  (a) **izohdagi** `requestUser()` so'zi qorovulni aldardi — endi tahlildan
+  oldin izohlar olib tashlanadi (`kodSofi`);
+  (b) o'ram funksiyaning **NOMIGA** ishonish yetarli emas — `reviewAuthor` ning
+  cookie yo'li o'chirilganda ham test yashil qolardi, endi o'ramning ICHI ochib
+  ko'riladi (`kengaytir`)
+- **Brauzerda o'lchangani** (stub server bilan): sozlama serverdan yetib keldi
+  (3 guruh, 13 chip), kirmagan holatda "Kirish" tugmasi, chip tanlash va
+  hisoblagich, CTA faqat hamma javob berilganda ochilishi, combo shoxi
+  (6 savol + matn maydoni, `maxlength` SERVERDAN = 60), so'rov tanasi
+  (`{productId, choices:{kiyim,uslub,dizayn,matn,variant}}`), "boshqa fason"
+  variantni 1 ga oshirishi, natija bloki (394px, rasm yuklandi, yorliq
+  joyida), mobil ko'rinish (gorizontal oqim yo'q)
+- **OLTI xato holati o'lchandi:** busy · blocked · nocredit · nophoto · error ·
+  tarmoqsiz. Ustiga 401 → "Kirish" → kirgandan keyin AYNI mahsulotga qaytish
+- **Poyga 15 soniyalik sun'iy kechikish bilan tasdiqlandi** — sozlama kech
+  kelganda ochiq tafsilot oynasi qayta chizildi
+- ⚠️ **Stub sozlamani O'YLAB TOPMADI:** u haqiqiy `aiClientConfig()` dan oldi,
+  sayt yuborgan so'rov tanasi esa serverning haqiqiy `normalizeChoices()` idan
+  o'tkazildi va qabul qilindi. Aks holda sinov o'zini o'zi tekshirgan bo'lardi
+- **Xavfsizlik:** sayt yo'li cookie bilan ishlaydi, lekin sessiya cookie'si
+  `SameSite=Lax` va CORS aniq `ALLOWED_ORIGIN` da — CSRF yuzasi ochilmadi
+
+### Sinov — nima TASDIQLANMADI (ochiq yozilsin)
+
+🔴 **SAYTDA HALI BIRONTA HAQIQIY RASM CHIZILMAGAN.** Brauzer sinovi **stub
+server** bilan o'tkazildi — lokalda Postgres ham, Gemini kaliti ham yo'q.
+Ya'ni tasdiqlangani: *sayt to'g'ri so'rov yuboradi va javobning har turini
+to'g'ri chizadi*. Tasdiqlanmagani: *haqiqiy backend shu so'rovni qabul qilib
+rasm qaytarishi*. Bu farq `2026-08-09` dagi «`imageConfig` qabul qilinishi
+o'lchanmagan» bandi bilan bitta toifada va shu holicha e'lon qilinadi.
+
+### DEPLOY DALILI (2026-08-13)
+
+> ⚠️ **BO'SH — deploy'dan KEYIN to'ldiriladi.** Bu bo'lim ataylab ochiq
+> qoldirilgan: oldingi sessiyalarda aynan shu joy hujjat qarzi tug'dirgan
+> (sprintda "production'da tasdiqlandi" deb yozilgan, aslida o'lchanmagan
+> holat — `ALERT_CHAT_ID` darsi). **Yozilmaguncha bu ish "deploy qilindi"
+> deb hisoblanmaydi.**
+
+To'ldirilishi kerak bo'lgan bandlar:
+
+1. [ ] `server/` qo'lda rsync qilindi + servis restart (founder bajaradi —
+       CI `server/` ni CHIQARMAYDI)
+2. [ ] `curl` bilan tekshirildi: `/api/auth/web/me` javobida `aiImageEnabled`
+       va `aiImageChoices` bor (kirmagan holatda ham)
+3. [ ] `style.css?v=41` va `script.js?v=31` production'dan `Content-Type`
+       bo'yicha tekshirildi (soft-200 tuzog'i)
+4. [ ] **Saytda BIRINCHI HAQIQIY RASM chizildi** — kredit yechildi, rasm
+       ko'rindi, "AI tasavvuri" yorlig'i joyida
+5. [ ] Sayt sessiyasi bilan `/api/ai/my` javob berdi (401 EMAS)
+6. [ ] Rasm Mini App galereyasida ham ko'rindi (egasi BITTA Telegram ID)
+
+### Qarorlar
+
+- [2026-08-13] Qaror: **AI endpointlari `requestUser()` ga o'tkazildi,
+  `authUser()` da QOLDIRILMADI.** `authUser()` faqat Mini App'ni biladi, ya'ni
+  sayt xaridori uchun funksiya MAVJUD EMAS edi — lekin tugma ko'rinmagani
+  uchun buni hech narsa ko'rsatmasdi. CLAUDE.md dagi istisno ("faqat Mini App
+  uchun mo'ljallangan endpoint `authUser()` da qolishi mumkin") bu yerga
+  QO'LLANMAYDI: AI rasmi ikkala kanalda ham xaridorga mo'ljallangan
+- [2026-08-13] Qaror: **mijoz sozlamasi bitta funksiyadan** (`aiClientConfig`),
+  ikkinchi endpointga nusxa ko'chirilmaydi. `db/014` naqshi: bir xil ro'yxat
+  ikki joyda yozilsa ular jimgina ajralib ketadi va farq KO'RINMAYDI — sayt
+  xaridori shunchaki tugmani ko'rmay qo'yardi. Yangi savol guruhi qo'shilsa
+  u avtomatik ikkala kanalga boradi
+- [2026-08-13] Qaror: **kirmagan foydalanuvchiga sozlama BERILADI va blok
+  KO'RSATILADI.** Tugma o'rniga "Kirish". Sabab: yashirilgan funksiya —
+  mavjud bo'lmagan funksiya; xaridor nima uchun kirishi kerakligini bilmasa
+  kirmaydi. Bu KO'RINISH qarori, himoya emas — endpointning o'zi baribir
+  mustaqil tekshiradi (`401`)
+- [2026-08-13] Qaror: **tuzatish bilan BIRGA qorovul yoziladi (Test 3f).**
+  Bu bandning eng muhim qismi: qoida 2026-08-12 da YOZILGAN edi va bir kun
+  ichida buzilgan holda topildi. Ro'yxat qo'lda yozilmasligi ataylab —
+  saytga yangi `fetch('/api/...')` qo'shilsa u AVTOMATIK qamraladi, aks holda
+  qorovulning o'zi eskirardi
+- [2026-08-13] Qaror: **sozlama kech kelganda faqat `detail` qayta chiziladi**,
+  checkout EMAS. Checkout ham qayta chizilsa xaridor yozayotgan maydonlar
+  (telefon, manzil, izoh) o'chib ketardi — ya'ni tuzatish o'zidan kattaroq
+  nuqson yaratardi. Bu `onPriceDraft()` da `paintSheet()` chaqirmaslik
+  qarorining aynan takrori (Sprint 4, 2026-07-31)
+- [2026-08-13] **Dars: `data-arg` uzatilmagani JIMGINA yolg'on edi.** Sayt
+  delegatsiyasi `input` uchun ikkinchi argumentni bermasdi va AI erkin matni
+  hech qayerga bormasdi. Ekran to'g'ri ko'rinardi, tugma ishlardi, xato yo'q
+  edi — faqat NATIJA boshqa chiqardi. Ikki klient bitta shartnomani
+  (`data-action` / `data-arg` / `data-input`) ikki xil bajarishi shu toifadagi
+  nuqsonlarning manbai; endi ikkalasi bir xil
+- [2026-08-13] **Dars: deploy tartibi IKKALA yo'nalishda ham xavfsiz
+  bo'lishi ATAYLAB tanlandi.** Eski backend + yangi frontend bo'lsa
+  `/api/auth/web/me` sozlama qaytarmaydi, `aiCfg` `null` qoladi va blok
+  UMUMAN chizilmaydi — o'lik tugma paydo bo'lmaydi. Ya'ni frontend CI orqali
+  oldin chiqsa ham xaridor buzuq holatni ko'rmaydi
+
+### Ochiq qolgani
+
+1. 🔴 **Deploy qilinmagan.** `server/` CI orqali CHIQMAYDI — qo'lda rsync va
+   servis restart kerak va uni **founder bajaradi**. Yuqoridagi DEPLOY DALILI
+   ro'yxati shundan keyin to'ldiriladi
+2. 🔴 **Saytdan birinchi haqiqiy rasm hali chizilmagan** — yuqoridagi
+   "TASDIQLANMADI" bandiga qara. Bu 2026-08-09 dagi ochiq band bilan bitta:
+   o'sha kuni ham «hali hech kim rasm chizdirmagan» deb yozilgandi
+3. **Sayt va Mini App AI bloki endi IKKI joyda chiziladi** (`script.js` va
+   `telegram-app/app.js`) — mantiq bir xil, kod alohida. Sozlama va savol
+   kalitlari serverdan kelgani uchun ular ajralib keta olmaydi, LEKIN
+   ko'rinish (matn, xato xabarlari) qo'lda sinxron turadi. Uchinchi kanal
+   paydo bo'lsa bu blok umumiy modulga chiqarilsin
+4. **AI natijasi saytda ulashilishi (`shareAiImage`) faqat brauzer
+   `navigator.share` bo'lgan holatda o'lchandi** — desktop zaxira yo'li
+   (havolani nusxalash) ko'z bilan ko'rildi, lekin haqiqiy rasm URL bilan
+   sinalmagan

@@ -2200,3 +2200,182 @@ body { padding-bottom: calc(var(--dock-h) + env(safe-area-inset-bottom, 0px)); }
 }
 .rv-btns .auth-ghost { flex: 1; margin-top: 0; }
 .rv-btns .pd-add { flex: 1.4; }
+
+/* ====================================================
+   AI KIYIM RASMI — mahsulot tafsilotidagi bo'lim (2026-08-13, C1)
+
+   Uslublar Mini App'dagi bo'lim bilan AYNI (`telegram-app/styles.css`) —
+   ikkala yuza bir xil dizayn tizimida, ya'ni bu yerda yangi o'lcham yoki
+   yangi rang O'YLAB TOPILMADI. Barcha qiymat mavjud tokenlardan olinadi:
+   mavzu o'zgarsa bo'lim o'zi ergashadi.
+
+   ⚠️ Aylanish animatsiyasi `auth-spin` dan olinadi (kirish ekranida
+   allaqachon bor) — ikkinchi `@keyframes` yozilmadi.
+   ==================================================== */
+
+.ai-card {
+  padding: 15px 15px 14px;
+  border-radius: var(--radius-md);
+  border: 1.5px dashed var(--pom-700);
+  background: rgba(255, 255, 255, .5);
+}
+
+/* Bo'lim boshi: nima bo'layotganini bir qatorda aytadi */
+.ai-lead { display: flex; align-items: center; gap: 9px; margin-bottom: 13px; }
+.ai-lead span:last-child { font-size: 12px; color: var(--text-muted); line-height: 1.35; }
+.ai-lead-icon {
+  flex: none; width: 30px; height: 30px;
+  border-radius: 9px;
+  background: linear-gradient(150deg, var(--pom-600), var(--pom-800));
+  color: var(--pom-100);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px;
+}
+
+/* Savol qatori: raqamli qadam — checkout ekranidagi raqamlangan bo'limlar
+   bilan bir xil mantiq, foydalanuvchi nechta qadam borligini KO'RADI. */
+.ai-q { display: flex; align-items: center; gap: 7px; margin-bottom: 7px; }
+.ai-q-num {
+  flex: none;
+  width: 17px; height: 17px;
+  border-radius: 50%;
+  background: var(--pom-100);
+  color: var(--pom-700);
+  font-size: 10.5px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+.ai-q-label { font-size: 12.5px; font-weight: 600; color: var(--text-body); }
+
+.ai-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 13px; }
+
+/* Chip o'lchamlari katalogdagi kategoriya chiplari bilan BIR XIL (34px,
+   999px, 13px/600) — yangi o'lcham o'ylab topilmadi. */
+.ai-chip {
+  flex: none;
+  height: 34px; padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border-hair);
+  background: var(--glass-fill);
+  color: var(--text-body);
+  font-family: var(--font-sans);
+  font-size: 13px; font-weight: 600;
+  white-space: nowrap; cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background .18s ease, color .18s ease, border-color .18s ease, box-shadow .18s ease;
+}
+.ai-chip.on {
+  border-color: transparent;
+  background: linear-gradient(150deg, var(--pom-600), var(--pom-800));
+  color: #fff;
+  box-shadow: 0 4px 12px -4px rgba(81, 1, 0, .45);
+}
+
+/* Erkin matn maydoni (faqat combo). `font-size: 16px` ATAYLAB — mobil
+   Safari undan kichik maydonga fokuslanganda sahifani ZUMLAB yuboradi. */
+.ai-text {
+  width: 100%;
+  padding: 11px 13px;
+  border: 1px solid var(--border-hair);
+  border-radius: var(--radius-sm);
+  background: var(--glass-fill-strong);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  color: var(--text-strong);
+  outline: none;
+}
+
+/* Hisoblagich: tugma nega kulrangligini AYTADI. Usiz foydalanuvchi
+   "tugma ishlamayapti" deb o'ylardi. */
+.ai-count { font-size: 11.5px; color: var(--text-muted); margin: 0 0 8px; }
+
+.ai-cta {
+  width: 100%; height: 46px;
+  border: none; border-radius: var(--radius-sm);
+  background: linear-gradient(150deg, var(--pom-600), var(--pom-800));
+  color: #fff;
+  font-family: var(--font-sans);
+  font-size: 14px; font-weight: 700; letter-spacing: .01em;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  cursor: pointer;
+  box-shadow: 0 8px 20px -8px rgba(81, 1, 0, .5);
+  -webkit-tap-highlight-color: transparent;
+  transition: background .2s ease, box-shadow .2s ease, color .2s ease;
+}
+/* O'chiq holat SEZILARLI darajada boshqacha ko'rinadi: shaffoflik emas,
+   BOSHQA rang. Shaffof tugma "yuklanayotgandek" ko'rinadi va bosishga
+   undaydi. */
+.ai-cta:disabled {
+  background: var(--ink-100);
+  color: var(--ink-300);
+  box-shadow: none;
+  cursor: default;
+}
+.ai-cta:disabled:active { opacity: 1; }
+
+.ai-ghost {
+  width: 100%; height: 38px; margin-top: 9px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--pom-700);
+  background: transparent;
+  color: var(--pom-700);
+  font-family: var(--font-sans);
+  font-size: 12.5px; font-weight: 600;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+/* Natija ostidagi tugmalar qatori — kengroq ekranda yonma-yon turadi */
+.ai-acts { display: flex; gap: 9px; flex-wrap: wrap; }
+.ai-acts .ai-ghost { flex: 1; min-width: 150px; }
+
+/* Natija: rasm va yorliq BITTA ramkada — yorliq rasmning bir qismi
+   (skrinshotda ham birga ketsin). */
+.ai-figure {
+  border: 1px solid var(--border-hair);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--glass-fill);
+  box-shadow: var(--shadow-sm);
+}
+.ai-figure img { display: block; width: 100%; height: auto; }
+.ai-note {
+  display: flex; align-items: center; gap: 7px;
+  padding: 9px 12px;
+  background: var(--pom-50);
+  border-top: 1px solid var(--border-hair);
+}
+.ai-note span { font-size: 11.5px; color: var(--text-muted); line-height: 1.4; }
+
+/* Kutish: spinner YONIDA jonli chiziq — generatsiya 30 soniyagacha ketadi
+   va qimirlamaydigan ekran "osilib qoldi" degan taassurot beradi. */
+.ai-wait {
+  padding: 15px;
+  border: 1px solid var(--border-hair);
+  border-radius: var(--radius-md);
+  background: var(--glass-fill);
+}
+.ai-wait-row { display: flex; align-items: center; gap: 10px; margin-bottom: 11px; }
+.ai-wait-row span:last-child { font-size: 13px; color: var(--text-body); }
+.ai-spin {
+  flex: none; width: 16px; height: 16px;
+  border-radius: 50%;
+  border: 2px solid var(--ink-200);
+  border-top-color: var(--pom-700);
+  animation: auth-spin .8s linear infinite;
+}
+.ai-bar { height: 3px; border-radius: 999px; background: var(--ink-100); overflow: hidden; }
+.ai-bar::after {
+  content: ''; display: block;
+  width: 38%; height: 100%; border-radius: 999px;
+  background: linear-gradient(90deg, var(--pom-400), var(--pom-700));
+  animation: ai-slide 1.4s ease-in-out infinite;
+}
+@keyframes ai-slide {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(305%); }
+}
+
+/* Xabar qutilari — xato, kredit va "surat yo'q" uchun bitta shakl */
+.ai-msg { padding: 14px 15px; border-radius: var(--radius-md); font-size: 13px; line-height: 1.5; color: var(--text-body); }
+.ai-msg-plain { border: 1px solid var(--border-hair); background: var(--glass-fill); }
+.ai-msg-warn  { border: 1px solid var(--saffron-500); background: var(--saffron-50); }
+.ai-msg-err   { border: 1px solid var(--danger-500); background: var(--danger-100); }

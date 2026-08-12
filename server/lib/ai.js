@@ -442,6 +442,41 @@ function joriyJavobmi(raw) {
   return Object.keys(raw).every((k) => JAVOB_KALITLARI.has(k));
 }
 
+// ============ MIJOZGA BERILADIGAN SOZLAMA — BITTA MANBA (2026-08-13) ============
+// Frontend AI blokini chizish uchun to'rtta narsani biladi: bayroq, savol
+// kalitlari, combo kalitlari va ikkita chegara. Ilgari bu blok
+// `/api/auth/telegram` javobining ICHIDA qo'lda yig'ilardi, ya'ni u faqat
+// Mini App'ga borardi — sayt esa bu sozlamani UMUMAN ko'rmasdi.
+//
+// ⚠️ Ikkinchi endpointga NUSXA ko'chirilmadi. Ikki joyda qo'lda yozilgan
+// bir xil ro'yxat — loyihaning eng qimmat naqshi (db/014: `review_hide`
+// `admin_actions_kind_check` da yo'q edi va sharh yashirish production'da
+// BUTUNLAY ishlamasdi). Yangi savol guruhi qo'shilsa u AVTOMATIK ikkala
+// kanalga boradi; nusxa bo'lganda esa faqat biriga borardi va farq
+// KO'RINMASDI — sayt xaridori tugmani ko'rmay qo'yardi, xolos.
+//
+// `enabled: false` bo'lsa qolgan maydonlar `null`: frontend savolsiz so'rov
+// yubora olmaydi (server 400 beradi), ya'ni tugma faqat bosilib xato
+// beradigan tugma bo'lardi.
+function aiClientConfig(enabled) {
+  const kalitlar = (jadval) =>
+    Object.fromEntries(Object.entries(jadval).map(([g, v]) => [g, Object.keys(v)]));
+  return {
+    aiImageEnabled: !!enabled,
+    aiImageChoices: enabled ? kalitlar(IMAGE_CHOICES) : null,
+    // Combo javoblari ALOHIDA: ular SHARTLI — faqat `dizayn = combo`
+    // tanlanganda so'raladi. Bitta ro'yxatga qo'shib yuborilsa frontend
+    // ularni doim chizardi va xaridor keraksiz ikki savolga javob berardi.
+    aiComboChoices: enabled ? kalitlar(COMBO_CHOICES) : null,
+    // Erkin matn chegarasi — frontend `maxlength` ni SHUNDAN oladi. Qo'lda
+    // yozilsa server 60 ga, input 100 ga sozlanib qolardi va xaridor yozib
+    // bo'lgach 400 xato ko'rardi.
+    aiComboTextMax: enabled ? COMBO_TEXT_MAX : null,
+    // "Boshqa fason" chegarasi — AYNI sabab bilan serverdan (2026-08-09).
+    aiVariantMax: enabled ? VARIANT_MAX : null,
+  };
+}
+
 // Kesh kaliti javoblarga ham bog'lanadi. Kalitlar TARTIBLANGAN holda
 // qo'shiladi: `{kiyim,kim}` va `{kim,kiyim}` bir xil rasm demak, ya'ni ular
 // bir xil hash berishi SHART — aks holda aynan bir rasm uchun ikki marta
@@ -873,7 +908,7 @@ function postImageRequest(product, source, choices) {
 
 module.exports = {
   imageSourceHash, buildImagePrompt, extractImage, generateImage,
-  IMAGE_CHOICES, COMBO_CHOICES, normalizeChoices, choicesHash, joriyJavobmi,
+  IMAGE_CHOICES, COMBO_CHOICES, normalizeChoices, choicesHash, joriyJavobmi, aiClientConfig,
   SAHNA, sceneFor, PROMPT_VERSION, cleanComboText, COMBO_TEXT_MAX,
   FASON, FASON_OQLARI, fasonFor, VARIANT_MAX, IMAGE_ASPECT_RATIO,
 };

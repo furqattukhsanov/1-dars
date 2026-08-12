@@ -38,6 +38,20 @@
   qolsa `lib/auth.js` uni ishlata olmasdi (qatlam `routes/ → lib/` bir tomonga
   qaraydi). Qorovul: `server/test.js` → Test 3e — soxta imzo cookie yo'lini
   ochib yubormasligini ham tekshiradi (3 mutatsiya bilan sinaldi).
+  ⚠️ **Qoida yozilgan bo'lsa ham NAQSH TAKRORLANDI** (2026-08-13): AI rasm
+  endpointi (`routes/ai.js`) hamon `authUser()` da edi va sayt xaridori
+  o'sha 401 ni olardi — ya'ni qoida yozilgani uni bajarilgan qilmadi.
+  Shuning uchun **Test 3f** qo'shildi: u `script.js` dan saytning O'Z
+  chaqiruvlarini yig'adi (yo'l + METOD), `server.js` router'idan handler
+  nomini topadi va `routes/` dagi funksiya TANASINI o'qiydi — tanada
+  `authUser(` bo'lib `requestUser(`/`webSessionUser(` bo'lmasa test QIZIL.
+  Ro'yxat qo'lda yozilmaydi: saytga yangi `fetch('/api/...')` qo'shilsa u
+  avtomatik qamraladi. Beshta mutatsiya bilan sinaldi, beshtasi ham ushlandi.
+  Sinov ikkita teshik ochdi va ikkalasi ham tuzatildi: (1) IZOHDAGI
+  `requestUser()` so'zi qorovulni aldardi — endi tahlildan oldin izohlar
+  olib tashlanadi; (2) o'ram funksiyaning NOMIGA ishonish yetarli emas —
+  `reviewAuthor` ning cookie yo'li o'chirilganda ham test yashil qolardi,
+  endi o'ramning ichi ochib ko'riladi.
 - **Zaxira (`products.stock`) har doim ATOMIK kamaytiriladi** (2026-07-30).
   Tekshiruv va kamaytirish bitta `UPDATE ... WHERE stock >= qty` da bo'ladi
   (`routes/orders.js` → `decrementStock`), hech qachon alohida `SELECT` +

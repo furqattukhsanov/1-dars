@@ -3,7 +3,7 @@ const {
   AI_CREDITS_START, AI_CREDIT_COST, AI_UNLIMITED_TG_IDS,
 } = require('../config');
 const { pool } = require('../db');
-const { authUser } = require('../lib/auth');
+const { requestUser } = require('../lib/auth');
 const { rateLimited, clientIp, readBody, sendJson, ok, fail } = require('../lib/http');
 const { imageSourceHash, generateImage, normalizeChoices, choicesHash, joriyJavobmi } = require('../lib/ai');
 const { tgGetFile, tgDownloadFile, sendPhotoBytes } = require('../lib/telegram-api');
@@ -177,8 +177,15 @@ async function handleAiImage(req, res) {
     // Ilgari `rateLimited` birinchi turardi va o'shanda cheksiz ro'yxatdagi
     // odam ham 7-so'rovda 429 olardi — ya'ni "cheksiz kredit" JIMGINA
     // yolg'on bo'lardi: kredit cheksiz, lekin daqiqada 6 ta.
-    // Kimlik FAQAT imzolangan initData dan (CLAUDE.md, 2026-07-29).
-    const tg = authUser(req);
+    // Kimlik IKKALA KANALDAN — `requestUser()` (2026-08-13, C1). Ilgari bu
+    // yerda `authUser()` turardi, ya'ni faqat Mini App. Sayt xaridori bir xil
+    // tugmani bosib JIMGINA 401 olardi — aynan bahs ochishda bo'lgan tuzoq
+    // (CLAUDE.md, "kimlik ikki kanalda bitta nuqtadan").
+    // ⚠️ Ikkala yo'l ham kimlikni SERVER tomonda hal qiladi: imzolangan
+    // initData yoki HttpOnly cookie sessiyasi. Klientdan `tg_user_id`
+    // baribir OLINMAYDI — kredit hisobi shu ID ga bog'langan, ya'ni u
+    // yerdagi xato "boshqaning kreditini sarflash" degani bo'lardi.
+    const tg = await requestUser(req);
     if (!tg || !tg.id) return fail(res, 'unauthorized', 401);
 
     const cheksiz = AI_UNLIMITED_TG_IDS.has(String(tg.id));
@@ -469,7 +476,10 @@ async function handleAiMy(req, res) {
   const ip = clientIp(req);
   if (rateLimited(`aimy:${ip}`, 60)) return fail(res, 'too many requests', 429);
   try {
-    const tg = authUser(req);
+    // Kimlik ikkala kanaldan (`handleAiImage` dagi bilan bitta qoida):
+    // "mening rasmlarim" saytda ham o'ziniki bo'lishi kerak — rasm qaysi
+    // kanaldan chizilganidan qat'i nazar, egasi BITTA Telegram ID.
+    const tg = await requestUser(req);
     if (!tg || !tg.id) return fail(res, 'unauthorized', 401);
 
     const { rows } = await pool.query(
