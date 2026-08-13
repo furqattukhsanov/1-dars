@@ -125,6 +125,141 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
 
 ## Qilingan ishlar
 
+- [2026-08-13] **To'rt agent (PM, dizayner, marketolog, investor) loyihani
+  baholadi, founder ulardan TO'RT bandni tanladi — va sessiyaning eng qimmatli
+  natijasi kod emas, UCH MARTA TAKRORLANGAN BITTA NAQSH: «yozilgan qoida himoya
+  emas, uni tekshiradigan test himoya».** Uchala tasdiq ham AYNI shaklda keldi:
+  qoida yozilgan edi, hech kim buzmoqchi bo'lmagan edi, va u shunday ham
+  buzilgan holda turardi. (1) **Video chegara qorovuli** (`videoRadSababi`)
+  `catalog.js` da "sinov uchun ATAYLAB ochiq" degan izoh bilan eksport
+  qilingan — testi esa HECH QACHON yozilmagan. (2) **Brend rangi tokendan
+  olinsin** qoidasi `telegram-app/styles.css` da yozilgan — `app.js` uni **81
+  joyda** buzardi. (3) **QOLDIQ xotirasidagi ikki yozuv eskirgan** edi va ular
+  bo'yicha ish boshlanayozdi (pastda). Ya'ni naqsh bir kunda uch xil qatlamda
+  chiqdi: testda, uslubda va hujjatda.
+
+  ⚠️ **Bu yozuvda TANLANMAGAN bandlar ham bor va ular ATAYLAB yozilmoqda:**
+  founder to'rttasini tanladi (#3 analitika, #5 video C+F, #6 yopish,
+  #7 dizayn qarzi) — ya'ni qolgan takliflar RAD ETILMADI, navbat kutmoqda.
+  Yopilmagan band yopilgan ko'rinmasin.
+
+  ---
+  **#5-C — SOTUVCHI O'Z VIDEOSINI KO'RA OLMASDI, VA BU O'LCHANDI:**
+  `routes/seller.js` javobida `vid_` qatori **0 marta** uchrardi (`grep`).
+  Ya'ni sotuvchi videosini Telegram'ga yuborardi va undan keyin uning
+  taqdiri haqida HECH NARSA bilmasdi: yetib bordimi, moderator olib
+  tashladimi, qayta yuborsa bo'ladimi. Endi ro'yxat `videoVM(r)` va
+  `awaitingVideo` ni qaytaradi — ⚠️ `videoVM` **katalogdagi AYNI funksiya**,
+  ikkinchi nusxa yozilmadi: shu sababli "R2 kaliti yo'q bo'lsa video `null`"
+  qoidasi bu yerda ham O'ZIDAN kelib chiqadi va ikki joy jimgina
+  uzoqlashmaydi. Yangi `request_video` amali video oynasini QAYTA ochadi —
+  ⚠️ **bu YANGI yo'l emas, MAVJUD bo'shliq:** oyna rasm yuborilganda o'zi
+  ochilardi (`db/023`) va birinchi video kelishi bilan YOPILARDI, ya'ni
+  moderator videoni olib tashlagan e'lon **abadiy videosiz** qolardi —
+  yangisini yuborish yo'li umuman yo'q edi. Ikkala yuzda uch holatli qator
+  ko'rinadi: video BOR / oyna OCHIQ / yo'l YOPIQ, va **tugma faqat
+  uchinchisida** chiziladi.
+  ⚠️ **«Mavjud funksiyaga ikkinchi yo'l qo'shilsa avval so'raladi» qoidasi
+  (kechagi dars) SHU YERDA QO'LLANDI, birinchi marta:** oyna ochiq
+  turganda tugma qo'yilsa u ayni ishni ikkinchi marta qiladigan tugma
+  bo'lardi — qo'yilmadi.
+
+  **#5-F — QOROVUL TESTLAR (2 ta):** **Test 24** video chegarasini qulfladi
+  (`mp4` · ≤30 s · ≤12 MB) va u to'rt narsani ALOHIDA tekshiradi: 8 ta
+  yaroqsiz kombinatsiya rad etiladi, **chegara qiymatining O'ZI qabul
+  qilinadi** (30 s va 12 MB — "kichik bo'lsin" emas, "oshmasin"),
+  tekshiruv **R2 ga yuklashdan OLDIN** bo'ladi (aks holda rad etilgan
+  video baribir trafik va joy yeb bo'lardi) va rad etish sababi
+  sotuvchiga AYTILADI. **Test 24b** — R2 sozlanmagan bo'lsa video `null`
+  bo'ladi va **taxminiy havola YASALMAYDI**: kalitdan URL "yig'ib" qo'yish
+  ekranda ishlaydigan video bordek ko'rsatib, bosilganda sinadigan
+  havola berardi (`NULL` reyting qoidasi bilan bitta oila).
+
+  ---
+  **#7 — DIZAYN QARZI. RAQAM: 81 TA XOM BREND RANGI** (`#7a140d` 41,
+  `#510100` 20, `#8f1a10` 20 — SANALDI, taxmin emas) tokenga o'tdi
+  (`var(--pom-*)`). **Test 26** uni qulfladi va u **DARROV ish berdi** —
+  yozilgan zahoti, qamrov HTML larga kengaytirilganda: `index.html` da AYNI
+  rang SVG `fill=` **prezentatsiya atributida 11 marta** turgan edi.
+  🔴 **U yerda `var()` UMUMAN ISHLAMAYDI va bu tuzatishni nuqsonga
+  aylantirardi:** `fill="var(--pom-700)"` jimgina QORA beradi, ya'ni
+  "tozalash" tasdiq belgisini butun saytda qora qilib qo'yardi va konsolda
+  hech qanday xato bo'lmasdi. To'g'ri yo'l — `fill="currentColor"` + rang
+  CSS klassida (`.verified`, `.verified-legend svg`). Ataylab qoldirilgan
+  istisnolar: Yandex Maps `iconColor` (JS API parametri, CSS emas) va
+  `KONFETTI_RANG` (nomlangan palitra) — ikkalasi ham testda SATR bo'yicha
+  tanaladi.
+  **Brend nomi tenglashtirildi:** Mini App header'ida JS kelguncha
+  **«Telegram Mini App»** degan TEXNIK atama ko'rinardi — foydalanuvchiga
+  ko'rsatiladigan matn emas, ichki tushuncha; endi `app.js` dagi `brandSub`
+  bilan AYNI: «Ulgurji matolar bozori». Sayt `<title>` i ham shu ibora bilan
+  boshlanadi, ⚠️ lekin **SEO iborasi TASHLANMADI** — "to'qima materiallar B2B
+  platformasi" sarlavhaning ikkinchi yarmida qoldi (brend izchilligi uchun
+  qidiruv trafigini qurbon qilish teng almashuv emas). Takrorlanadigan inline
+  naqsh `.s-note` / `.s-mini` klasslariga chiqdi va ikkala yuzda AYNI nom
+  bilan AYNI ma'noni bildiradi.
+  🔴 **`user-scalable=no` OLIB TASHLANMADI — VA BU YOZUVNING MUHIM QISMI:
+  O'LCHOV TAVSIYANI RAD ETDI.** Dizayn tavsiyasi "matn zoomini oching"
+  degandi va u odatda to'g'ri tavsiya. Lekin Mini App'da `html` va `body`
+  ikkalasida ham `overflow: hidden`, sahifaning O'ZI umuman skroll qilmaydi
+  (`scrollHeight === clientHeight`) — skroll faqat `#screen-wrap` ichida.
+  Ya'ni foydalanuvchi sahifani kattalashtirsa, kattalashgan mazmun bo'ylab
+  **surilib yurish yo'li yo'q**: u zoomlangan holatda QAMALIB qolardi va
+  yagona chiqish yo'li ilovani yopish bo'lardi. Rasm zoomi baribir alohida
+  ishlaydi (`.pv` — pinch, `transform`). ⚠️ **Ehtiyoj HAQIQIY, yechim
+  noto'g'ri edi:** shrift o'lchamlari qat'iy `px` da yozilgan, ya'ni haqiqiy
+  tuzatish — tipografiyani nisbiy birlikka o'tkazish. Band OCHIQ qoldirildi,
+  "bajarildi" deb belgilanmadi.
+
+  ---
+  **SINALGANI: 64 TEST YASHIL** (avval 60 edi — 4 yangi: 24, 24b, 25, 26).
+  ⚠️ Raqam runner chiqishidagi `✅ Test` satrlaridan MUSTAQIL sanaldi,
+  hisobotdan ko'chirilmadi; worktree'da `server/node_modules` yo'qligi
+  yurishni yarim yo'lda yiqitishi mumkinligi (kechagi «48 test» darsi)
+  hisobga olindi. **12 mutatsiya bilan sinaldi, 12 tasi ham USHLANDI** —
+  yashil test isbot emas, buzib ko'rilgan test isbot.
+  ✅ **`db/025` pglite'da HAQIQATAN BAJARILDI** (migratsiya + birinchi
+  teginish qoidasi + panel so'rovlari) — bu `takeCredits` (`unknown -
+  unknown`) va `GROUP BY json` darslarining davomi: **taqlid qilingan
+  `pool.query` SQL matnini TEKSHIRMAYDI**, ya'ni yashil test "SQL to'g'ri"
+  degani emas. Migratsiyaning O'ZIDA ham tekshiruv bloki bor — ikkinchi
+  `/start` boshqa kanaldan kelganda qiymat o'zgarmasligi `RAISE EXCEPTION`
+  bilan qulflangan.
+  Brauzerda o'lchandi: `verified` belgisi `currentColor` ga o'tgandan keyin
+  ham AYNAN `rgb(122,20,13)`; `.s-note` bloklari kesilmagan (flex ustun
+  qoidasi); admin paneldagi yangi bloklar ma'lumot yo'q bo'lsa YASHIRINADI,
+  kanal ro'yxati bo'sh bo'lsa esa halol bo'sh holat ko'rsatadi.
+  **Kesh:** `style.css` 50→**52** (`index.html` va `admin/index.html` da
+  BIR XIL raqam — 06-avgustdagi 15 versiyalik farq darsi), `script.js`
+  41→**43**, `admin/admin.js` 24→**25**, `telegram-app/styles.css` 25→**26**,
+  `telegram-app/app.js` 81→**82**, Test 16 jadvali birga. ⚠️ `CACHE_VERSION`
+  TEGILMADI va bu TEKSHIRILDI, taxmin qilinmadi — o'zgargan fayllarning
+  birortasi ham service worker `PRECACHE` ro'yxatida yo'q, Test 17 yashil.
+
+  🔴 **HALOL CHEGARA, ATAYLAB YOZILADI:** (a) **PUSH QILINMAGAN** — ish
+  faqat repoda, xaridor uchun mavjud emas; (b) **`db/025` serverda ISHGA
+  TUSHIRILMAGAN** va u `server/routes/webhook.js` dan OLDIN bajarilishi
+  shart.
+  ⚠️ **OQIBAT O'LCHANDI (pglite), TAXMIN QILINMADI** — va birinchi yozilgan
+  baho MUBOLAG'A bo'lib chiqdi. To'g'ri manzara: `INSERT` `column "src" does
+  not exist` bilan yiqiladi, LEKIN u `.catch()` ichida — ya'ni **webhook
+  yiqilmaydi**, `/start` javob beradi va **saytga kirish (`/start web_<kod>`)
+  ISHLAYVERADI**. Yo'qoladigan narsa boshqa: `users` qatori UMUMAN
+  yozilmaydi, ya'ni `/start` hisobi va manba belgisi **jimgina to'xtaydi**.
+  Xato alertga chiqadi (`/start foydalanuvchini yozishda xato:`) — kalit
+  barqaror, ya'ni tom ishlaydi.
+  🔴 **Shuning uchun tartib baribir SHART:** nuqson ko'rinmaydi, faqat
+  jurnalda qoladi va hisob jimgina yolg'on gapira boshlaydi — bu loyihaning
+  eng qimmat xato turi. Lekin "bot o'ladi" deb yozish ham noto'g'ri edi:
+  **deploy ko'rsatmasidagi mubolag'a ham tekshirilmagan da'vo.**;
+  (c) `server/` rsync va servis restarti hali qilinmagan (founder
+  bajaradi — deploy qoidasi); (d) manba belgisining O'ZI jonli
+  sinalmagan: haqiqiy `t.me/<bot>?start=guruh_ipak` havolasi hali
+  bosilmagan, ya'ni oqim uchidan-uchigacha faqat pglite'da ko'rilgan.
+
+  Batafsil: analitika bloklari — `sprint-7.md`, AI bandining yopilishi —
+  `sprint-10.md`.
+
 - [2026-08-13] **Mini App profilidagi «Buyurtmalarim» qatori OLIB TASHLANDI —
   `7d5e47f` ORQAGA QAYTARILDI.** Founder buyurdi va sababini aytdi:
   **Mini App'da buyurtmalar bo'limi ALLAQACHON BOR EDI** (pastdagi
@@ -1442,6 +1577,27 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
 
 ## Qarorlar
 
+- [2026-08-13] Qaror: **Mini App'da `user-scalable=no` QOLADI — dizayn
+  tavsiyasi O'LCHOV BILAN RAD ETILDI.** Tavsiya "matn zoomini oching" degandi
+  va u odatda to'g'ri. Bu yerda esa `html` va `body` ikkalasida `overflow:
+  hidden`, sahifa umuman skroll qilmaydi (`scrollHeight === clientHeight`) —
+  ya'ni zoom qilingan foydalanuvchi kattalashgan mazmun bo'ylab surila
+  olmasdi va **qamalib qolardi**, chiqish yo'li ilovani yopish bo'lardi.
+  ⚠️ **Ehtiyoj HAQIQIY, yechim boshqa:** shrift o'lchamlari qat'iy `px` da,
+  ya'ni haqiqiy tuzatish — tipografiyani nisbiy birlikka o'tkazish. Band
+  OCHIQ qoldirildi. Dars ushbu qaror mazmunidan kengroq: **tavsiya
+  qanchalik standart bo'lsa ham, u qo'llanadigan muhit o'lchanmaguncha
+  tavsiya bo'lib qoladi** ("hujjatdagi raqam — tekshirilmagan da'vo"
+  qoidasining UI dagi ko'rinishi)
+- [2026-08-13] Qaror: **brend rangi faqat tokendan olinadi va buni Test 26
+  qo'riqlaydi.** Qoida `telegram-app/styles.css` da ALLAQACHON yozilgan edi va
+  `app.js` uni **81 joyda** buzardi — ya'ni bu qaror qoidani emas, uning
+  QOROVULINI qo'shadi. ⚠️ **Ikki istisno ATAYLAB qoldirildi va ular
+  uslub emas, TEXNIK chegara:** SVG `fill=` prezentatsiya atributida `var()`
+  UMUMAN ishlamaydi (rang jimgina qora bo'ladi) — u yerda `currentColor` +
+  CSS klass; Yandex Maps `iconColor` va `KONFETTI_RANG` esa CSS emas, JS
+  qiymati. Istisnolar testda SATR bo'yicha tanaladi, ya'ni ro'yxat jimgina
+  kengaymaydi
 - [2026-08-13] Qaror (founder): **buyurtmalar tarixi profil ekranida
   CHIZILMAYDI — u ham "Mening manzilim" kabi QATOR bo'lib, alohida
   ko'rinishda ochiladi.** ⚠️ Bu AYNI SHU KUNDAGI «saytda buyurtmalar

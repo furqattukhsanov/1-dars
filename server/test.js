@@ -1372,14 +1372,14 @@ function testAssetVersionsAreFresh() {
   // AYNI faylni `?v=36` bilan — ya'ni admin panel 15 versiya orqada
   // qotib qolgan keshni cheksiz ushlab turardi.
   const KUTILGAN = {
-    'style.css': { v: 50, hash: 'f1efe488a160' },
-    'script.js': { v: 41, hash: 'c9f52b28c119' },
+    'style.css': { v: 52, hash: '084d78911caa' },
+    'script.js': { v: 43, hash: '16191ccc27c4' },
     'pwa.js': { v: 2, hash: 'f46683d58662' },
-    'panel.js': { v: 20, hash: '9d151edac7b9' },
+    'panel.js': { v: 21, hash: '3001ca219f1d' },
     'admin/admin.css': { v: 18, hash: '15b0bc977b85' },
-    'admin/admin.js': { v: 24, hash: '9f912b5b0788' },
-    'telegram-app/styles.css': { v: 25, hash: '1e53e59ed3cf' },
-    'telegram-app/app.js': { v: 81, hash: '193eb813a690' },
+    'admin/admin.js': { v: 25, hash: '08fae1bb61dc' },
+    'telegram-app/styles.css': { v: 26, hash: '1fc904168550' },
+    'telegram-app/app.js': { v: 82, hash: 'dd7959e95715' },
     'telegram-app/pwa.js': { v: 6, hash: '798ab85e1cde' },
   };
 
@@ -2995,6 +2995,284 @@ function testAdminActionKinds() {
     (sqlda_kodsiz.length ? `, ⚠️ SQL da ortiqcha: ${sqlda_kodsiz.join(', ')}` : '') + ')');
 }
 
+// ============ TEST 24: VIDEO CHEGARA QOROVULI (2026-08-13) ============
+// `videoRadSababi` `routes/catalog.js` da "Sinov uchun ATAYLAB ochiq" degan
+// izoh bilan eksport qilingan — va test HECH QACHON yozilmagan. Ya'ni
+// loyihaning o'z darsi ("yozilgan qoida himoya emas, uni tekshiradigan test
+// himoya") aynan shu joyda bajarilmay qolgan: eksport qorovul emas, qorovul
+// eksportni CHAQIRADIGAN test.
+//
+// Uchala chegara ham arzon emas: mp4 bo'lmagan video Android'da UMUMAN
+// ochilmaydi, 12 MB dan kattasini Bot API `getFile` bermaydi, uzun video esa
+// mobil trafikni yeydi. Chegara jimgina yo'qolsa nuqson faqat sotuvchi
+// shikoyat qilganda ko'rinardi.
+function testVideoLimits() {
+  const { videoRadSababi, VIDEO_MAX_SECONDS } = require('./routes/catalog');
+  const { MAX_DOWNLOAD_BYTES } = require('./lib/telegram-api');
+
+  const yaxshi = { mime_type: 'video/mp4', duration: 12, file_size: 3 * 1024 * 1024 };
+  assert.strictEqual(videoRadSababi(yaxshi), null, 'oddiy mp4 qabul qilinishi kerak edi');
+
+  // ---- CHEGARANING O'ZI ----
+  // Aynan chegaradagi qiymat QABUL qilinsin: `>` `>=` ga aylanib qolsa
+  // 30 soniyalik video jimgina rad etilardi va sabab "uzun" deb ko'rinardi.
+  assert.strictEqual(
+    videoRadSababi({ ...yaxshi, duration: VIDEO_MAX_SECONDS }), null,
+    `aynan ${VIDEO_MAX_SECONDS} s QABUL qilinsin (chegara — "dan uzun", "dan katta yoki teng" emas)`);
+  assert.strictEqual(
+    videoRadSababi({ ...yaxshi, file_size: MAX_DOWNLOAD_BYTES }), null,
+    'aynan chegaradagi hajm QABUL qilinsin');
+
+  // ---- RAD ETILISHI SHART ----
+  const radlar = [
+    ['mime yo\'q', { ...yaxshi, mime_type: undefined }],
+    ['quicktime (.mov — fayl sifatida yuborilgan)', { ...yaxshi, mime_type: 'video/quicktime' }],
+    ['webm', { ...yaxshi, mime_type: 'video/webm' }],
+    ['rasm mime si', { ...yaxshi, mime_type: 'image/jpeg' }],
+    ['chegaradan 1 s uzun', { ...yaxshi, duration: VIDEO_MAX_SECONDS + 1 }],
+    ['juda uzun', { ...yaxshi, duration: 600 }],
+    ['chegaradan 1 bayt katta', { ...yaxshi, file_size: MAX_DOWNLOAD_BYTES + 1 }],
+    ['juda katta', { ...yaxshi, file_size: 50 * 1024 * 1024 }],
+  ];
+  radlar.forEach(([nom, v]) => {
+    const sabab = videoRadSababi(v);
+    assert.ok(sabab, `${nom}: RAD ETILISHI kerak edi`);
+    assert.ok(typeof sabab === 'string' && sabab.length > 20,
+      `${nom}: sabab sotuvchiga TUSHUNARLI matn bo'lsin, quruq bayroq emas`);
+  });
+
+  // Katta harfli mime — Telegram ba'zan shunday yuboradi. `toLowerCase()`
+  // tushib qolsa har bir mp4 rad etilardi, ya'ni funksiya butunlay teskari
+  // ishlab, hech kim video yubora olmasdi.
+  assert.strictEqual(videoRadSababi({ ...yaxshi, mime_type: 'VIDEO/MP4' }), null,
+    'katta harfli mime ham mp4 deb tanilsin');
+
+  // ---- TARTIB: rad etish YUKLASHDAN OLDIN ----
+  // 12 MB ni tortib olib keyin rad etish — bekorga sarflangan trafik, ustiga
+  // `getFile` 20 MB dan kattasini umuman bermaydi va xato "fayl topilmadi"
+  // bo'lib kelib, sababi butunlay boshqa narsaga o'xshab ko'rinardi.
+  const fs = require('fs');
+  const path = require('path');
+  const src = fs.readFileSync(path.join(__dirname, 'routes', 'catalog.js'), 'utf8');
+  const tana = funksiyaTanasi(src, 'handleProductVideo');
+  assert.ok(tana, 'catalog.js da handleProductVideo topilmadi — nomi o\'zgarganmi?');
+  const iTekshir = tana.indexOf('videoRadSababi(');
+  const iYukla = tana.indexOf('uploadProductVideoToR2(');
+  assert.ok(iTekshir > 0, 'handleProductVideo `videoRadSababi()` ni CHAQIRSIN — '
+    + 'aks holda chegaralar yozilgan-u, ishlatilmaydi');
+  assert.ok(iYukla > 0, 'handleProductVideo `uploadProductVideoToR2()` ni chaqirsin');
+  assert.ok(iTekshir < iYukla,
+    'chegara tekshiruvi YUKLASHDAN OLDIN bo\'lsin — keyin bo\'lsa 12 MB bekorga tortiladi');
+
+  // ---- RAD ETISH ESHITILSIN ----
+  // Jim rad etish "yubordim, ishlamadi" holatini yaratardi va sababini
+  // faqat biz jurnaldan ko'rardik.
+  const radShoxi = tana.slice(iTekshir, iYukla);
+  assert.ok(/callTelegram\('sendMessage'/.test(radShoxi),
+    'rad etilganda sotuvchiga XABAR yuborilsin — jim qoldirilmasin');
+  assert.ok(!/awaiting_video\s*=\s*false/.test(radShoxi),
+    'rad etilganda `awaiting_video` ochiq QOLSIN — qayta urinish darrov ishlasin');
+
+  console.log(`✅ Test 24: Video chegara qorovuli — PASS ` +
+    `(mp4 · ≤${VIDEO_MAX_SECONDS}s · ≤${Math.round(MAX_DOWNLOAD_BYTES / 1024 / 1024)}MB, ` +
+    `${radlar.length} rad, chegara qiymati qabul qilindi, tekshiruv yuklashdan oldin)`);
+}
+
+// ============ TEST 24b: R2 SIZ VIDEO "BOR" BO'LIB KO'RINMASIN ============
+// Rasmda uch pog'ona bor (R2 → Telegram proksi → statik), videoda esa
+// FAQAT R2: `handleProductPhoto` faylni butunlay `pipe` qiladi va `Range`
+// (206) bermaydi, iOS Safari esa `<video>` uchun aynan shuni talab qiladi.
+//
+// Ya'ni R2 havolasi bo'lmaganda `video` `null` bo'lishi SHART. Taxminiy URL
+// yasalsa — hech qachon ochilmaydigan pleyer chiqardi va foydalanuvchi
+// "video buzuq" deb o'ylab, sababini KO'RMASDI. Bu `NULL` reyting va
+// `ALERT_CHAT_ID` darslari bilan bitta oila: jimgina yolg'on yo'qlikdan yomon.
+function testVideoVMNeedsR2() {
+  const { videoVM } = require('./routes/catalog');
+
+  // Kalit umuman yo'q — video yo'q.
+  assert.strictEqual(videoVM({}).video, null, 'kalitsiz qatorda video `null` bo\'lsin');
+  assert.strictEqual(videoVM({ vid_r2_key: null }).video, null, '`null` kalitda ham `null`');
+
+  // ⚠️ Bu sinov muhiti R2 domeni ULANMAGAN holatni ifodalaydi
+  // (`R2_PUBLIC_BASE` bo'sh), ya'ni kalit BOR bo'lsa ham havola yasalmasligi
+  // kerak. Aynan shu — "taxminiy URL yasalmaydi" kafolati.
+  const { R2_PUBLIC_BASE } = require('./config');
+  if (!R2_PUBLIC_BASE) {
+    const vm = videoVM({
+      vid_r2_key: 'mahsulot/tx-1/video/abc.mp4',
+      vid_poster_r2_key: 'mahsulot/tx-1/video/abc-poster.jpg',
+      vid_seconds: 12, vid_bytes: 1024,
+    });
+    assert.strictEqual(vm.video, null,
+      'R2 domeni ulanmaganda TAXMINIY havola yasalmasin — ochilmaydigan pleyer yo\'q pleyerdan yomon');
+  }
+
+  // Video yo'q bo'lganda qo'shimcha maydonlar ham chiqmasin: `videoPoster`
+  // yolg'iz qolsa frontend "video bor, muqovasi yo'q" deb o'ylashi mumkin.
+  assert.deepStrictEqual(Object.keys(videoVM({})), ['video'],
+    'video yo\'q bo\'lsa FAQAT `video: null` qaytsin — yarim to\'ldirilgan obyekt emas');
+
+  // Katalog qatori videoVM dan O'TSIN: funksiya bor-u chaqirilmasa,
+  // frontend hech qachon video ko'rmasdi va sabab ko'rinmasdi.
+  const fs = require('fs');
+  const path = require('path');
+  const src = fs.readFileSync(path.join(__dirname, 'routes', 'catalog.js'), 'utf8');
+  const vmTana = funksiyaTanasi(src, 'productRowToVM');
+  assert.ok(vmTana && /\.\.\.videoVM\(/.test(vmTana),
+    'productRowToVM `...videoVM(r)` ni qo\'shsin — aks holda katalogda video hech qachon chiqmaydi');
+
+  console.log('✅ Test 24b: R2 siz video "bor" bo\'lib ko\'rinmaydi — PASS '
+    + '(kalitsiz `null`, taxminiy havola yasalmaydi, katalog qatori videoVM dan o\'tadi)');
+}
+
+// ============ TEST 25: MANBA BELGISI VA BIRINCHI TEGINISH (2026-08-13) ============
+// Deep-link payload `t.me/<bot>?start=BELGI` dan keladi va havolani HAR KIM
+// yasay oladi — ya'ni bu yerga ixtiyoriy matn tushishi mumkin. Qiymat panelda
+// chiziladi va `GROUP BY` ga tushadi, shuning uchun shakli qat'iy.
+//
+// Ikkinchi bandi muhimroq: `src` FAQAT BIR MARTA yozilishi kerak. Oxirgi manba
+// yozilsa, eng ko'p eslatma yuborilgan kanal eng samarali ko'rinib qolardi —
+// raqam o'zini o'zi tasdiqlaydigan yolg'onga aylanardi. Buni SQL shakli
+// qo'riqlaydi (`COALESCE(users.src, EXCLUDED.src)`), ya'ni test manba kodini
+// o'qiydi: `COALESCE` teskari yozilsa (`EXCLUDED.src, users.src`) nuqson
+// JIMGINA bo'lardi — panel ishlaydi, raqam esa boshqa narsani ko'rsatadi.
+function testSourceTag() {
+  const { manbaBelgisi } = require('./routes/webhook');
+
+  const yaxshi = ['insta', 'guruh_ipak', 'tg_kanal_2', 'a1', 'x'.repeat(32)];
+  yaxshi.forEach((v) => assert.strictEqual(manbaBelgisi(v), v, `\`${v}\` qabul qilinsin`));
+
+  const yomon = [
+    ['bo\'sh', ''],
+    ['probel', '   '],
+    ['null', null],
+    ['undefined', undefined],
+    ['bitta belgi', 'a'],
+    ['32 dan uzun', 'x'.repeat(33)],
+    ['katta harf', 'Insta'],
+    ['chiziqcha', 'guruh-ipak'],
+    ['nuqta', 'insta.com'],
+    ['probel ichida', 'guruh ipak'],
+    ['qator ko\'chirish', 'insta\nx'],
+    ['HTML', '<b>x</b>'],
+    ['SQL', "insta'; DROP TABLE users;--"],
+    ['yo\'l', '../../etc/passwd'],
+    // `web_` kirish kodi uchun BAND: manba deb yozilsa panelda har bir sayt
+    // kirishi "kanal" bo'lib chiqardi.
+    ['kirish kodi', 'web_a1b2c3d4'],
+  ];
+  yomon.forEach(([nom, v]) => assert.strictEqual(manbaBelgisi(v), null,
+    `${nom} (\`${String(v).slice(0, 24)}\`) RAD ETILSIN`));
+
+  const fs = require('fs');
+  const path = require('path');
+  const src = fs.readFileSync(path.join(__dirname, 'routes', 'webhook.js'), 'utf8');
+
+  // Qorovul CHAQIRILSIN — funksiya bor-u, ishlatilmasa u yolg'on tinchlik.
+  assert.ok(/manbaBelgisi\(startParam\)/.test(src),
+    '`/start` yozuvi `manbaBelgisi(startParam)` dan o\'tsin — xom payload bazaga ketmasin');
+
+  // BIRINCHI TEGINISH: `COALESCE(users.src, EXCLUDED.src)` — TARTIB muhim.
+  assert.ok(/src\s*=\s*COALESCE\(users\.src,\s*EXCLUDED\.src\)/.test(src),
+    'manba `COALESCE(users.src, EXCLUDED.src)` bilan qulflansin — teskari tartibda '
+    + 'OXIRGI kanal yozilib, eng ko\'p eslatma yuborgan kanal eng samarali ko\'rinardi');
+
+  // Migratsiya ham AYNI kafolatni bersin: ustun bo'lmasa `INSERT` yiqiladi.
+  const dbDir = path.join(__dirname, '..', 'db');
+  const migratsiya = fs.readdirSync(dbDir)
+    .filter((f) => f.endsWith('.sql') && /ADD COLUMN IF NOT EXISTS src\b/.test(fs.readFileSync(path.join(dbDir, f), 'utf8')));
+  assert.ok(migratsiya.length, '`users.src` ustunini qo\'shadigan migratsiya topilmadi');
+
+  console.log(`✅ Test 25: Manba belgisi va birinchi teginish — PASS `
+    + `(${yaxshi.length} qabul, ${yomon.length} rad, manba ${migratsiya[0]})`);
+}
+
+// ============ TEST 26: BREND RANGI TOKENDAN OLINADI (2026-08-13) ============
+// `telegram-app/styles.css` da qoida ALLAQACHON yozilgan edi ("Ranglar
+// TOKENDAN olinadi, qo'lda `#7a140d` yozilmasin"), `app.js` esa uni 81 joyda
+// buzardi. Naqsh tanish: yozilgan qoida himoya emas — uni tekshiradigan test
+// himoya (`console.error` va `?v=` qoidalari bilan bitta oila).
+//
+// Zarari kosmetik emas: brend rangi o'zgarganda 81 satr QO'LDA tuzatilishi
+// kerak bo'lardi va bittasi unutilsa, u faqat o'sha ekran ochilganda
+// ko'rinardi.
+//
+// ⚠️ IKKI ISTISNO ATAYLAB — ular CSS EMAS va `var()` u yerda ISHLAMAYDI:
+//   1. Yandex Maps `iconColor` — JS API parametri (karta belgisi rangini
+//      jimgina yo'qotardi).
+//   2. `KONFETTI_RANG` — nomlangan palitra massivi, o'zi allaqachon
+//      "bitta joy" naqshi.
+// Istisno KO'RINSIN degan qoida: ular satrda `iconColor` yoki `KONFETTI_RANG`
+// so'zi bilan turadi, ya'ni tasodifan qo'shilgan xom rang o'tib keta olmaydi.
+function testBrandColorTokens() {
+  const fs = require('fs');
+  const path = require('path');
+
+  const TOKENLAR = { '#7a140d': '--pom-700', '#510100': '--pom-800', '#8f1a10': '--pom-600' };
+  const ISTISNO = /iconColor|KONFETTI_RANG/;
+
+  // ⚠️ HTML lar ham QAMRALADI va bu sinovda TOPILGAN teshik: dastlab faqat
+  // JS fayllar tekshirilardi, `index.html` da esa AYNI xom rang SVG
+  // `fill=` atributida 11 marta turgan edi. Ustiga u yerda nuqson boshqacha
+  // ko'rinishda bo'lardi — `fill="var(--pom-700)"` UMUMAN ishlamaydi
+  // (`var()` prezentatsiya atributida qo'llanmaydi), ya'ni "tokenga
+  // o'tkazdim" degan tuzatishning O'ZI belgini qora qilib qo'yardi.
+  // To'g'ri yo'l: `fill="currentColor"` + rang CSS klassida.
+  const fayllar = [
+    path.join(__dirname, '..', 'telegram-app', 'app.js'),
+    path.join(__dirname, '..', 'script.js'),
+    path.join(__dirname, '..', 'index.html'),
+    path.join(__dirname, '..', 'telegram-app', 'index.html'),
+    path.join(__dirname, '..', 'admin', 'index.html'),
+  ];
+
+  let tekshirilgan = 0;
+  let istisnoSoni = 0;
+  fayllar.forEach((fayl) => {
+    if (!fs.existsSync(fayl)) return;
+    const nom = path.basename(fayl);
+    const qatorlar = fs.readFileSync(fayl, 'utf8').split('\n');
+    tekshirilgan += 1;
+
+    qatorlar.forEach((qator, i) => {
+      Object.keys(TOKENLAR).forEach((hex) => {
+        const re = new RegExp(hex, 'i');
+        if (!re.test(qator)) return;
+        if (ISTISNO.test(qator)) { istisnoSoni += 1; return; }
+        assert.fail(
+          `${nom}:${i + 1} — xom brend rangi \`${hex}\` topildi. `
+          + `\`var(${TOKENLAR[hex]})\` ishlatilsin.\n`
+          + `    Qator: ${qator.trim().slice(0, 100)}\n`
+          + `    CSS BO'LMAGAN joy bo'lsa (JS API parametri) — istisno ro'yxatiga qo'shing `
+          + `va NEGA CSS emasligini izohda yozing.\n`
+          + `    SVG \`fill=\` bo'lsa \`var()\` YARAMAYDI — \`fill="currentColor"\` qo'ying `
+          + `va rangni CSS klassida bering.`);
+      });
+    });
+  });
+
+  assert.ok(tekshirilgan >= 2, `ikkala frontend ham tekshirilsin (${tekshirilgan} ta topildi)`);
+
+  // Tokenlarning O'ZI mavjudligi ham tekshiriladi: qiymat token bilan
+  // almashtirilib, token e'lon qilinmagan bo'lsa rang JIMGINA yo'qolardi
+  // (`--border-hair` hodisasi — 34 joy shu tarzda noto'g'ri chizilgan edi).
+  const css = fs.readFileSync(path.join(__dirname, '..', 'telegram-app', 'styles.css'), 'utf8');
+  const sayt = fs.readFileSync(path.join(__dirname, '..', 'style.css'), 'utf8');
+  Object.entries(TOKENLAR).forEach(([hex, token]) => {
+    [['telegram-app/styles.css', css], ['style.css', sayt]].forEach(([nom, src]) => {
+      const m = src.match(new RegExp(`${token}\\s*:\\s*(#[0-9a-fA-F]{6})`));
+      assert.ok(m, `${nom} da \`${token}\` e'lon qilinmagan`);
+      assert.strictEqual(m[1].toLowerCase(), hex,
+        `${nom}: \`${token}\` qiymati ${m[1]}, kutilgani ${hex} — ikkala yuz bir xil brend rangida qolsin`);
+    });
+  });
+
+  console.log(`✅ Test 26: Brend rangi tokendan olinadi — PASS `
+    + `(${tekshirilgan} fayl, ${Object.keys(TOKENLAR).length} token ikkala CSS da mos, `
+    + `${istisnoSoni} ta ataylab istisno)`);
+}
+
 // ============ TEST RUNNER ============
 // ============ TEST 22: OLISH NUQTASI ID SHAKLI (2026-08-13) ============
 // "Mening manzilim" xaridorning O'Z tanlovini bazaga yozadi. Qiymat
@@ -3233,6 +3511,10 @@ async function runTests() {
     testComboText();
 
     testAdminActionKinds();
+    testVideoLimits();
+    testVideoVMNeedsR2();
+    testSourceTag();
+    testBrandColorTokens();
 
     testR2ConfigValidation();
     testR2KeyGuard();

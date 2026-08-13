@@ -29,6 +29,7 @@ async function handleAdminSummary(req, res, ip) {
       modRes, appRes, sellerRes, todayRes, catRes, ordersRes,
       dailyRes, monthlyRes, totalsRes, topSellersRes,
       appListRes, sellerListRes, modListRes, disputeRes, usersRes, videoListRes,
+      srcRes, aiRes,
     ] = await Promise.all([
       pool.query(`SELECT count(*)::int AS n FROM products WHERE status='pending'`),
       pool.query(`SELECT count(*)::int AS n FROM seller_applications WHERE status='pending' AND step='done'`),
@@ -155,6 +156,31 @@ async function handleAdminSummary(req, res, ip) {
           LEFT JOIN sellers s ON s.id = p.seller_id
          WHERE p.vid_r2_key IS NOT NULL
          ORDER BY p.vid_at DESC NULLS LAST LIMIT 50`),
+
+      // ---- Foydalanuvchi MANBASI (db/025). Reklama boshlanishidan oldin
+      // kerak: qaysi kanal odam olib kelayotganini o'lchamasdan byudjet
+      // sarflash — ko'r-ko'rona sarflash.
+      //
+      // ⚠️ `src IS NULL` ATAYLAB CHIQARIB TASHLANMAYDI va alohida qator
+      // bo'lib ham chiqmaydi: u "manba noma'lum" degani ("to'g'ridan-to'g'ri
+      // keldi" EMAS), ya'ni kanallar bilan bitta ro'yxatga qo'yilsa eng
+      // katta "kanal" o'lchanmagan qatorlar bo'lib chiqardi. Noma'lumlar
+      // soni alohida maydonda beriladi — ko'rinsin, lekin aralashmasin.
+      pool.query(`
+        SELECT src, count(*)::int AS n,
+               count(*) FILTER (WHERE engaged_at IS NOT NULL)::int AS engaged
+          FROM users WHERE src IS NOT NULL
+         GROUP BY src ORDER BY n DESC LIMIT 20`),
+
+      // ---- AI rasm sanog'i. Hammasi HAQIQIY jadvallardan: `product_ai_image`
+      // — chizilgan rasmlar, `ai_credits` — sarflangan kredit. Nol ham
+      // haqiqiy javob (CLAUDE.md: o'ylab topilgan raqam ko'rsatilmasin).
+      pool.query(`
+        SELECT (SELECT count(*)::int FROM product_ai_image)                    AS images,
+               (SELECT count(*)::int FROM product_ai_image
+                 WHERE created_at >= now() - interval '7 days')                AS images7,
+               (SELECT count(DISTINCT tg_user_id)::int FROM product_ai_image)  AS users,
+               (SELECT COALESCE(sum(spent), 0)::int FROM ai_credits)           AS spent`),
     ]);
 
     const t = totalsRes.rows[0];
@@ -202,6 +228,21 @@ async function handleAdminSummary(req, res, ip) {
         new7: usersRes.rows[0].new7,
         new30: usersRes.rows[0].new30,
         withPhone: usersRes.rows[0].with_phone,
+        // Manbasi O'LCHANMAGAN qatorlar. Kanal ro'yxatidan TASHQARIDA
+        // turadi — u kanal emas, bilmaslik (db/025 dagi izoh).
+        srcUnknown: usersRes.rows[0].total - srcRes.rows.reduce((s, r) => s + r.n, 0),
+      },
+
+      // Manba bo'yicha taqsimot. `engaged` yonida turadi: havola odam OLIB
+      // KELGANI bilan u ilovani OCHGANI bir narsa emas — bosilishi ko'p,
+      // ochilishi kam kanal reklama pulini yeb, natija bermasligi mumkin.
+      sources: srcRes.rows.map((r) => ({ src: r.src, count: r.n, engaged: r.engaged })),
+
+      ai: {
+        images: aiRes.rows[0].images,
+        images7: aiRes.rows[0].images7,
+        users: aiRes.rows[0].users,
+        creditsSpent: aiRes.rows[0].spent,
       },
 
       categories: catRes.rows.map((r) => ({ catKey: r.cat_key, count: r.n })),

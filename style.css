@@ -704,7 +704,10 @@ body {
   font-size: 12px;
   color: var(--text-muted);
 }
-.verified-legend svg { flex: none; }
+/* `color` ATAYLAB shu yerda: `<p>` ning o'zi `--text-muted`, belgi esa brend
+   rangida qolishi kerak. SVG `fill="currentColor"` dan oladi — `fill="var(…)"`
+   prezentatsiya atributida ishlamaydi (pastdagi `.verified` izohiga qara). */
+.verified-legend svg { flex: none; color: var(--pom-700); }
 
 /* ===== MAHSULOT GRIDI ===== */
 .product-grid {
@@ -777,6 +780,13 @@ body {
   overflow: visible;
   cursor: help;
 }
+/* ⚠️ Rang SHU YERDA turadi, SVG ning `fill=` atributida EMAS.
+   Sabab: `fill="var(--pom-700)"` ISHLAMAYDI — `var()` prezentatsiya
+   atributida qo'llanmaydi (faqat CSS xossasi sifatida berilganda), ya'ni
+   belgi JIMGINA qora bo'lib qolardi. Shuning uchun SVG `currentColor` dan
+   oladi, rang esa klassda. `.verified` `.product-supplier` dan tashqarida
+   ham uchraydi — shuning uchun selektor umumiy. */
+.verified { color: var(--pom-700); }
 .product-price {
   margin-top: auto;
   padding-top: 4px;
@@ -2762,8 +2772,18 @@ body { padding-bottom: calc(var(--dock-h) + env(safe-area-inset-bottom, 0px)); }
 .s-status.off { color: var(--text-muted); }
 
 .s-note { margin-top: 9px; padding: 9px 11px; border-radius: var(--radius-sm); font-size: 12px; line-height: 1.45; }
+/* Matn + tugma bitta qatorda (video izohi). `.s-note.bad`/`.warn` bitta
+   bolali bo'lgani uchun ular avvalgidek chiziladi. */
+.s-note.info { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .s-note.bad { background: var(--danger-100); color: #a3181c; }
 .s-note.warn { background: var(--saffron-50); color: var(--saffron-700); }
+/* Neytral variant — video uchun. Rasmdan farqi ATAYLAB: rasmsiz e'lon
+   katalogda umuman ko'rinmaydi (`warn` — sariq), video esa IXTIYORIY,
+   ya'ni yo'qligi nuqson emas va sotuvchini ogohlantirmasligi kerak.
+   Ranglar `.tone-neutral` va `.order-tag.wait` bilan AYNI juftlik — yangi
+   qiymat kiritilmaydi (dizayn tizimi bitta joyda qolsin). */
+.s-note.info { background: var(--ink-100); color: var(--ink-700); }
+.s-note.info .s-mini { background: var(--ink-700); }
 .s-mini {
   padding: 6px 11px; border-radius: 999px; border: none;
   background: var(--saffron-500); color: #fff;

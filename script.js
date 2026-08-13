@@ -201,6 +201,11 @@ const STR = {
     sImgWaiting: "Botga rasm yuboring — e'lon rasmsiz katalogda ko'rinmaydi",
     sImgAdd: "Rasm qo'shish",
     sImgRequested: "Telegram botga o'ting — rasm so'raldi",
+    sVidOn: 'Video qo’shilgan',
+    sVidWaiting: 'Botga video yuboring — MP4, 30 soniyagacha',
+    sVidAdd: "Video qo'shish",
+    sVidReplace: 'Videoni almashtirish',
+    sVidRequested: "Telegram botga o'ting — video so'raldi",
     stPublished: 'Katalogda', stPending: 'Moderatsiyada', stRejected: 'Rad etilgan', stDraft: 'Yashirilgan',
     sName: 'Nomi', sPrice: "Narxi (so'm)", sMoq: 'Minimal buyurtma',
     sStockField: "Zaxira (bo'sh = cheksiz)", sType: 'Turi', sComp: 'Tarkibi',
@@ -391,6 +396,11 @@ const STR = {
     sImgWaiting: 'Отправьте фото боту — без фото объявление не появится в каталоге',
     sImgAdd: 'Добавить фото',
     sImgRequested: 'Перейдите в Telegram-бот — фото запрошено',
+    sVidOn: 'Видео добавлено',
+    sVidWaiting: 'Отправьте видео боту — MP4, до 30 секунд',
+    sVidAdd: 'Добавить видео',
+    sVidReplace: 'Заменить видео',
+    sVidRequested: 'Перейдите в Telegram-бот — видео запрошено',
     stPublished: 'В каталоге', stPending: 'На модерации', stRejected: 'Отклонено', stDraft: 'Скрыто',
     sName: 'Название', sPrice: 'Цена (сум)', sMoq: 'Минимальный заказ',
     sStockField: 'Остаток (пусто = без ограничений)', sType: 'Тип', sComp: 'Состав',
@@ -1552,6 +1562,9 @@ function mountAddrMap() {
       }, { suppressMapOpenBlock: true });
 
       BTS_POINTS.forEach((p) => {
+        // ⚠️ XOM HEX ATAYLAB: `iconColor` CSS ga emas, Yandex Maps JS API siga
+        // uzatiladi — u `var(--pom-700)` ni tushunmaydi va belgi rangini
+        // JIMGINA yo'qotardi. Qolgan hamma joyda token ishlatiladi (Test 26).
         const m = new ymaps.Placemark([p.lat, p.lng], { hintContent: p.name },
           { preset: 'islands#dotIcon', iconColor: '#7a140d' });
         m.events.add('click', () => pickAddrPoint(p.id));
@@ -1572,6 +1585,7 @@ function paintAddrMarkers() {
     const on = id === btsPoint;
     addrMarkers[id].options.set({
       preset: on ? 'islands#circleIcon' : 'islands#dotIcon',
+      // XOM HEX ATAYLAB — Yandex API parametri (yuqoridagi izoh).
       iconColor: on ? '#7a140d' : '#9b8f88',
     });
   });
@@ -1853,7 +1867,7 @@ function apiCardHtml(p) {
         <div class="product-name">${esc(name)}</div>
         <div class="product-supplier">
           <span>${esc(supplier)}</span>
-          ${p.verified ? `<span class="verified" title="LolaMarket tomonidan tasdiqlangan ishlab chiqaruvchi" aria-label="LolaMarket tomonidan tasdiqlangan ishlab chiqaruvchi"><svg width="12" height="12" viewBox="0 0 24 24" fill="#7a140d"><path d="M12 2l2.4 1.8 3-.2 1 2.8 2.6 1.5-.9 2.9.9 2.9-2.6 1.5-1 2.8-3-.2L12 22l-2.4-1.8-3 .2-1-2.8L3 16.3l.9-2.9L3 10.5l2.6-1.5 1-2.8 3 .2z"/><path d="M9 12l2 2 4-4" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span>` : ''}
+          ${p.verified ? `<span class="verified" title="LolaMarket tomonidan tasdiqlangan ishlab chiqaruvchi" aria-label="LolaMarket tomonidan tasdiqlangan ishlab chiqaruvchi"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.4 1.8 3-.2 1 2.8 2.6 1.5-.9 2.9.9 2.9-2.6 1.5-1 2.8-3-.2L12 22l-2.4-1.8-3 .2-1-2.8L3 16.3l.9-2.9L3 10.5l2.6-1.5 1-2.8 3 .2z"/><path d="M9 12l2 2 4-4" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span>` : ''}
         </div>
         <div class="product-price">
           <span class="price-label">${t(p.unit === 'panel' ? 'unitPricePanel' : 'unitPrice')}</span>
@@ -2589,6 +2603,29 @@ function sellerTabsHtml(active) {
     </div>`;
 }
 
+/* ── Video holati (sotuvchining O'Z kabineti) ──
+   Uch holat va ular ATAYLAB ajratilgan: video BOR · oyna OCHIQ (kutilmoqda) ·
+   yo'l YOPIQ. Uchinchisida tugma chiziladi, birinchi ikkitasida MATN — chunki
+   oyna allaqachon ochiq bo'lsa tugma ikkinchi yo'l bo'lardi va sotuvchini
+   "yana bir marta so'rash" kerakdek his qildirardi (CLAUDE.md: mavjud
+   funksiyaga ikkinchi yo'l qo'shilmasin).
+
+   ⚠️ Rasmdan farqi bor: rasmsiz e'lon katalogda UMUMAN ko'rinmaydi, video esa
+   IXTIYORIY. Shuning uchun bu blok ogohlantirish (`warn`) emas — video yo'q
+   bo'lishi nuqson emas. */
+function videoNoteHtml(p) {
+  // Oyna OCHIQ — tugma yo'q: yo'l allaqachon bor, tugma uni ikkilantirardi.
+  if (p.awaitingVideo) return `<div class="s-note info">🎬 ${t('sVidWaiting')}</div>`;
+  // Video BOR — almashtirish yo'li ochiladi. Bu ham bo'shliq edi: video
+  // qabul qilingach oyna yopiladi va sotuvchi yomon videoni butun e'lonni
+  // qayta yaratmasdan almashtira olmasdi.
+  const yorliq = p.video ? t('sVidReplace') : t('sVidAdd');
+  return `<div class="s-note info">
+    <span>${p.video ? `✅ ${t('sVidOn')}` : ''}</span>
+    <button class="s-mini" data-action="requestProductVideo" data-arg="${esc(p.id)}">${yorliq}</button>
+  </div>`;
+}
+
 /* ── E'lonlarim ──
    ⚠️ Bu ro'yxat sotuvchi API'sidan XOM keladi va `vm()` chegarasidan
    O'TMAYDI (u Mini App'da), shuning uchun har bir matn chizish joyida
@@ -2627,6 +2664,7 @@ function sellerProductsHtml() {
                    ? t('sImgWaiting')
                    : `<button class="s-mini" data-action="requestProductImage" data-arg="${esc(p.id)}">${t('sImgAdd')}</button>`}
                </div>` : ''}
+          ${videoNoteHtml(p)}
           <div class="s-acts">
             <button class="s-btn" data-action="editProduct" data-arg="${esc(p.id)}">${t('sEdit')}</button>
             <button class="s-btn ghost" data-action="toggleProductArg" data-arg="${esc(p.id)}|${p.status === 'draft' ? 'show' : 'hide'}">${p.status === 'draft' ? t('sShow') : t('sHide')}</button>
@@ -2749,6 +2787,13 @@ function requestProductImage(id) {
   sellerFetch('/api/seller/products', { method: 'PATCH', body: JSON.stringify({ id: String(id), action: 'request_image' }) })
     .then(() => loadSellerData())
     .then(() => showToast(t('sImgRequested')))
+    .catch((e) => showToast(e.message));
+}
+
+function requestProductVideo(id) {
+  sellerFetch('/api/seller/products', { method: 'PATCH', body: JSON.stringify({ id: String(id), action: 'request_video' }) })
+    .then(() => loadSellerData())
+    .then(() => showToast(t('sVidRequested')))
     .catch((e) => showToast(e.message));
 }
 

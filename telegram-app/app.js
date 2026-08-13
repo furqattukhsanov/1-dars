@@ -228,6 +228,9 @@ const STR = {
     sStockLabel: "Zaxira", sStockUnlimited: "cheksiz",
     sImgWaiting: "Rasm kutilmoqda — botga rasm yuboring", sImgAdd: "Rasm yuklash",
     sImgRequested: "So'raldi — botga rasm yuboring", sPhotoHint: "Saqlangach botga rasm yuboring — u katalogda ko'rinadi.",
+    sVidOn: "Video qo'shilgan", sVidWaiting: "Video kutilmoqda — MP4, 30 soniyagacha",
+    sVidAdd: "Video qo'shish", sVidReplace: "Videoni almashtirish",
+    sVidRequested: "So'raldi — botga video yuboring",
     sDispute: "Xaridor shikoyati", sDisputeReplyPh: "Javobingiz — moderator va xaridor ko'radi",
     sDisputeSend: "Javob yuborish", sDisputeSent: "Javob yuborildi",
     sDisputeYours: "Sizning javobingiz", sDisputeNeed: "Javob matnini yozing",
@@ -379,6 +382,9 @@ const STR = {
     sStockLabel: "Запас", sStockUnlimited: "без ограничений",
     sImgWaiting: "Ожидается фото — отправьте его боту", sImgAdd: "Загрузить фото",
     sImgRequested: "Запрошено — отправьте фото боту", sPhotoHint: "После сохранения отправьте фото боту — оно появится в каталоге.",
+    sVidOn: "Видео добавлено", sVidWaiting: "Ожидается видео — MP4, до 30 секунд",
+    sVidAdd: "Добавить видео", sVidReplace: "Заменить видео",
+    sVidRequested: "Запрошено — отправьте видео боту",
     sDispute: "Жалоба покупателя", sDisputeReplyPh: "Ваш ответ — увидят модератор и покупатель",
     sDisputeSend: "Отправить ответ", sDisputeSent: "Ответ отправлен",
     sDisputeYours: "Ваш ответ", sDisputeNeed: "Напишите текст ответа",
@@ -1086,15 +1092,15 @@ function renderHome() {
            narx filtrini SHU YERNING O'ZIDA ochadi. Yoqilgan filtr tugmaning
            rangidan ko'rinadi — aks holda foydalanuvchi filtr ishlayotganini
            unutib, "mahsulotlar yo'qolibdi" deb o'ylardi. -->
-      <button data-action="openPriceSheet" aria-label="${T.filter}" style="flex:none;width:48px;height:48px;border-radius:var(--radius-md);background:${priceOn ? 'var(--pom-100)' : 'linear-gradient(150deg,#7a140d,#510100)'};border:1px solid ${priceOn ? 'rgba(122,20,13,.35)' : 'rgba(255,229,210,.25)'};box-shadow:0 6px 16px -6px rgba(81,1,0,.6),inset 0 1px 0 rgba(255,229,210,.22);display:flex;align-items:center;justify-content:center;color:${priceOn ? '#7a140d' : '#ffe5d2'};position:relative">
+      <button data-action="openPriceSheet" aria-label="${T.filter}" style="flex:none;width:48px;height:48px;border-radius:var(--radius-md);background:${priceOn ? 'var(--pom-100)' : 'linear-gradient(150deg,var(--pom-700),var(--pom-800))'};border:1px solid ${priceOn ? 'rgba(122,20,13,.35)' : 'rgba(255,229,210,.25)'};box-shadow:0 6px 16px -6px rgba(81,1,0,.6),inset 0 1px 0 rgba(255,229,210,.22);display:flex;align-items:center;justify-content:center;color:${priceOn ? 'var(--pom-700)' : '#ffe5d2'};position:relative">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M4 6h16M7 12h10M10 18h4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
-        ${priceOn ? '<span style="position:absolute;top:9px;right:9px;width:7px;height:7px;border-radius:50%;background:#7a140d"></span>' : ''}
+        ${priceOn ? '<span style="position:absolute;top:9px;right:9px;width:7px;height:7px;border-radius:50%;background:var(--pom-700)"></span>' : ''}
       </button>
     </div>
 
     ${priceOn ? `<div style="display:flex;align-items:center;gap:8px;align-self:flex-start;max-width:100%;height:34px;padding:0 6px 0 13px;border-radius:999px;background:var(--pom-100);border:1px solid rgba(122,20,13,.25)">
-      <span style="font-size:12.5px;font-weight:600;color:#7a140d;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${priceFilterLabel()}</span>
-      <button data-action="clearPriceFilter" aria-label="${T.priceRemove}" style="flex:none;width:24px;height:24px;border-radius:50%;border:none;background:rgba(122,20,13,.12);color:#7a140d;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0">
+      <span style="font-size:12.5px;font-weight:600;color:var(--pom-700);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${priceFilterLabel()}</span>
+      <button data-action="clearPriceFilter" aria-label="${T.priceRemove}" style="flex:none;width:24px;height:24px;border-radius:50%;border:none;background:rgba(122,20,13,.12);color:var(--pom-700);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
       </button>
     </div>` : ''}
@@ -1117,7 +1123,7 @@ function renderHome() {
 
     ${prods.length === 0
       ? `<div style="text-align:center;padding:40px;color:var(--text-muted)">${priceOn ? T.noProductsPrice : T.noProducts}
-          ${priceOn ? `<div><button data-action="clearPriceFilter" style="margin-top:14px;cursor:pointer;height:40px;padding:0 18px;border-radius:var(--radius-md);border:1px solid #7a140d;background:none;color:#7a140d;font-family:var(--font-sans);font-size:13.5px;font-weight:600">${T.priceClear}</button></div>` : ''}
+          ${priceOn ? `<div><button data-action="clearPriceFilter" style="margin-top:14px;cursor:pointer;height:40px;padding:0 18px;border-radius:var(--radius-md);border:1px solid var(--pom-700);background:none;color:var(--pom-700);font-family:var(--font-sans);font-size:13.5px;font-weight:600">${T.priceClear}</button></div>` : ''}
          </div>`
       : `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">${prods.map(p => productCard(p)).join('')}</div>`}
   </div>`;
@@ -1313,7 +1319,7 @@ function creditRozetka() {
   const past = !c.unlimited && c.balance < c.cost;
   return `<span style="flex:none;padding:6px 11px;border-radius:999px;font-size:12px;font-weight:700;white-space:nowrap;
     background:${past ? 'rgba(160,30,20,.12)' : 'var(--glass-fill-strong)'};
-    color:${past ? '#8f1a10' : 'var(--text-strong)'};border:1px solid var(--border-hair)">${esc(past ? T.aiCreditNone : matn)}</span>`;
+    color:${past ? 'var(--pom-600)' : 'var(--text-strong)'};border:1px solid var(--border-hair)">${esc(past ? T.aiCreditNone : matn)}</span>`;
 }
 
 // Galereyani yuklaydi. Xato bo'lsa JIM o'tadi va bo'sh holat ko'rsatiladi —
@@ -1641,11 +1647,11 @@ function renderDetail() {
       </div>
 
       <div class="pd-panel" style="display:flex;align-items:center;gap:12px;padding:13px 14px">
-        <span style="flex:none;width:42px;height:42px;border-radius:12px;background:linear-gradient(150deg,#7a140d,#510100);color:#ffe9db;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:16px">${p.supplier[0]}</span>
+        <span style="flex:none;width:42px;height:42px;border-radius:12px;background:linear-gradient(150deg,var(--pom-700),var(--pom-800));color:#ffe9db;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:16px">${p.supplier[0]}</span>
         <div style="flex:1;min-width:0">
           <div style="display:flex;align-items:center;gap:5px;font-size:14px;font-weight:700;color:var(--text-strong)">
             <span style="flex:1;min-width:0">${p.supplier}</span>
-            ${p.verified ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="#7a140d" style="flex:none"><path d="M12 2l2.4 1.8 3-.2 1 2.8 2.6 1.5-.9 2.9.9 2.9-2.6 1.5-1 2.8-3-.2L12 22l-2.4-1.8-3 .2-1-2.8L3 16.3l.9-2.9L3 10.5l2.6-1.5 1-2.8 3 .2z"/><path d="M9 12l2 2 4-4" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>` : ''}
+            ${p.verified ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="var(--pom-700)" style="flex:none"><path d="M12 2l2.4 1.8 3-.2 1 2.8 2.6 1.5-.9 2.9.9 2.9-2.6 1.5-1 2.8-3-.2L12 22l-2.4-1.8-3 .2-1-2.8L3 16.3l.9-2.9L3 10.5l2.6-1.5 1-2.8 3 .2z"/><path d="M9 12l2 2 4-4" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>` : ''}
           </div>
           <div style="font-size:12px;color:var(--text-muted)">${p.city} · ${T.verified}</div>
         </div>
@@ -1655,7 +1661,7 @@ function renderDetail() {
       </div>
 
       <div>
-        <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#7a140d;margin-bottom:10px">${T.specs}</div>
+        <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--pom-700);margin-bottom:10px">${T.specs}</div>
         <div style="border:1px solid var(--border-hair);border-radius:var(--radius-md);overflow:hidden">
           ${[[T.width, p.width],[T.weight, p.weight],[T.comp, p.comp],[T.leadTime, p.leadLabel],[T.minOrder, p.moqLabel]].map(([k,v],i) => `
           <div style="display:flex;justify-content:space-between;padding:11px 14px;background:${i%2===0?'#fff':'#F8F5F3'};${i>0?'border-top:1px solid var(--border-hair)':''}" >
@@ -1672,7 +1678,7 @@ function renderDetail() {
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
           </button>
           <span id="detail-qty" style="font-family:var(--font-mono);font-size:16px;font-weight:600;color:var(--text-strong);min-width:80px;text-align:center">${num(S.qty)} ${uShort(byId(S.selectedId).unit)}</span>
-          <button data-action="incQty" style="width:36px;height:36px;border-radius:50%;border:1px solid transparent;background:linear-gradient(150deg,#8f1a10,#510100);display:flex;align-items:center;justify-content:center;color:#fff;box-shadow:var(--shadow-sm);cursor:pointer">
+          <button data-action="incQty" style="width:36px;height:36px;border-radius:50%;border:1px solid transparent;background:linear-gradient(150deg,var(--pom-600),var(--pom-800));display:flex;align-items:center;justify-content:center;color:#fff;box-shadow:var(--shadow-sm);cursor:pointer">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
           </button>
         </div>
@@ -1717,7 +1723,7 @@ function aiImageSection(productId) {
   if (!S.aiImageEnabled || !S.aiChoiceKeys) return '';
 
   const st = S.aiImages[productId];
-  const head = `<div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#7a140d;margin-bottom:10px">${T.aiImgT}</div>`;
+  const head = `<div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--pom-700);margin-bottom:10px">${T.aiImgT}</div>`;
 
   // Holat 1 — savollar. Founder qarori 2026-08-07: rasmdan OLDIN 2-3 savol.
   // ⚠️ Zaxira javob (`|| 'ayol'`) ATAYLAB YO'Q — hammasi tanlanmaguncha
@@ -2173,7 +2179,7 @@ function reviewsSection(productId) {
 
   return `
   <div>
-    <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#7a140d;margin-bottom:10px">${T.reviewsT}</div>
+    <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--pom-700);margin-bottom:10px">${T.reviewsT}</div>
     ${list === undefined
       // Hali yuklanmagan — bo'sh joy turadi, "sharh yo'q" DEB YOZILMAYDI.
       // Aks holda yuklanish paytida yolg'on gap ko'rsatilardi.
@@ -2258,7 +2264,7 @@ function renderSearch() {
   const hasSearch = q.length > 0;
   return `
   <div style="padding:16px 16px 28px;display:flex;flex-direction:column;gap:16px">
-    <div style="display:flex;align-items:center;gap:10px;height:48px;padding:0 16px;border:1px solid #7a140d;border-radius:var(--radius-md);background:var(--glass-fill-strong);backdrop-filter:var(--blur-md);-webkit-backdrop-filter:var(--blur-md);box-shadow:0 0 0 4px rgba(122,20,13,.2),var(--glass-highlight)">
+    <div style="display:flex;align-items:center;gap:10px;height:48px;padding:0 16px;border:1px solid var(--pom-700);border-radius:var(--radius-md);background:var(--glass-fill-strong);backdrop-filter:var(--blur-md);-webkit-backdrop-filter:var(--blur-md);box-shadow:0 0 0 4px rgba(122,20,13,.2),var(--glass-highlight)">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style="color:var(--text-subtle)"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M20 20l-3.5-3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
       <input id="search-inp" type="text" value="${S.search}" placeholder="${T.searchPh}" data-input="onSearch" autocomplete="off" style="flex:1;align-self:stretch;border:none;outline:none;background:transparent;font-family:var(--font-sans);font-size:16px;color:var(--text-strong)">
       ${S.search ? `<button data-action="clearSearch" style="color:var(--text-subtle);background:none;border:none;display:flex;align-items:center;cursor:pointer"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>` : ''}
@@ -2287,7 +2293,7 @@ function renderSearch() {
             </button>
           `).join('')}
         </div>
-        <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#7a140d;margin-bottom:11px">${T.featured}</div>
+        <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--pom-700);margin-bottom:11px">${T.featured}</div>
         ${PRODUCTS.slice(0,3).map(p => searchRow(vm(p))).join('')}
       </div>
     `}
@@ -2317,7 +2323,7 @@ function renderCart() {
     </span>
     <div style="font-size:16px;font-weight:700;color:var(--text-strong)">${T.cartEmpty}</div>
     <div style="font-size:13px;color:var(--text-muted)">${T.cartEmptySub}</div>
-    <button data-action="tab" data-arg="home" style="margin-top:6px;height:42px;padding:0 22px;border-radius:var(--radius-md);border:none;background:linear-gradient(135deg,#8f1a10,#510100);color:#ffe9db;font-size:14px;font-weight:600;cursor:pointer;box-shadow:var(--shadow-sm)">${T.browse}</button>
+    <button data-action="tab" data-arg="home" style="margin-top:6px;height:42px;padding:0 22px;border-radius:var(--radius-md);border:none;background:linear-gradient(135deg,var(--pom-600),var(--pom-800));color:#ffe9db;font-size:14px;font-weight:600;cursor:pointer;box-shadow:var(--shadow-sm)">${T.browse}</button>
   </div>`;
 
   return `
@@ -2358,7 +2364,7 @@ function renderCart() {
         <span style="font-size:15px;font-weight:700;color:var(--text-strong)">${T.total}</span>
         <span style="font-family:var(--font-mono);font-size:21px;font-weight:600;color:var(--text-strong)">${money(cartTotal())}</span>
       </div>
-      <button data-action="navigate" data-arg="checkout" style="margin-top:14px;width:100%;height:50px;border-radius:var(--radius-md);border:none;background:linear-gradient(135deg,#8f1a10,#510100);color:#ffe9db;font-size:15px;font-weight:600;cursor:pointer;box-shadow:0 10px 26px -10px rgba(81,1,0,.55),inset 0 1px 0 rgba(255,229,210,.2)">${T.checkout}</button>
+      <button data-action="navigate" data-arg="checkout" style="margin-top:14px;width:100%;height:50px;border-radius:var(--radius-md);border:none;background:linear-gradient(135deg,var(--pom-600),var(--pom-800));color:#ffe9db;font-size:15px;font-weight:600;cursor:pointer;box-shadow:0 10px 26px -10px rgba(81,1,0,.55),inset 0 1px 0 rgba(255,229,210,.2)">${T.checkout}</button>
     </div>
   </div>`;
 }
@@ -2366,12 +2372,12 @@ function renderCart() {
 // ============ EKRAN: CHECKOUT ============
 // Ko'p qadamli wizard emas — bitta skrollda tartiblangan 4 bo'lim.
 // Faqat BTS nuqtasi tanlash bottom-sheet'ga chiqadi (200+ nuqta inline sig'maydi).
-const SEC_LABEL = 'font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#7a140d';
+const SEC_LABEL = 'font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--pom-700)';
 const CARD_BOX = 'padding:14px;border-radius:var(--radius-md);background:rgba(255,255,255,.62);backdrop-filter:blur(16px) saturate(160%);-webkit-backdrop-filter:blur(16px) saturate(160%);border:1px solid rgba(255,255,255,.55);box-shadow:0 5px 16px -12px rgba(81,1,0,.12)';
 
 function secHead(n, label) {
   return `<div style="display:flex;align-items:center;gap:7px;margin-bottom:9px">
-    <span style="flex:none;width:17px;height:17px;border-radius:50%;background:var(--pom-100);color:#7a140d;display:flex;align-items:center;justify-content:center;font-size:9.5px;font-weight:700">${n}</span>
+    <span style="flex:none;width:17px;height:17px;border-radius:50%;background:var(--pom-100);color:var(--pom-700);display:flex;align-items:center;justify-content:center;font-size:9.5px;font-weight:700">${n}</span>
     <span style="${SEC_LABEL}">${label}</span>
   </div>`;
 }
@@ -2420,9 +2426,9 @@ function renderCheckout() {
       <div style="display:flex;flex-direction:column;gap:9px">
         ${PAY.map(o => {
           const sel = S.pay === o.key;
-          return `<button data-action="setPay" data-arg="${o.key}" style="display:flex;align-items:center;gap:12px;width:100%;text-align:left;cursor:pointer;padding:11px 13px;border-radius:var(--radius-md);background:${sel ? '#fff' : 'rgba(255,255,255,.55)'};backdrop-filter:blur(16px) saturate(160%);-webkit-backdrop-filter:blur(16px) saturate(160%);border:1.5px solid ${sel ? '#7a140d' : 'var(--border-hair)'};transition:border-color 200ms">
-            <div style="flex:none;width:20px;height:20px;border-radius:50%;border:2px solid ${sel ? '#7a140d' : 'var(--ink-300)'};display:flex;align-items:center;justify-content:center">
-              <div style="width:9px;height:9px;border-radius:50%;background:${sel ? '#7a140d' : 'transparent'}"></div>
+          return `<button data-action="setPay" data-arg="${o.key}" style="display:flex;align-items:center;gap:12px;width:100%;text-align:left;cursor:pointer;padding:11px 13px;border-radius:var(--radius-md);background:${sel ? '#fff' : 'rgba(255,255,255,.55)'};backdrop-filter:blur(16px) saturate(160%);-webkit-backdrop-filter:blur(16px) saturate(160%);border:1.5px solid ${sel ? 'var(--pom-700)' : 'var(--border-hair)'};transition:border-color 200ms">
+            <div style="flex:none;width:20px;height:20px;border-radius:50%;border:2px solid ${sel ? 'var(--pom-700)' : 'var(--ink-300)'};display:flex;align-items:center;justify-content:center">
+              <div style="width:9px;height:9px;border-radius:50%;background:${sel ? 'var(--pom-700)' : 'transparent'}"></div>
             </div>
             <span style="flex:none;width:30px;height:30px;border-radius:8px;background:${o.color};color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800">${o.mark}</span>
             <div style="flex:1;font-size:14px;font-weight:600;color:var(--text-strong)">${o.label[S.lang]}</div>
@@ -2447,9 +2453,9 @@ function renderCheckout() {
       <div style="height:1px;background:var(--border-hair);margin:8px 2px"></div>
       <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 2px">
         <span style="font-size:15px;font-weight:700;color:var(--text-strong)">${T.payNow}
-          <span style="font-size:10px;font-weight:700;background:var(--pom-100);color:#7a140d;padding:2px 6px;border-radius:999px;margin-left:5px;vertical-align:1px">${Math.round(PREPAY_RATE * 100)}%</span>
+          <span style="font-size:10px;font-weight:700;background:var(--pom-100);color:var(--pom-700);padding:2px 6px;border-radius:999px;margin-left:5px;vertical-align:1px">${Math.round(PREPAY_RATE * 100)}%</span>
         </span>
-        <span style="font-family:var(--font-mono);font-size:15px;font-weight:700;color:#7a140d">${money(prepayAmount(total))}</span>
+        <span style="font-family:var(--font-mono);font-size:15px;font-weight:700;color:var(--pom-700)">${money(prepayAmount(total))}</span>
       </div>
       <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--text-muted);padding:5px 2px">
         <span>${T.payLater}</span><span style="font-family:var(--font-mono)">${money(restAmount(total))}</span>
@@ -2498,11 +2504,11 @@ function btsMapPickHtml() {
     return `<div style="text-align:center;font-size:12.5px;color:var(--text-muted);padding:13px 0">${T.pickPoint}</div>`;
   }
   return `
-    <div style="padding:12px;border-radius:var(--radius-md);background:#fff;box-shadow:0 0 0 1.5px #7a140d">
+    <div style="padding:12px;border-radius:var(--radius-md);background:#fff;box-shadow:0 0 0 1.5px var(--pom-700)">
       <div style="font-size:13.5px;font-weight:700;color:var(--text-strong)">${p.name[S.lang]}</div>
       <div style="font-size:12px;color:var(--text-muted);margin-top:2px">${p.addr[S.lang]} · ${p.hours}</div>
     </div>
-    <button data-action="pickBts" data-arg="${p.id}" style="margin-top:9px;width:100%;height:48px;border:none;border-radius:var(--radius-md);background:linear-gradient(135deg,#8f1a10,#510100);color:#ffe9db;font-family:var(--font-sans);font-size:15px;font-weight:600;cursor:pointer;box-shadow:var(--shadow-sm)">${T.pickSelect}</button>`;
+    <button data-action="pickBts" data-arg="${p.id}" style="margin-top:9px;width:100%;height:48px;border:none;border-radius:var(--radius-md);background:linear-gradient(135deg,var(--pom-600),var(--pom-800));color:#ffe9db;font-family:var(--font-sans);font-size:15px;font-weight:600;cursor:pointer;box-shadow:var(--shadow-sm)">${T.pickSelect}</button>`;
 }
 
 function renderBtsSheet() {
@@ -2538,19 +2544,19 @@ function renderBtsSheet() {
     <div style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch">
       ${list.map(p => {
         const sel = S.btsPoint === p.id;
-        return `<button data-action="pickBts" data-arg="${p.id}" style="display:flex;align-items:center;gap:11px;width:100%;text-align:left;cursor:pointer;padding:12px;border-radius:var(--radius-md);margin-bottom:7px;border:none;background:${sel ? '#fff' : 'rgba(255,255,255,.6)'};box-shadow:${sel ? '0 0 0 1.5px #7a140d' : 'none'}">
+        return `<button data-action="pickBts" data-arg="${p.id}" style="display:flex;align-items:center;gap:11px;width:100%;text-align:left;cursor:pointer;padding:12px;border-radius:var(--radius-md);margin-bottom:7px;border:none;background:${sel ? '#fff' : 'rgba(255,255,255,.6)'};box-shadow:${sel ? '0 0 0 1.5px var(--pom-700)' : 'none'}">
           <div style="flex:1">
             <div style="font-size:13.5px;font-weight:700;color:var(--text-strong)">${p.name[S.lang]}</div>
             <div style="font-size:12px;color:var(--text-muted);margin-top:2px">${p.addr[S.lang]} · ${p.hours}</div>
           </div>
-          <div style="flex:none;width:20px;height:20px;border-radius:50%;border:2px solid ${sel ? '#7a140d' : 'var(--ink-200)'};display:flex;align-items:center;justify-content:center">
-            <div style="width:9px;height:9px;border-radius:50%;background:${sel ? '#7a140d' : 'transparent'}"></div>
+          <div style="flex:none;width:20px;height:20px;border-radius:50%;border:2px solid ${sel ? 'var(--pom-700)' : 'var(--ink-200)'};display:flex;align-items:center;justify-content:center">
+            <div style="width:9px;height:9px;border-radius:50%;background:${sel ? 'var(--pom-700)' : 'transparent'}"></div>
           </div>
         </button>`;
       }).join('')}
     </div>
 
-    <button data-action="closeBtsSheet" style="flex:none;margin-top:10px;width:100%;height:50px;border:none;border-radius:var(--radius-md);background:linear-gradient(135deg,#8f1a10,#510100);color:#ffe9db;font-family:var(--font-sans);font-size:15px;font-weight:600;cursor:pointer;box-shadow:var(--shadow-sm)">${T.pickSelect}</button>`}
+    <button data-action="closeBtsSheet" style="flex:none;margin-top:10px;width:100%;height:50px;border:none;border-radius:var(--radius-md);background:linear-gradient(135deg,var(--pom-600),var(--pom-800));color:#ffe9db;font-family:var(--font-sans);font-size:15px;font-weight:600;cursor:pointer;box-shadow:var(--shadow-sm)">${T.pickSelect}</button>`}
   </div>`;
 }
 
@@ -2591,8 +2597,8 @@ function renderPriceSheet() {
     ${lo === null ? '' : `<div style="font-size:12px;color:var(--text-muted);margin-bottom:14px">${T.priceRangeHint}: ${priceNum(lo)} – ${priceNum(hi)} ${T.somU}</div>`}
 
     <div style="display:flex;gap:10px">
-      <button data-action="clearPriceFilter" style="flex:none;padding:0 18px;height:50px;border-radius:var(--radius-md);border:1px solid rgba(122,20,13,.3);background:none;color:#7a140d;font-family:var(--font-sans);font-size:15px;font-weight:600;cursor:pointer">${T.priceClear}</button>
-      <button data-action="applyPriceFilter" style="flex:1;height:50px;border:none;border-radius:var(--radius-md);background:linear-gradient(135deg,#8f1a10,#510100);color:#ffe9db;font-family:var(--font-sans);font-size:15px;font-weight:600;cursor:pointer;box-shadow:var(--shadow-sm)">${T.priceApply}</button>
+      <button data-action="clearPriceFilter" style="flex:none;padding:0 18px;height:50px;border-radius:var(--radius-md);border:1px solid rgba(122,20,13,.3);background:none;color:var(--pom-700);font-family:var(--font-sans);font-size:15px;font-weight:600;cursor:pointer">${T.priceClear}</button>
+      <button data-action="applyPriceFilter" style="flex:1;height:50px;border:none;border-radius:var(--radius-md);background:linear-gradient(135deg,var(--pom-600),var(--pom-800));color:#ffe9db;font-family:var(--font-sans);font-size:15px;font-weight:600;cursor:pointer;box-shadow:var(--shadow-sm)">${T.priceApply}</button>
     </div>
   </div>`;
 }
@@ -2778,6 +2784,8 @@ async function mountBtsMap() {
     for (const p of BTS_POINTS) {
       const m = new ymaps.Placemark([p.lat, p.lng], {
         hintContent: p.name[S.lang],
+        // ⚠️ XOM HEX ATAYLAB — Yandex Maps JS API si CSS o'zgaruvchisini
+        // tushunmaydi (pastdagi `iconColor` izohiga qara).
       }, { preset: 'islands#dotIcon', iconColor: '#7a140d' });
       m.events.add('click', () => mapPickBts(p.id));
       btsMarkers[p.id] = m;
@@ -2801,6 +2809,9 @@ function paintMapMarkers() {
     const on = id === S.btsPoint;
     btsMarkers[id].options.set({
       preset: on ? 'islands#circleIcon' : 'islands#dotIcon',
+      // ⚠️ XOM HEX ATAYLAB: bu qiymat CSS ga emas, Yandex Maps JS API siga
+      // uzatiladi va u `var(--pom-700)` ni tushunmaydi — belgi rangini
+      // JIMGINA yo'qotardi. Yuqoridagi `dotIcon` da ham shu sabab.
       iconColor: on ? '#7a140d' : '#9b8f88',
     });
   }
@@ -2838,9 +2849,9 @@ function renderDisputeSheet() {
     <div style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;margin-top:14px;display:flex;flex-direction:column;gap:7px">
       ${DISP_REASONS.map(r => {
         const on = S.dispReason === r.key;
-        return `<button data-action="setDispReason" data-arg="${r.key}" style="display:flex;align-items:center;gap:10px;text-align:left;padding:13px;border-radius:var(--radius-sm);cursor:pointer;border:1.5px solid ${on ? '#8f1a10' : 'var(--border-hair)'};background:${on ? 'rgba(143,26,16,.05)' : 'transparent'}">
-          <span style="flex:none;width:18px;height:18px;border-radius:50%;border:1.5px solid ${on ? '#8f1a10' : 'var(--ink-200)'};display:flex;align-items:center;justify-content:center">
-            ${on ? '<span style="width:9px;height:9px;border-radius:50%;background:#8f1a10"></span>' : ''}
+        return `<button data-action="setDispReason" data-arg="${r.key}" style="display:flex;align-items:center;gap:10px;text-align:left;padding:13px;border-radius:var(--radius-sm);cursor:pointer;border:1.5px solid ${on ? 'var(--pom-600)' : 'var(--border-hair)'};background:${on ? 'rgba(143,26,16,.05)' : 'transparent'}">
+          <span style="flex:none;width:18px;height:18px;border-radius:50%;border:1.5px solid ${on ? 'var(--pom-600)' : 'var(--ink-200)'};display:flex;align-items:center;justify-content:center">
+            ${on ? '<span style="width:9px;height:9px;border-radius:50%;background:var(--pom-600)"></span>' : ''}
           </span>
           <span style="font-size:14px;font-weight:${on ? 700 : 500};color:var(--text-strong)">${r[S.lang]}</span>
         </button>`;
@@ -2852,7 +2863,7 @@ function renderDisputeSheet() {
 
     <div style="flex:none;display:flex;gap:9px;margin-top:12px">
       <button data-action="closeDisputeSheet" style="flex:1;height:50px;border-radius:var(--radius-md);border:1px solid var(--border-hair);background:transparent;font-family:var(--font-sans);font-size:15px;font-weight:600;color:var(--text-muted);cursor:pointer">${T.dispCancel}</button>
-      <button data-action="submitDispute" style="flex:1.4;height:50px;border:none;border-radius:var(--radius-md);background:linear-gradient(135deg,#8f1a10,#510100);color:#ffe9db;font-family:var(--font-sans);font-size:15px;font-weight:600;cursor:pointer;box-shadow:var(--shadow-sm)">${T.dispSend}</button>
+      <button data-action="submitDispute" style="flex:1.4;height:50px;border:none;border-radius:var(--radius-md);background:linear-gradient(135deg,var(--pom-600),var(--pom-800));color:#ffe9db;font-family:var(--font-sans);font-size:15px;font-weight:600;cursor:pointer;box-shadow:var(--shadow-sm)">${T.dispSend}</button>
     </div>
   </div>`;
 }
@@ -2965,7 +2976,7 @@ function renderReviewSheet() {
 
     <div style="flex:none;display:flex;gap:9px;margin-top:12px">
       <button data-action="closeReviewSheet" style="flex:1;height:50px;border-radius:var(--radius-md);border:1px solid var(--border-hair);background:transparent;font-family:var(--font-sans);font-size:15px;font-weight:600;color:var(--text-muted);cursor:pointer">${T.revCancel}</button>
-      <button data-action="submitReview" style="flex:1.4;height:50px;border:none;border-radius:var(--radius-md);background:linear-gradient(135deg,#8f1a10,#510100);color:#ffe9db;font-family:var(--font-sans);font-size:15px;font-weight:600;cursor:pointer;box-shadow:var(--shadow-sm)">${T.revSend}</button>
+      <button data-action="submitReview" style="flex:1.4;height:50px;border:none;border-radius:var(--radius-md);background:linear-gradient(135deg,var(--pom-600),var(--pom-800));color:#ffe9db;font-family:var(--font-sans);font-size:15px;font-weight:600;cursor:pointer;box-shadow:var(--shadow-sm)">${T.revSend}</button>
     </div>
   </div>`;
 }
@@ -3058,7 +3069,7 @@ function reviewBlock(o) {
         <span style="flex:1;min-width:0;font-size:12.5px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.name[S.lang]}</span>
         ${done
           ? `<span style="flex:none;display:inline-flex;align-items:center;gap:5px;font-size:11.5px;color:var(--text-subtle)">${starsRow(done.stars, 11)} ${T.rated}</span>`
-          : `<button data-action="openReviewArg" data-arg="${o.id}|${it.id}" style="flex:none;height:30px;padding:0 13px;border-radius:999px;border:1px solid #7a140d;background:transparent;font-size:12px;font-weight:600;color:#7a140d;cursor:pointer">★ ${T.rateIt}</button>`}
+          : `<button data-action="openReviewArg" data-arg="${o.id}|${it.id}" style="flex:none;height:30px;padding:0 13px;border-radius:999px;border:1px solid var(--pom-700);background:transparent;font-size:12px;font-weight:600;color:var(--pom-700);cursor:pointer">★ ${T.rateIt}</button>`}
       </div>`;
     }).join('')}
   </div>`;
@@ -3069,14 +3080,14 @@ function renderSuccess() {
   const T = STR[S.lang];
   return `
   <div style="padding:50px 28px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:14px">
-    <span style="width:88px;height:88px;border-radius:50%;background:linear-gradient(155deg,#a51f13 0%,#7a140d 48%,#480100 100%);display:flex;align-items:center;justify-content:center;color:#ffe9db;box-shadow:0 14px 34px -10px rgba(81,1,0,.5);animation:pop var(--dur-slow) var(--ease-spring)">
+    <span style="width:88px;height:88px;border-radius:50%;background:linear-gradient(155deg,#a51f13 0%,var(--pom-700) 48%,#480100 100%);display:flex;align-items:center;justify-content:center;color:#ffe9db;box-shadow:0 14px 34px -10px rgba(81,1,0,.5);animation:pop var(--dur-slow) var(--ease-spring)">
       <svg width="46" height="46" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4 10-11" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </span>
     <div style="font-family:var(--font-display);font-size:23px;font-weight:800;color:var(--text-strong);letter-spacing:-.02em">${T.orderPlaced}</div>
     <div style="font-size:14px;color:var(--text-muted);line-height:1.55;max-width:280px">${T.orderPlacedSub}</div>
     <div style="font-family:var(--font-mono);font-size:14px;font-weight:600;color:var(--text-strong);padding:8px 16px;border-radius:999px;background:rgba(255,255,255,.62);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.55)">${ORDERS[0]?.id || '#LM-—'}</div>
     <div style="display:flex;flex-direction:column;gap:10px;width:100%;max-width:300px;margin-top:14px">
-      <button data-action="tab" data-arg="orders" style="height:50px;border-radius:var(--radius-md);border:none;background:linear-gradient(135deg,#8f1a10,#510100);color:#ffe9db;font-size:15px;font-weight:600;cursor:pointer;box-shadow:var(--shadow-sm)">${T.viewOrders}</button>
+      <button data-action="tab" data-arg="orders" style="height:50px;border-radius:var(--radius-md);border:none;background:linear-gradient(135deg,var(--pom-600),var(--pom-800));color:#ffe9db;font-size:15px;font-weight:600;cursor:pointer;box-shadow:var(--shadow-sm)">${T.viewOrders}</button>
       <button data-action="tab" data-arg="home" style="height:50px;border-radius:var(--radius-md);border:1px solid var(--glass-border);background:var(--glass-fill-strong);color:var(--text-strong);font-size:15px;font-weight:600;cursor:pointer">${T.continue}</button>
     </div>
   </div>`;
@@ -3131,8 +3142,8 @@ function renderOrders() {
         <div style="display:flex;margin-top:13px;padding-top:13px;border-top:1px solid var(--border-hair)">
           ${STATUS_STAGES.map((st,i) => `
           <div style="flex:1;text-align:center;position:relative">
-            ${i>0 ? `<span style="position:absolute;z-index:0;top:9px;right:50%;width:100%;height:2px;background:${i<=stageIdx?'#7a140d':'var(--ink-100)'}"></span>` : ''}
-            <span style="position:relative;z-index:1;display:flex;width:20px;height:20px;margin:0 auto 5px;border-radius:50%;align-items:center;justify-content:center;font-size:10px;font-weight:700;background:${i<=stageIdx?'#7a140d':'var(--ink-100)'};color:${i<=stageIdx?'#fff':'var(--text-subtle)'}">${i<stageIdx?'✓':i+1}</span>
+            ${i>0 ? `<span style="position:absolute;z-index:0;top:9px;right:50%;width:100%;height:2px;background:${i<=stageIdx?'var(--pom-700)':'var(--ink-100)'}"></span>` : ''}
+            <span style="position:relative;z-index:1;display:flex;width:20px;height:20px;margin:0 auto 5px;border-radius:50%;align-items:center;justify-content:center;font-size:10px;font-weight:700;background:${i<=stageIdx?'var(--pom-700)':'var(--ink-100)'};color:${i<=stageIdx?'#fff':'var(--text-subtle)'}">${i<stageIdx?'✓':i+1}</span>
             <div style="font-size:9.5px;line-height:1.3;color:${i<=stageIdx?'var(--text-strong)':'var(--text-subtle)'};font-weight:${i===stageIdx?700:500}">${STATUS_TXT[st][S.lang]}</div>
           </div>`).join('')}
         </div>`;
@@ -3309,7 +3320,7 @@ function renderContactSheet() {
 
     <div style="flex:none;display:flex;flex-direction:column;gap:9px">
       <a class="tap44" href="tel:${SUPPORT.tel}" data-action="copySupportPhone" style="${yol}">
-        <span style="${belgi};background:var(--pom-100);color:#7a140d">
+        <span style="${belgi};background:var(--pom-100);color:var(--pom-700)">
           <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor"><path d="M6.6 2.5a1.9 1.9 0 0 1 2.5.8l1.4 2.6a1.9 1.9 0 0 1-.4 2.3L8.6 9.6a14.6 14.6 0 0 0 5.8 5.8l1.4-1.5a1.9 1.9 0 0 1 2.3-.4l2.6 1.4a1.9 1.9 0 0 1 .8 2.5l-.8 1.7a2.4 2.4 0 0 1-2.7 1.3A19.6 19.6 0 0 1 3.6 5.2a2.4 2.4 0 0 1 1.3-2.7z"/></svg>
         </span>
         <span style="flex:1;min-width:0">
@@ -3362,7 +3373,7 @@ function renderProfile() {
 
     <div style="flex:none;display:flex;flex-direction:column;border-radius:var(--radius-lg);background:var(--glass-fill-strong);backdrop-filter:var(--blur-md);-webkit-backdrop-filter:var(--blur-md);border:1px solid var(--glass-border);box-shadow:var(--glass-shadow);overflow:hidden">
       <div style="display:flex;align-items:center;gap:14px;padding:16px">
-        <span style="flex:none;width:54px;height:54px;border-radius:17px;background:linear-gradient(150deg,#7a140d,#510100);color:#ffe9db;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:800;font-size:21px">${COMPANY.initials}</span>
+        <span style="flex:none;width:54px;height:54px;border-radius:17px;background:linear-gradient(150deg,var(--pom-700),var(--pom-800));color:#ffe9db;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:800;font-size:21px">${COMPANY.initials}</span>
         <div style="flex:1;min-width:0">
           <div style="font-family:var(--font-display);font-size:17px;font-weight:700;color:var(--text-strong);letter-spacing:-.01em">${COMPANY.name[S.lang]}</div>
           <div style="font-size:12.5px;color:var(--text-muted);margin-top:2px">${COMPANY.role[S.lang]} · ${COMPANY.since[S.lang]}</div>
@@ -3394,7 +3405,7 @@ function renderProfile() {
     ${profileRow({
       ico: ICO.bell,
       label: T.notifications,
-      right: `<span class="tap44" data-action="toggleNotif" style="cursor:pointer;width:44px;height:26px;border-radius:999px;background:${S.notif?'#7a140d':'var(--ink-200)'};position:relative;flex:none;transition:background var(--dur-base) var(--ease-out)"><span style="position:absolute;top:3px;${S.notif?'right':'left'}:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:var(--shadow-sm);transition:left var(--dur-base) var(--ease-out),right var(--dur-base) var(--ease-out)"></span></span>`,
+      right: `<span class="tap44" data-action="toggleNotif" style="cursor:pointer;width:44px;height:26px;border-radius:999px;background:${S.notif?'var(--pom-700)':'var(--ink-200)'};position:relative;flex:none;transition:background var(--dur-base) var(--ease-out)"><span style="position:absolute;top:3px;${S.notif?'right':'left'}:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:var(--shadow-sm);transition:left var(--dur-base) var(--ease-out),right var(--dur-base) var(--ease-out)"></span></span>`,
     })}
     ${renderMyAddress()}
     ${renderContact()}
@@ -3410,7 +3421,7 @@ function renderProfile() {
     })}
 
     ${S.role === 'seller' ? `
-    <button data-action="enterSellerMode" style="flex:none;display:flex;align-items:center;gap:12px;width:100%;box-sizing:border-box;text-align:left;cursor:pointer;margin-top:6px;padding:16px;border:none;border-radius:var(--radius-md);background:linear-gradient(135deg,#8f1a10,#510100);color:#ffe9db;box-shadow:0 10px 22px -14px rgba(81,1,0,.9);font-family:var(--font-sans)">
+    <button data-action="enterSellerMode" style="flex:none;display:flex;align-items:center;gap:12px;width:100%;box-sizing:border-box;text-align:left;cursor:pointer;margin-top:6px;padding:16px;border:none;border-radius:var(--radius-md);background:linear-gradient(135deg,var(--pom-600),var(--pom-800));color:#ffe9db;box-shadow:0 10px 22px -14px rgba(81,1,0,.9);font-family:var(--font-sans)">
       <span style="flex:1;min-width:0">
         <span style="display:block;font-size:15px;font-weight:700;letter-spacing:-.01em">${T.toSeller}</span>
         ${S.seller?.name?.[S.lang] ? `<span style="display:block;font-size:12px;opacity:.78;margin-top:2px">${S.seller.name[S.lang]}</span>` : ''}
@@ -3438,7 +3449,7 @@ function productCard(p) {
       <div style="font-family:var(--font-display);font-size:13.5px;font-weight:700;color:var(--text-strong);line-height:1.2;letter-spacing:-.01em">${p.name}</div>
       <div style="display:flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color:var(--text-strong);line-height:1.3">
         <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.supplier}</span>
-        ${p.verified ? `<svg width="12" height="12" viewBox="0 0 24 24" fill="#7a140d" style="flex:none"><path d="M12 2l2.4 1.8 3-.2 1 2.8 2.6 1.5-.9 2.9.9 2.9-2.6 1.5-1 2.8-3-.2L12 22l-2.4-1.8-3 .2-1-2.8L3 16.3l.9-2.9L3 10.5l2.6-1.5 1-2.8 3 .2z"/><path d="M9 12l2 2 4-4" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>` : ''}
+        ${p.verified ? `<svg width="12" height="12" viewBox="0 0 24 24" fill="var(--pom-700)" style="flex:none"><path d="M12 2l2.4 1.8 3-.2 1 2.8 2.6 1.5-.9 2.9.9 2.9-2.6 1.5-1 2.8-3-.2L12 22l-2.4-1.8-3 .2-1-2.8L3 16.3l.9-2.9L3 10.5l2.6-1.5 1-2.8 3 .2z"/><path d="M9 12l2 2 4-4" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>` : ''}
       </div>
       <div style="display:flex;flex-direction:column;align-items:center;gap:1px">
         <span style="font-size:8px;font-weight:600;text-transform:uppercase;letter-spacing:.03em;color:var(--text-subtle)">${p.perUnitLabel}</span>
@@ -3452,7 +3463,7 @@ function productCard(p) {
 // ============ KATALOG/BOSH KARTOCHKASI — SAVAT MIQDOR BOSHQARUVI ============
 function catalogQtyControl(p) {
   const line = S.cart.find(x => x.id === p.id);
-  const btnBg = 'background:linear-gradient(150deg,#7a140d,#510100)';
+  const btnBg = 'background:linear-gradient(150deg,var(--pom-700),var(--pom-800))';
   if (!line) {
     return `
     <div style="width:100%;height:36px;display:flex;align-items:center;justify-content:flex-end">
@@ -3880,7 +3891,7 @@ function segTabs(items, current, fn) {
   return `<div style="display:flex;gap:4px;background:rgba(255,255,255,.55);border-radius:999px;padding:4px;margin-bottom:13px;box-shadow:var(--shadow-sm)">
     ${items.map(t => {
       const on = current === t.k;
-      return `<button data-action="${fn}" data-arg="${t.k}" style="flex:1;cursor:pointer;border:none;text-align:center;font-family:var(--font-sans);font-size:12.5px;font-weight:700;padding:8px 4px;border-radius:999px;background:${on ? 'linear-gradient(135deg,#8f1a10,#510100)' : 'transparent'};color:${on ? '#ffe9db' : 'var(--ink-500)'}">${t.label}</button>`;
+      return `<button data-action="${fn}" data-arg="${t.k}" style="flex:1;cursor:pointer;border:none;text-align:center;font-family:var(--font-sans);font-size:12.5px;font-weight:700;padding:8px 4px;border-radius:999px;background:${on ? 'linear-gradient(135deg,var(--pom-600),var(--pom-800))' : 'transparent'};color:${on ? '#ffe9db' : 'var(--ink-500)'}">${t.label}</button>`;
     }).join('')}
   </div>`;
 }
@@ -3889,6 +3900,26 @@ function emptyState(title, sub) {
   return `<div style="padding:44px 20px;text-align:center">
     <div style="font-size:15px;font-weight:700;color:var(--text-strong)">${title}</div>
     ${sub ? `<div style="font-size:13px;color:var(--text-muted);margin-top:5px">${sub}</div>` : ''}
+  </div>`;
+}
+
+// Video holati sotuvchining O'ZIGA. Uch holat ATAYLAB ajratilgan: video BOR ·
+// oyna OCHIQ · yo'l YOPIQ. Tugma FAQAT uchinchisida chiziladi — oyna
+// allaqachon ochiq bo'lsa u ikkinchi yo'l bo'lardi (CLAUDE.md: mavjud
+// funksiyaga ikkinchi yo'l qo'shilmasin), sotuvchi esa "yana so'rash kerak"
+// deb o'ylardi.
+//
+// Bu bo'shliq haqiqiy edi: oyna rasm yuborilganda o'zi ochiladi va video
+// kelishi bilan yopiladi — ya'ni video qabul qilingandan keyin YOKI moderator
+// uni olib tashlagandan keyin (`video_remove` ham `awaiting_video=false`
+// qo'yadi) sotuvchida yangisini yuborish yo'li UMUMAN qolmasdi.
+function sellerVideoNote(p) {
+  const T = STR[S.lang];
+  // Oyna OCHIQ — tugma yo'q: yo'l allaqachon bor, tugma uni ikkilantirardi.
+  if (p.awaitingVideo) return `<div class="s-note info">🎬 ${T.sVidWaiting}</div>`;
+  return `<div class="s-note info">
+    <span>${p.video ? `✅ ${T.sVidOn}` : ''}</span>
+    <button class="s-mini" data-action="requestProductVideo" data-arg="${p.id}">${p.video ? T.sVidReplace : T.sVidAdd}</button>
   </div>`;
 }
 
@@ -3924,10 +3955,11 @@ function renderSellerProducts() {
           </div>
         </div>
         ${p.status === 'rejected' && p.rejectReason ? `<div style="margin-top:9px;padding:9px 11px;border-radius:var(--radius-sm);background:var(--danger-100);font-size:12px;color:#a3181c;line-height:1.45">${esc(p.rejectReason)}</div>` : ''}
-        ${!p.img ? `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:9px;padding:8px 11px;border-radius:var(--radius-sm);background:var(--saffron-50);font-size:12px;color:var(--saffron-700)">
+        ${!p.img ? `<div class="s-note warn">
           <span>${p.awaitingImage ? T.sImgWaiting : ''}</span>
-          ${p.awaitingImage ? '' : `<button data-action="requestProductImage" data-arg="${p.id}" style="flex:none;cursor:pointer;padding:6px 11px;border-radius:999px;border:none;background:var(--saffron-500);font-family:var(--font-sans);font-size:11.5px;font-weight:700;color:#fff">${T.sImgAdd}</button>`}
+          ${p.awaitingImage ? '' : `<button class="s-mini" data-action="requestProductImage" data-arg="${p.id}">${T.sImgAdd}</button>`}
         </div>` : ''}
+        ${sellerVideoNote(p)}
         <div style="display:flex;gap:8px;margin-top:11px">
           <button data-action="editProduct" data-arg="${p.id}" style="flex:1;cursor:pointer;padding:9px;border-radius:var(--radius-sm);border:1px solid var(--border-hair);background:rgba(255,255,255,.7);font-family:var(--font-sans);font-size:13px;font-weight:600;color:var(--text-strong)">${T.sEdit}</button>
           <button data-action="toggleProductArg" data-arg="${p.id}|${p.status === 'draft' ? 'show' : 'hide'}" style="flex:1;cursor:pointer;padding:9px;border-radius:var(--radius-sm);border:1px solid var(--border-hair);background:rgba(255,255,255,.7);font-family:var(--font-sans);font-size:13px;font-weight:600;color:var(--text-muted)">${p.status === 'draft' ? T.sShow : T.sHide}</button>
@@ -3936,7 +3968,7 @@ function renderSellerProducts() {
     }).join('') : emptyState(T.sNoProducts, S.sProdTab === 'active' ? T.sNoProductsSub : ''))}
   </div>
 
-  <button data-action="newProductForm" aria-label="${T.sAdd}" style="position:absolute;right:16px;bottom:calc(var(--dock-h) + 12px);z-index:22;width:52px;height:52px;border-radius:50%;border:none;cursor:pointer;background:linear-gradient(135deg,#8f1a10,#510100);color:#ffe9db;font-size:27px;line-height:1;display:flex;align-items:center;justify-content:center;box-shadow:0 12px 28px -8px rgba(81,1,0,.55)">+</button>`;
+  <button data-action="newProductForm" aria-label="${T.sAdd}" style="position:absolute;right:16px;bottom:calc(var(--dock-h) + 12px);z-index:22;width:52px;height:52px;border-radius:50%;border:none;cursor:pointer;background:linear-gradient(135deg,var(--pom-600),var(--pom-800));color:#ffe9db;font-size:27px;line-height:1;display:flex;align-items:center;justify-content:center;box-shadow:0 12px 28px -8px rgba(81,1,0,.55)">+</button>`;
 }
 
 // ---- Mahsulot formasi (qo'shish / tahrirlash) ----
@@ -3953,7 +3985,7 @@ function renderProductForm() {
   const T = STR[S.lang];
   const p = S.sEditId ? S.sProducts.find(x => x.id === S.sEditId) : null;
   const inp = 'width:100%;padding:12px 14px;border:1px solid var(--border-hair);border-radius:var(--radius-md);background:var(--glass-fill-strong);font-family:var(--font-sans);font-size:16px;color:var(--text-strong);outline:none';
-  const lbl = 'font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#7a140d;margin-bottom:7px;display:block';
+  const lbl = 'font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--pom-700);margin-bottom:7px;display:block';
 
   return `
   <div style="padding:16px 16px 28px;display:flex;flex-direction:column;gap:15px">
@@ -4068,6 +4100,15 @@ async function requestProductImage(id) {
   } catch (e) { showToast(e.message); }
 }
 
+async function requestProductVideo(id) {
+  try {
+    await sellerFetch('/api/seller/products', { method: 'PATCH', body: JSON.stringify({ id, action: 'request_video' }) });
+    showToast(STR[S.lang].sVidRequested);
+    await loadSellerData();
+    render();
+  } catch (e) { showToast(e.message); }
+}
+
 // ---- Kelgan buyurtmalar ----
 const ORD_GROUP = {
   new:      ['pending'],
@@ -4122,12 +4163,12 @@ function renderSellerOrders() {
 
         ${isNew ? `<div style="display:flex;gap:8px;margin-top:11px">
           <button data-action="sellerOrderArg" data-arg="${o.id}|reject" style="flex:1;cursor:pointer;padding:11px;border-radius:var(--radius-sm);border:1.5px solid var(--danger-500);background:transparent;font-family:var(--font-sans);font-size:13.5px;font-weight:700;color:var(--danger-500)">${T.sReject}</button>
-          <button data-action="sellerOrderArg" data-arg="${o.id}|accept" style="flex:1;cursor:pointer;padding:11px;border-radius:var(--radius-sm);border:none;background:linear-gradient(135deg,#8f1a10,#510100);font-family:var(--font-sans);font-size:13.5px;font-weight:700;color:#ffe9db">${T.sAccept}</button>
+          <button data-action="sellerOrderArg" data-arg="${o.id}|accept" style="flex:1;cursor:pointer;padding:11px;border-radius:var(--radius-sm);border:none;background:linear-gradient(135deg,var(--pom-600),var(--pom-800));font-family:var(--font-sans);font-size:13.5px;font-weight:700;color:#ffe9db">${T.sAccept}</button>
         </div>` : ''}
 
         ${canShip ? `<div style="margin-top:11px">
           <input id="trk-${o.id}" value="${S.sTracking[o.id] || ''}" data-input="setSTracking" data-arg="${o.id}" placeholder="${T.sTrackingPh}" style="width:100%;padding:11px 13px;border:1px solid var(--border-hair);border-radius:var(--radius-sm);background:var(--glass-fill-strong);font-family:var(--font-mono);font-size:16px;color:var(--text-strong);outline:none">
-          <button data-action="sellerOrderArg" data-arg="${o.id}|ship" style="width:100%;margin-top:8px;cursor:pointer;padding:11px;border-radius:var(--radius-sm);border:none;background:linear-gradient(135deg,#8f1a10,#510100);font-family:var(--font-sans);font-size:13.5px;font-weight:700;color:#ffe9db">${T.sShip}</button>
+          <button data-action="sellerOrderArg" data-arg="${o.id}|ship" style="width:100%;margin-top:8px;cursor:pointer;padding:11px;border-radius:var(--radius-sm);border:none;background:linear-gradient(135deg,var(--pom-600),var(--pom-800));font-family:var(--font-sans);font-size:13.5px;font-weight:700;color:#ffe9db">${T.sShip}</button>
         </div>` : ''}
 
         ${o.dispute ? sellerDisputeBlock(o.dispute) : ''}
@@ -4151,7 +4192,7 @@ function sellerDisputeBlock(d) {
       : `<div style="margin-top:9px">
            <textarea data-input="setSDispReply" data-arg="${d.id}" placeholder="${T.sDisputeReplyPh}" rows="3"
              style="width:100%;padding:10px;border:1px solid var(--border-hair);border-radius:var(--radius-sm);background:var(--surface-solid);font-family:var(--font-sans);font-size:16px;color:var(--text-strong);outline:none;resize:none">${esc(S.sDispReply[d.id] || '')}</textarea>
-           <button data-action="sendDisputeReply" data-arg="${d.id}" style="width:100%;margin-top:7px;cursor:pointer;padding:10px;border-radius:var(--radius-sm);border:none;background:linear-gradient(135deg,#8f1a10,#510100);font-family:var(--font-sans);font-size:13px;font-weight:700;color:#ffe9db">${T.sDisputeSend}</button>
+           <button data-action="sendDisputeReply" data-arg="${d.id}" style="width:100%;margin-top:7px;cursor:pointer;padding:10px;border-radius:var(--radius-sm);border:none;background:linear-gradient(135deg,var(--pom-600),var(--pom-800));font-family:var(--font-sans);font-size:13px;font-weight:700;color:#ffe9db">${T.sDisputeSend}</button>
          </div>`}
   </div>`;
 }
@@ -4213,7 +4254,7 @@ function renderSellerProfile() {
   return `
   <div style="padding:16px 16px 28px;display:flex;flex-direction:column;gap:14px">
     <div style="${CARD_BOX};display:flex;gap:13px;align-items:center">
-      <span style="flex:none;width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#8f1a10,#510100);color:#ffe9db;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:19px;font-weight:800">${(s?.name?.[S.lang] || '?').slice(0,1)}</span>
+      <span style="flex:none;width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,var(--pom-600),var(--pom-800));color:#ffe9db;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:19px;font-weight:800">${(s?.name?.[S.lang] || '?').slice(0,1)}</span>
       <div>
         <div style="font-family:var(--font-display);font-size:17px;font-weight:800;color:var(--text-strong);letter-spacing:-.02em">${s?.name?.[S.lang] || '—'}</div>
         <div style="display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:999px;margin-top:4px;background:${s?.verified ? 'var(--teal-50)' : 'var(--saffron-50)'};color:${s?.verified ? 'var(--teal-700)' : 'var(--saffron-700)'}">
@@ -4251,7 +4292,7 @@ function sellerReviewsCard() {
   return `
   <div style="${CARD_BOX}">
     <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
-      <span style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#7a140d">${T.sReviews}</span>
+      <span style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--pom-700)">${T.sReviews}</span>
       ${r.rating == null ? '' : `
       <span style="display:inline-flex;align-items:center;gap:6px">
         ${/* floor, round EMAS: 4.5 ni beshta to'la yulduz qilib ko'rsatish

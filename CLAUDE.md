@@ -316,6 +316,40 @@
   🔴 CSP qo'llanganda `api-maps.yandex.ru` qoidaga qo'shilmasa karta JIMGINA
   o'ladi — `docs/xavfsizlik-sarlavhalari.md` → **C4** (u yerdagi manba ro'yxati
   hujjatdan olingan, jonli o'lchovdan EMAS va shunday belgilangan).
+- **Brend rangi TOKENDAN olinadi, qo'lda `#7a140d` yozilmasin** (2026-08-13).
+  Qoida `telegram-app/styles.css` da ALLAQACHON yozilgan edi, `app.js` esa uni
+  **81 joyda** buzardi (`#7a140d` 41, `#510100` 20, `#8f1a10` 20) — ya'ni yana
+  o'sha oila: **yozilgan qoida himoya emas, uni tekshiradigan test himoya.**
+  Endi **Test 26** qo'riqlaydi (ikkala JS + uchala HTML skanerlanadi).
+  ⚠️ **Ikki joyda `var()` UMUMAN ISHLAMAYDI va buni bilmaslik "tuzatish"ni
+  nuqsonga aylantiradi:**
+  (1) **SVG `fill=` prezentatsiya atributi** — `fill="var(--pom-700)"` jimgina
+  qora beradi. To'g'ri yo'l: `fill="currentColor"` + rang CSS klassida
+  (`.verified`, `.verified-legend svg` namunasi). Bu `index.html` da 11 joyda
+  turgan va faqat test HTML larni ham qamragandan keyin ko'ringan.
+  (2) **Yandex Maps `iconColor`** — JS API parametri, CSS emas; xom hex
+  ATAYLAB qoladi va istisno satrda `iconColor` so'zi bilan tanaladi.
+  Xuddi shu sabab `KONFETTI_RANG` ham istisno (nomlangan palitra).
+- **Mini App'da `user-scalable=no` OLIB TASHLANMAYDI** (2026-08-13, o'lchandi).
+  Dizayn tavsiyasi "matn zoomini oching" degandi — **o'lchov tavsiyani rad
+  etdi**: `html` va `body` ikkalasida ham `overflow: hidden`, sahifaning O'ZI
+  umuman skroll qilmaydi (`scrollHeight === clientHeight`), skroll faqat
+  `#screen-wrap` ichida. Ya'ni foydalanuvchi sahifani kattalashtirsa,
+  kattalashgan mazmun bo'ylab **surilib yurish yo'li yo'q** — u zoomlangan
+  holatda qamalib qolardi va chiqish yo'li ilovani yopish bo'lardi.
+  Rasm zoomi baribir alohida ishlaydi (`.pv` — pinch, `transform` bilan).
+  Qulaylik ehtiyoji HAQIQIY, lekin yechimi bu emas: shrift o'lchamlari
+  qat'iy `px` da yozilgan, ya'ni haqiqiy tuzatish — tipografiyani nisbiy
+  birlikka o'tkazish (alohida band, hali ochilmagan).
+- **Analitika belgisi BIRINCHI TEGINISHDA qulflanadi** (2026-08-13, db/025).
+  `users.src` — `/start` deep-link payload i (`t.me/<bot>?start=guruh_ipak`) va u
+  `COALESCE(users.src, EXCLUDED.src)` bilan yoziladi. **Tartib TESKARI
+  bo'lmasin:** oxirgi manba yozilsa, eng ko'p eslatma yuborilgan kanal eng
+  samarali ko'rinib qolardi — raqam o'zini o'zi tasdiqlaydigan yolg'onga
+  aylanardi. Qorovul — **Test 25** (shakl + `COALESCE` tartibi + migratsiya bor-yo'qligi).
+  ⚠️ **`src IS NULL` = "o'lchanmagan", "to'g'ridan-to'g'ri keldi" EMAS** —
+  panelda kanallar ro'yxatidan TASHQARIDA turadi, aks holda eng katta "kanal"
+  o'lchanmagan qatorlar bo'lib chiqardi (`NULL` reyting qoidasi bilan bitta oila).
 - **Hujjatdagi raqam — TEKSHIRILMAGAN DA'VO** (2026-08-06). Optimizatsiya yoki
   tuzatish bandi ochilganda **bazaviy raqamning O'ZI qayta o'lchansin**, undan
   ish boshlanmasin. Sabab: raqam bandning kattaligini va navbatdagi o'rnini

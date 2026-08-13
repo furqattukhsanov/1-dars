@@ -41,6 +41,49 @@ Founder sifatida platformani to'liq nazorat qilish: ishlab chiqaruvchilarni tasd
 
 ## Qilingan ishlar
 
+- [2026-08-13] **Statistika sahifasiga IKKI yangi blok — «Qaysi kanaldan
+  kelishdi» va «AI kiyim rasmi».** Sabab jamoa muhokamasidan keldi va u
+  yagona band bo'yicha UCHALA agent (PM, marketolog, investor) bir joyga
+  ishora qilgan yagona holat edi: reklama boshlansa qaysi kanal odam olib
+  kelayotganini o'lchash imkoni YO'Q edi, ya'ni byudjet ko'r-ko'rona
+  ketardi. Mexanizm — Telegram deep-link: `t.me/<bot>?start=guruh_ipak`,
+  belgi `users.src` ga yoziladi (`db/025`).
+
+  🔴 **YO'L-YO'LAKAY TOPILGAN ESKIRGAN DA'VO, VA U ISHNI BOSHLASHDAN OLDIN
+  TUTILDI:** QOLDIQ xotirasida "`/start` hisoblagichi yo'q" deb turardi —
+  aslida u **`db/020` bilan 2026-08-08 da qo'shilgan** (10 kun oldin), ya'ni
+  yozuv eskirgan edi. Agar tekshirilmasdan ish boshlanganda **allaqachon
+  mavjud hisoblagich ikkinchi marta qurilardi**. Bu «hujjatdagi raqam —
+  tekshirilmagan da'vo» qoidasining aynan o'zi, faqat raqam emas, MAVJUDLIK
+  da'vosi bo'yicha.
+
+  ⚠️ **`src IS NULL` KANALLAR RO'YXATIGA QO'SHILMAYDI** va bu qarorning
+  o'zi blokdan muhimroq: u "manba noma'lum" degani, "to'g'ridan-to'g'ri
+  keldi" DEGANI EMAS. Bitta ro'yxatga qo'yilsa **eng katta "kanal"
+  o'lchanmagan qatorlar bo'lib chiqardi** va panel jimgina yolg'on gapirardi
+  (`NULL` reyting qoidasi bilan bitta oila). Shuning uchun noma'lumlar soni
+  ALOHIDA maydonda (`users.srcUnknown`) — ko'rinadi, lekin aralashmaydi.
+  Ekrandagi izohda hisob **qaysi kundan boshlangani** ham yozilgan: raqamni
+  ko'radigan odam hujjatni o'qimaydi (2026-08-08 qarori bilan bitta naqsh).
+  ⚠️ Kanal qatorida `count` yonida **`engaged`** turadi — havola odamni OLIB
+  KELGANI bilan uning ilovani OCHGANI bir narsa emas: bosilishi ko'p,
+  ochilishi kam kanal reklama pulini yeb natija bermasligi mumkin va bu
+  faqat ikki raqam yonma-yon turganda ko'rinadi.
+  **AI bloki** hammasini HAQIQIY jadvallardan oladi (`product_ai_image` —
+  chizilgan rasmlar, jami / 7 kun / noyob foydalanuvchi; `ai_credits` —
+  sarflangan kredit). Nol ham haqiqiy javob; ma'lumot yo'q bo'lsa blok
+  butunlay YASHIRINADI (2026-08-08 dagi "eski backend bo'lsa nol
+  ko'rsatilmaydi" qarorining takrori).
+  **Kesh:** `admin/admin.js?v=25`, `style.css?v=52` (`admin/index.html` va
+  ildizdagi `index.html` da BIR XIL raqam). Batafsil: `sprint-4.md`.
+  🔴 **HALOL CHEGARA:** ikkala so'rov ham pglite'da bajarib ko'rildi, lekin
+  **haqiqiy Postgres'da hali ishlamagan va pglite AYNI dvigatel emas**;
+  `db/025` serverda ishga tushirilmagan — u `webhook.js` deploy'idan OLDIN
+  bajarilishi shart. ⚠️ Oqibat O'LCHANDI: webhook YIQILMAYDI va saytga
+  kirish ishlayveradi (`INSERT` `.catch()` ichida), lekin `users` yozuvi
+  butunlay to'xtaydi va hisob JIMGINA yolg'on gapira boshlaydi. Batafsil
+  va nega "bot o'ladi" degan birinchi baho noto'g'ri edi — `sprint-4.md`.
+
 - [2026-08-13] **Panelga TO'QQIZINCHI yozuv amali qo'shildi — "Videoni
   o'chirish" (`video_remove`), va u ham AYNI yo'ldan o'tadi.** Panel faqat
   `POST /api/admin/action` bilan so'rov yaratadi, haqiqiy o'chirish
@@ -81,6 +124,25 @@ Founder sifatida platformani to'liq nazorat qilish: ishlab chiqaruvchilarni tasd
 
 ## Qarorlar
 
+- [2026-08-13] Qaror: manba belgisi (`users.src`) **BIRINCHI teginishda
+  qulflanadi** — `COALESCE(users.src, EXCLUDED.src)`, keyin HECH QACHON
+  o'zgarmaydi. Sabab: odamni platformaga OLIB KELGAN kanal — birinchisi.
+  ⚠️ **Tartib teskari bo'lsa raqam o'zini o'zi tasdiqlaydigan yolg'onga
+  aylanardi:** oxirgi manba yozilganda, eng ko'p ESLATMA yuborgan kanal eng
+  samarali ko'rinib qolardi va reklama byudjeti aynan shu yolg'onga qarab
+  taqsimlanardi. Qorovul — Test 25 (shakl, `COALESCE` tartibi, migratsiya
+  mavjudligi) va migratsiyaning O'ZIDAGI `RAISE EXCEPTION` bloki
+- [2026-08-13] Qaror: manba payload i **RO'YXAT bilan emas, SHAKL bilan**
+  tekshiriladi (`/^[a-z0-9_]{2,32}$/`, `web_` band). Sabab: kanallar
+  ro'yxatini kodga ko'chirish `admin_actions_kind_check` tuzog'ining aynan
+  o'zi bo'lardi — yangi kanal ochilganda deploy talab qilinardi va marketing
+  muhandisga bog'lanib qolardi. Payload IXTIYORIY matn bo'lishi mumkin
+  (havolani har kim yasay oladi), shuning uchun shakl tekshiruvi MAJBURIY
+- [2026-08-13] Qaror: panelda `src IS NULL` **kanal sifatida ko'rsatilmaydi**
+  — u alohida "o'lchanmagan" maydonida turadi. Sabab: aralashtirilsa eng
+  katta "kanal" bilmaslik bo'lib chiqardi. Bu 2026-08-08 dagi "obunachilar
+  emas, ilovani ochganlar" qarori bilan bitta oilada — **yorliq raqamdan
+  muhimroq**
 - [2026-08-08] Qaror: `users` qatori endi **`/start` da ham tug'iladi**, ikki tushuncha esa bitta jadvalda `engaged_at` ustuni bilan ajratiladi — alohida `bot_users` jadvali QILINMADI. Sabab: ikkinchi jadval bo'lsa ayni odam ikki joyda yashardi va ular jimgina bir-biridan uzoqlashardi (`db/014` darsi — ikkinchi ro'yxat himoya emas, kelajakdagi tuzoq). `NULL` = faqat `/start`, `NOT NULL` = birinchi haqiqiy foydalanish vaqti; bu `NULL` reyting qoidasining aynan o'zi — "baholanmagan" ≠ "yomon baholangan", "faqat kirgan" ≠ "foydalanmagan"
 - [2026-08-08] Qaror: `/start` da `role` TEGILMAYDI va `engaged_at` QO'YILMAYDI. Sabab: `DO UPDATE SET role='buyer'` sotuvchini `/start` bosgan kuni xaridorga aylantirardi; `engaged_at` ni o'sha yerda qo'yish esa butun ajratishni ma'nosiz qilardi — hamma qator "foydalangan" bo'lib chiqardi
 - [2026-08-08] Qaror: panel yorlig'i **"Foydalanuvchilar — botga kirganlar"** — bu 4 soat oldingi "ilovani ochganlar" qarorining O'RNINI BOSADI (eski qaror pastda ataylab o'chirilmadi: u o'sha paytdagi haqiqiy holat edi). Yorliq o'zgardi, chunki MANBA o'zgardi — endi `/start` bosgan odam ham qatorda bor. Ekrandagi izoh esa yangi cheklovni AYTADI: `/start` hisobi 2026-08-08 dan boshlanadi, undan oldin bosgan va ilovani ochmaganlar bu yerda YO'Q. Ya'ni raqam hamon to'liq emas, lekin endi nimasi to'liq emasligi ekranning O'ZIDA yozilgan

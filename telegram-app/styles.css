@@ -961,6 +961,30 @@ button:active { opacity: .88; }
   border-radius: var(--radius-md);
 }
 
+/* ─── Sotuvchi kabinetidagi izoh qatori (2026-08-13) ───
+   `app.js` da bu naqsh inline yozilardi va rangi xom `#` bilan berilardi.
+   Klassga ko'chirildi: brend rangi o'zgarsa bitta joy tuziladi, o'nlab
+   satr emas (dizayn qarzi bandi — takrorlanadigan inline naqshlar).
+   Sayt tomonida AYNI nom bilan AYNI ma'no turadi (`style.css` → `.s-note`). */
+.s-note {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  margin-top: 9px; padding: 8px 11px;
+  border-radius: var(--radius-sm);
+  font-size: 12px; line-height: 1.45;
+}
+.s-note.warn { background: var(--saffron-50); color: var(--saffron-700); }
+/* Neytral — video uchun. Rasm MAJBURIY (rasmsiz e'lon katalogda ko'rinmaydi),
+   video esa IXTIYORIY: sariq ogohlantirish bo'lmagan nuqson haqida
+   qichqirardi. */
+.s-note.info { background: var(--ink-100); color: var(--ink-700); }
+.s-mini {
+  flex: none; cursor: pointer;
+  padding: 6px 11px; border-radius: 999px; border: none;
+  background: var(--saffron-500); color: #fff;
+  font-family: var(--font-sans); font-size: 11.5px; font-weight: 700;
+}
+.s-note.info .s-mini { background: var(--ink-700); }
+
 /* ─── To'liq ekran ko'rish (2026-08-13) ───
    B2B xaridorga mato zichligi va naqsh aniqligi KERAK — 469px kadrda u
    ko'rinmaydi. Barmoq bilan kattalashtirsa bo'ladi, ikki marta bosilsa ham.

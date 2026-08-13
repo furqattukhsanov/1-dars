@@ -14,7 +14,7 @@
        ikkinchi ulanish ochadi va preconnect BEHUDA ketadi. -->
   <link rel="preconnect" href="https://telegram.org">
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@24,600..800&family=Hanken+Grotesk:wght@400..700&family=Geist+Mono:wght@600..700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=25">
+  <link rel="stylesheet" href="styles.css?v=26">
 
   <!-- PWA: uy ekraniga qo'shish va offline sahifa -->
   <link rel="manifest" href="manifest.json">
@@ -49,7 +49,10 @@
       </div>
       <div id="header-text" class="header-text">
         <span id="header-title" class="header-title">LolaMarket</span>
-        <span id="header-sub" class="header-sub">Telegram Mini App</span>
+        <!-- JS kelguncha ko'rinadigan matn. Ilgari bu yerda "Telegram Mini App"
+             yozilardi — foydalanuvchiga TEXNIK atama ko'rinardi va brend bir
+             lahzaga yo'qolardi. Endi `app.js` dagi `brandSub` bilan AYNI matn. -->
+        <span id="header-sub" class="header-sub">Ulgurji matolar bozori</span>
       </div>
       <div class="header-spacer"></div>
       <button id="btn-header-search" class="icon-btn hidden" data-action="navigate" data-arg="search">
@@ -140,7 +143,7 @@
   <!-- Toast -->
   <div id="toast" class="toast hidden"></div>
 
-  <script defer src="app.js?v=81"></script>
+  <script defer src="app.js?v=82"></script>
   <script defer src="pwa.js?v=6"></script>
 </body>
 </html>

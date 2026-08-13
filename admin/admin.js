@@ -331,6 +331,7 @@ function renderAll() {
   renderDisputes();
   renderTopSellers();
   renderUsers();
+  renderGrowth();
   renderPlanFakt();
 
   updateNavBadges(d);
@@ -863,6 +864,71 @@ function renderUsers() {
       <span class="status-dist-label">${y.text}</span>
       <div class="status-dist-bar-wrap"><div class="status-dist-bar" style="width:${u.total ? Math.round((y.n / u.total) * 100) : 0}%;background:${y.color}"></div></div>
       <span class="status-dist-val">${fmtNum(y.n)}</span>
+    </div>
+  `).join('');
+}
+
+/* ─── Kanallar va AI (db/025) ───
+   `renderUsers` bilan AYNI qoida: backend bir qadam orqada bo'lsa blok
+   BUTUNLAY yashiriladi — nol ko'rsatilmaydi, chunki "ma'lumot yo'q" bilan
+   "hech kim yo'q" bir xil ko'rinmasligi kerak.
+
+   ⚠️ Bo'sh kanal ro'yxati esa YASHIRILMAYDI: u haqiqiy va foydali javob —
+   "havolalar hali ishlatilmayapti" degani. Nol bilan noma'lumning farqi
+   shu yerda: birinchisi o'lchangan, ikkinchisi o'lchanmagan. */
+function renderGrowth() {
+  const block = document.getElementById('growthBlock');
+  const note = document.getElementById('growthNote');
+  if (!block) return;
+  const ai = state.summary.ai;
+  const src = state.summary.sources;
+  if (!ai || ai.images == null || !Array.isArray(src)) {
+    block.hidden = true;
+    if (note) note.hidden = true;
+    return;
+  }
+  block.hidden = false;
+  if (note) note.hidden = false;
+
+  // ---- Kanallar ----
+  const noma = (state.summary.users && state.summary.users.srcUnknown) || 0;
+  document.getElementById('srcFoot').textContent = src.length
+    ? `${src.length} ta kanal · ${fmtNum(noma)} o'lchanmagan`
+    : `Hali birorta havola ishlatilmagan · ${fmtNum(noma)} o'lchanmagan`;
+
+  const srcList = document.getElementById('srcList');
+  if (!src.length) {
+    srcList.innerHTML = `<div class="empty-panel">Kanal havolasi hali ishlatilmagan</div>`;
+  } else {
+    const maxSrc = Math.max(...src.map((s) => s.count), 1);
+    srcList.innerHTML = src.map((s, i) => `
+      <div class="cat-row">
+        <span class="cat-swatch" style="background:${CAT_COLORS[i % CAT_COLORS.length]}"></span>
+        <div class="cat-info">
+          <div class="cat-name">${esc(s.src)}</div>
+          <div class="cat-bar-wrap"><div class="cat-bar" style="width:${Math.round((s.count / maxSrc) * 100)}%;background:${CAT_COLORS[i % CAT_COLORS.length]}"></div></div>
+        </div>
+        <span class="cat-count">${fmtNum(s.count)} / ${fmtNum(s.engaged)}</span>
+      </div>
+    `).join('');
+  }
+
+  // ---- AI ----
+  document.getElementById('aiImages').textContent = fmtNum(ai.images) + ' ta rasm';
+  document.getElementById('aiFoot').textContent =
+    `${fmtNum(ai.users)} foydalanuvchi · ${fmtNum(ai.creditsSpent)} kredit sarflangan`;
+
+  const aiQator = [
+    { text: 'Jami chizilgan', n: ai.images, color: '#119DAB' },
+    { text: 'Oxirgi 7 kun', n: ai.images7, color: '#54D7E1' },
+    { text: 'Chizdirgan odamlar', n: ai.users, color: '#D98E0C' },
+  ];
+  const maxAi = Math.max(...aiQator.map((a) => a.n), 1);
+  document.getElementById('aiDist').innerHTML = aiQator.map((a) => `
+    <div class="status-dist-row">
+      <span class="status-dist-label">${a.text}</span>
+      <div class="status-dist-bar-wrap"><div class="status-dist-bar" style="width:${Math.round((a.n / maxAi) * 100)}%;background:${a.color}"></div></div>
+      <span class="status-dist-val">${fmtNum(a.n)}</span>
     </div>
   `).join('');
 }

@@ -17,6 +17,21 @@ const {
   handleSellerApplicationContact, handleSellerApplicationReview,
 } = require('./seller-application');
 
+// Deep-link manba belgisi: `t.me/<bot>?start=guruh_ipak` → `/start guruh_ipak`
+// (db/025). Havolani har kim yasay oladi, ya'ni payload IXTIYORIY matn
+// bo'lishi mumkin — shuning uchun RO'YXAT emas, SHAKL tekshiriladi
+// (`isPickupPointId` bilan bitta mulohaza: kanallar ro'yxatini kodga
+// ko'chirish `admin_actions_kind_check` tuzog'i bo'lardi — yangi kanal
+// qo'shilganda deploy talab qilinardi).
+//
+// `web_` ATAYLAB rad etiladi: u kirish kodi uchun band va manba emas.
+function manbaBelgisi(payload) {
+  const v = String(payload || '').trim();
+  if (!/^[a-z0-9_]{2,32}$/.test(v)) return null;
+  if (v.startsWith('web_')) return null;
+  return v;
+}
+
 // ============ Telegram webhook ============
 async function handleTelegramWebhook(req, res) {
   if (WEBHOOK_SECRET) {
@@ -325,23 +340,29 @@ async function handleTelegramWebhook(req, res) {
       // Telegram ID bu yerda ISHONCHLI: uni klient emas, webhook orqali
       // Telegram'ning o'zi yuboradi va so'rov WEBHOOK_SECRET bilan
       // tekshirilgan (CLAUDE.md — foydalanuvchi kimligi brauzerdan olinmaydi).
+      const startParam = text.slice('/start'.length).trim();
+
       if (msg.from && msg.from.id) {
         const startName =
           [msg.from.first_name, msg.from.last_name].filter(Boolean).join(' ')
           || msg.from.username || null;
+        // ⚠️ `src` — BIRINCHI teginish va u `COALESCE(users.src, ...)` bilan
+        // qulflanadi (db/025). Oxirgi manba yozilsa, eng ko'p eslatma
+        // yuborilgan kanal eng samarali ko'rinib qolardi.
         await pool.query(
-          `INSERT INTO users (tg_user_id, full_name, tg_username, role)
-             VALUES ($1, $2, $3, 'buyer')
+          `INSERT INTO users (tg_user_id, full_name, tg_username, role, src)
+             VALUES ($1, $2, $3, 'buyer', $4)
            ON CONFLICT (tg_user_id) DO UPDATE
              SET full_name   = COALESCE(users.full_name, EXCLUDED.full_name),
-                 tg_username = COALESCE(EXCLUDED.tg_username, users.tg_username)`,
-          [String(msg.from.id), startName, msg.from.username || null]
+                 tg_username = COALESCE(EXCLUDED.tg_username, users.tg_username),
+                 src         = COALESCE(users.src, EXCLUDED.src)`,
+          [String(msg.from.id), startName, msg.from.username || null,
+            manbaBelgisi(startParam)]
         // Birinchi argument — alert guruhlash kaliti, o'zgaruvchan qism ikkinchida.
         ).catch((e) => console.error('/start foydalanuvchini yozishda xato:', e.message));
       }
 
       // Saytdan kelgan kirish havolasi: /start web_<kod>
-      const startParam = text.slice('/start'.length).trim();
       const loginMatch = startParam.match(/^web_([0-9a-f]{8,64})$/);
       if (loginMatch) {
         await confirmWebLoginCode(msg, loginMatch[1])
@@ -360,4 +381,9 @@ async function handleTelegramWebhook(req, res) {
   }
 }
 
-module.exports = { handleTelegramWebhook };
+module.exports = {
+  handleTelegramWebhook,
+  // Sinov uchun ATAYLAB ochiq — `videoRadSababi` va `tekshirKalit` bilan
+  // bitta qoida: qorovulni to'g'ridan-to'g'ri sinab bo'lsin.
+  manbaBelgisi,
+};

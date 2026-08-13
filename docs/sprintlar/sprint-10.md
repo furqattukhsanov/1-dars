@@ -1867,7 +1867,22 @@ Shuning uchun bayram IKKI KANALDAN keladi va ular boshqa-boshqa narsa:
 
 ### Ochiq qolgani
 
-1. 🔴 **Haqiqiy Telegram bilan chat xabari va effekt HECH QACHON otilmagan.**
+1. ✅ **YOPILDI (2026-08-13 kechqurun) — founder AI rasmini chizdirdi va
+   chat effektini JONLI ko'rdi.** Ya'ni effekt id `5046509860389126442`
+   endi hujjatdan olingan da'vo emas, ishlagani ko'rilgan qiymat.
+   ⚠️ **DALIL TURI ALOHIDA YOZILADI VA U O'LCHOV EMAS — FOUNDER SO'ZI.**
+   Bu sprintning O'Z darsi bilan bitta oilada («billing yoqdim» dalil deb
+   qabul qilinmagan edi), farqi shu: u yerda mashina o'lchay olardi
+   (`429` yo'qolgani), bu yerda esa effektni faqat odam ko'radi — Telegram
+   effekt otilganini API javobida QAYTARMAYDI. Ya'ni bu holatda founder
+   so'zi mavjud dalilning eng kuchlisi, lekin u **skrinshot yoki qayta
+   takrorlanadigan tekshiruv emas** va shunday belgilanadi.
+   ⚠️ Yon xulosa: founder jonli sinay olgani **`server/` production'ga
+   yetib borganini** bildiradi (effekt kodi faqat serverda yashaydi), lekin
+   bu ALOHIDA o'lchanmadi — `/api/version` bu sessiyada so'ralmagan.
+   Quyidagi 2-band shu sababli o'chirilmadi.
+   ⬇️ Eski matn holicha qoldirildi:
+   🔴 Haqiqiy Telegram bilan chat xabari va effekt HECH QACHON otilmagan.
    Effekt id `5046509860389126442` **hujjatdan olingan**, jonli tasdiqlanmagan
    — ya'ni bu ayni paytda TEKSHIRILMAGAN DA'VO. Aynan shu sabab effektsiz
    qaytarish yo'li yozildi: da'vo noto'g'ri chiqsa ham xaridor rasmni oladi.
@@ -1883,3 +1898,23 @@ Shuning uchun bayram IKKI KANALDAN keladi va ular boshqa-boshqa narsa:
    `telegram-app/app.js`) — 2026-08-13 dagi «AI bloki ikki joyda» bandi bilan
    bitta ro'yxatda. Test 21 ikkalasi ham MAVJUD ekanini qo'riqlaydi, lekin
    ular ajralib ketmasligini emas
+
+---
+
+## 2026-08-13 (davomi 3) — funksiya endi O'LCHANADI
+
+Sprint hamon `tugadi`. Bu bo'lim kodga emas, **bilishga** tegadi: sprint
+yopilganidan beri «AI rasmini qancha odam ishlatyapti va u qancha turadi»
+degan savolga javob beradigan joy YO'Q edi — ma'lumot bazada bor edi
+(`product_ai_image`, `ai_credits`), lekin uni ko'radigan ekran yo'q edi.
+Endi admin panel Statistika sahifasida **«AI kiyim rasmi»** bloki bor:
+chizilgan rasmlar (jami va 7 kun), noyob foydalanuvchi soni, sarflangan
+kredit. Batafsil — `sprint-7.md`.
+
+⚠️ **Nima uchun bu shu sprintga tegishli:** sprintning O'Z darsi «testlar
+o'tishi AI ma'noli ishlaganini isbotlamaydi» edi, va uning davomi shu —
+**funksiya ishlashi uning KERAKLIGINI ham isbotlamaydi.** Matn varianti
+aynan shu savolda rad etilgan edi (kod tayyor, maqsad tegmagan). Rasm
+varianti uchun javob endi taxminga emas, jadvaldagi songa tayanadi.
+⚠️ Raqamlar HAQIQIY jadvallardan, nol ham haqiqiy javob; ma'lumot yo'q
+bo'lsa blok umuman chizilmaydi (o'ylab topilgan raqam qoidasi).

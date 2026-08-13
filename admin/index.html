@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@24,600..800&family=Hanken+Grotesk:wght@400..700&family=Geist+Mono:wght@600..700&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="../style.css?v=50" />
+  <link rel="stylesheet" href="../style.css?v=52" />
   <link rel="stylesheet" href="admin.css?v=18" />
 </head>
 <body>
@@ -380,6 +380,40 @@
             bundan aniqroq manba mavjud emas.
           </div>
 
+          <!-- ─── Kanallar va AI ─── -->
+          <div class="dash-grid dash-grid-even" id="growthBlock" hidden>
+            <div class="panel glass">
+              <div class="panel-head">
+                <div>
+                  <div class="panel-title">Qaysi kanaldan kelishdi</div>
+                  <div class="stat-foot" id="srcFoot">–</div>
+                </div>
+              </div>
+              <div class="cat-list" id="srcList"></div>
+            </div>
+
+            <div class="panel glass">
+              <div class="panel-head">
+                <div>
+                  <div class="panel-title">AI kiyim rasmi</div>
+                  <div class="panel-value" id="aiImages">–</div>
+                  <div class="stat-foot" id="aiFoot">–</div>
+                </div>
+              </div>
+              <div class="status-dist" id="aiDist"></div>
+            </div>
+          </div>
+
+          <div class="sample-note" id="growthNote" hidden>
+            Kanal belgisi <code>t.me/&lt;bot&gt;?start=BELGI</code> havolasidan keladi —
+            har joyga o'z havolasini qo'ying (masalan <code>?start=guruh_ipak</code>).
+            Belgi <b>birinchi</b> <code>/start</code> da yoziladi va keyin o'zgarmaydi:
+            odamni olib kelgan kanal — birinchisi.
+            ⚠️ <b>O'lchanmagan</b> — havolasiz <code>/start</code> bosganlar va bu
+            hisob qo'shilishidan (<b>2026-08-13</b>) oldin kelganlar. Bu "to'g'ridan-to'g'ri
+            keldi" degani EMAS, shuning uchun kanallar ro'yxatiga qo'shilmaydi.
+          </div>
+
           <div class="panel glass">
             <div class="panel-head">
               <div class="panel-title">Kategoriyalar bo'yicha e'lonlar</div>
@@ -482,6 +516,6 @@
     </div>
   </div>
 
-  <script src="admin.js?v=24"></script>
+  <script src="admin.js?v=25"></script>
 </body>
 </html>

@@ -6,7 +6,7 @@ const { validate } = require('../lib/validate');
 const { rateLimited, readBody, ok, fail } = require('../lib/http');
 const { callTelegram, notify } = require('../lib/telegram-api');
 const { recordStatusChange } = require('../lib/order-history');
-const { productPhotoUrl } = require('./catalog');
+const { productPhotoUrl, videoVM } = require('./catalog');
 const { restoreStock } = require('./orders');
 
 // ============ SOTUVCHI KABINETI ============
@@ -49,7 +49,8 @@ async function handleSellerProducts(req, res, ip) {
   if (!me) return;
   try {
     const { rows } = await pool.query(
-      `SELECT id, name_uz, name_ru, price, unit, moq, cat_key, img, img_file_id, awaiting_image, stock, status, reject_reason, created_at
+      `SELECT id, name_uz, name_ru, price, unit, moq, cat_key, img, img_file_id, awaiting_image, stock, status, reject_reason, created_at,
+              vid_r2_key, vid_poster_r2_key, vid_seconds, vid_bytes, awaiting_video
          FROM products WHERE seller_id = $1 ORDER BY created_at DESC LIMIT 200`,
       [me.seller_id]
     );
@@ -65,6 +66,13 @@ async function handleSellerProducts(req, res, ip) {
       stock: r.stock === null ? null : Number(r.stock),
       status: r.status,
       rejectReason: r.reject_reason,
+      // Video sotuvchining O'ZIGA ham ko'rinadi. Ilgari bu ro'yxat video
+      // haqida HECH NARSA demasdi: sotuvchi yuborgan videosi yetib bordimi,
+      // moderator uni olib tashladimi — bilishning yo'li yo'q edi. Ayni
+      // `videoVM` katalogda ham ishlatiladi, ya'ni "R2 havolasi yo'q bo'lsa
+      // video `null`" qoidasi bu yerda ham O'ZIDAN kelib chiqadi.
+      ...videoVM(r),
+      awaitingVideo: r.awaiting_video,
     })));
   } catch (e) {
     console.error('sellerProducts xatosi:', e.message);
@@ -99,6 +107,22 @@ async function handleSellerProductUpdate(req, res, ip) {
       notify(me.tg.id,
         `🖼 <b>${escapeHtml(own[0].name_uz || '')}</b> uchun rasm yuboring.`);
       return ok(res, { id, awaitingImage: true });
+    }
+
+    // Video oynasini QAYTA ochish. Bu YANGI yo'l emas, mavjud bo'shliqni
+    // yopadi: oyna rasm yuborilganda o'zi ochiladi (`handleProductImage`,
+    // db/023) va video kelishi bilan YOPILADI. Ya'ni video allaqachon bor
+    // yoki moderator uni olib tashlagan bo'lsa (`video_remove` ham
+    // `awaiting_video=false` qo'yadi), sotuvchida YANGISINI yuborish yo'li
+    // UMUMAN qolmasdi — e'lon abadiy videosiz qolardi.
+    if (data.action === 'request_video') {
+      await pool.query(
+        `UPDATE products SET awaiting_video=true WHERE id=$1`, [id]);
+      notify(me.tg.id,
+        `🎬 <b>${escapeHtml(own[0].name_uz || '')}</b> uchun qisqa video yuboring.\n\n`
+        + `MP4, 30 soniyagacha. Telegram'da <b>video</b> qilib yuboring — `
+        + `fayl (document) sifatida emas.`);
+      return ok(res, { id, awaitingVideo: true });
     }
 
     if (data.action === 'hide') {
