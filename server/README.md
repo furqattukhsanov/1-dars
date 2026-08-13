@@ -222,6 +222,7 @@ www-data'ga tegishli, ya'ni bu himoya hali yo'q.
 | `BOT_TOKEN` | Telegram bot tokeni |
 | `ADMIN_CHAT_ID` | Buyurtma bildirishnomasi keladigan chat |
 | `ADMIN_TG_IDS` | Vergul bilan ajratilgan admin Telegram ID'lari (moderatsiya ruxsati) |
+| `SELLER_TG_IDS` | **Sotuvchi kabinetiga kira oladigan** Telegram ID'lar (vergul bilan). Berilmasa zaxira: `ADMIN_TG_IDS` → `ADMIN_CHAT_ID`, ya'ni sozlamasiz kabinet FAQAT founder'da ochiladi. Batafsil pastda |
 | `DATABASE_URL` | PostgreSQL ulanish satri |
 | `WEBHOOK_SECRET` | Telegram webhook maxfiy tokeni |
 | `ALLOWED_ORIGIN` | CORS origin (default `https://lolamarket.uz`) |
@@ -245,6 +246,30 @@ www-data'ga tegishli, ya'ni bu himoya hali yo'q.
 | `R2_BUCKET` | Bucket nomi (`lolamarket-storage`). URL YO'LIGA qo'yiladi, nomlash qoidasi tekshiriladi |
 | `R2_PUBLIC_BASE` | Ommaviy manzil (`https://cdn.lolamarket.uz`). **Yuklashdan ALOHIDA sozlama:** yuklash ishlashi rasmning ommaviy ko'rinishini bildirmaydi. Berilmasa yuklash ishlayveradi, URL esa eski Telegram proksisidan beriladi |
 | `YANDEX_MAPS_KEY` | Profildagi "Mening manzilim" kartasi uchun Yandex Maps JS API kaliti. Shakli tekshiriladi (`<key>` namunasi qolib ketsa karta o'chadi). **Berilmasa server TO'XTAMAYDI** — nuqta ro'yxatdan tanlanadi va manzil bo'limi to'liq ishlayveradi |
+
+**Sotuvchi kabineti kimga ochiq (2026-08-13, founder qarori).** Kabinet IKKI
+shartda ochiladi: (1) Telegram ID `SELLER_TG_IDS` da, (2) bazada
+`users.role = 'seller'` va `sellers` yozuvi bor. Bittasi yetarli emas.
+
+⚠️ **Bazadagi rolning O'ZI endi yetarli emas** va bu ataylab: rol paydo
+bo'lishining bir nechta yo'li bor (ariza tasdig'i, qo'lda SQL), ya'ni ularning
+HAMMASINI eslab qolish kerak bo'lardi. Ro'yxat esa bitta joyda va ko'rinadi.
+
+⚠️ **Sozlama berilmasa kabinet YOPIQ qoladi (founder'dan tashqari)** —
+"berilmasa hammaga ochiq" varianti xavfsizlik sozlamasi uchun noto'g'ri:
+e'tibordan chetda qolgan `.env` jimgina hammani ichkariga qo'yib yuborardi.
+
+🔴 **Haqiqiy sotuvchi qo'shilganda uning Telegram ID'sini SHU YERGA yozish
+SHART** — aks holda u bazada `role='seller'` bo'lsa ham kabinetni KO'RMAYDI
+va buni hech narsa ko'rsatmaydi (u shunchaki oddiy xaridor ko'radi).
+Qorovul: `server/test.js` → **Test 24**.
+
+**Bot chatidagi «Ochish» tugmasi (2026-08-13).** Xabar maydoni yonidagi menyu
+tugmasi `setChatMenuButton` bilan **server ko'tarilganda avtomatik**
+ro'yxatdan o'tadi (`lib/telegram-api.js` → `registerMenuButton`), qo'lda qadam
+kerak emas. Ishga tushishga bog'langani ataylab: `BOT_TOKEN` almashtirilganda
+bu sozlama ham nolga qaytadi — webhook bilan AYNI tuzoq. Tugma ro'yxatdan
+o'tmasa server TO'XTAMAYDI, xato alertga chiqadi.
 
 **Karta (2026-08-13).** Kalit `developer.tech.yandex.ru` dan olinadi
 (*JavaScript API va Geocoder API*), so'ng u yerda `lolamarket.uz` domeniga

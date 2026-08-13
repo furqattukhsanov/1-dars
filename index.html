@@ -27,7 +27,7 @@
        ko'p uchraydigan xatosi shu. -->
   <link rel="preconnect" href="https://telegram.org">
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@24,600..800&family=Hanken+Grotesk:wght@400..700&family=Geist+Mono:wght@600..700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=50" />
+  <link rel="stylesheet" href="style.css?v=51" />
   <!-- DIQQAT: uchala skript ham `defer` — TARTIB shu sababli saqlanadi
        (telegram → script.js → pwa.js). Bittasidan `defer` olib tashlansa,
        u tananing ichida parse paytida ishlaydi va DEFER'liklardan OLDIN
@@ -60,7 +60,9 @@
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
           </button>
         </div>
-        <button class="filter-btn" id="filter-btn" type="button" data-action="focusPriceFilter" data-i18n-aria="priceFilterAria" aria-label="Narx bo'yicha filtr">
+        <button class="filter-btn" id="filter-btn" type="button" data-action="togglePriceFilter"
+                aria-expanded="false" aria-controls="price-filter"
+                data-i18n-aria="priceFilterAria" aria-label="Narx bo'yicha filtr">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M4 6h16M7 12h10M10 18h4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
         </button>
       </div>
@@ -77,17 +79,23 @@
           <span class="lang-code">UZ</span>
         </button>
 
-        <button class="login-btn" id="login-btn" data-action="onLogin" aria-label="Kirish">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M4.8 19.6a7.4 7.4 0 0 1 14.4 0"/></svg>
-          <span class="login-txt" data-i18n="login">Kirish</span>
-        </button>
-
         <button class="cart-btn fav-head-btn" id="fav-btn" data-action="openFav" data-i18n-aria="favorites" aria-label="Saralanganlar">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 20.8s-6.9-4.3-9-8a5.2 5.2 0 0 1-.5-3.7A4.8 4.8 0 0 1 6.3 5.5c1.9 0 3.4 1 4.3 2.3.4.6 1 .6 1.4 0 .9-1.3 2.4-2.3 4.3-2.3a4.8 4.8 0 0 1 3.8 3.6 5.2 5.2 0 0 1-.5 3.7c-2.1 3.7-9 8-9 8z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
         </button>
         <button class="cart-btn" id="cart-btn" data-action="openCart" aria-label="Savat">
           <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12l-1 11.5H7z"/><path d="M9 8V6.2a3 3 0 0 1 6 0V8"/></svg>
           <span class="cart-count" id="cart-count" hidden>0</span>
+        </button>
+
+        <!-- ⚠️ Profil qatorning ENG OXIRIDA (founder qarori 2026-08-13).
+             Ilgari u til bilan sevimlilar ORASIDA turardi: ismi uzun
+             foydalanuvchida tugma kengayib, ikkita doira ikonkani o'ngga
+             surib yuborardi va qatorning o'ng qirrasi har foydalanuvchida
+             boshqa joyda edi. Oxirida turganda kenglik faqat O'ZIDAN
+             o'ngga o'sadi, qolgan ikkitasi qimirlamaydi. -->
+        <button class="login-btn" id="login-btn" data-action="onLogin" aria-label="Kirish">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M4.8 19.6a7.4 7.4 0 0 1 14.4 0"/></svg>
+          <span class="login-txt" data-i18n="login">Kirish</span>
         </button>
       </div>
     </div>
@@ -174,7 +182,14 @@
       <button class="chip" data-cat="linen" data-i18n="catLinen">Zig'ir</button>
     </div>
 
-    <div class="price-filter fade-up">
+    <!-- ⚠️ Boshlang'ich holat — YOPIQ (founder qarori 2026-08-13: "filtr
+         ikonkasini bosganda eski joyida chiqsin, ungacha ko'rinmasin").
+         JOYI o'zgarmadi — chiplar bilan katalog orasida, ya'ni ochilganda
+         aynan o'sha yerda paydo bo'ladi.
+         `fade-up` OLIB TASHLANDI: u `IntersectionObserver` bilan ishlaydi
+         va `hidden` element hech qachon ko'rinmaydi, ya'ni ochilganda blok
+         `opacity: 0` da qotib qolardi — jimgina bo'sh joy. -->
+    <div class="price-filter" id="price-filter" hidden>
       <span class="price-filter-label" data-i18n="priceLabel">Narx, so'm / rulon</span>
       <div class="price-filter-row">
         <input id="price-min" class="price-inp" type="text" inputmode="numeric" autocomplete="off"
@@ -630,7 +645,7 @@
     </button>
   </nav>
 
-  <script defer src="script.js?v=41"></script>
+  <script defer src="script.js?v=42"></script>
   <script defer src="pwa.js?v=2"></script>
 </body>
 </html>

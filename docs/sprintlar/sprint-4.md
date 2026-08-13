@@ -125,6 +125,124 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
 
 ## Qilingan ishlar
 
+- [2026-08-13] **Founderning o'n bandi bir sessiyada yopildi — to'qqiztasi shu
+  sprintga tegishli (o'ninchisi AI rasmi, `sprint-10.md` da).** Bandlar
+  alohida-alohida kichik, lekin ikkitasi ostidan **JIMGINA nuqson** chiqdi va
+  ular bandlarning o'zidan qimmatroq.
+
+  🔴 **Yo'l-yo'lakay topilgan birinchi nuqson: Mini App'da ♡ tugmasi UMUMAN
+  BOSILMASDI.** U `.pd-hero` ichida, shaffof header qutisi OSTIDA turardi —
+  brauzerda `elementFromPoint` tugma MARKAZIDA header'ni qaytardi, ya'ni bosish
+  header'ga tushardi. Ko'z bilan hammasi joyida ko'rinardi (tugma chizilgan,
+  konsolda xato yo'q), shuning uchun nuqson qancha vaqt yashaganini bilib
+  bo'lmaydi. Tuzatildi: `‹` (orqaga), `♡` (sevimli) va `✦ Kiyimda ko'rish`
+  endi HEADER'ning o'zida, bitta qatorda (o'lchandi: uchalasi `top:10px`,
+  38px balandlik, header 58px da qoldi).
+  ⚠️ Chip `position: absolute` — oqimda turganda ko'rinmas sarlavhani ikki
+  qatorga tushirib header'ni **75px** ga cho'zardi.
+
+  🔴 **Yo'l-yo'lakay topilgan ikkinchi nuqson: saytdagi filtr tugmasida
+  `pointer-events: none` turardi** va yonida «faqat bezak — bosilmaydi» deb
+  yozib qo'yilgandi. Ya'ni foydalanuvchi filtr belgisini ko'rardi, bosardi va
+  HECH NARSA bo'lmasdi. Endi u haqiqiy tugma: `togglePriceFilter()`,
+  `is-on` holati va `aria-expanded`.
+  ⚠️ `fade-up` klassi OLIB TASHLANDI — u `IntersectionObserver` ga tayanadi,
+  `hidden` element esa hech qachon "ko'rinmaydi", ya'ni panel ochilganda
+  `opacity: 0` da qotib qolardi (jimgina bo'sh joy). Panel JOYI o'zgarmadi —
+  chiplar bilan katalog orasida (o'lchandi: chips 391px, panel 433px,
+  grid 566px). Filtr YOQILGAN bo'lsa panel majburan ochiq qoladi: filtr chipi
+  aynan shu blok ichida va yopilsa filtr ishlab turganini **hech narsa
+  ko'rsatmasdi**.
+
+  **Profil surati Telegram avataridan** — yangi endpoint `GET /api/me/photo`
+  (`server/routes/profile.js` → `handleMyPhoto`), ikkala yuzda ham bosh
+  harflar o'rniga. ⚠️ `initDataUnsafe.photo_url` ATAYLAB ishlatilmadi: u faqat
+  biriktirma menyusidan ochilganda keladi (bizdagi kirish nuqtalarida —
+  bot menyusi, inline tugma — YO'Q bo'lardi), saytda esa `initData` umuman
+  yo'q. Bir yuzda ishlab ikkinchisida ishlamaydigan yechim — aynan CLAUDE.md
+  ogohlantirgan naqsh, shuning uchun surat serverdan olinadi va ikkala kanal
+  `requestUser()` dan yuradi.
+  🔴 **Telegram fayl manzili QAYTARILMAYDI, faqat baytlar proksi qilinadi:**
+  `api.telegram.org/file/bot<TOKEN>/...` manzilida BOT TOKENI turadi —
+  redirect qilinsa u brauzer tarixiga, `Referer` ga va foydalanuvchi ko'chira
+  oladigan havolaga tushardi. `Cache-Control: private` (katalog rasmidan farqi
+  shu — shaxsiy surat `public` bo'lsa Cloudflare uni chetda keshlab boshqa
+  odamga berib yuborishi mumkin edi). Kesh xotirada — 6 soat, 500 yozuv
+  chegarasi, "surat yo'q" holati HAM keshlanadi (aks holda avatarsiz odam har
+  ochilishda ikkita bekor chaqiruv qilardi). Eng katta emas, **≤160px**
+  o'lcham olinadi — 54px doira uchun 640px ortiqcha trafik. Bosh harflar
+  ZAXIRA bo'lib qoladi; frontend `fetch` + blob bilan oladi (`<img src>`
+  sarlavha yubora olmaydi). `usableMime`/`mimeFromPath` `catalog.js` dan
+  IMPORT qilindi, nusxa ko'chirilmadi (`db/014` darsi).
+
+  **Sotuvchi kabineti founder ro'yxatiga cheklandi** (`SELLER_TG_IDS`,
+  `config.js`; zaxira zanjiri `ADMIN_TG_IDS` → `ADMIN_CHAT_ID`). Endi ikki
+  shart: Telegram ID ro'yxatda VA bazada rol + `sellers` yozuvi.
+  ⚠️ Tekshiruv YAGONA nuqtada — `lib/auth.js` → `currentSeller`, chunki
+  `/api/me`, `requireSeller` va katalogning "o'z mahsulotim" filtri uchalasi
+  ham shundan oziqlanadi; chaqiruvchilarga tarqatilsa yangi chaqiruvchi
+  qo'shilganda tekshiruvni eslab qolish kerak bo'lardi — `authUser()` naqshi
+  aynan shunday takrorlangan edi. Ro'yxatda yo'q odamda `role` → `'buyer'`,
+  `seller_id` → `null`, LEKIN qator `null` QAYTARILMAYDI: `pickup_point_id`
+  har bir foydalanuvchiga kerak («Mening manzilim»), ya'ni `null` xaridorning
+  manzilini ham o'chirib yuborardi.
+  🔴 **Ta'siri:** bazada `role='seller'` bo'lgan mavjud sotuvchilar ID'si
+  `.env` ga yozilmaguncha kabinetni KO'RMAYDI va buni hech narsa ko'rsatmaydi
+  — ular oddiy xaridor ekranini ko'radi. Qorovul: **Test 24**.
+
+  **Bot chatida «Ochish» menyu tugmasi** (`lib/telegram-api.js` →
+  `registerMenuButton`, `setChatMenuButton`). Founder shikoyati: botni topgan
+  odam Mini App'ga kirish uchun eski xabarlardagi inline tugmani QIDIRISHI
+  kerak edi, chat bo'sh bo'lsa esa yo'l umuman yo'q edi. ⚠️ `chat_id`
+  UZATILMAYDI — usiz Telegram tugmani barcha shaxsiy chatlar uchun standart
+  qiladi (chat bo'yicha o'rnatilsa birinchi ochilishda tugma HALI yo'q
+  bo'lardi). ⚠️ Server ko'tarilganda AVTOMATIK ro'yxatdan o'tadi, chunki
+  `BOT_TOKEN` almashtirilganda bu sozlama ham nolga qaytadi — **webhook bilan
+  ayni tuzoq** (2026-08-13, saytga kirish o'lgan kun). Qo'lda bajariladigan
+  qadam unutiladi, ishga tushishga bog'langani esa unutilmaydi. Serverni
+  to'xtatmaydi, xato alertga chiqadi.
+
+  **Kartochka ustida 3 soniya — ikkinchi media** (`hoverMediaArm()` saytda,
+  `bindHoverMedia()` Mini App'da). ⚠️ FAQAT `(hover: hover)` da armlanadi:
+  telefonda «hover» barmoq bosilganda ham hosil bo'ladi va `mouseleave`
+  kelmasligi mumkin — video ochiq qolib ketardi. Telegram DESKTOP'da ishlaydi.
+  Video KECHIKIB yuklanadi, chiqishda `src` bo'shatilib tugun O'CHIRILADI
+  (brauzerda o'lchandi: 3 s dan keyin `.media-hover` yaratildi, chiqishda
+  **0 ta** orphan qoldi). Sensorli ekranda video BORLIGINI `.media-mark` (▶)
+  ko'rsatadi.
+
+  **Kategoriya chiplari qayta dizayn** (ikkala yuzda). Tanlangani anor
+  gradientida — ilgari `--ink-900` to'q ko'k edi va butun ilovada **yolg'iz
+  o'zi** shu rangda turardi; ustiga IKAT ROMBI (`::before` bo'sh qutidan
+  yasalgan 45° kvadrat — shrift belgisi yoki rasm EMAS, ya'ni yuklanmaydi va
+  tushib qolmaydi). Nofaol chip iliq qog'oz gradientida va hover'da javob
+  beradi (ilgari hover HECH NARSA qilmasdi). Mini App'dagi satr ichidagi
+  uslub `styles.css` → `.cat-chip` ga ko'chirildi — ilgari ikki joyda qo'lda
+  moslanardi.
+
+  **Web: profil tugmasi qator OXIRIGA** (til → ♡ → savat → profil). Sabab
+  uslub emas: ismi uzun foydalanuvchida tugma kengayib ikkita doira ikonkani
+  o'ngga surardi, ya'ni qatorning o'ng qirrasi HAR foydalanuvchida boshqa
+  joyda edi. Oxirida turganda kenglik faqat o'zidan o'ngga o'sadi.
+
+  **Mini App: «Saqlangan matolar»** — profilda yangi qator (son bilan) va
+  `saved` ekrani (`renderSaved`). ⚠️ Ro'yxat `PRODUCTS` dan filtrlanadi,
+  `S.liked` dan EMAS: o'chirilgan e'lonning id'si `liked` da qolib ketishi
+  mumkin va ro'yxat "bor, lekin ochilmaydi" holatiga tushardi. Son ham AYNI
+  filtrdan — nol bo'lsa qator umuman ko'rsatilmaydi. Tarjima kalitlari ikkala
+  tilda: `savedT`, `savedEmpty`, `savedEmptySub`, `savedGo`.
+
+  **Kesh:** `style.css v50→51`, `script.js v41→42`,
+  `telegram-app/styles.css v25→28`, `telegram-app/app.js v81→84`.
+  ⚠️ `admin/index.html` dagi `style.css?v=` ham **51** ga ko'tarildi — bitta
+  fayl ikkala sahifada BIR XIL versiya bilan chaqirilsin (2026-08-06 darsi:
+  admin panel 15 versiya orqadagi keshni ushlab turgandi). Test 16 jadvali
+  yangilandi. **Testlar 60 → 62**, hammasi yashil.
+  🔴 **Deploy:** `server/` CI orqali CHIQMAYDI — qo'lda rsync va **servis
+  restarti** kerak (avatar endpointi va menyu tugmasi server tomonda).
+  `.env` ga tegish shart emas; `/api/me/photo` uchun nginx tahriri ham kerak
+  emas — umumiy `location ^~ /api/` bloki uni qamraydi
+
 - [2026-08-13] **Saytda buyurtmalar tarixi profil ekranidan CHIQARILDI —
   endi "Mening manzilim" va "Biz bilan bog'lanish" bilan BIR XIL qator,
   ro'yxatning o'zi esa alohida ko'rinishda.** Founder aytgani: «webda
@@ -1275,6 +1393,37 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
 
 ## Qarorlar
 
+- [2026-08-13] Qaror (founder): **sotuvchi kabineti bazadagi rol bilan
+  EMAS, founder bergan Telegram ID ro'yxati bilan ochiladi** («hozircha
+  faqat menda»). Bazadagi `users.role = 'seller'` ikkinchi shart bo'lib
+  qoldi. Sabab: rol bazada paydo bo'lishining bir nechta yo'li bor (ariza
+  tasdig'i, qo'lda SQL, kelajakdagi avtomatik tasdiq) va ularning HAMMASINI
+  eslab qolish kerak bo'lardi; ro'yxat esa BITTA joyda va ko'rinadi.
+  ⚠️ Bu `db/014` («ikkinchi ro'yxat himoya emas, tuzoq») bilan zid EMAS:
+  u yerdagi ro'yxat ikkinchi nusxa edi, bu yerda ro'yxat — YAGONA eshik.
+  ⚠️ Zaxira ATAYLAB `ADMIN_TG_IDS` → `ADMIN_CHAT_ID`, ya'ni sozlama
+  berilmasa kabinet **YOPIQ** qoladi (founder'dan tashqari). «Berilmasa
+  hammaga ochiq» varianti rad etildi: e'tibordan chetda qolgan `.env`
+  jimgina hammani ichkariga qo'yib yuborardi — xavfsizlik sozlamasining
+  standart holati eng KENG emas, eng TOR bo'lishi kerak
+- [2026-08-13] Qaror (founder): **narx filtri paneli boshlang'ich holatda
+  YOPIQ**, filtr ikonkasi bosilganda **eski JOYIDA** ochiladi. Joyi
+  o'zgarmagani ataylab: ochilgan panel foydalanuvchi kutgan yerda paydo
+  bo'lsin. ⚠️ Filtr YOQILGAN paytda panel majburan ochiq qoladi — filtr
+  chipi shu blok ichida, ya'ni yopilsa filtr ishlab turganini hech narsa
+  ko'rsatmasdi va katalog "sababsiz kam mahsulot" ko'rsatardi
+- [2026-08-13] Qaror: **profil surati SERVERDAN olinadi**
+  (`GET /api/me/photo`), `initDataUnsafe.photo_url` dan EMAS. Muqobil
+  arzonroq edi (qo'shimcha so'rov yo'q), lekin u ikki joyda yiqilardi:
+  biriktirma menyusidan tashqari kirish nuqtalarida va SAYTDA (u yerda
+  `initData` umuman yo'q). ⚠️ Telegram fayl MANZILI hech qachon
+  qaytarilmaydi — unda bot tokeni bor, shuning uchun baytlar proksi
+  qilinadi
+- [2026-08-13] Qaror: **menyu tugmasi server ishga tushganda ro'yxatdan
+  o'tadi**, qo'lda emas. Chaqiruv idempotent va tekin; foydasi esa
+  `BOT_TOKEN` almashtirilgan kunda ko'rinadi — sozlama nolga qaytadi va
+  qo'lda qadam unutiladi (webhook bilan AYNI tuzoq, o'sha kuni saytga
+  kirishni o'ldirgan)
 - [2026-08-13] Qaror (founder): **buyurtmalar tarixi profil ekranida
   CHIZILMAYDI — u ham "Mening manzilim" kabi QATOR bo'lib, alohida
   ko'rinishda ochiladi.** ⚠️ Bu AYNI SHU KUNDAGI «saytda buyurtmalar

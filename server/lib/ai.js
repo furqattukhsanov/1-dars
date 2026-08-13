@@ -831,41 +831,96 @@ const QAYTA_URINILADI = new Set([500, 502, 503, 504]);
 
 function kut(ms) { return new Promise((r) => setTimeout(r, ms)); }
 
-async function generateImage(product, source, choices) {
+// ============ BO'SH JAVOB — HTTP 200, RASM YO'Q (2026-08-13) ============
+// Production'da `javobda rasm yo'q (IMAGE_OTHER)` chiqdi: HTTP 200, xato yo'q,
+// `finishReason: IMAGE_OTHER` — ya'ni Gemini "sababini aytmayman" dedi.
+// Bu RAD ETISH EMAS (`isRefusal` uni ataylab tashqarida qoldiradi) va
+// bizning tomondagi nosozlik ham emas: model shunchaki bu safar rasm
+// chizmadi.
+//
+// ⚠️ Prompt DETERMINISTIK (`sceneFor`/`fasonFor` kesh kalitidan urug' oladi),
+// ya'ni qayta urinish AYNI promptni yuboradi. Shunga qaramay u foydali,
+// chunki tasodifiylik prompt tomonda emas, MODEL tomonda: ayni prompt
+// ayni javobni BERMAYDI. Rad etishdan farqi aynan shu — rad etilgan prompt
+// har safar rad etiladi, bo'sh javob esa keyingi urinishda rasm beradi.
+//
+// ⚠️ Kutish 503 dagidan QISQA va bu ataylab: 503 — provayder bandligi
+// (kutish kerak), bo'sh javob esa bandlik belgisi emas. Uzun kutish faqat
+// vaqt budjetini yeb qo'yardi.
+const BOSH_JAVOB_URINISH = 2;          // asosiy urinishdan TASHQARI
+const BOSH_JAVOB_KUTISH_MS = 1200;
+
+// ⚠️ UMUMIY BUDJET — nginx/Cloudflare chegarasi uchun (server/README.md:
+// nginx 180s, Cloudflare bepul tarifda ~100s). Bo'sh javob HTTP 503 dan
+// farqli o'laroq TEZ kelmaydi — model haqiqatan ishlaydi, ya'ni har urinish
+// o'nlab soniya. Budjetsiz qayta urinish javobni Cloudflare chegarasidan
+// chiqarib yuborardi: foydalanuvchi 504 ko'rardi, kredit esa sarflangan
+// bo'lardi — tuzatilayotgan nuqsondan YOMONROQ holat.
+const RASM_BUDJET_MS = 75_000;
+
+// ⚠️ `sinov` — TEST TESHIGI, sozlama emas. Qayta urinish TSIKLI aynan
+// tarmoq javobiga qarab qaror qabul qiladi, ya'ni uni tekshirishning
+// yagona halol yo'li — javoblarni boshqarish. Manba kodini skanerlaydigan
+// qorovul (Test 14o naqshi) bu yerda YETARLI EMAS: u tsikl BORLIGINI
+// ko'radi, tsikl TO'G'RI ishlashini emas. Production yo'li (`routes/ai.js`)
+// uni hech qachon uzatmaydi — buni Test 14q alohida tekshiradi.
+async function generateImage(product, source, choices, sinov = null) {
   if (AI_PROVIDER !== 'gemini') throw new Error(`rasm yo'li ${AI_PROVIDER} uchun yozilmagan`);
   if (!source || !Buffer.isBuffer(source.buf) || !source.buf.length) {
     throw new Error('manba surat yo\'q');
   }
 
-  let r;
-  for (let urinish = 0; ; urinish++) {
-    r = await postImageRequest(product, source, choices);
-    if (!QAYTA_URINILADI.has(r.status) || urinish >= RETRY_KUTISH_MS.length) break;
-    await kut(jitter(RETRY_KUTISH_MS[urinish]));
-  }
+  const post = (sinov && sinov.post) || postImageRequest;
+  const uxla = (sinov && sinov.kut) || kut;
+  // ⚠️ Budjet ham teshikdan o'tadi. Sababi amaliy: soxta kutish ONI
+  // qaytganda 75 soniyalik budjetni tekshirish testni 75 soniya ushlab
+  // turardi (o'lchandi: 27 million urinish). Test budjetni kichik qo'yib
+  // AYNI shartni bir zumda tekshiradi.
+  const budjet = (sinov && Number.isFinite(sinov.budjet)) ? sinov.budjet : RASM_BUDJET_MS;
+  const boshlandi = Date.now();
 
-  // ⚠️ HTTP 429 bu yerda ODDIY xato emas, TASHXIS: 2026-08-06 da bepul
-  // tarifda rasm kvotasi `limit: 0` edi va xabar "27 soniyadan keyin urinib
-  // ko'ring" derdi — kutish esa HECH QACHON yordam bermasdi. Shuning uchun
-  // javob tanasidan sabab olinadi va xatoga qo'shiladi.
-  if (r.status !== 200) {
-    let why = '';
-    try { why = JSON.parse(r.body)?.error?.message || ''; } catch (_) { /* tana JSON emas */ }
-    const e = new Error(`gemini rasm HTTP ${r.status}${why ? ` — ${why.slice(0, 200)}` : ''}`);
-    // ⚠️ `kind` — bu XATONING TURI, matni emas. Chaqiruvchi (`routes/ai.js`)
-    // shunga qarab foydalanuvchiga nima deyishni hal qiladi: "provayder
-    // band, keyinroq urinib ko'ring" bilan "so'rov rad etildi" ni bitta
-    // "xato" ga qo'shib yuborish foydalanuvchini FOYDASIZ qayta urinishga
-    // undardi (2026-08-08). Matnni tahlil qilish yo'li ATAYLAB tanlanmadi —
-    // xato matni o'zgarsa u jimgina ishlamay qolardi.
-    if (QAYTA_URINILADI.has(r.status)) e.kind = 'busy';
-    throw e;
-  }
+  for (let bosh = 0; ; bosh++) {
+    let r;
+    for (let urinish = 0; ; urinish++) {
+      r = await post(product, source, choices);
+      if (!QAYTA_URINILADI.has(r.status) || urinish >= RETRY_KUTISH_MS.length) break;
+      await uxla(jitter(RETRY_KUTISH_MS[urinish]));
+    }
 
-  let json;
-  try { json = JSON.parse(r.body); } catch (_) { throw new Error('gemini rasm javobi JSON emas'); }
-  const img = extractImage(json);
-  return { ...img, model: `${AI_PROVIDER}:${AI_IMAGE_MODEL}` };
+    // ⚠️ HTTP 429 bu yerda ODDIY xato emas, TASHXIS: 2026-08-06 da bepul
+    // tarifda rasm kvotasi `limit: 0` edi va xabar "27 soniyadan keyin urinib
+    // ko'ring" derdi — kutish esa HECH QACHON yordam bermasdi. Shuning uchun
+    // javob tanasidan sabab olinadi va xatoga qo'shiladi.
+    if (r.status !== 200) {
+      let why = '';
+      try { why = JSON.parse(r.body)?.error?.message || ''; } catch (_) { /* tana JSON emas */ }
+      const e = new Error(`gemini rasm HTTP ${r.status}${why ? ` — ${why.slice(0, 200)}` : ''}`);
+      // ⚠️ `kind` — bu XATONING TURI, matni emas. Chaqiruvchi (`routes/ai.js`)
+      // shunga qarab foydalanuvchiga nima deyishni hal qiladi: "provayder
+      // band, keyinroq urinib ko'ring" bilan "so'rov rad etildi" ni bitta
+      // "xato" ga qo'shib yuborish foydalanuvchini FOYDASIZ qayta urinishga
+      // undardi (2026-08-08). Matnni tahlil qilish yo'li ATAYLAB tanlanmadi —
+      // xato matni o'zgarsa u jimgina ishlamay qolardi.
+      if (QAYTA_URINILADI.has(r.status)) e.kind = 'busy';
+      throw e;
+    }
+
+    let json;
+    try { json = JSON.parse(r.body); } catch (_) { throw new Error('gemini rasm javobi JSON emas'); }
+
+    try {
+      const img = extractImage(json);
+      return { ...img, model: `${AI_PROVIDER}:${AI_IMAGE_MODEL}` };
+    } catch (e) {
+      // Rad etish — qayta urinish FOYDASIZ (ayni prompt ayni javobni beradi).
+      // Foydalanuvchiga javoblarini o'zgartirish kerakligi aytiladi.
+      if (e.kind === 'blocked') throw e;
+      if (bosh >= BOSH_JAVOB_URINISH) throw e;
+      // Budjet: keyingi urinish + kutish chegaradan chiqib ketmasin.
+      if (Date.now() - boshlandi >= budjet) throw e;
+      await uxla(jitter(BOSH_JAVOB_KUTISH_MS));
+    }
+  }
 }
 
 // ============ RASM NISBATI (2026-08-09) ============
@@ -911,4 +966,5 @@ module.exports = {
   IMAGE_CHOICES, COMBO_CHOICES, normalizeChoices, choicesHash, joriyJavobmi, aiClientConfig,
   SAHNA, sceneFor, PROMPT_VERSION, cleanComboText, COMBO_TEXT_MAX,
   FASON, FASON_OQLARI, fasonFor, VARIANT_MAX, IMAGE_ASPECT_RATIO,
+  BOSH_JAVOB_URINISH, RASM_BUDJET_MS,
 };

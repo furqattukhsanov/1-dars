@@ -207,6 +207,11 @@ const STR = {
     // ekranga bog'langan, yorliq esa foydalanuvchi ko'radigan so'z.
     tabHome: "Katalog", tabAi: "AI",
     tabCart: "Savat", tabOrders: "Buyurtma", tabProfile: "Profil", added: "Savatga qo'shildi 🌷", liked: "Sevimlilarga qo'shildi",
+    // Yoqtirilgan matolar. Ilgari ♡ bosilardi-yu, ular QAYERGA tushgani
+    // hech qayerda ko'rinmasdi — ya'ni tugma ishlagandek tuyulib, natijasi
+    // yo'q edi (founder, 2026-08-13).
+    savedT: "Saqlangan matolar", savedEmpty: "Hali hech narsa saqlanmagan",
+    savedEmptySub: "Yoqqan matoni ♡ bilan belgilang — shu yerda to'planadi", savedGo: "Katalogga o'tish",
     orderPlaced: "Buyurtma qabul qilindi", orderPlacedSub: "Ishlab chiqaruvchi tasdiqlaydi — tez orada xabar beramiz",
     viewOrders: "Buyurtmalarni ko'rish", continue: "Xaridni davom ettirish",
     items: "tur", panelU: "dona", mU: "m", product: "Mahsulot", noProducts: "Mahsulot topilmadi",
@@ -358,6 +363,8 @@ const STR = {
     logout: "Выйти", search: "Поиск", recent: "Недавние поиски", noResults: "Ничего не найдено",
     noResultsSub: "Попробуйте другой запрос", resultsN: "результатов", tabHome: "Каталог", tabAi: "AI",
     tabCart: "Корзина", tabOrders: "Заказы", tabProfile: "Профиль", added: "Добавлено в корзину 🌷", liked: "Добавлено в избранное",
+    savedT: "Сохранённые ткани", savedEmpty: "Пока ничего не сохранено",
+    savedEmptySub: "Отметьте понравившуюся ткань ♡ — она появится здесь", savedGo: "В каталог",
     orderPlaced: "Заказ принят", orderPlacedSub: "Производитель подтвердит — мы сообщим вам",
     viewOrders: "Посмотреть заказы", continue: "Продолжить покупки",
     items: "поз.", panelU: "шт", mU: "м", product: "Товар", noProducts: "Товары не найдены",
@@ -844,6 +851,10 @@ function goBack() {
   S.screen = prev;
   render();
 }
+// Saqlangan matolar — profildan ochiladi, ya'ni `navigate` (tarixga yozadi
+// va ‹ profilga qaytaradi), `tab` EMAS: `tab` tarixni tozalab yuborardi va
+// orqaga tugmasi bosh sahifaga olib chiqardi.
+function openSaved() { navigate('saved'); }
 function tab(k) {
   S.screen = k;
   S.history = [];
@@ -930,18 +941,39 @@ function updateHeader() {
     home:T.brand, ai:T.tabAi, detail:T.product,
     search:T.search, cart:T.cart, checkout:T.checkoutT,
     orders:T.orders, profile:T.profile, success:T.checkoutT,
-    notifications:T.notifTitle,
+    notifications:T.notifTitle, saved:T.savedT,
     's-products':T.sProducts, 's-orders':T.sOrders, 's-profile':T.profile,
     's-form':S.sEditId ? T.sEdit : T.sAdd,
   };
 
-  document.getElementById('btn-back').classList.toggle('hidden', !['detail','checkout','s-form'].includes(sc));
+  document.getElementById('btn-back').classList.toggle('hidden', !['detail','checkout','s-form','saved'].includes(sc));
   document.getElementById('header-brand').style.display = sc === 'home' ? 'flex' : 'none';
   document.getElementById('btn-header-search').classList.toggle('hidden', !['home','orders','cart'].includes(sc));
   // Mahsulot ekranida qo'ng'iroq YASHIRINADI: rasm endi header ostidan
   // o'tadi va o'ng yuqori burchakni "sevimli" tugmasi egallaydi — ikkalasi
   // AYNI nuqtada ustma-ust tushardi (2026-08-13).
   document.querySelector('.notif-btn').classList.toggle('hidden', sc === 'detail');
+
+  // ---- Mahsulot ekranining boshqaruvi: ✦ va ♡ ‹ bilan bitta qatorda ----
+  // ⚠️ Ular `renderDetail()` dan SHU YERGA ko'chirildi (2026-08-13) va sabab
+  // dizayndan kattaroq: hero ichidagi tugmalar shaffof header qutisi OSTIDA
+  // qolardi, ya'ni "sevimli" rasm ustida turib BOSILMASDI — nuqson jimgina
+  // edi, chunki tugma ko'rinib turardi.
+  const detailmi = sc === 'detail' && !!S.selectedId;
+  const like = document.getElementById('btn-like');
+  const jump = document.getElementById('btn-ai-jump');
+  like.classList.toggle('hidden', !detailmi);
+  // ✦ faqat rasm bor ekranda ma'noga ega — sozlama o'chiq bo'lsa bo'lim ham
+  // chizilmaydi va tugma faqat hech qayerga olib bormaydigan tugma bo'lardi.
+  jump.classList.toggle('hidden', !(detailmi && S.aiImageEnabled && S.aiChoiceKeys));
+  if (detailmi) {
+    jump.textContent = `✦ ${T.aiJump}`;
+    like.dataset.arg = S.selectedId;
+    const yoq = !!S.liked[S.selectedId];
+    like.style.color = yoq ? 'var(--color-primary)' : 'var(--text-body)';
+    document.getElementById('btn-like-i').setAttribute('fill', yoq ? 'var(--color-primary)' : 'none');
+    like.setAttribute('aria-label', T.savedT);
+  }
 
   const titleEl = document.getElementById('header-title');
   const subEl   = document.getElementById('header-sub');
@@ -964,7 +996,10 @@ function updateHeader() {
 function updateNav() {
   const sc = S.screen;
   const T = STR[S.lang];
-  const TAB_SCREENS = ['home','ai','search','cart','orders','profile','notifications'];
+  // ⚠️ `saved` shu ro'yxatda va bu ataylab: u katalog kabi ko'rish ekrani,
+  // pastki panelsiz esa berk ko'cha bo'lardi. Linza ko'rsatilmaydi —
+  // `navMap` da yo'q, ya'ni "qaysi tabdaman" degan savol tug'ilmaydi.
+  const TAB_SCREENS = ['home','ai','search','cart','orders','profile','notifications','saved'];
   const S_TABS = ['s-products','s-orders','s-profile'];
   const inSeller = S.sellerMode;
   const showTabBar = !inSeller && TAB_SCREENS.includes(sc);
@@ -1099,11 +1134,12 @@ function renderHome() {
       </button>
     </div>` : ''}
 
-    <div style="display:flex;gap:9px;overflow-x:auto;margin:0 -16px;padding:3px 16px;scrollbar-width:none">
-      ${CATS.map(c => {
-        const active = c.key === S.cat;
-        return `<button data-action="selectCat" data-arg="${c.key}" style="flex:none;height:34px;padding:0 15px;border-radius:999px;font-size:13px;font-weight:600;white-space:nowrap;cursor:pointer;border:1px solid ${active ? 'transparent' : 'var(--border-hair)'};background:${active ? 'var(--ink-900)' : 'var(--glass-fill)'};color:${active ? '#fff' : 'var(--text-body)'}">${c.label[S.lang]}</button>`;
-      }).join('')}
+    <!-- Kategoriya chiplari — uslub styles.css dagi .cat-chip da
+         (2026-08-13). Ilgari u shu yerda satr ichida yozilgardi va SAYTdagi
+         nusxasi bilan qo'lda moslanardi: bittasi o'zgarganda ikkinchisi
+         jimgina eskirardi. Endi ikkala yuz ham AYNI retseptni yozadi. -->
+    <div class="cat-chips">
+      ${CATS.map(c => `<button class="cat-chip${c.key === S.cat ? ' on' : ''}" data-action="selectCat" data-arg="${c.key}">${c.label[S.lang]}</button>`).join('')}
     </div>
 
     ${sof ? `
@@ -1120,6 +1156,37 @@ function renderHome() {
           ${priceOn ? `<div><button data-action="clearPriceFilter" style="margin-top:14px;cursor:pointer;height:40px;padding:0 18px;border-radius:var(--radius-md);border:1px solid #7a140d;background:none;color:#7a140d;font-family:var(--font-sans);font-size:13.5px;font-weight:600">${T.priceClear}</button></div>` : ''}
          </div>`
       : `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">${prods.map(p => productCard(p)).join('')}</div>`}
+  </div>`;
+}
+
+// ============ EKRAN: SAQLANGAN MATOLAR (2026-08-13) ============
+// ♡ bosilardi, toast chiqardi — va tamom: yoqtirilgan mato QAYERGA
+// tushgani ilovaning hech bir joyida ko'rinmasdi (founder shikoyati).
+// Ya'ni tugma ishlagandek tuyulib, natijasi yo'q edi.
+//
+// ⚠️ Ro'yxat `S.liked` dan chizilmaydi, PRODUCTS dan filtrlanadi va sabab
+// bor: `S.liked` da bazadan o'chgan e'lonning id'si qolib ketishi mumkin
+// (`ik-9001` bilan aynan shu bo'lgan — 696-qatordagi izoh). O'sha id
+// bo'yicha chizilsa ekranda bo'sh kartochka turardi.
+function renderSaved() {
+  const T = STR[S.lang];
+  const list = PRODUCTS.filter(p => S.liked[p.id]).map(vm);
+
+  if (!list.length) {
+    return `
+    <div style="padding:64px 28px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px">
+      <span style="width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--pom-100);color:#7a140d;margin-bottom:4px">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M12 20.8s-6.9-4.3-9-8a5.2 5.2 0 0 1-.5-3.7A4.8 4.8 0 0 1 6.3 5.5c1.9 0 3.4 1 4.3 2.3.4.6 1 .6 1.4 0 .9-1.3 2.4-2.3 4.3-2.3a4.8 4.8 0 0 1 3.8 3.6 5.2 5.2 0 0 1-.5 3.7c-2.1 3.7-9 8-9 8z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+      </span>
+      <div style="font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--text-strong)">${T.savedEmpty}</div>
+      <div style="font-size:13px;color:var(--text-muted);line-height:1.45">${T.savedEmptySub}</div>
+      <button data-action="tab" data-arg="home" style="margin-top:14px;height:42px;padding:0 20px;border-radius:var(--radius-md);border:none;background:linear-gradient(150deg,#8f1a10,#510100);color:#fff;font-family:var(--font-sans);font-size:14px;font-weight:600;cursor:pointer">${T.savedGo}</button>
+    </div>`;
+  }
+
+  return `
+  <div style="padding:14px 16px 28px;display:flex;flex-direction:column;gap:14px">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">${list.map(p => productCard(p)).join('')}</div>
   </div>`;
 }
 
@@ -1620,10 +1687,6 @@ function renderDetail() {
       ${detailMedia(p, T)}
       <div class="pd-scrim-t"></div>
       <div class="pd-scrim-b"></div>
-      ${S.aiImageEnabled ? `<button class="ai-jump" data-action="scrollToAi">✦ ${T.aiJump}</button>` : ''}
-      <button data-action="toggleLike" data-arg="${p.id}" style="position:absolute;top:10px;right:14px;width:38px;height:38px;border-radius:50%;border:1px solid var(--glass-border);background:var(--glass-fill-strong);backdrop-filter:var(--blur-md);-webkit-backdrop-filter:var(--blur-md);display:flex;align-items:center;justify-content:center;color:${p.heartStroke};box-shadow:var(--glass-highlight)">
-        <svg width="19" height="19" viewBox="0 0 24 24" fill="${p.heartFill}"><path d="M12 20.8s-6.9-4.3-9-8a5.2 5.2 0 0 1-.5-3.7A4.8 4.8 0 0 1 6.3 5.5c1.9 0 3.4 1 4.3 2.3.4.6 1 .6 1.4 0 .9-1.3 2.4-2.3 4.3-2.3a4.8 4.8 0 0 1 3.8 3.6 5.2 5.2 0 0 1-.5 3.7c-2.1 3.7-9 8-9 8z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
-      </button>
       <div class="pd-cap">
         ${p.badgeShow ? `<span class="pd-cap-badge" style="background:${p.badgeBg};color:${p.badgeFg}">${p.badge}</span>` : ''}
         <h1 class="pd-cap-title">${p.name}</h1>
@@ -3158,6 +3221,45 @@ function renderNotifications() {
 }
 
 // ============ TELEGRAM PROFIL KARTASI ============
+// ============ PROFIL SURATI (2026-08-13) ============
+// ⚠️ `<img src="/api/me/photo">` ISHLATIB BO'LMAYDI va sabab arxitekturaviy:
+// Mini App'da kimlik `X-Telegram-Init-Data` SARLAVHASIDA yuradi, `<img>` esa
+// sarlavha yubora olmaydi — so'rov 401 bilan qaytardi. Shuning uchun surat
+// `fetch` bilan olinadi va blob havolasiga aylantiriladi.
+//
+// ⚠️ BIR MARTA so'raladi. `render()` profil har ochilganda chaqiriladi;
+// holat kuzatilmasa har ochilishda yangi so'rov ketardi. `yoq` holati ham
+// eslab qolinadi — avatari yo'q odam uchun bekor so'rov TAKRORLANMASIN.
+let _avaUrl = null;
+let _avaHolat = 'nomalum';        // nomalum | yuklanmoqda | bor | yoq
+
+async function mountAvatar() {
+  if (_avaHolat !== 'nomalum') return;
+  if (!document.getElementById('tg-ava')) return;   // ekranda avatar joyi yo'q
+  _avaHolat = 'yuklanmoqda';
+  try {
+    const initData = tgInitData();
+    const r = await fetch('/api/me/photo', {
+      credentials: 'same-origin',                   // saytda sessiya cookie'da
+      headers: initData ? { 'X-Telegram-Init-Data': initData } : {},
+    });
+    // 404 — surat YO'Q, bu xato emas: Telegram'da avatar qo'ymagan odam.
+    if (!r.ok) { _avaHolat = 'yoq'; return; }
+    _avaUrl = URL.createObjectURL(await r.blob());
+    _avaHolat = 'bor';
+    // Faqat profil ekrani qayta chiziladi — butun `render()` chaqirilsa
+    // ochiq sheet yoki skroll holati yo'qolardi.
+    if (S.screen === 'profile') {
+      const w = document.getElementById('screen-wrap');
+      if (w) w.innerHTML = renderProfile();
+    }
+  } catch (e) {
+    // Tarmoq uzilishi — bosh harf qoladi. Alertga CHIQARILMAYDI: avatar
+    // bezak, uning yo'qligi nosozlik emas va Telegram'ni to'ldirardi.
+    _avaHolat = 'yoq';
+  }
+}
+
 function renderTgCard() {
   const T = STR[S.lang];
   const u = S.tgUser;
@@ -3171,9 +3273,20 @@ function renderTgCard() {
   const fullName = [u.first_name, u.last_name].filter(Boolean).join(' ') || T.tgUserFallback;
   // Ism va rasm manzili Telegram profilidan keladi — foydalanuvchi ularni
   // o'zi yozadi, ya'ni ishonchsiz matn.
-  const avatar = u.photo_url
-    ? `<img src="${esc(u.photo_url)}" style="width:48px;height:48px;border-radius:14px;object-fit:cover;flex:none" alt="">`
-    : `<span style="flex:none;width:48px;height:48px;border-radius:14px;background:linear-gradient(150deg,#37AEE2,#1E96C8);color:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:800;font-size:18px">${esc(fullName[0].toUpperCase())}</span>`;
+  //
+  // ⚠️ Avatar UCH pog'onali (2026-08-13, founder: "profil egasini rasm
+  // telegramdagi rasmdan olinsin"):
+  //   1) `photo_url` — bo'lsa darrov ishlatiladi (qo'shimcha so'rovsiz).
+  //      Lekin u FAQAT biriktirma menyusidan ochilganda keladi, ya'ni
+  //      bizdagi kirish nuqtalarida odatda YO'Q.
+  //   2) `_avaUrl` — serverdan olingan surat (`/api/me/photo`, `mountAvatar`).
+  //   3) bosh harf — surat umuman bo'lmasa.
+  // Bosh harf ZAXIRA sifatida qoladi va bu ataylab: surat kelmasa bo'sh
+  // doira turardi, ya'ni "yuklanmadi" bilan "avatari yo'q" ajralmasdi.
+  const suratSrc = u.photo_url || _avaUrl;
+  const avatar = suratSrc
+    ? `<img src="${esc(suratSrc)}" style="width:48px;height:48px;border-radius:14px;object-fit:cover;flex:none" alt="">`
+    : `<span id="tg-ava" style="flex:none;width:48px;height:48px;border-radius:14px;background:linear-gradient(150deg,#37AEE2,#1E96C8);color:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:800;font-size:18px">${esc(fullName[0].toUpperCase())}</span>`;
   return `
   <div style="display:flex;align-items:center;gap:12px;padding:14px;border-radius:var(--radius-lg);background:var(--glass-fill-strong);backdrop-filter:var(--blur-md);-webkit-backdrop-filter:var(--blur-md);border:1px solid var(--glass-border);box-shadow:var(--glass-shadow)">
     ${avatar}
@@ -3211,6 +3324,7 @@ const ICO = {
   pin: '<svg width="21" height="21" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M12 2a7.4 7.4 0 0 0-7.4 7.4C4.6 14.8 12 22 12 22s7.4-7.2 7.4-12.6A7.4 7.4 0 0 0 12 2zm0 10.1a2.7 2.7 0 1 1 0-5.4 2.7 2.7 0 0 1 0 5.4z"/></svg>',
   chat: '<svg width="21" height="21" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.2c-5.1 0-9.2 3.5-9.2 7.9 0 2.4 1.2 4.6 3.2 6.1L4.9 21l4.3-1.8c.9.2 1.8.3 2.8.3 5.1 0 9.2-3.5 9.2-7.9s-4.1-7.9-9.2-7.9z"/></svg>',
   share: '<svg width="21" height="21" viewBox="0 0 24 24" fill="currentColor"><circle cx="18" cy="5" r="2.7"/><circle cx="6" cy="12" r="2.7"/><circle cx="18" cy="19" r="2.7"/><path d="M8.2 10.8l7.6-4.4M8.2 13.2l7.6 4.4" stroke="currentColor" stroke-width="1.8" fill="none"/></svg>',
+  heart: '<svg width="21" height="21" viewBox="0 0 24 24" fill="currentColor"><path d="M12 20.8s-6.9-4.3-9-8a5.2 5.2 0 0 1-.5-3.7A4.8 4.8 0 0 1 6.3 5.5c1.9 0 3.4 1 4.3 2.3.4.6 1 .6 1.4 0 .9-1.3 2.4-2.3 4.3-2.3a4.8 4.8 0 0 1 3.8 3.6 5.2 5.2 0 0 1-.5 3.7c-2.1 3.7-9 8-9 8z"/></svg>',
 };
 
 // Til — SAYTDAGI naqsh (`script.js` → `toggleLang`): bitta qator joriy tilni
@@ -3383,6 +3497,21 @@ function renderProfile() {
     </div>
 
     ${profileRow({
+      ico: ICO.heart,
+      label: T.savedT,
+      // ⚠️ Son BAZADAN emas, ro'yxatning O'ZIDAN olinadi (`renderSaved`
+      // bilan AYNI filtr) — aks holda "3 ta" deb turib ichida 2 tasi
+      // chiqadigan holat bo'lardi: o'chgan e'lonning id'si `S.liked` da
+      // qolib ketishi mumkin. Nol bo'lsa son UMUMAN ko'rsatilmaydi
+      // (o'ylab topilgan raqam emas, YO'QLIK ko'rinsin).
+      right: (() => {
+        const n = PRODUCTS.filter(p => S.liked[p.id]).length;
+        return n ? `<span style="flex:none;font-family:var(--font-mono);font-size:13.5px;font-weight:600;color:var(--text-muted)">${n}</span>` : '';
+      })(),
+      chev: true,
+      action: 'openSaved',
+    })}
+    ${profileRow({
       ico: ICO.lang,
       label: T.language,
       right: `<span style="flex:none;display:flex;align-items:center;gap:7px;font-size:14px;font-weight:600;color:var(--text-muted)">
@@ -3431,8 +3560,9 @@ function renderProfile() {
 function productCard(p) {
   return `
   <div data-action="openProduct" data-arg="${p.id}" style="cursor:pointer;background:var(--glass-fill);backdrop-filter:var(--blur-lg);-webkit-backdrop-filter:var(--blur-lg);border:1px solid var(--glass-border-soft);border-radius:var(--radius-lg);box-shadow:0 6px 16px -12px rgba(81,1,0,.16),0 1px 2px rgba(23,26,48,.04);overflow:hidden;display:flex;flex-direction:column">
-    <div style="position:relative;height:230px;${p.bgStyle}">
+    <div class="card-media"${p.video ? ` data-video="${p.video}"${p.videoPoster ? ` data-poster="${p.videoPoster}"` : ''}` : ''} style="height:230px;${p.bgStyle}">
       ${p.badgeShow ? `<span style="position:absolute;top:8px;left:8px;display:inline-flex;align-items:center;height:21px;padding:0 8px;border-radius:999px;font-size:10.5px;font-weight:600;background:${p.badgeBg};color:${p.badgeFg}">${p.badge}</span>` : ''}
+      ${p.video ? '<span class="media-mark" aria-hidden="true"><svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.2v13.6L19 12z"/></svg></span>' : ''}
     </div>
     <div style="padding:10px 11px 11px;display:flex;flex-direction:column;gap:6px">
       <div style="font-family:var(--font-display);font-size:13.5px;font-weight:700;color:var(--text-strong);line-height:1.2;letter-spacing:-.01em">${p.name}</div>
@@ -3447,6 +3577,80 @@ function productCard(p) {
       ${catalogQtyControl(p)}
     </div>
   </div>`;
+}
+
+/* ══ KARTOCHKA USTIDA 3 SONIYA — IKKINCHI MEDIA (2026-08-13, founder) ══
+   "sichqoncha mahsulot ustida 3 sekund tursa, ikkinchi media bo'lsa
+   ko'rsatilsin — video bo'lsa ham". Saytdagi `hoverMediaArm` bilan AYNI
+   mantiq; ikkala yuz uchun bitta xulq.
+
+   ⚠️ FAQAT SICHQONCHALI muhitda armlanadi (`hover: hover`). Telefonda
+   "hover" barmoq bosilganda ham hosil bo'ladi, `mouseleave` esa
+   kelmasligi mumkin — video ochilib qolib, yopilmasdi. Telegram
+   DESKTOP'da sichqoncha bor, ya'ni funksiya u yerda ishlaydi.
+
+   ⚠️ Video KECHIKIB yuklanadi va chiqishda O'CHIRILADI (`src` bo'shatiladi).
+   Katalog bilan birga yuklansa o'nlab MB tortilardi; faqat `pause()`
+   qilinsa dekodlangan videolar xotirada yig'ilib qolardi.
+
+   ⚠️ Hodisa `document` ga BIR MARTA ulanadi — kartochkalar har `render()`
+   da qayta chiziladi, ya'ni tugunlarga ulansa listenerlar to'planardi
+   (`bindDetailHeader` bilan ayni sabab). */
+const HOVER_MEDIA_MS = 3000;
+let _hoverBound = false;
+
+function bindHoverMedia() {
+  if (_hoverBound) return;
+  if (!window.matchMedia || !window.matchMedia('(hover: hover)').matches) return;
+  _hoverBound = true;
+
+  let timer = null;
+  let ochiq = null;
+
+  function yop() {
+    if (timer) { clearTimeout(timer); timer = null; }
+    if (!ochiq) return;
+    const v = ochiq.querySelector('.media-hover');
+    if (v) { v.pause(); v.removeAttribute('src'); v.load(); v.remove(); }
+    ochiq.classList.remove('is-preview');
+    ochiq = null;
+  }
+
+  document.addEventListener('mouseover', (e) => {
+    const box = e.target.closest && e.target.closest('.card-media[data-video]');
+    if (!box || box === ochiq) return;
+    yop();
+    timer = setTimeout(() => {
+      timer = null;
+      // Sichqoncha shu orada chiqib ketgan yoki ekran qayta chizilgan
+      // bo'lishi mumkin — DOM'dan so'raymiz, taxmin qilmaymiz.
+      if (!box.isConnected || !box.matches(':hover')) return;
+      const v = document.createElement('video');
+      v.className = 'media-hover';
+      v.src = box.dataset.video;
+      if (box.dataset.poster) v.poster = box.dataset.poster;
+      // `muted` SHART — ovozli avtomatik o'ynatish bloklanadi va video
+      // jimgina ochilmay qolardi.
+      v.muted = true; v.loop = true; v.playsInline = true; v.preload = 'auto';
+      v.setAttribute('aria-hidden', 'true');
+      box.appendChild(v);
+      box.classList.add('is-preview');
+      ochiq = box;
+      const pr = v.play();
+      if (pr && pr.catch) pr.catch(() => {});
+    }, HOVER_MEDIA_MS);
+  });
+
+  document.addEventListener('mouseout', (e) => {
+    const box = e.target.closest && e.target.closest('.card-media[data-video]');
+    if (!box) return;
+    // `mouseout` ichki elementga o'tganda ham otiladi — kartochkaning
+    // O'ZIDAN chiqilganini tekshiramiz.
+    if (e.relatedTarget && box.contains(e.relatedTarget)) return;
+    yop();
+  });
+
+  document.addEventListener('visibilitychange', () => { if (document.hidden) yop(); });
 }
 
 // ============ KATALOG/BOSH KARTOCHKASI — SAVAT MIQDOR BOSHQARUVI ============
@@ -3492,8 +3696,9 @@ function catalogDec(id) {
 function homeCard(p) {
   return `
   <div data-action="openProduct" data-arg="${p.id}" style="cursor:pointer;background:var(--glass-fill);backdrop-filter:var(--blur-lg);-webkit-backdrop-filter:var(--blur-lg);border:1px solid var(--glass-border-soft);border-radius:var(--radius-lg);box-shadow:0 6px 16px -12px rgba(81,1,0,.16),0 1px 2px rgba(23,26,48,.04);overflow:hidden;display:flex;flex-direction:column">
-    <div style="position:relative;height:230px;${p.bgStyle}">
+    <div class="card-media"${p.video ? ` data-video="${p.video}"${p.videoPoster ? ` data-poster="${p.videoPoster}"` : ''}` : ''} style="height:230px;${p.bgStyle}">
       ${p.badgeShow ? `<span style="position:absolute;top:9px;left:9px;display:inline-flex;align-items:center;height:22px;padding:0 9px;border-radius:999px;font-size:11px;font-weight:600;background:${p.badgeBg};color:${p.badgeFg}">${p.badge}</span>` : ''}
+      ${p.video ? '<span class="media-mark media-mark-lo" aria-hidden="true"><svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.2v13.6L19 12z"/></svg></span>' : ''}
       <button data-action="toggleLike" data-arg="${p.id}" style="position:absolute;top:9px;right:9px;width:32px;height:32px;border-radius:50%;border:1px solid rgba(255,255,255,.6);background:rgba(255,255,255,.42);backdrop-filter:blur(10px) saturate(160%);-webkit-backdrop-filter:blur(10px) saturate(160%);display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px -2px rgba(23,26,48,.28),inset 0 1px 0 rgba(255,255,255,.8)">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="${p.heartFill}" style="color:${p.heartStroke}"><path d="M12 20.8s-6.9-4.3-9-8a5.2 5.2 0 0 1-.5-3.7A4.8 4.8 0 0 1 6.3 5.5c1.9 0 3.4 1 4.3 2.3.4.6 1 .6 1.4 0 .9-1.3 2.4-2.3 4.3-2.3a4.8 4.8 0 0 1 3.8 3.6 5.2 5.2 0 0 1-.5 3.7c-2.1 3.7-9 8-9 8z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
       </button>
@@ -3699,7 +3904,7 @@ function render() {
     home: renderHome, ai: renderAi, detail: renderDetail,
     search: renderSearch, cart: renderCart, checkout: renderCheckout,
     success: renderSuccess, orders: renderOrders, profile: renderProfile,
-    notifications: renderNotifications,
+    notifications: renderNotifications, saved: renderSaved,
     // Sotuvchi kabineti
     's-products': renderSellerProducts, 's-orders': renderSellerOrders,
     's-profile': renderSellerProfile, 's-form': renderProductForm,
@@ -3729,12 +3934,15 @@ function render() {
   // ulanadi. `try` dan TASHQARIDA: chizish yiqilsa mount qiladigan narsa
   // ham yo'q, lekin mount xatosi butun ekranni qulatmasligi kerak.
   if (S.screen === 'detail') { try { mountDetailMedia(); } catch (e) { console.error('mountDetailMedia xatosi:', e.message); } }
+  // Profil surati — DOM tayyor bo'lgandan keyin (o'zi bir marta so'raydi).
+  if (S.screen === 'profile') mountAvatar();
 
   // Mahsulot ekranida rasm ekranning eng tepasidan boshlanadi va shaffof
   // header ostidan o'tadi — boshqa ekranlarda tepadagi joy QAYTADI, aks
   // holda kontent header ostida qolib ketardi.
   if (wrap) wrap.classList.toggle('flush', S.screen === 'detail');
   bindDetailHeader();
+  bindHoverMedia();
   syncDetailHeader();
 
   // Ekran almashsa ochiq sheet qolib ketmasin

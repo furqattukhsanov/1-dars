@@ -324,6 +324,37 @@ const ADMIN_TG_IDS = new Set(
     .split(',').map((s) => s.trim()).filter(Boolean)
 );
 
+// ============ SOTUVCHI KABINETIGA RUXSAT (2026-08-13, founder qarori) ======
+// "Sotuvchi kabineti faqat men bergan Telegram ID orqali kirganlarda chiqsin
+// — hozircha faqat menda."
+//
+// ⚠️ Bazadagi `users.role = 'seller'` endi YETARLI EMAS, u ikkinchi shart
+// bo'lib qoldi. Sabab: rol bazada paydo bo'lishining bir nechta yo'li bor
+// (ariza, qo'lda SQL, kelajakdagi avtomatik tasdiq) va ularning HAMMASINI
+// eslab qolish kerak bo'lardi. Ro'yxat esa BITTA joyda va ko'rinadi —
+// `db/014` darsi: ikkinchi ro'yxat himoya emas, tuzoq; bu yerda ro'yxat
+// ikkinchi emas, YAGONA eshik.
+//
+// ⚠️ ZAXIRA ATAYLAB `ADMIN_TG_IDS` → `ADMIN_CHAT_ID`: sozlama umuman
+// berilmasa kabinet founder'ning O'ZIGA ochiq qoladi, boshqa hech kimga
+// emas. "Berilmasa hammaga ochiq" varianti xavfsizlik sozlamasi uchun
+// noto'g'ri: e'tibordan chetda qolgan `.env` JIMGINA hammani ichkariga
+// qo'yib yuborardi. Oxirgi zaxira (`ADMIN_CHAT_ID`) esa haqiqiy — u
+// `chatId()` da tekshiriladi va yaroqsiz bo'lsa server ko'tarilmaydi.
+//
+// Shakl tekshiruvi `AI_UNLIMITED_TG_IDS` dagi bilan bir xil: Telegram ID —
+// butun son, yaroqsizi tashlanadi VA jurnalda qichqiradi (jimgina tashlansa
+// sotuvchi o'zini ro'yxatda deb o'ylab, kabinetni ko'rmay yurardi).
+const SELLER_TG_IDS = new Set(
+  (process.env.SELLER_TG_IDS || process.env.ADMIN_TG_IDS || process.env.ADMIN_CHAT_ID || '')
+    .split(',').map((s) => s.trim()).filter(Boolean)
+    .filter((s) => {
+      if (/^-?\d+$/.test(s)) return true;
+      console.error('SELLER_TG_IDS da yaroqsiz ID tashlandi:', s);
+      return false;
+    })
+);
+
 // ============ R2 — fayl ombori (Cloudflare) ============
 // Bugungacha rasm ombori vazifasini TELEGRAM bajarib kelgan: fayl Telegram
 // serverida yotadi, bazada faqat `file_id` saqlanadi va ko'rsatishda o'z
@@ -493,7 +524,7 @@ if (!process.env.DATABASE_URL) {
 module.exports = {
   PORT, BOT_TOKEN, ADMIN_CHAT_ID, ALLOWED_ORIGIN, WEBHOOK_SECRET,
   MINI_APP_URL, BOT_USERNAME, CONTACTS_FILE, GIT_SHA, ALERT_CHAT_ID,
-  ADMIN_PANEL_TOKEN, PREPAY_RATE, COMMISSION_RATE, ADMIN_TG_IDS, DELIVERY_FEE_ESTIMATE,
+  ADMIN_PANEL_TOKEN, PREPAY_RATE, COMMISSION_RATE, ADMIN_TG_IDS, SELLER_TG_IDS, DELIVERY_FEE_ESTIMATE,
   AI_PROVIDERS, AI_PROVIDER, AI_API_KEY, AI_ENABLED, AI_DAILY_LIMIT,
   AI_CREDITS_START, AI_CREDIT_COST, AI_UNLIMITED_TG_IDS,
   AI_IMAGE_MODEL, AI_IMAGE_CHAT_ID, AI_IMAGE_ENABLED, AI_IMAGE_EFFECT_ID,

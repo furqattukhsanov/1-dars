@@ -219,27 +219,70 @@ body {
 }
 .btn-glass:active { transform: scale(.98); }
 
-/* Chip — kategoriya (app.js:462 retsepti) */
+/* ===== Chip — kategoriya (2026-08-13 da qayta chizildi) =====
+   Founder: "hozirgisi sodda juda ham, defoltdek". Eskisi haqiqatan
+   standart edi: tekis oq pill + tanlanganda TO'Q KO'K (`--ink-900`) —
+   ya'ni brendning yagona qora-ko'k elementi kategoriyalar qatorida
+   turardi, holbuki ilovadagi barcha asosiy tugma anor rangida.
+
+   Uchta o'zgarish, har biri sabab bilan:
+   1) Tanlangan chip — ANOR gradienti va yumshoq nur. Endi u "Savatga
+      qo'shish" tugmasi bilan bitta oiladan, ya'ni qaysi element asosiy
+      ekani rang orqali o'qiladi.
+   2) Tanlangan chipda IKAT ROMBI (`::before`) — o'zbek to'qima naqshining
+      eng tanilgan shakli. Bu chipni "har qanday saytdagi pill" dan
+      ajratadigan yagona detal va u BEPUL: sof CSS, hech qanday ro'yxat
+      yoki rasm qo'shilmaydi (kategoriya bo'yicha rang berilsa, ro'yxat
+      ikkala yuzda takrorlanardi — db/014 tuzog'i).
+   3) Tanlanmagan chip — qog'ozsimon iliq gradient va ichki yorug'lik;
+      ustiga borilganda qirra anor rangiga kiradi va chip 1px ko'tariladi.
+      Ilgari hover HECH QANDAY javob bermasdi. */
 .chip {
   flex: none;
-  height: 34px;
-  padding: 0 15px;
+  display: inline-flex; align-items: center; gap: 7px;
+  height: 36px;
+  padding: 0 16px;
   border-radius: 999px;
-  border: 1px solid var(--border-hair);
-  background: var(--glass-fill);
-  backdrop-filter: var(--blur-sm);
-  -webkit-backdrop-filter: var(--blur-sm);
+  border: 1px solid rgba(122,20,13,.14);
+  background: linear-gradient(180deg, #fff, #FCF8F6);
   font-family: var(--font-sans);
   font-size: 13px;
   font-weight: 600;
+  letter-spacing: -.005em;
   color: var(--text-body);
   white-space: nowrap;
-  transition: background var(--dur-fast), color var(--dur-fast), border-color var(--dur-fast);
+  box-shadow: 0 1px 2px rgba(23,26,48,.04), inset 0 1px 0 #fff;
+  transition: background var(--dur-fast), color var(--dur-fast),
+              border-color var(--dur-fast), box-shadow var(--dur-fast),
+              transform var(--dur-fast);
 }
+.chip:hover:not(.active) {
+  border-color: rgba(122,20,13,.34);
+  color: var(--text-strong);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px -8px rgba(81,1,0,.35), inset 0 1px 0 #fff;
+}
+.chip:active { transform: translateY(0) scale(.98); }
+
 .chip.active {
-  background: var(--ink-900);
+  background: linear-gradient(150deg, #8f1a10, #510100);
   color: #fff;
   border-color: transparent;
+  box-shadow: 0 10px 20px -12px rgba(81,1,0,.9), inset 0 1px 0 rgba(255,229,210,.28);
+}
+/* Ikat rombi — FAQAT tanlangan chipda. `::before` bo'sh qutidan yasaladi
+   (45° burilgan kvadrat), ya'ni belgi shrift yoki emoji EMAS: u hamma
+   qurilmada bir xil chiziladi. */
+.chip.active::before {
+  content: "";
+  flex: none;
+  width: 6px; height: 6px;
+  transform: rotate(45deg);
+  background: #ffd9c2;
+  box-shadow: 0 0 0 1px rgba(255,217,194,.35);
+}
+@media (prefers-reduced-motion: reduce) {
+  .chip, .chip:hover:not(.active), .chip:active { transition: none; transform: none; }
 }
 
 /* Badge pill — mahsulot kartasi (BADGE_COLORS) */
@@ -738,6 +781,45 @@ body {
   object-fit: cover;
   transition: transform var(--dur-slow) var(--ease-out);
 }
+
+/* ── Kartochka ustida 3 soniya: ikkinchi media (2026-08-13) ──
+   Video RASM USTIGA qo'yiladi, uning O'RNIGA emas: rasm DOM'da qolgani
+   uchun chiqishda hech narsa qayta yuklanmaydi va "miltillash" bo'lmaydi.
+   ⚠️ O'lcham `100%` bilan berilgan va ota quti balandligi QAT'IY (200px
+   yoki `aspect-ratio`) — ya'ni CLAUDE.md dagi flex-siqilish tuzog'i bu
+   yerda tug'ilmaydi. */
+.media-hover {
+  position: absolute;
+  inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  background: var(--ink-100);
+  opacity: 0;
+  animation: mediaFade var(--dur-base) var(--ease-out) forwards;
+}
+@keyframes mediaFade { to { opacity: 1; } }
+
+/* Video BORLIGI kartochkadan ko'rinsin — aks holda uni faqat 3 soniya
+   kutgan odam kashf etardi, sensorli ekranda esa HECH KIM ko'rmasdi
+   (u yerda hover yo'q). */
+.media-mark {
+  position: absolute;
+  right: 10px; bottom: 10px;
+  width: 22px; height: 22px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+  background: rgba(26,10,8,.55);
+  color: #fff;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  pointer-events: none;
+  transition: opacity var(--dur-fast) var(--ease-out);
+}
+.product-media.is-preview .media-mark { opacity: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  .media-hover { animation: none; opacity: 1; }
+}
 .product-body {
   padding: 11px 12px 13px;
   display: flex;
@@ -982,8 +1064,21 @@ body {
   color: #ffe5d2;
   display: flex; align-items: center; justify-content: center;
   box-shadow: 0 6px 16px -8px rgba(81,1,0,.6), inset 0 1px 0 rgba(255,229,210,.22);
-  /* Faqat bezak — bosilmaydi, bosilganda ham ko'rinishi o'zgarmaydi */
-  pointer-events: none;
+  /* ⚠️ Ilgari bu yerda `pointer-events: none` turardi va yonida "faqat
+     bezak" deb yozilgandi — ya'ni filtr belgisi bor, bosilmaydigan tugma
+     edi. 2026-08-13 dan u narx panelini OCHADI (founder qarori: panel
+     ungacha ko'rinmasin, tugma bosilganda eski joyida chiqsin). */
+  cursor: pointer;
+  transition: background var(--dur-base) var(--ease-out), color var(--dur-base) var(--ease-out);
+}
+/* Panel ochiq yoki filtr YOQILGAN holat — tugmaning O'ZIDAN ko'rinsin.
+   Aks holda foydalanuvchi panelni yopib, filtr ishlab turganini unutardi
+   va "mahsulotlar yo'qolibdi" deb o'ylardi (Mini App'dagi `priceOn` bilan
+   ayni mulohaza). */
+.filter-btn.is-on {
+  background: var(--pom-100);
+  border-color: rgba(122,20,13,.35);
+  color: #7a140d;
 }
 
 /* ===== HEADER: KIRISH ===== */
@@ -1671,7 +1766,11 @@ body {
   color: #ffe5d2;
   font-family: var(--font-display);
   font-size: 16px; font-weight: 700;
+  overflow: hidden;               /* surat doiradan chiqmasin */
 }
+/* Telegram avatari bosh harflar O'RNIGA chiziladi. `100%` — ota qutining
+   o'lchami QAT'IY (46×46), ya'ni `<picture>` tuzog'i bu yerda yo'q. */
+.profile-ava img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .profile-main { min-width: 0; }
 .profile-name {
   font-family: var(--font-display);
