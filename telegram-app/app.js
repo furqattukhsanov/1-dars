@@ -3299,14 +3299,30 @@ function renderTgCard() {
   //
   // ⚠️ Avatar UCH pog'onali (2026-08-13, founder: "profil egasini rasm
   // telegramdagi rasmdan olinsin"):
-  //   1) `photo_url` — bo'lsa darrov ishlatiladi (qo'shimcha so'rovsiz).
-  //      Lekin u FAQAT biriktirma menyusidan ochilganda keladi, ya'ni
-  //      bizdagi kirish nuqtalarida odatda YO'Q.
-  //   2) `_avaUrl` — serverdan olingan surat (`/api/me/photo`, `mountAvatar`).
-  //   3) bosh harf — surat umuman bo'lmasa.
+  //   1) `_avaUrl` — SERVERDAN olingan surat (`/api/me/photo`, `mountAvatar`),
+  //      `data:` ko'rinishida.
+  //   2) bosh harf — surat umuman bo'lmasa.
   // Bosh harf ZAXIRA sifatida qoladi va bu ataylab: surat kelmasa bo'sh
   // doira turardi, ya'ni "yuklanmadi" bilan "avatari yo'q" ajralmasdi.
-  const suratSrc = u.photo_url || _avaUrl;
+  //
+  // 🔴 `u.photo_url` ATAYLAB ISHLATILMAYDI va bu O'LCHOVDAN kelib chiqqan
+  // qaror. Birinchi variantda u birinchi pog'ona edi
+  // (`u.photo_url || _avaUrl`) va ikkita zarar keltirdi:
+  //   • u TELEGRAM CDN havolasi, Mini App CSP sining `img-src` ro'yxatida
+  //     esa faqat `'self' data: cdn.lolamarket.uz …` bor — brauzer rasmni
+  //     BLOKLAYDI (o'lchandi: 2026-08-13, jonli sarlavha);
+  //   • `photo_url` bor bo'lgani uchun zaxira `<span id="tg-ava">`
+  //     chizilmasdi, ya'ni `mountAvatar()` darrov qaytib ketardi va
+  //     bizning endpoint UMUMAN chaqirilmasdi — ikkinchi pog'ona ham
+  //     yopilib qolardi.
+  // Natijada avatar SAYTDA ishlab, MINI APP'da ishlamasdi — bir yuzda
+  // ishlab ikkinchisida ishlamaydigan yechim, CLAUDE.md aynan shundan
+  // ogohlantiradi.
+  // ⚠️ Yozilgan izohning O'ZI ham noto'g'ri edi: «`photo_url` bizdagi
+  // kirish nuqtalarida odatda YO'Q» deb TEKSHIRMASDAN yozilgandi —
+  // amalda u BOR edi. Tekshirilmagan da'vo yana ish yo'nalishini
+  // belgilab qo'ydi.
+  const suratSrc = _avaUrl;
   const avatar = suratSrc
     ? `<img src="${esc(suratSrc)}" style="width:48px;height:48px;border-radius:14px;object-fit:cover;flex:none" alt="">`
     : `<span id="tg-ava" style="flex:none;width:48px;height:48px;border-radius:14px;background:linear-gradient(150deg,#37AEE2,#1E96C8);color:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:800;font-size:18px">${esc(fullName[0].toUpperCase())}</span>`;

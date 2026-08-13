@@ -259,6 +259,63 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
 
   Batafsil: analitika bloklari — `sprint-7.md`, AI bandining yopilishi —
   `sprint-10.md`.
+- [2026-08-13] 🔴 **AVATAR NUQSONINING IKKINCHI SABABI: Mini App'da hamon
+  chiqmasdi — birinchi tuzatish YARIM edi.** `d7d10a2` (`blob:` → `data:`)
+  production'ga chiqdi va founder tekshirdi: **saytda ISHLADI, Mini App'da
+  YO'Q.** Aynan shu farq tashxis berdi — server yo'li sog'lom (saytning o'zi
+  buni isbotlaydi), nuqson faqat Mini App tomonida.
+
+  **Ikkinchi sabab — mustaqil va o'lchandi:** kodda
+  `const suratSrc = u.photo_url || _avaUrl;` turgan, ya'ni
+  `initDataUnsafe.user.photo_url` **BIRINCHI pog'ona** edi. U esa Telegram
+  CDN havolasi va Mini App CSP sining `img-src` ro'yxatida Telegram domeni
+  YO'Q (jonli o'lchov, `curl -sI https://lolamarket.uz/mini-app/`:
+  `img-src 'self' data: https://cdn.lolamarket.uz https://*.maps.yandex.net
+  https://yastatic.net https://log.api-maps.yandex.ru`).
+
+  ⚠️ **Ustiga u IKKINCHI zarar keltirgan va aynan shu nuqsonni ikki
+  barobar qilgan:** `photo_url` bor bo'lgani uchun zaxira
+  `<span id="tg-ava">` umuman chizilmasdi, `mountAvatar()` esa AYNAN o'sha
+  id ni qidiradi va topmasa DARROV qaytadi — ya'ni bizning `/api/me/photo`
+  **umuman chaqirilmagan**. Ikkinchi pog'ona ochilmay qolgan, ya'ni
+  "uch pog'onali zaxira" amalda BIR pog'ona edi.
+
+  **Nega bir yuzda ko'rinmagan:** saytda `initData` yo'q → `photo_url` ham
+  yo'q → bizning yo'ldan yurgan → ishlagan. Bu CLAUDE.md dagi `authUser()`
+  naqshining **uchinchi takrori**: bir kanalda ishlab, ikkinchisida jimgina
+  o'ladigan yechim.
+
+  🔴 **ENG MUHIM QISMI — ISH YO'NALISHINI YANA TEKSHIRILMAGAN DA'VO
+  BELGILAB QO'YDI.** Kodda o'z qo'lim bilan yozilgan izohda «`photo_url`
+  FAQAT biriktirma menyusidan ochilganda keladi, ya'ni bizdagi kirish
+  nuqtalarida odatda YO'Q» deb turardi — bu **hech qachon tekshirilmagan**
+  va **amalda u BOR edi**. Ya'ni da'vo faqat noto'g'ri bo'lib qolmadi, u
+  `photo_url` ni birinchi pog'ona qilib qo'yishni ham OQLAB turdi. Bu
+  CLAUDE.md dagi «hujjatdagi raqam — tekshirilmagan da'vo» qoidasining
+  aynan o'zi, faqat raqam emas, **MAVJUDLIK** darajasida.
+
+  **Tuzatish:** `const suratSrc = _avaUrl;` — `photo_url` butunlay olib
+  tashlandi. Avatar endi IKKALA yuzda ham FAQAT `/api/me/photo` dan
+  (`data:`), ya'ni **bitta yo'l**. Zaxira bosh harf o'z joyida qoldi.
+
+  **Test 25 ga 4-band qo'shildi:** `telegram-app/app.js` da `photo_url`
+  ishlatilmasin (izohlar tahlildan oldin olib tashlanadi — aks holda shu
+  bandning O'ZIDAGI tushuntirish qorovulni aldardi). M4 mutatsiyasi bilan
+  sinaldi: mutatsiya + jadvaldagi hash BIRGA yangilanib, **Test 16 yashil
+  qolgan holda** — ushlagani AYNAN Test 25 bo'ldi.
+
+  🔴 **HALOL CHEGARA — VA U ENDI OG'IRROQ:** bu tuzatish ham brauzerda ko'z
+  bilan KO'RILMADI. **Ketma-ket IKKI marta «mantiqiy xulosa» bilan
+  yuborildi va BIRINCHISI YETARLI BO'LMADI** — ya'ni usulning o'zi bir
+  marta sinovdan o'tib yiqildi. Sabab tahlili jonli o'lchovga tayanadi
+  (CSP sarlavhasi `curl` bilan o'qildi, ikki yuz farqi founder tomonidan
+  kuzatildi), lekin **tuzatishning ishlashi** hamon o'lchanmagan.
+  **Tasdiq faqat founder Mini App'ni ochib avatarni ko'rganda bo'ladi.**
+
+  **Kesh:** `telegram-app/app.js v86→87` (boshqa fayllar TEGILMAGAN —
+  o'zgarmagan, ya'ni versiyasi ham oshirilmaydi). Test 16 jadvali birga.
+  **63 test yashil.** **Deploy:** faqat statik, restart kerak emas
+
 - [2026-08-13] 🔴 **NUQSON: profil avatari PRODUCTION'DA UMUMAN CHIZILMAGAN —
   sabab kodda emas, CSP SARLAVHASIDA edi.** Founder telefonda ko'rsatdi:
   profil kartochkasida avatar o'rniga "singan rasm" belgisi, refresh ham
@@ -283,6 +340,10 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
   **Tuzatish:** `blob:` o'rniga **`data:`** — u CSP ro'yxatida ALLAQACHON
   bor, ya'ni **nginx'ga TEGILMADI**. Yangi `blobToDataUrl()` (`FileReader` →
   `readAsDataURL`) ikkala yuzda ham.
+  🔴 **BU TUZATISH YARIM BO'LGAN** — u SAYTNI tuzatdi, Mini App'ni EMAS
+  (u yerda ikkinchi, mustaqil sabab bor edi). Tepadagi alohida yozuvga qara.
+  Ya'ni quyidagi «tuzatildi» xulosasi o'sha paytda **to'liq tekshirilmagan
+  da'vo** edi: bitta sabab topilgach ikkinchisi qidirilmagan.
   ⚠️ **CSP ni kengaytirish varianti ATAYLAB rad etildi:** mavjud ruxsat
   yetarli bo'lganda yangi ruxsat ochish noto'g'ri bo'lardi — har bir qo'shilgan
   sxema CSP ning himoya qiymatini kamaytiradi va uni qaytarib olish qiyin.

@@ -1386,11 +1386,16 @@ function testAssetVersionsAreFresh() {
     'style.css': { v: 53, hash: 'e76bb9922639' },
     'script.js': { v: 45, hash: '90235cdc8b91' },
     'pwa.js': { v: 2, hash: 'f46683d58662' },
-    'panel.js': { v: 24, hash: '94930bb7f185' },
+    // ⚠️ IKKINCHI BIRLASHTIRISH (2026-08-14): ikkala tomon panel.js ni 24,
+    // app.js ni 87 ga ko'targan — AYNI raqamlar, TARKIB esa har xil.
+    // Birlashgan tarkib ikkalasidan ham farq qiladi, ya'ni raqam yana
+    // YUQORIGA suriladi. Teng raqam qaytib kelgan foydalanuvchida keshdagi
+    // bir tomonlama faylni qoldirardi.
+    'panel.js': { v: 25, hash: 'c1710dde0e29' },
     'admin/admin.css': { v: 18, hash: '15b0bc977b85' },
     'admin/admin.js': { v: 25, hash: '08fae1bb61dc' },
     'telegram-app/styles.css': { v: 30, hash: '5c7b42fa1add' },
-    'telegram-app/app.js': { v: 87, hash: '9d5acac6b540' },
+    'telegram-app/app.js': { v: 88, hash: 'f2a8802751e4' },
     'telegram-app/pwa.js': { v: 6, hash: '798ab85e1cde' },
   };
 
@@ -2006,7 +2011,27 @@ function testImageSchemeAllowedByCsp() {
       `\`${rel}\` avatarni \`data:\` ga o'girsin (readAsDataURL)`);
   }
 
-  console.log('✅ Test 25: Rasm sxemasi CSP ga sig\'adi — PASS');
+  // ---- 4. Telegram CDN havolasi rasmga QO'YILMASIN ----
+  // 🔴 Bu band birinchi tuzatishdan KEYIN qo'shildi, chunki `blob:` ni
+  // `data:` ga o'girish YETARLI BO'LMADI: Mini App'da avatar hamon
+  // chiqmasdi, saytda esa ishlardi. Sabab ikkinchi manba edi —
+  // `initDataUnsafe.user.photo_url`, ya'ni TELEGRAM CDN havolasi.
+  // U CSP `img-src` ro'yxatida YO'Q (u yerda faqat `'self'`, `data:` va
+  // `cdn.lolamarket.uz`), ustiga u birinchi pog'ona bo'lgani uchun
+  // serverdan olish yo'li UMUMAN ochilmasdi.
+  //
+  // ⚠️ Nuqsonning shakli muhim: u BIR YUZDA ishlab, ikkinchisida
+  // ishlamasdi — saytda `initData` yo'q, ya'ni `photo_url` ham yo'q.
+  // Aynan shu turdagi nuqson CLAUDE.md da ikki marta qayd etilgan
+  // (`authUser()` naqshi).
+  const app = fs.readFileSync(path.join(root, 'telegram-app', 'app.js'), 'utf8')
+    .replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
+  assert.ok(!/photo_url/.test(app),
+    'telegram-app/app.js da `photo_url` ishlatilgan — u TELEGRAM CDN havolasi va ' +
+    'CSP `img-src` uni QAMRAMAYDI (rasm jimgina bloklanadi). Avatar faqat ' +
+    '`/api/me/photo` dan olinsin — u ikkala yuzda ham bir xil ishlaydi.');
+
+  console.log('✅ Test 25: Rasm sxemasi CSP ga sig\'adi — PASS (4 band)');
 }
 
 // ============ TEST 14g: Rasm so'rovining chegaralari matnnikidan boshqa ====
