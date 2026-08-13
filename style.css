@@ -2551,32 +2551,102 @@ body { padding-bottom: calc(var(--dock-h) + env(safe-area-inset-bottom, 0px)); }
     radial-gradient(circle at 50% 50%, var(--pom-700) 0 4.5px, transparent 4.5px);
 }
 
-.contact-list {
-  display: flex; flex-direction: column;
+/* "Biz bilan bog'lanish" — bosilganda ikki yo'l ochiladi (2026-08-13
+   founder qarori). Yopiq holat boshlang'ich: profil ekrani allaqachon
+   uzun, doim ochiq ikki qator uni yana cho'zardi. */
+/* ⚠️ `flex: none` SHART va u o'lchab topildi (2026-08-13): oyna tanasi
+   `display: flex; flex-direction: column`, ya'ni bu blok mazmuniga qarab
+   emas, QOLGAN JOYGA qarab siqiladi. `overflow: hidden` bilan birga u
+   jimgina zarar keltiradi — blok 127px ga siqildi, ichidagi 210px edi va
+   TELEGRAM QATORI butunlay kesilib ketdi: xato yo'q, DOM'da element bor,
+   ekranda esa yo'q. Bu `.addr-map` va `<picture>` darsi bilan BITTA
+   OILA — uchalasida ham sabab bir xil: flex bolasi standart holda
+   siqiladi. Yangi blok qo'shilganda birinchi savol shu bo'lsin. */
+.contact-block {
+  flex: none;
+  margin-top: 10px;
   border: 1px solid var(--border-hair);
   border-radius: var(--radius-md);
-  overflow: hidden;
   background: var(--glass-fill-strong);
+  overflow: hidden;
 }
-.contact-row {
+.contact-head {
   display: flex; align-items: center; gap: 12px;
-  padding: 13px 14px;
+  width: 100%;
+  padding: 14px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--font-sans);
+}
+.contact-head-ico {
+  flex: none; width: 38px; height: 38px;
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--grad-pom);
+  color: var(--pom-100);
+}
+.contact-head-main { flex: 1; min-width: 0; }
+.contact-head-title {
+  display: block;
+  font-size: 14.5px; font-weight: 700;
+  color: var(--text-strong);
+}
+.contact-head-sub {
+  display: block;
+  font-size: 12px; color: var(--text-muted);
+  margin-top: 2px;
+}
+.contact-chev {
+  flex: none; color: var(--text-subtle);
+  transition: transform var(--dur-base, .22s) var(--ease-out, ease);
+}
+.contact-head.is-open .contact-chev { transform: rotate(180deg); }
+
+/* Ikki yo'l. ⚠️ Balandlik animatsiya QILINMAYDI — blok qayta chizilganda
+   `max-height` ni o'lchash kerak bo'lardi va noto'g'ri o'lchov mazmunni
+   KESIB qo'yardi. O'rniga paydo bo'lish: xavfsiz va bir xil ishlaydi. */
+.contact-ways {
+  padding: 0 10px 10px;
+  display: flex; flex-direction: column; gap: 8px;
+  animation: contact-in var(--dur-base, .22s) var(--ease-out, ease);
+}
+@keyframes contact-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: none; }
+}
+.way {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 13px;
+  border: 1px solid var(--border-hair);
+  border-radius: var(--radius-sm);
+  background: var(--glass-fill);
   text-decoration: none;
   color: inherit;
 }
-.contact-row + .contact-row { border-top: 1px solid var(--border-hair); }
-.contact-ico {
-  flex: none; width: 34px; height: 34px;
-  border-radius: 11px;
+.way-ico {
+  flex: none; width: 36px; height: 36px;
+  border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
 }
-.contact-ico.is-phone { background: var(--pom-100); color: var(--pom-700); }
-.contact-ico.is-tg { background: rgba(55, 174, 226, .13); color: #1e96c8; }
-.contact-main { flex: 1; min-width: 0; }
-.contact-val { display: block; font-size: 14.5px; font-weight: 700; color: var(--text-strong); }
-.contact-val.is-mono { font-family: var(--font-mono); font-weight: 600; }
-.contact-sub { display: block; font-size: 12px; color: var(--text-muted); margin-top: 1px; }
-.contact-arrow { flex: none; font-size: 17px; color: var(--text-subtle); }
+.way-phone .way-ico { background: var(--pom-100); color: var(--pom-700); }
+.way-tg .way-ico { background: rgba(55, 174, 226, .14); color: #1e96c8; }
+.way-main { flex: 1; min-width: 0; }
+.way-val {
+  display: block;
+  font-size: 15px; font-weight: 700;
+  color: var(--text-strong);
+  letter-spacing: -.01em;
+}
+.way-val.is-mono { font-family: var(--font-mono); font-weight: 600; letter-spacing: 0; }
+.way-sub { display: block; font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.way-go { flex: none; color: var(--text-subtle); display: flex; }
+
+@media (hover: hover) {
+  .contact-head:hover { background: rgba(122, 20, 13, .04); }
+  .way:hover { border-color: var(--pom-700); }
+}
 
 /* Profildagi kirish tugmasi — kabinet bor ekanini KO'RSATADI */
 .s-enter {

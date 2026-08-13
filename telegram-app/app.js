@@ -188,6 +188,7 @@ const STR = {
     // — Profil: biz bilan bog'lanish —
     contactT: "Biz bilan bog'lanish", contactCall: "Qo'ng'iroq qilish",
     contactTg: "Telegram orqali yozish",
+    contactSub: "Qo'ng'iroq yoki Telegram", contactTgWay: "Telegram orqali",
     phoneCopied: "Raqam nusxalandi — qo'ng'iroq ochilmasa, qo'lda tering",
     phoneCopyErr: "Raqamni nusxalab bo'lmadi — uni qo'lda ko'chiring",
     help: "Yordam markazi", logout: "Chiqish", search: "Qidiruv", recent: "So'nggi qidiruvlar", noResults: "Hech narsa topilmadi",
@@ -338,6 +339,7 @@ const STR = {
     // — Профиль: связаться с нами —
     contactT: "Связаться с нами", contactCall: "Позвонить",
     contactTg: "Написать в Telegram",
+    contactSub: "Звонок или Telegram", contactTgWay: "Через Telegram",
     phoneCopied: "Номер скопирован — если звонок не открылся, наберите вручную",
     phoneCopyErr: "Не удалось скопировать номер — скопируйте вручную",
     help: "Центр помощи", logout: "Выйти", search: "Поиск", recent: "Недавние поиски", noResults: "Ничего не найдено",
@@ -602,6 +604,9 @@ const S = {
   mapsKey: null,
   // Manzil serverga saqlanmoqdami — tugma ikki marta bosilmasin.
   addrSaving: false,
+  // "Biz bilan bog'lanish" ochiqmi. Yopiq BOSHLANG'ICH: profil ekrani
+  // allaqachon uzun, doim ochiq ikki qator uni yana cho'zardi.
+  contactOpen: false,
   ordersTab: 'active',
   // — AI kiyim RASMI (2026-08-07) —
   // Serverdan keladi (`/api/auth/telegram` javobi): kalit yaroqsiz bo'lsa
@@ -2930,34 +2935,58 @@ function renderMyAddress() {
 // va bosilganda raqam buferga HAM nusxalanadi. `preventDefault` yo'q.
 function renderContact() {
   const T = STR[S.lang];
-  const qator = 'display:flex;align-items:center;gap:12px;width:100%;text-align:left;cursor:pointer;padding:13px 14px;border:none;background:none;font-family:var(--font-sans);text-decoration:none';
-  const belgi = 'flex:none;width:34px;height:34px;border-radius:11px;display:flex;align-items:center;justify-content:center';
+  const ochiq = S.contactOpen;
+  const yol = 'display:flex;align-items:center;gap:12px;width:100%;text-align:left;cursor:pointer;text-decoration:none;padding:12px 13px;border:1px solid var(--glass-border-soft);border-radius:var(--radius-sm);background:rgba(255,255,255,.62);font-family:var(--font-sans)';
+  const belgi = 'flex:none;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center';
+  const qiymat = 'display:block;font-size:15px;font-weight:700;color:var(--text-strong);letter-spacing:-.01em';
+  const izoh = 'display:block;font-size:12px;color:var(--text-muted);margin-top:2px';
+  const oq = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" style="flex:none;color:var(--text-subtle)"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+
   return `
-  <div>
-    <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-subtle);margin-bottom:8px">${T.contactT}</div>
-    <div style="display:flex;flex-direction:column;border:1px solid rgba(255,255,255,.55);border-radius:var(--radius-md);overflow:hidden;background:rgba(255,255,255,.6);backdrop-filter:blur(16px) saturate(160%);-webkit-backdrop-filter:blur(16px) saturate(160%);box-shadow:0 5px 16px -12px rgba(81,1,0,.12)">
-      <a class="tap44" href="tel:${SUPPORT.tel}" data-action="copySupportPhone" style="${qator};border-bottom:1px solid var(--border-hair)">
+  <div id="contact-block" style="border:1px solid rgba(255,255,255,.55);border-radius:var(--radius-md);overflow:hidden;background:rgba(255,255,255,.6);backdrop-filter:blur(16px) saturate(160%);-webkit-backdrop-filter:blur(16px) saturate(160%);box-shadow:0 5px 16px -12px rgba(81,1,0,.12)">
+    <button data-action="toggleContact" aria-expanded="${ochiq}" style="display:flex;align-items:center;gap:12px;width:100%;text-align:left;cursor:pointer;padding:14px;border:none;background:none;font-family:var(--font-sans)">
+      <span style="flex:none;width:38px;height:38px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:linear-gradient(150deg,#8f1a10,#510100);color:#ffe9db">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4L7 21l1.1-3.3A8.4 8.4 0 1 1 21 11.5z" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/></svg>
+      </span>
+      <span style="flex:1;min-width:0">
+        <span style="display:block;font-size:14.5px;font-weight:700;color:var(--text-strong)">${T.contactT}</span>
+        <span style="${izoh}">${T.contactSub}</span>
+      </span>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style="flex:none;color:var(--text-subtle);transition:transform var(--dur-base) var(--ease-out);transform:rotate(${ochiq ? '180' : '0'}deg)"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+
+    ${ochiq ? `
+    <div style="padding:0 10px 10px;display:flex;flex-direction:column;gap:8px;animation:fade var(--dur-base) var(--ease-out)">
+      <a class="tap44" href="tel:${SUPPORT.tel}" data-action="copySupportPhone" style="${yol}">
         <span style="${belgi};background:var(--pom-100);color:#7a140d">
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3-8.6A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8.1 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3-8.6A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8.1 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/></svg>
         </span>
         <span style="flex:1;min-width:0">
-          <span style="display:block;font-family:var(--font-mono);font-size:14.5px;font-weight:600;color:var(--text-strong)">${SUPPORT.telLabel}</span>
-          <span style="display:block;font-size:12px;color:var(--text-muted);margin-top:1px">${T.contactCall}</span>
-        </span>
-        <span style="flex:none;color:var(--text-subtle);font-size:17px">›</span>
+          <span style="${qiymat};font-family:var(--font-mono);font-weight:600;letter-spacing:0">${SUPPORT.telLabel}</span>
+          <span style="${izoh}">${T.contactCall}</span>
+        </span>${oq}
       </a>
-      <button data-action="openSupportTg" style="${qator}">
-        <span style="${belgi};background:rgba(55,174,226,.13);color:#1E96C8">
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M21 4L2.5 11.5l6 2 2 6.5L15 15l5-11z"/></svg>
+      <button data-action="openSupportTg" style="${yol}">
+        <span style="${belgi};background:rgba(55,174,226,.14);color:#1E96C8">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M21 4L2.5 11.5l6 2 2 6.5L15 15l5-11z"/></svg>
         </span>
         <span style="flex:1;min-width:0">
-          <span style="display:block;font-size:14.5px;font-weight:700;color:var(--text-strong)">@${SUPPORT.tgUser}</span>
-          <span style="display:block;font-size:12px;color:var(--text-muted);margin-top:1px">${T.contactTg}</span>
-        </span>
-        <span style="flex:none;color:var(--text-subtle);font-size:17px">›</span>
+          <span style="${qiymat}">${T.contactTgWay}</span>
+          <span style="${izoh}">@${SUPPORT.tgUser}</span>
+        </span>${oq}
       </button>
-    </div>
+    </div>` : ''}
   </div>`;
+}
+
+// ⚠️ Butun ekran QAYTA CHIZILMAYDI — faqat shu blok. `renderProfile()`
+// chaqirilsa skroll boshiga qaytardi va foydalanuvchi bo'limni ochib,
+// ekran tepaga sakraganini ko'rardi (`paintMapPick` bilan bitta naqsh).
+function toggleContact() {
+  S.contactOpen = !S.contactOpen;
+  const box = document.getElementById('contact-block');
+  if (box) box.outerHTML = renderContact();
+  else document.getElementById('screen-wrap').innerHTML = renderProfile();
 }
 
 // ============ EKRAN: PROFIL ============

@@ -99,6 +99,8 @@ const STR = {
     contactT: "Biz bilan bog'lanish",
     contactCall: "Qo'ng'iroq qilish",
     contactTg: 'Telegram orqali yozish',
+    contactSub: "Qo'ng'iroq yoki Telegram",
+    contactTgWay: 'Telegram orqali',
     phoneCopied: "Raqam nusxalandi — qo'ng'iroq ochilmasa, qo'lda tering",
     phoneCopyErr: "Raqamni nusxalab bo'lmadi — uni qo'lda ko'chiring",
     noOrders: "Hozircha buyurtma yo'q. Katalogdan mato tanlab birinchi buyurtmangizni bering.",
@@ -292,6 +294,8 @@ const STR = {
     contactT: 'Связаться с нами',
     contactCall: 'Позвонить',
     contactTg: 'Написать в Telegram',
+    contactSub: 'Звонок или Telegram',
+    contactTgWay: 'Через Telegram',
     phoneCopied: 'Номер скопирован — если звонок не открылся, наберите вручную',
     phoneCopyErr: 'Не удалось скопировать номер — скопируйте вручную',
     noOrders: 'Пока заказов нет. Выберите ткань в каталоге и оформите первый заказ.',
@@ -1238,31 +1242,68 @@ function myAddressHtml() {
    nusxalanadi. Qo'ng'iroq ochilsa nusxa xalaqit bermaydi, ochilmasa
    foydalanuvchi raqamni qo'lda tera oladi. `preventDefault` CHAQIRILMAYDI:
    u native qo'ng'iroqni o'ldirardi. */
+/* Ochiqmi — bo'lim BOSILGANDA ikki yo'l chiqadi (founder qarori
+   2026-08-13). Yopiq holat BOSHLANG'ICH: profil ekrani allaqachon uzun
+   (manzil + buyurtmalar), doim ochiq turgan ikki qator uni yana
+   cho'zardi. */
+let contactOpen = false;
+
 function contactHtml() {
+  const ico = 'width="18" height="18" viewBox="0 0 24 24"';
   return `
-    <div class="profile-sec-title">${t('contactT')}</div>
-    <div class="contact-list">
-      <a class="contact-row" href="tel:${SUPPORT.tel}" data-action="copySupportPhone">
-        <span class="contact-ico is-phone" aria-hidden="true">
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3-8.6A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8.1 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+    <div class="contact-block" id="contact-block">
+      <button class="contact-head${contactOpen ? ' is-open' : ''}"
+              data-action="toggleContact"
+              aria-expanded="${contactOpen}" aria-controls="contact-ways">
+        <span class="contact-head-ico" aria-hidden="true">
+          <svg ${ico} fill="none"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4L7 21l1.1-3.3A8.4 8.4 0 1 1 21 11.5z" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/></svg>
         </span>
-        <span class="contact-main">
-          <span class="contact-val is-mono">${SUPPORT.telLabel}</span>
-          <span class="contact-sub">${t('contactCall')}</span>
+        <span class="contact-head-main">
+          <span class="contact-head-title">${t('contactT')}</span>
+          <span class="contact-head-sub">${t('contactSub')}</span>
         </span>
-        <span class="contact-arrow" aria-hidden="true">›</span>
-      </a>
-      <a class="contact-row" href="${SUPPORT.tgUrl}" target="_blank" rel="noopener">
-        <span class="contact-ico is-tg" aria-hidden="true">
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M21 4L2.5 11.5l6 2 2 6.5L15 15l5-11z"/></svg>
-        </span>
-        <span class="contact-main">
-          <span class="contact-val">@${SUPPORT.tgUser}</span>
-          <span class="contact-sub">${t('contactTg')}</span>
-        </span>
-        <span class="contact-arrow" aria-hidden="true">›</span>
-      </a>
+        <svg class="contact-chev" ${ico} fill="none" aria-hidden="true"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+
+      ${contactOpen ? `
+      <div class="contact-ways" id="contact-ways">
+        <a class="way way-phone" href="tel:${SUPPORT.tel}" data-action="copySupportPhone">
+          <span class="way-ico" aria-hidden="true">
+            <svg ${ico} fill="none"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3-8.6A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8.1 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/></svg>
+          </span>
+          <span class="way-main">
+            <span class="way-val is-mono">${SUPPORT.telLabel}</span>
+            <span class="way-sub">${t('contactCall')}</span>
+          </span>
+          <span class="way-go" aria-hidden="true">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+        </a>
+        <a class="way way-tg" href="${SUPPORT.tgUrl}" target="_blank" rel="noopener">
+          <span class="way-ico" aria-hidden="true">
+            <svg ${ico} fill="currentColor"><path d="M21 4L2.5 11.5l6 2 2 6.5L15 15l5-11z"/></svg>
+          </span>
+          <span class="way-main">
+            <span class="way-val">${t('contactTgWay')}</span>
+            <span class="way-sub">@${SUPPORT.tgUser}</span>
+          </span>
+          <span class="way-go" aria-hidden="true">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+        </a>
+      </div>` : ''}
     </div>`;
+}
+
+/* ⚠️ Butun profil QAYTA CHIZILMAYDI — faqat shu blok. `renderDrawer()`
+   oyna tanasini to'liq almashtiradi va o'shanda skroll boshiga qaytardi:
+   foydalanuvchi pastdagi bo'limni ochib, ekran tepaga sakraganini
+   ko'rardi. Bu naqsh loyihada allaqachon bor (`paintBtsInfo`). */
+function toggleContact() {
+  contactOpen = !contactOpen;
+  const box = document.getElementById('contact-block');
+  if (box) box.outerHTML = contactHtml();
+  else if (drawerView === 'profile') renderDrawer();
 }
 
 /* Matnni buferga nusxalash. Ikki yo'l ATAYLAB: `navigator.clipboard`
