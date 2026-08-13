@@ -1,4 +1,4 @@
-const { BOT_TOKEN, ADMIN_TG_IDS, ADMIN_PANEL_TOKEN } = require('../config');
+const { BOT_TOKEN, ADMIN_TG_IDS, SELLER_TG_IDS, ADMIN_PANEL_TOKEN } = require('../config');
 const { pool } = require('../db');
 const { verifyInitData: verifyInitDataCore } = require('./telegram-auth');
 const { safeEqual } = require('./format');
@@ -71,6 +71,22 @@ function adminPanelAuth(req, res) {
 // Rol SERVER tomonda aniqlanadi: imzolangan initData → users.role → sellers.
 // Frontend faqat ko'rinishni boshqaradi; har bir sotuvchi endpointi rolni
 // mustaqil qayta tekshiradi (tugmani yashirish himoya emas).
+//
+// ============ FOUNDER RO'YXATI (2026-08-13) ============
+// Kabinet ikki shartda ochiladi: (1) Telegram ID founder ro'yxatida
+// (`SELLER_TG_IDS`), (2) bazada rol va `sellers` yozuvi bor. Bittasi
+// yetarli emas.
+//
+// ⚠️ Tekshiruv AYNAN SHU YERDA va bu ataylab: `currentSeller` — rol haqida
+// ma'lumot beradigan YAGONA funksiya (`/api/me`, `requireSeller` va
+// `catalog.js` ning "o'z mahsulotim" filtri — uchalasi ham shundan
+// oziqlanadi). Chaqiruvchilarga tarqatilsa yangi chaqiruvchi qo'shilganda
+// tekshiruvni eslab qolish kerak bo'lardi — `authUser()` naqshi aynan
+// shunday takrorlangan edi (CLAUDE.md, 2026-08-13).
+function sellerAllowed(tgUser) {
+  return !!(tgUser && tgUser.id) && SELLER_TG_IDS.has(String(tgUser.id));
+}
+
 async function currentSeller(tgUser) {
   if (!tgUser || !tgUser.id) return null;
   const { rows } = await pool.query(
@@ -84,7 +100,16 @@ async function currentSeller(tgUser) {
       WHERE u.tg_user_id = $1`,
     [String(tgUser.id)]
   );
-  return rows[0] || null;
+  const qator = rows[0] || null;
+  if (!qator) return null;
+  // Ro'yxatda yo'q bo'lsa — sotuvchi maydonlari OLIB TASHLANADI, qator esa
+  // qoladi: `pickup_point_id` va `user_id` HAR BIR foydalanuvchiga kerak
+  // (profildagi "Mening manzilim"), ya'ni `null` qaytarish xaridorning
+  // manzilini ham o'chirib yuborardi.
+  if (!sellerAllowed(tgUser)) {
+    return { ...qator, role: qator.role === 'seller' ? 'buyer' : qator.role, seller_id: null };
+  }
+  return qator;
 }
 
 // Sotuvchi endpointlari uchun yagona qorovul: rol 'seller' VA sellers yozuvi bo'lishi shart
@@ -109,5 +134,6 @@ async function requireSeller(req, res) {
 }
 
 module.exports = {
-  verifyInitData, authUser, requestUser, isAdmin, adminPanelAuth, currentSeller, requireSeller,
+  verifyInitData, authUser, requestUser, isAdmin, adminPanelAuth,
+  currentSeller, requireSeller, sellerAllowed,
 };

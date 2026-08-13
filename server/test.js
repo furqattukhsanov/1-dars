@@ -238,6 +238,12 @@ async function testRouteTable() {
   process.env.BOT_TOKEN = BOT_TOKEN;
   process.env.ADMIN_CHAT_ID = '1';
   process.env.DATABASE_URL = 'postgres://test:test@127.0.0.1:1/test';
+  // ⚠️ AI sirlari ham SHU YERDA — `lib/ai.js` `AI_PROVIDER` ni MODUL
+  // yuklanganda bir marta o'qiydi, ya'ni keyin qo'yilsa kech bo'lardi.
+  // Testlar tarmoqqa CHIQMAYDI (Test 14q javoblarni o'zi beradi); bu
+  // qiymatlar faqat rasm yo'lining qulfini ochadi.
+  process.env.AI_PROVIDER = 'gemini';
+  process.env.AI_API_KEY = 'test-kalit-uzun-boʻlsin-namuna-emas';
 
   // require.main !== module bo'lgani uchun server.js port tinglamaydi —
   // faqat handleRequest'ni beradi
@@ -1372,14 +1378,19 @@ function testAssetVersionsAreFresh() {
   // AYNI faylni `?v=36` bilan — ya'ni admin panel 15 versiya orqada
   // qotib qolgan keshni cheksiz ushlab turardi.
   const KUTILGAN = {
-    'style.css': { v: 52, hash: '084d78911caa' },
-    'script.js': { v: 44, hash: 'ad24aef86d14' },
+    // ⚠️ BIRLASHTIRISHDAN KEYIN (2026-08-13): ikkala sessiya ham shu
+    // fayllarga tegdi, ya'ni birlashgan TARKIB ikkalasidan ham farq qiladi.
+    // Shuning uchun versiya ikkala tomonnikidan ham YUQORI olinadi — teng
+    // yoki past raqam qaytib kelgan foydalanuvchida keshdagi YARIM
+    // (bir tomonlama) faylni qoldirardi.
+    'style.css': { v: 53, hash: 'e76bb9922639' },
+    'script.js': { v: 45, hash: '90235cdc8b91' },
     'pwa.js': { v: 2, hash: 'f46683d58662' },
-    'panel.js': { v: 21, hash: '3001ca219f1d' },
+    'panel.js': { v: 24, hash: '94930bb7f185' },
     'admin/admin.css': { v: 18, hash: '15b0bc977b85' },
     'admin/admin.js': { v: 25, hash: '08fae1bb61dc' },
-    'telegram-app/styles.css': { v: 26, hash: '1fc904168550' },
-    'telegram-app/app.js': { v: 83, hash: 'a3532c1f6bba' },
+    'telegram-app/styles.css': { v: 30, hash: '5c7b42fa1add' },
+    'telegram-app/app.js': { v: 87, hash: '9d5acac6b540' },
     'telegram-app/pwa.js': { v: 6, hash: '798ab85e1cde' },
   };
 
@@ -1774,6 +1785,228 @@ function testImageErrorKinds() {
   assert.ok(!xomArifmetika, `SQL da $N ${xomArifmetika || ''} arifmetikasiga ::int yozilsin (unknown - unknown)`);
 
   console.log('✅ Test 14o: Vaqtinchalik va doimiy nosozlik ajratilgan — PASS');
+}
+
+// ============ TEST 14q: BO'SH JAVOB qayta uriniladi (2026-08-13) ==========
+// Production'da chiqdi: `aiImage xatosi: javobda rasm yo'q (IMAGE_OTHER)` —
+// HTTP 200, xato yo'q, shunchaki rasm yo'q. Bu uchinchi xil nosozlik va u
+// ikkalasiga ham o'xshamaydi:
+//   • HTTP 5xx — qayta urinilardi (`QAYTA_URINILADI`),
+//   • rad etish — qayta urinilmaydi va SHART EMAS (`isRefusal`),
+//   • bo'sh javob — qayta urinilMASDI, holbuki aynan u qayta urinishdan
+//     foyda ko'radigan holat: prompt determinstik, model esa emas.
+//
+// ⚠️ TEST 14o BUNI TUTMASDI va sabab muhim: u manba kodini SKANERLAYDI,
+// ya'ni tsikl BORLIGINI ko'radi, tsikl nimani qamrashini emas. Shuning
+// uchun bu qorovul boshqacha — `generateImage` ning O'ZI soxta javoblar
+// bilan yuritiladi (`sinov` teshigi), ya'ni tekshirilayotgan narsa kod
+// matni emas, XULQ.
+//
+// To'rtta mutatsiya bilan sinaldi, to'rttasi ham ushlandi:
+//   1) `if (e.kind === 'blocked') throw e` olib tashlandi → rad etilgan
+//      so'rov 3 marta yuborilardi (pul va vaqt) — 3-band qizil.
+//   2) `if (bosh >= BOSH_JAVOB_URINISH) throw e` olib tashlandi → 2-band
+//      qizil (urinishlar soni budjet tugaguncha o'sib ketadi).
+//   3) budjet tekshiruvi olib tashlandi → 4-band qizil.
+//   4) qayta urinish butunlay olib tashlandi → 1-band qizil.
+async function testEmptyImageResponseRetries() {
+  const { generateImage, BOSH_JAVOB_URINISH } = require('./lib/ai');
+
+  const rasm = { candidates: [{ content: { parts: [{ inlineData: { mimeType: 'image/png', data: Buffer.from('rasm').toString('base64') } }] } }] };
+  const bosh = (why) => ({ candidates: [{ finishReason: why }] });
+
+  const manba = { buf: Buffer.from('manba'), mime: 'image/jpeg' };
+  const mahsulot = { id: 'lm1', name_uz: 'Sinov' };
+  const javoblar = { kiyim: 'koylak_milliy', vaziyat: 'bayram', uslub: 'neoklassika' };
+
+  // Kutish HAQIQATAN kutmasin — test sekundlarni yemasin.
+  // ⚠️ `budjet` ham kichraytiriladi: soxta kutish oniy bo'lgani uchun
+  // haqiqiy 75 s budjet chegara buzilganda testni 75 soniya ushlab turardi
+  // (o'lchandi: 27 341 413 urinish, 75 009 ms). Kichik budjet AYNI shartni
+  // bir zumda tekshiradi.
+  function yurit(navbat, budjet = 1500) {
+    // Navbat tugasa OXIRGI javob takrorlanadi — aks holda "har safar bo'sh"
+    // holatini yozib bo'lmasdi (tsikl chegarasi noma'lum).
+    const oxirgi = navbat[navbat.length - 1];
+    let soni = 0;
+    const post = async () => {
+      soni++;
+      return { status: 200, body: JSON.stringify(navbat.length ? navbat.shift() : oxirgi) };
+    };
+    return { post, kut: async () => {}, budjet, soni: () => soni };
+  }
+
+  // ---- 1. IMAGE_OTHER dan keyin RASM keladi — natija qaytsin ----
+  let s = yurit([bosh('IMAGE_OTHER'), rasm]);
+  const n1 = await generateImage(mahsulot, manba, javoblar, s);
+  assert.ok(Buffer.isBuffer(n1.buf) && n1.buf.length, 'ikkinchi urinishdagi rasm qaytsin');
+  assert.strictEqual(s.soni(), 2, 'bo\'sh javobdan keyin AYNAN bir marta qayta urinilsin');
+
+  // ---- 2. Har safar bo'sh — chegara BOR, cheksiz aylanmasin ----
+  s = yurit([bosh('IMAGE_OTHER')]);
+  await assert.rejects(() => generateImage(mahsulot, manba, javoblar, s), /IMAGE_OTHER/,
+    'urinishlar tugagach xato SABABI bilan chiqsin');
+  assert.strictEqual(s.soni(), BOSH_JAVOB_URINISH + 1,
+    `bo'sh javobda jami ${BOSH_JAVOB_URINISH + 1} urinish bo'lsin`);
+
+  // ---- 3. RAD ETISH qayta urinilMASIN ----
+  // ⚠️ Bu bandning sababi 1-banddan MUHIMROQ: rad etilgan prompt har safar
+  // rad etiladi, ya'ni qayta urinish faqat vaqt va provayder kvotasini
+  // yeydi — foydalanuvchi esa baribir "javoblaringizni o'zgartiring" ni
+  // ko'radi, atigi uch barobar kechroq.
+  s = yurit([bosh('IMAGE_PROHIBITED_CONTENT')]);
+  await assert.rejects(() => generateImage(mahsulot, manba, javoblar, s), /IMAGE_PROHIBITED_CONTENT/);
+  assert.strictEqual(s.soni(), 1, 'rad etilgan so\'rov QAYTA yuborilmasin');
+
+  // ---- 4. VAQT BUDJETI urinishlar sonidan QAT'I NAZAR to'xtatsin ----
+  // ⚠️ Bu 2-banddan boshqa narsa. Urinishlar chegarasi "necha marta" ni
+  // cheklaydi, budjet esa "qancha vaqt" ni — va aynan ikkinchisi muhim:
+  // rasm generatsiyasi o'nlab soniya oladi, javob esa Cloudflare'ning ~100 s
+  // chegarasidan CHIQIB KETSA foydalanuvchi 504 ko'radi va kredit ALLAQACHON
+  // sarflangan bo'ladi (server/README.md). Ya'ni budjetsiz "qayta urinish"
+  // tuzatayotgan nuqsonimizdan yomonroq holat yasardi.
+  s = yurit([bosh('IMAGE_OTHER')], 0);
+  await assert.rejects(() => generateImage(mahsulot, manba, javoblar, s), /IMAGE_OTHER/);
+  assert.strictEqual(s.soni(), 1, 'budjet tugagan bo\'lsa qayta urinilmasin');
+
+  // ---- 4. Production yo'li test teshigini UZATMASIN ----
+  // Aks holda `sinov` sozlamaga aylanib, tarmoq chaqiruvi jimgina
+  // almashtirilishi mumkin bo'lardi.
+  const fs = require('fs');
+  const path = require('path');
+  const route = fs.readFileSync(path.join(__dirname, 'routes', 'ai.js'), 'utf8');
+  const chaqiruv = route.match(/generateImage\(([^)]*)\)/);
+  assert.ok(chaqiruv, 'routes/ai.js da generateImage chaqiruvi bo\'lsin');
+  assert.strictEqual(chaqiruv[1].split(',').length, 3,
+    'production generateImage ni UCH argument bilan chaqirsin — sinov teshigi uzatilmasin');
+
+  console.log(`✅ Test 14q: Bo'sh javob qayta uriniladi — PASS (${BOSH_JAVOB_URINISH + 1} urinish, rad etishda 1)`);
+}
+
+// ============ TEST 24: Sotuvchi kabineti founder ro'yxatida (2026-08-13) ==
+// Founder: "sotuvchi kabineti faqat men bergan Telegram ID orqali
+// kirganlarda chiqsin — istalgan odam saytga kirganda sotuvchi bo'limi
+// chiqishi kerak emas."
+//
+// ⚠️ TUGMANI YASHIRISH HIMOYA EMAS. Frontend `S.role` / `sellerMe.seller`
+// ga qaraydi, ikkalasi ham SERVERdan keladi — shuning uchun qorovul
+// serverning O'ZIDA, `currentSeller` da. Bu funksiya rol haqidagi YAGONA
+// manba: `/api/me`, `requireSeller` va katalogning "o'z mahsulotim" filtri
+// uchalasi ham shundan oziqlanadi.
+//
+// To'rtta mutatsiya bilan sinaldi, to'rttasi ham ushlandi:
+//   1) `sellerAllowed` tekshiruvi `currentSeller` dan olib tashlandi;
+//   2) zaxira `|| ''` ga (ya'ni "hech kim") emas, "hammaga ochiq" ga
+//      o'zgartirildi;
+//   3) ro'yxatda yo'q odamda `seller_id` qoldirildi;
+//   4) `pickup_point_id` ham o'chirildi (xaridor manzilini yo'qotardi).
+async function testSellerCabinetAllowlist() {
+  const fs = require('fs');
+  const path = require('path');
+  const { currentSeller, sellerAllowed } = require('./lib/auth');
+  const { SELLER_TG_IDS, ADMIN_CHAT_ID } = require('./config');
+  const { pool } = require('./db');
+
+  // ---- 1. Ro'yxat BO'SH bo'lib qolmasin ----
+  // Bo'sh `Set` "hech kim kira olmaydi" degani va u ham nuqson bo'lardi:
+  // founder o'z kabinetini yo'qotardi. Zaxira zanjiri shuni qoplaydi.
+  assert.ok(SELLER_TG_IDS.size > 0,
+    'SELLER_TG_IDS zaxirasi ADMIN_CHAT_ID gacha borsin — bo\'sh ro\'yxat kabinetni hammaga yopardi');
+  assert.ok(SELLER_TG_IDS.has(String(ADMIN_CHAT_ID)),
+    'sozlama berilmasa kabinet founder\'ning O\'ZIGA ochiq qolsin');
+
+  // ---- 2. `sellerAllowed` ro'yxatdan tashqarini rad etsin ----
+  assert.strictEqual(sellerAllowed({ id: ADMIN_CHAT_ID }), true, 'founder ro\'yxatda bo\'lsin');
+  assert.strictEqual(sellerAllowed({ id: '999999999' }), false, 'begona ID ro\'yxatda bo\'lmasin');
+  assert.strictEqual(sellerAllowed(null), false, 'kimlik yo\'q bo\'lsa ruxsat ham yo\'q');
+
+  // ---- 3. XATTI-HARAKAT: baza "seller" desa ham ro'yxat hal qiladi ----
+  // ⚠️ Bu bandning sababi: bazada rol paydo bo'lishining bir NECHTA yo'li bor
+  // (ariza tasdig'i, qo'lda SQL), ya'ni `users.role` ni yagona shart deb
+  // qoldirish ro'yxatni bezakka aylantirardi.
+  const asl = pool.query;
+  pool.query = async () => ({
+    rows: [{ user_id: 5, role: 'seller', pickup_point_id: 'tashkent-1',
+      seller_id: 42, business_name_uz: 'Sinov', business_name_ru: null, is_verified: true }],
+  });
+  try {
+    const begona = await currentSeller({ id: '999999999' });
+    assert.strictEqual(begona.role, 'buyer', 'ro\'yxatda yo\'q odam bazada seller bo\'lsa ham xaridor bo\'lsin');
+    assert.strictEqual(begona.seller_id, null, 'ro\'yxatda yo\'q odamda seller_id qolmasin');
+    // ⚠️ Manzil QOLSIN: u sotuvchilikka emas, XARIDORGA tegishli. `null`
+    // qaytarilsa profildagi "Mening manzilim" jimgina bo'shab qolardi.
+    assert.strictEqual(begona.pickup_point_id, 'tashkent-1', 'xaridorning olish nuqtasi o\'chmasin');
+
+    const oz = await currentSeller({ id: ADMIN_CHAT_ID });
+    assert.strictEqual(oz.role, 'seller', 'ro\'yxatdagi odam kabinetini ko\'rsin');
+    assert.strictEqual(oz.seller_id, 42, 'ro\'yxatdagi odamda seller_id qolsin');
+  } finally {
+    pool.query = asl;
+  }
+
+  // ---- 4. Tekshiruv YAGONA nuqtada tursin ----
+  // Chaqiruvchilarga tarqalsa yangi chaqiruvchi qo'shilganda uni eslab
+  // qolish kerak bo'lardi — `authUser()` naqshi aynan shunday takrorlangan.
+  const auth = fs.readFileSync(path.join(__dirname, 'lib', 'auth.js'), 'utf8')
+    .replace(/\/\/[^\n]*/g, '').replace(/\/\*[\s\S]*?\*\//g, '');
+  const tana = auth.slice(auth.indexOf('async function currentSeller'), auth.indexOf('async function requireSeller'));
+  assert.ok(/sellerAllowed\(/.test(tana), 'currentSeller sellerAllowed dan o\'tsin');
+
+  console.log(`✅ Test 24: Sotuvchi kabineti founder ro'yxatida — PASS (${SELLER_TG_IDS.size} ID)`);
+}
+
+// ============ TEST 25: Rasm sxemasi CSP ga sig'sin (2026-08-13) ===========
+// Production'da avatar o'rniga "singan rasm" chiqdi va sabab KODDA emas,
+// SARLAVHADA edi: frontend `URL.createObjectURL` bilan `blob:` havola
+// yasardi, saytning CSP siyosatida esa
+// `img-src 'self' data: https://cdn.lolamarket.uz` turadi — `blob:` u yerda
+// YO'Q. Brauzer rasmni bloklaydi, konsolda esa faqat CSP ogohlantirishi
+// qoladi: JS xatosi yo'q, so'rov muvaffaqiyatli, rasm esa chizilmaydi.
+//
+// ⚠️ Bu CLAUDE.md dagi karta bandi bilan BITTA OILA («CSP qo'llanganda
+// `api-maps.yandex.ru` qo'shilmasa karta JIMGINA o'ladi»). Ikkalasida ham
+// nuqson KO'RINMAYDI — shuning uchun qorovul kerak.
+//
+// Uch mutatsiya bilan sinaldi, uchtasi ham ushlandi:
+//   1) `blobToDataUrl` o'rniga `URL.createObjectURL` qaytarildi;
+//   2) Mini App tomonida ayni almashtirish;
+//   3) hujjatdagi CSP dan `data:` olib tashlandi (avatar unga tayanadi).
+function testImageSchemeAllowedByCsp() {
+  const fs = require('fs');
+  const path = require('path');
+  const root = path.join(__dirname, '..');
+
+  // ---- 1. Frontendlar `blob:` yasamasin ----
+  // ⚠️ Tekshiruv `createObjectURL` ning O'ZIGA qaraydi, "img" so'ziga emas:
+  // havola qayerga borishini statik aniqlab bo'lmaydi, ya'ni yagona ishonchli
+  // qoida — bu sxemani UMUMAN ishlatmaslik. `media-src` da ham `blob:` yo'q,
+  // shuning uchun video uchun ham yaramaydi.
+  for (const rel of ['script.js', 'telegram-app/app.js']) {
+    const src = fs.readFileSync(path.join(root, rel), 'utf8')
+      .replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
+    assert.ok(!/createObjectURL/.test(src),
+      `\`${rel}\` da URL.createObjectURL ishlatilgan — u \`blob:\` havola yasaydi, ` +
+      'CSP dagi `img-src`/`media-src` esa `blob:` ni QAMRAMAYDI va rasm JIMGINA ' +
+      'chizilmaydi. `data:` ishlating (`blobToDataUrl`) yoki oddiy `/api/...` yo\'lini.');
+  }
+
+  // ---- 2. Hujjatdagi CSP `data:` ni saqlab qolsin ----
+  // Avatar aynan shunga tayanadi. Kimdir CSP ni "qattiqlashtirib" `data:` ni
+  // olib tashlasa, avatar yana jimgina o'lardi — endi test qizil bo'ladi.
+  const doc = fs.readFileSync(path.join(root, 'docs', 'xavfsizlik-sarlavhalari.md'), 'utf8');
+  const m = doc.match(/img-src ([^;|]+)/);
+  assert.ok(m, 'xavfsizlik hujjatida `img-src` bandi bo\'lsin');
+  assert.ok(/\bdata:/.test(m[1]),
+    `CSP \`img-src\` da \`data:\` bo'lsin — profil avatari shunga tayanadi (hozir: ${m[1].trim()})`);
+
+  // ---- 3. Avatar haqiqatan `data:` yo'lidan yursin ----
+  for (const rel of ['script.js', 'telegram-app/app.js']) {
+    const src = fs.readFileSync(path.join(root, rel), 'utf8');
+    assert.ok(/readAsDataURL/.test(src),
+      `\`${rel}\` avatarni \`data:\` ga o'girsin (readAsDataURL)`);
+  }
+
+  console.log('✅ Test 25: Rasm sxemasi CSP ga sig\'adi — PASS');
 }
 
 // ============ TEST 14g: Rasm so'rovining chegaralari matnnikidan boshqa ====
@@ -2995,7 +3228,7 @@ function testAdminActionKinds() {
     (sqlda_kodsiz.length ? `, ⚠️ SQL da ortiqcha: ${sqlda_kodsiz.join(', ')}` : '') + ')');
 }
 
-// ============ TEST 24: VIDEO CHEGARA QOROVULI (2026-08-13) ============
+// ============ TEST 26: VIDEO CHEGARA QOROVULI (2026-08-13) ============
 // `videoRadSababi` `routes/catalog.js` da "Sinov uchun ATAYLAB ochiq" degan
 // izoh bilan eksport qilingan — va test HECH QACHON yozilmagan. Ya'ni
 // loyihaning o'z darsi ("yozilgan qoida himoya emas, uni tekshiradigan test
@@ -3073,12 +3306,12 @@ function testVideoLimits() {
   assert.ok(!/awaiting_video\s*=\s*false/.test(radShoxi),
     'rad etilganda `awaiting_video` ochiq QOLSIN — qayta urinish darrov ishlasin');
 
-  console.log(`✅ Test 24: Video chegara qorovuli — PASS ` +
+  console.log(`✅ Test 26: Video chegara qorovuli — PASS ` +
     `(mp4 · ≤${VIDEO_MAX_SECONDS}s · ≤${Math.round(MAX_DOWNLOAD_BYTES / 1024 / 1024)}MB, ` +
     `${radlar.length} rad, chegara qiymati qabul qilindi, tekshiruv yuklashdan oldin)`);
 }
 
-// ============ TEST 24b: R2 SIZ VIDEO "BOR" BO'LIB KO'RINMASIN ============
+// ============ TEST 26b: R2 SIZ VIDEO "BOR" BO'LIB KO'RINMASIN ============
 // Rasmda uch pog'ona bor (R2 → Telegram proksi → statik), videoda esa
 // FAQAT R2: `handleProductPhoto` faylni butunlay `pipe` qiladi va `Range`
 // (206) bermaydi, iOS Safari esa `<video>` uchun aynan shuni talab qiladi.
@@ -3122,11 +3355,11 @@ function testVideoVMNeedsR2() {
   assert.ok(vmTana && /\.\.\.videoVM\(/.test(vmTana),
     'productRowToVM `...videoVM(r)` ni qo\'shsin — aks holda katalogda video hech qachon chiqmaydi');
 
-  console.log('✅ Test 24b: R2 siz video "bor" bo\'lib ko\'rinmaydi — PASS '
+  console.log('✅ Test 26b: R2 siz video "bor" bo\'lib ko\'rinmaydi — PASS '
     + '(kalitsiz `null`, taxminiy havola yasalmaydi, katalog qatori videoVM dan o\'tadi)');
 }
 
-// ============ TEST 25: MANBA BELGISI VA BIRINCHI TEGINISH (2026-08-13) ============
+// ============ TEST 27: MANBA BELGISI VA BIRINCHI TEGINISH (2026-08-13) ============
 // Deep-link payload `t.me/<bot>?start=BELGI` dan keladi va havolani HAR KIM
 // yasay oladi — ya'ni bu yerga ixtiyoriy matn tushishi mumkin. Qiymat panelda
 // chiziladi va `GROUP BY` ga tushadi, shuning uchun shakli qat'iy.
@@ -3184,11 +3417,11 @@ function testSourceTag() {
     .filter((f) => f.endsWith('.sql') && /ADD COLUMN IF NOT EXISTS src\b/.test(fs.readFileSync(path.join(dbDir, f), 'utf8')));
   assert.ok(migratsiya.length, '`users.src` ustunini qo\'shadigan migratsiya topilmadi');
 
-  console.log(`✅ Test 25: Manba belgisi va birinchi teginish — PASS `
+  console.log(`✅ Test 27: Manba belgisi va birinchi teginish — PASS `
     + `(${yaxshi.length} qabul, ${yomon.length} rad, manba ${migratsiya[0]})`);
 }
 
-// ============ TEST 26: BREND RANGI TOKENDAN OLINADI (2026-08-13) ============
+// ============ TEST 28: BREND RANGI TOKENDAN OLINADI (2026-08-13) ============
 // `telegram-app/styles.css` da qoida ALLAQACHON yozilgan edi ("Ranglar
 // TOKENDAN olinadi, qo'lda `#7a140d` yozilmasin"), `app.js` esa uni 81 joyda
 // buzardi. Naqsh tanish: yozilgan qoida himoya emas — uni tekshiradigan test
@@ -3268,7 +3501,7 @@ function testBrandColorTokens() {
     });
   });
 
-  console.log(`✅ Test 26: Brend rangi tokendan olinadi — PASS `
+  console.log(`✅ Test 28: Brend rangi tokendan olinadi — PASS `
     + `(${tekshirilgan} fayl, ${Object.keys(TOKENLAR).length} token ikkala CSS da mos, `
     + `${istisnoSoni} ta ataylab istisno)`);
 }
@@ -3500,6 +3733,7 @@ async function runTests() {
     testImageSourceHash();
     testExtractImage();
     testImageErrorKinds();
+    await testEmptyImageResponseRetries();
     testImageLimitsDiffer();
     testImageCacheWritePath();
     await testCreditRefund();
@@ -3509,6 +3743,9 @@ async function runTests() {
     testFasonVariety();
     testPromptVersionGuard();
     testComboText();
+
+    await testSellerCabinetAllowlist();
+    testImageSchemeAllowedByCsp();
 
     testAdminActionKinds();
     testVideoLimits();

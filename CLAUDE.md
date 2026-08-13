@@ -52,6 +52,32 @@
   olib tashlanadi; (2) o'ram funksiyaning NOMIGA ishonish yetarli emas —
   `reviewAuthor` ning cookie yo'li o'chirilganda ham test yashil qolardi,
   endi o'ramning ichi ochib ko'riladi.
+- **Sotuvchi kabineti — FOUNDER RO'YXATI bo'yicha** (2026-08-13, founder
+  qarori: "sotuvchi kabineti faqat men bergan Telegram ID orqali kirganlarda
+  chiqsin, istalgan odam saytga kirganda chiqishi kerak emas"). Kabinet IKKI
+  shartda ochiladi: (1) Telegram ID `SELLER_TG_IDS` da (`config.js`),
+  (2) bazada `users.role = 'seller'` VA `sellers` yozuvi bor. Bittasi yetarli
+  emas. Sabab: bazada rol paydo bo'lishining bir NECHTA yo'li bor (ariza
+  tasdig'i, qo'lda SQL, kelajakdagi avtomatik tasdiq) va ularning HAMMASINI
+  eslab qolish kerak bo'lardi; ro'yxat esa bitta joyda va ko'rinadi.
+  ⚠️ **Tekshiruv `lib/auth.js` → `currentSeller` DA turadi va chaqiruvchilarga
+  TARQATILMAYDI.** U rol haqidagi yagona manba — `/api/me`, `requireSeller`
+  va katalogning "o'z mahsulotim" filtri uchalasi ham shundan oziqlanadi.
+  Chaqiruvchilarga tarqalsa yangi chaqiruvchi qo'shilganda tekshiruvni eslab
+  qolish kerak bo'lardi — `authUser()` naqshi aynan shunday IKKI marta
+  takrorlangan (yuqoridagi band). Ro'yxatda yo'q odamda `role` → `buyer` va
+  `seller_id` → `null`, LEKIN `pickup_point_id` QOLADI: u sotuvchilikka emas,
+  XARIDORGA tegishli va o'chirilsa profildagi "Mening manzilim" jimgina
+  bo'shab qolardi.
+  ⚠️ **Zaxira zanjiri `ADMIN_TG_IDS` → `ADMIN_CHAT_ID`, ya'ni sozlama
+  BERILMASA kabinet founder'dan boshqa hech kimga ochilmaydi.** "Berilmasa
+  hammaga ochiq" varianti xavfsizlik sozlamasi uchun noto'g'ri: e'tibordan
+  chetda qolgan `.env` jimgina hammani ichkariga qo'yib yuborardi
+  (`ALERT_CHAT_ID` darsi bilan bitta oila).
+  🔴 **Haqiqiy sotuvchi qo'shilganda ID'si ro'yxatga YOZILSIN** — aks holda u
+  bazada `role='seller'` bo'lsa ham kabinetni ko'rmaydi va buni hech narsa
+  ko'rsatmaydi. Qorovul: `server/test.js` → **Test 24** (3 mutatsiya bilan
+  sinaldi, uchtasi ham ushlandi).
 - **Zaxira (`products.stock`) har doim ATOMIK kamaytiriladi** (2026-07-30).
   Tekshiruv va kamaytirish bitta `UPDATE ... WHERE stock >= qty` da bo'ladi
   (`routes/orders.js` → `decrementStock`), hech qachon alohida `SELECT` +

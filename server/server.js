@@ -23,7 +23,7 @@ const {
   handleMe, handleSellerProducts, handleSellerProductUpdate,
   handleSellerOrders, handleSellerOrderAction,
 } = require('./routes/seller');
-const { handleSavePickupPoint } = require('./routes/profile');
+const { handleSavePickupPoint, handleMyPhoto } = require('./routes/profile');
 const {
   handleCreateOrder, handleCreateWebOrder, handleGetOrders,
   handleOrderNotify, handleOrderStatus,
@@ -218,6 +218,15 @@ function routeRequest(req, res) {
     return handleMe(req, res, ip);
   }
 
+  // Profil surati — Telegram avatari (2026-08-13). Baytlar PROKSI qilinadi,
+  // Telegram manzili qaytarilmaydi: u yerda bot tokeni turadi.
+  if (path === '/api/me/photo') {
+    cors(res, 'GET, OPTIONS');
+    if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
+    if (req.method !== 'GET') return fail(res, 'method not allowed', 405);
+    return handleMyPhoto(req, res, ip);
+  }
+
   // Profildagi "Mening manzilim" — doimiy BTS olish nuqtasi. O'QISH
   // `/api/me` da (qo'shimcha so'rov qilinmasin), YOZUV shu yerda.
   if (path === '/api/pickup-point') {
@@ -336,6 +345,19 @@ if (require.main === module) {
 
   http.createServer(handleRequest)
     .listen(PORT, '127.0.0.1', () => console.log(`lolamarket-notify listening on ${PORT}`));
+
+  // Bot chatidagi "Ochish" menyu tugmasi — Mini App'ga kirish nuqtasi
+  // (founder, 2026-08-13). Ishga tushishga BOG'LANGAN, chunki qo'lda
+  // bajariladigan qadam unutiladi: `BOT_TOKEN` almashtirilganda bu sozlama
+  // ham nolga qaytadi (webhook bilan ayni tuzoq).
+  //
+  // ⚠️ Serverni USHLAB TURMAYDI: tugma ro'yxatdan o'tmasa ham sayt va
+  // buyurtmalar ishlashi kerak. Xato `registerMenuButton` ichida alertga
+  // chiqadi; `catch` bu yerda faqat tarmoq uzilishi uchun.
+  require('./lib/telegram-api').registerMenuButton().catch((e) => {
+    // Birinchi argument — alert guruhlash KALITI (CLAUDE.md, Test 10c).
+    console.error('menyu tugmasi ro\'yxatdan o\'tmadi:', e.message);
+  });
 
   // 24 soatdan oshgan hal qilinmagan bahslar uchun eslatma skaneri.
   // unref() — bu taymer jarayonni tirik ushlab turmasin (to'xtatish toza bo'lsin).

@@ -83,6 +83,40 @@ function sendOpenAppMessage(chatId, text) {
   });
 }
 
+// ============ CHAT MENYU TUGMASI (2026-08-13) ============
+// Bot chatida xabar maydoni yonidagi tugma. Founder shikoyati: "bot chati
+// ichida open tugmasi yo'q" — ya'ni botni topgan odam Mini App'ga kirish
+// uchun eski xabarlardagi inline tugmani QIDIRIB topishi kerak edi, chat
+// bo'sh bo'lsa esa umuman yo'l yo'q edi.
+//
+// ⚠️ `chat_id` UZATILMAYDI va bu ataylab: usiz Telegram tugmani BARCHA
+// shaxsiy chatlar uchun standart qilib qo'yadi. Chat bo'yicha o'rnatilsa
+// har bir yangi foydalanuvchi uchun alohida chaqiruv kerak bo'lardi va
+// birinchi ochilishida tugma HALI yo'q bo'lardi.
+//
+// ⚠️ Har server ko'tarilishida QAYTA ro'yxatdan o'tadi. Chaqiruv idempotent
+// va tekin, foydasi esa katta: `BOT_TOKEN` almashtirilganda bu sozlama ham
+// nolga qaytadi — webhook bilan AYNI tuzoq (CLAUDE.md, 2026-08-13: uchinchi
+// qadam tushib qolib saytga kirish o'lgan edi). Qo'lda bajariladigan qadam
+// unutiladi, ishga tushishga bog'langani esa unutilmaydi.
+//
+// Xato YUTILMAYDI — `console.error` alertga chiqadi (`lib/alert.js`), aks
+// holda tugma yo'qligini faqat foydalanuvchi ko'rardi.
+const MENU_BUTTON_TEXT = 'Ochish';
+
+async function registerMenuButton() {
+  const r = await callTelegram('setChatMenuButton', {
+    menu_button: { type: 'web_app', text: MENU_BUTTON_TEXT, web_app: { url: MINI_APP_URL } },
+  });
+  let ok = false;
+  try { ok = JSON.parse(r.body).ok === true; } catch (_) { /* tana JSON emas */ }
+  if (!ok) {
+    // Birinchi argument — alert guruhlash KALITI (CLAUDE.md, Test 10c).
+    console.error('menyu tugmasi ro\'yxatdan o\'tmadi:', `HTTP ${r.status} ${String(r.body).slice(0, 200)}`);
+  }
+  return ok;
+}
+
 function callbackAnswer(id, text) {
   return callTelegram('answerCallbackQuery', { callback_query_id: id, text: text || '' }).catch(() => {});
 }
@@ -232,6 +266,7 @@ async function sendPhotoWithEffect(chatId, fileId, caption, effectId) {
 module.exports = {
   callTelegram, sendOrderNotifyMessage, sendBuyerConfirmMessage,
   STATUS_COMMANDS, sendOpenAppMessage, callbackAnswer, notify, tgGetFile,
+  registerMenuButton, MENU_BUTTON_TEXT,
   tgDownloadFile, sendPhotoBytes, sendPhotoWithEffect,
   // Chegara ATAYLAB eksport qilinadi: mahsulot videosi baytlarni YUKLASHDAN
   // OLDIN `file_size` bo'yicha rad etadi va sotuvchiga aniq raqam aytadi

@@ -727,24 +727,138 @@ button:active { opacity: .88; }
 .ai-msg-warn  { border: 1px solid var(--saffron-500); background: var(--saffron-50); }
 .ai-msg-err   { border: 1px solid var(--danger-500); background: var(--danger-100); }
 
-/* Detal rasmidagi "Kiyimda ko'rish" chipi — sevimlilar tugmasi OSTIDA,
-   o'ng chekkada (2026-08-13 da ko'chirildi: rasm endi header ostidan
-   o'tadi, ya'ni yuqori qator headerning O'ZI — u yerda faqat ‹ va ♡
-   sig'adi, chip esa ular bilan to'qnashardi). */
-.ai-jump {
-  position: absolute; top: 60px; right: 14px;
+/* ═══ KARTOCHKA USTIDA 3 SONIYA — IKKINCHI MEDIA (2026-08-13) ═══
+   Retsept saytdagi `.media-hover` bilan bir xil (`style.css`).
+   ⚠️ Telefonda bu HECH QACHON ishlamaydi va bu KUTILGAN: mantiq
+   `(hover: hover)` bilan qulflangan (`app.js` → `hoverMediaArm`).
+   Foydasi Telegram DESKTOP'da — u yerda Mini App sichqonchali oynada
+   ochiladi. ⚠️ Telefonda funksiya IZSIZ qoladi — ilgari yonida ▶ belgisi
+   (`.media-mark`) turardi, u 2026-08-13 da founder qarori bilan olib
+   tashlandi. Ya'ni sensorli ekranda video borligi kartochkadan
+   bilinmaydi; u faqat mahsulot ekranidagi galereyada ko'rinadi. */
+.card-media { position: relative; overflow: hidden; }
+.media-hover {
+  position: absolute;
+  inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  background: var(--ink-100);
+  opacity: 0;
+  animation: mediaFade var(--dur-base) var(--ease-out) forwards;
+}
+@keyframes mediaFade { to { opacity: 1; } }
+
+/* `is-preview` klassi ham ▶ belgisi bilan birga ketdi — u FAQAT o'sha
+   belgini yashirish uchun bor edi, belgisiz esa o'lik kod bo'lib qolardi. */
+
+@media (prefers-reduced-motion: reduce) {
+  .media-hover { animation: none; opacity: 1; }
+}
+
+/* ===== KATEGORIYA CHIPLARI (2026-08-13 da qayta chizildi) =====
+   Founder: "hozirgisi sodda juda ham, defoltdek". Retsept SAYTDAGI
+   `.chip` bilan bir xil (`style.css`) — ikkala yuz bitta ko'rinishga
+   ega bo'lishi kerak, aks holda foydalanuvchi Mini App'dan saytga
+   o'tganda boshqa mahsulotga tushgandek bo'ladi.
+
+   Uch o'zgarish: (1) tanlangan chip ANOR gradientida — ilgari to'q ko'k
+   (`--ink-900`) edi va butun ilovada yolg'iz o'zi shu rangda turardi;
+   (2) tanlangan chipda IKAT ROMBI — sof CSS, hech qanday ro'yxat yoki
+   rasm qo'shilmaydi; (3) bosilganda javob (`:active`).
+
+   ⚠️ Ilgari bu uslub `app.js` da SATR ICHIDA yozilgardi va saytdagi
+   nusxasi bilan qo'lda moslanardi — biri o'zgarganda ikkinchisi jimgina
+   eskirardi (db/014 naqshi). */
+.cat-chips {
+  display: flex; gap: 8px;
+  overflow-x: auto;
+  margin: 0 -16px;
+  padding: 3px 16px;
+  scrollbar-width: none;
+}
+.cat-chips::-webkit-scrollbar { display: none; }
+
+.cat-chip {
+  flex: none;
+  display: inline-flex; align-items: center; gap: 7px;
+  height: 36px;
+  padding: 0 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(122,20,13,.14);
+  background: linear-gradient(180deg, #fff, #FCF8F6);
+  font-family: var(--font-sans);
+  font-size: 13px; font-weight: 600;
+  letter-spacing: -.005em;
+  color: var(--text-body);
+  white-space: nowrap; cursor: pointer;
+  box-shadow: 0 1px 2px rgba(23,26,48,.04), inset 0 1px 0 #fff;
+  -webkit-tap-highlight-color: transparent;
+  transition: background var(--dur-fast) var(--ease-out),
+              color var(--dur-fast) var(--ease-out),
+              border-color var(--dur-fast) var(--ease-out),
+              box-shadow var(--dur-fast) var(--ease-out),
+              transform var(--dur-fast) var(--ease-out);
+}
+.cat-chip:active { transform: scale(.97); }
+
+.cat-chip.on {
+  background: linear-gradient(150deg, #8f1a10, #510100);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 10px 20px -12px rgba(81,1,0,.9), inset 0 1px 0 rgba(255,229,210,.28);
+}
+/* Ikat rombi — bo'sh qutidan yasalgan 45° kvadrat. Shrift belgisi yoki
+   emoji EMAS: ular qurilmadan qurilmaga boshqacha chiziladi. */
+.cat-chip.on::before {
+  content: "";
+  flex: none;
+  width: 6px; height: 6px;
+  transform: rotate(45deg);
+  background: #ffd9c2;
+  box-shadow: 0 0 0 1px rgba(255,217,194,.35);
+}
+@media (prefers-reduced-motion: reduce) {
+  .cat-chip, .cat-chip:active { transition: none; transform: none; }
+}
+
+/* "Kiyimda ko'rish" chipi — HEADER QATORIDA, ‹ va ♡ bilan yonma-yon
+   (founder qarori 2026-08-13). Ilgari u `.pd-hero` ichida, tugmalar ostida
+   suzardi va ikkita nuqsoni bor edi: (1) founder so'ragan qator emas,
+   (2) hero ichidagi hamma narsa shaffof header qutisi OSTIDA qolardi —
+   `elementFromPoint` o'lchovi ko'rsatdiki, ♡ ni bosib bo'lmasdi.
+   Endi u headerning O'ZIDA, ya'ni bosilish muammosi tug'ilmaydi. */
+/* ⚠️ OQIMDAN TASHQARIDA (`absolute`) va bu O'LCHOVDAN kelib chiqqan qaror.
+   Oqimda turganda header balandligi 58px dan 75px ga o'sardi: chip joyni
+   egallab, ko'rinmas (`opacity: 0`) sarlavhani ikki qatorga tushirardi —
+   ya'ni sarlavha ko'rinmasa ham LAYOUTda qolaveradi. Nuqson jimgina edi:
+   header shunchaki qalinlashardi va sababi hech qayerda ko'rinmasdi.
+   Chip bilan sarlavha HECH QACHON birga ko'rinmaydi (pastdagi qoida),
+   shuning uchun ustma-ust tushish xavfi yo'q. */
+.hdr-ai {
+  position: absolute;
+  top: 10px; right: 62px;      /* 14 (chekka) + 38 (♡) + 10 (oraliq) */
   height: 38px; padding: 0 14px;
   border-radius: 999px;
-  border: 1px solid var(--glass-border);
-  background: var(--glass-fill-strong);
-  backdrop-filter: var(--blur-md); -webkit-backdrop-filter: var(--blur-md);
+  border: 1px solid rgba(255,255,255,.85);
+  background: rgba(255,255,255,.62);
   color: var(--pom-700);
   font-family: var(--font-sans);
   font-size: 12.5px; font-weight: 700;
   white-space: nowrap; cursor: pointer;
-  box-shadow: var(--glass-highlight);
+  box-shadow: 0 4px 12px -6px rgba(81,1,0,.22), inset 0 1px 0 rgba(255,255,255,.95);
   -webkit-tap-highlight-color: transparent;
+  transition: opacity var(--dur-base) var(--ease-out);
 }
+.hdr-ai:active { background: rgba(255,255,255,.82); }
+
+/* ⚠️ Skroll rasmdan pastga tushganda chip SO'NADI va sabab joy: o'sha payt
+   header'ga mahsulot NOMI qaytadi (`hdr-clear` olinadi). Ikkalasi birga
+   turganda 375px kenglikda nomga ~97px qolardi va u ikki qatorga tushib
+   headerni cho'zardi. Chip rasm ustida — ya'ni nom rasm ustida yozilgan
+   paytda — turadi, aynan founder ko'rsatgan holat.
+   `.header-text` bilan AYNI naqsh, shuning uchun o'chirish ham bir xil. */
+#app-header:not(.hdr-clear) .hdr-ai { opacity: 0; pointer-events: none; }
+@media (prefers-reduced-motion: reduce) { .hdr-ai { transition: none; } }
 
 /* AI bo'limidagi galereya kartochkasi */
 .ai-hub-card {

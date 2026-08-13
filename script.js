@@ -767,7 +767,23 @@ function clearPrice() {
 
 // Header'dagi filtr ikonkasi — narx maydoniga olib boradi.
 // Qadalgan header balandligi hisobga olinadi, aks holda maydon uning ostida qoladi
-function focusPriceFilter() {
+/* ── Narx paneli: yopiq turadi, filtr tugmasi ochadi (2026-08-13) ──
+   Ilgari panel DOIM ko'rinardi va katalogni pastga surib turardi, tugma esa
+   `pointer-events: none` bilan bosilmasdi — ya'ni "filtr" belgisi bor edi,
+   filtr esa allaqachon ochiq turardi va tugma hech narsa qilmasdi.
+
+   ⚠️ Filtr YOQILGAN bo'lsa panel YOPILMAYDI (`paintPriceState`). Sabab:
+   yoqilgan filtrni ko'rsatadigan chip (`#price-chip`) shu blok ICHIDA
+   turadi — blok yopilsa xaridor natijalar nega kamayganini ko'rmasdi.
+   Bu "jimgina yolg'on" oilasidan: filtr ishlab turibdi, izi esa yo'q. */
+function togglePriceFilter() {
+  const box = document.getElementById('price-filter');
+  if (!box) return;
+  const ochilyapti = box.hidden;
+  box.hidden = !ochilyapti;
+  paintFilterBtn();
+  if (!ochilyapti) return;
+
   const inp = document.getElementById('price-min');
   if (!inp) return;
   const head = document.getElementById('nav');
@@ -776,13 +792,31 @@ function focusPriceFilter() {
   inp.focus({ preventScroll: true });
 }
 
+// Tugmaning holati: panel ochiq YOKI filtr yoqilgan bo'lsa yoniq ko'rinadi.
+function paintFilterBtn() {
+  const btn = document.getElementById('filter-btn');
+  const box = document.getElementById('price-filter');
+  if (!btn || !box) return;
+  const ochiq = !box.hidden;
+  btn.classList.toggle('is-on', ochiq || priceMin !== null || priceMax !== null);
+  btn.setAttribute('aria-expanded', ochiq ? 'true' : 'false');
+}
+
 // Yoqilgan filtrni ko'rsatuvchi chip — yoqilmagan bo'lsa umuman ko'rinmaydi
 function paintPriceState() {
   const chip = document.getElementById('price-chip');
   const label = document.getElementById('price-chip-label');
+  paintFilterBtn();
   if (!chip || !label) return;
 
   if (priceMin === null && priceMax === null) { chip.hidden = true; return; }
+
+  // ⚠️ Filtr yoqilgan bo'lsa panel MAJBURAN ochiladi: chip shu blok ichida
+  // yashaydi va yopiq panelda xaridor filtr ishlab turganini ko'rmasdi.
+  // (Sahifa qayta yuklanganda filtr saqlanadigan bo'lsa ham shu yo'l
+  // ishlaydi — holat bitta joydan chiziladi.)
+  const box = document.getElementById('price-filter');
+  if (box && box.hidden) { box.hidden = false; paintFilterBtn(); }
 
   if (priceMin !== null && priceMax !== null) {
     label.textContent = `${somGroup(priceMin)} – ${somGroup(priceMax)} so'm`;
@@ -1189,12 +1223,70 @@ function statusLabel(status) {
   return st ? L(st.label) : String(status || '');
 }
 
+/* ── Profil surati — Telegram avatari (2026-08-13, founder) ──
+   Sayt kanalida kimlik HttpOnly cookie'da yuradi, ya'ni `<img src>` ham
+   ishlardi. Shunday bo'lsa ham `fetch` tanlandi va sabab bor: surat YO'Q
+   bo'lganda server 404 qaytaradi, `<img>` esa buni "singan rasm" belgisi
+   bilan ko'rsatardi — bosh harflarga toza qaytish imkoni bo'lmasdi.
+
+   ⚠️ BIR MARTA so'raladi (`avaHolat`): profil oynasi har ochilganda
+   chizilyapti, holat kuzatilmasa har ochilishda yangi so'rov ketardi.
+   Surat yo'qligi ham eslab qolinadi. */
+let avaUrl = null;
+let avaHolat = 'nomalum';        // nomalum | yuklanmoqda | bor | yoq
+
+/* 🔴 `URL.createObjectURL` ISHLATILMAYDI — u JIMGINA ishlamaydi.
+   Birinchi variant aynan shunday yozilgan edi va production'da avatar
+   o'rniga "singan rasm" belgisi chiqdi (founder telefonda ko'rsatdi).
+   Sabab konsolda emas, SARLAVHADA edi: saytning CSP siyosatida
+   `img-src 'self' data: https://cdn.lolamarket.uz` turadi va `blob:`
+   u yerda YO'Q, ya'ni brauzer rasmni bloklaydi.
+
+   `data:` esa ro'yxatda ALLAQACHON bor — shuning uchun tuzatish
+   nginx'ga tegmaydi (CSP'ni kengaytirish yangi ruxsat ochish bo'lardi,
+   holbuki mavjud ruxsat yetarli). Avatar kichik (≤160px), ya'ni base64
+   qilib inline qo'yish arzon.
+
+   ⚠️ Bu CLAUDE.md dagi karta bandi bilan BITTA OILA: «CSP qo'llanganda
+   `api-maps.yandex.ru` qo'shilmasa karta JIMGINA o'ladi». Naqsh bir xil —
+   yangi TASHQI SXEMA (blob:, https://…) ishlatilganda CSP ro'yxati
+   tekshirilsin. Qorovul: `server/test.js` → Test 25. */
+function blobToDataUrl(b) {
+  return new Promise((res, rej) => {
+    const fr = new FileReader();
+    fr.onload = () => res(fr.result);
+    fr.onerror = () => rej(new Error('rasm o\'qilmadi'));
+    fr.readAsDataURL(b);
+  });
+}
+
+async function mountAvatar() {
+  if (avaHolat !== 'nomalum') return;
+  avaHolat = 'yuklanmoqda';
+  try {
+    const r = await fetch('/api/me/photo', { credentials: 'same-origin' });
+    if (!r.ok) { avaHolat = 'yoq'; return; }
+    avaUrl = await blobToDataUrl(await r.blob());
+    avaHolat = 'bor';
+    const el = document.getElementById('profile-ava');
+    if (el) el.innerHTML = `<img src="${esc(avaUrl)}" alt="">`;
+  } catch (e) {
+    // Avatar bezak — tarmoq uzilishi bosh harflarni qoldiradi, xolos.
+    avaHolat = 'yoq';
+  }
+}
+
 function profileHtml() {
   const u = me || {};
 
   return `
     <div class="profile-card">
-      <div class="profile-ava" aria-hidden="true">${esc(initials(u.name))}</div>
+      <div class="profile-ava" id="profile-ava" aria-hidden="true">${
+        // Surat serverdan kelgan bo'lsa — o'sha, aks holda bosh harflar.
+        // ⚠️ Bosh harflar ZAXIRA sifatida QOLADI: surat kelmasa bo'sh doira
+        // turardi va "yuklanmadi" bilan "avatari yo'q" ajralmasdi.
+        avaUrl ? `<img src="${esc(avaUrl)}" alt="">` : esc(initials(u.name))
+      }</div>
       <div class="profile-main">
         <div class="profile-name">${esc(u.name || 'Xaridor')}</div>
         ${u.username ? `<div class="profile-sub">@${esc(u.username)}</div>` : ''}
@@ -1856,7 +1948,7 @@ function apiCardHtml(p) {
 
   return `
     <article class="product-card fade-up" data-id="${esc(p.id)}" data-name="${esc(name)}" data-price="${esc(String(p.price))}" data-supplier="${esc(supplier)}" data-cat="${esc(p.catKey || '')}">
-      <div class="product-media">
+      <div class="product-media"${p.video ? ` data-video="${esc(p.video)}"${p.videoPoster ? ` data-poster="${esc(p.videoPoster)}"` : ''}` : ''}>
         ${img ? `<img src="${esc(img)}" alt="${esc(name)}" loading="lazy" />` : ''}
         ${badgeTxt ? `<span class="badge-pill ${badgeCls}">${esc(badgeTxt)}</span>` : ''}
         <button class="fav-btn" id="fav-${esc(p.id)}" data-action="toggleFav" data-arg="${esc(p.id)}" aria-label="Saralanganlarga qo'shish" aria-pressed="false">
@@ -2925,6 +3017,83 @@ function sellerOrderArg(arg) {
     .catch((e) => showToast(e.message));
 }
 
+/* ══ KARTOCHKA USTIDA 3 SONIYA — IKKINCHI MEDIA (2026-08-13, founder) ══
+   "sichqoncha mahsulot ustida 3 sekund tursa, ikkinchi media bo'lsa
+   ko'rsatilsin — video bo'lsa ham".
+
+   ⚠️ FAQAT SICHQONCHALI qurilmada armlanadi (`hover: hover`). Sensorli
+   ekranda "hover" barmoq bosilgan payt ham hosil bo'ladi va u yerda
+   `mouseleave` KELMASLIGI mumkin: video ochilib qolib, foydalanuvchi
+   uni yopa olmasdi. Telegram Desktop'dagi Mini App'da esa sichqoncha
+   BOR — shuning uchun ayni mantiq u yerda ham ishlaydi.
+
+   ⚠️ Video KECHIKIB yuklanadi (`src` faqat 3 soniyadan keyin qo'yiladi).
+   Kartochka bilan birga yuklansa katalog ochilishida o'nlab video fayl
+   tortilardi — bu bir necha MB (o'lchandi: e'londagi ikkita video 2.13 MB
+   va 1.76 MB).
+
+   ⚠️ Chiqishda video O'CHIRILADI (`src` bo'shatiladi va tugun olib
+   tashlanadi). Faqat `pause()` qilinsa, katalogni kezib chiqqan
+   foydalanuvchida o'nlab dekodlangan video xotirada qolardi. */
+const HOVER_MEDIA_MS = 3000;
+
+function hoverMediaArm() {
+  if (!window.matchMedia || !window.matchMedia('(hover: hover)').matches) return;
+
+  let timer = null;
+  let ochiq = null;                 // hozir video ko'rsatilayotgan `.product-media`
+
+  function yop() {
+    if (timer) { clearTimeout(timer); timer = null; }
+    if (!ochiq) return;
+    const v = ochiq.querySelector('.media-hover');
+    if (v) { v.pause(); v.removeAttribute('src'); v.load(); v.remove(); }
+    ochiq = null;
+  }
+
+  document.addEventListener('mouseover', (e) => {
+    const box = e.target.closest && e.target.closest('.product-media[data-video]');
+    if (!box || box === ochiq) return;
+    yop();
+    timer = setTimeout(() => {
+      timer = null;
+      // Sichqoncha shu orada chiqib ketgan bo'lishi mumkin — DOM'dan
+      // so'raymiz, taxmin qilmaymiz.
+      if (!box.isConnected || !box.matches(':hover')) return;
+      const v = document.createElement('video');
+      v.className = 'media-hover';
+      v.src = box.dataset.video;
+      if (box.dataset.poster) v.poster = box.dataset.poster;
+      // `muted` SHART: ovozli avtomatik o'ynatishni brauzer bloklaydi va
+      // video jimgina ochilmay qolardi.
+      v.muted = true; v.loop = true; v.playsInline = true; v.preload = 'auto';
+      v.setAttribute('aria-hidden', 'true');
+      box.appendChild(v);
+      ochiq = box;
+      // Ba'zi brauzerlar `play()` rad etadi (energiya tejash rejimi) —
+      // o'shanda muqova ko'rinib turaveradi, xato tashlanmaydi.
+      const pr = v.play();
+      if (pr && pr.catch) pr.catch(() => {});
+    }, HOVER_MEDIA_MS);
+  });
+
+  document.addEventListener('mouseout', (e) => {
+    const box = e.target.closest && e.target.closest('.product-media[data-video]');
+    if (!box) return;
+    // `mouseout` ichki elementga o'tganda ham otiladi — kartochkaning
+    // O'ZIDAN chiqilganini tekshiramiz, aks holda video pastdagi tugmaga
+    // sichqoncha borishi bilan yopilardi.
+    if (e.relatedTarget && box.contains(e.relatedTarget)) return;
+    yop();
+  });
+
+  // Sahifa ko'rinmay qolsa ham to'xtatamiz — ko'rinmaydigan video
+  // batareya va trafik yeydi.
+  document.addEventListener('visibilitychange', () => { if (document.hidden) yop(); });
+}
+
+hoverMediaArm();
+
 /* Media galereya — 1-slayd RASM, 2-slayd VIDEO (founder qarori, 2026-08-13:
    "bitta mahsulot ichida 1 rasm, ikkinchi video bo'ladi").
 
@@ -3771,6 +3940,8 @@ function renderDrawer() {
     title.textContent = t('profile');
     body.innerHTML = profileHtml();
     foot.hidden = true;
+    // Surat DOM tayyor bo'lgandan keyin qo'yiladi (o'zi bir marta so'raydi).
+    mountAvatar();
     return;
   }
 

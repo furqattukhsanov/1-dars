@@ -583,6 +583,11 @@ function handleGetContact(req, res, ip) {
 module.exports = {
   handleAuthTelegram, handleGetProducts, handleSubmitProduct, handleModerationList, handleModerationAction, handleGetContact,
   handleProductPhoto, handleProductImage, handleProductVideo, productPhotoUrl,
+  // ⚠️ Telegram fayl turini aniqlash `routes/profile.js` (avatar proksisi)
+  // da ham kerak. NUSXA KO'CHIRILMAYDI: `usableMime` ning "octet-stream ham
+  // yaroqsiz" qoidasi 2026-07-31 da o'lchov bilan topilgan va u ikki joyda
+  // yashasa, biri tuzatilganda ikkinchisi jimgina eskirardi (db/014 darsi).
+  usableMime, mimeFromPath,
   // Sinov uchun ATAYLAB ochiq: chegara qorovulini (`videoRadSababi`) to'g'ridan-
   // to'g'ri sinab bo'lsin — loyiha darsi: yozilgan qoida himoya emas, uni
   // tekshiradigan test himoya (`lib/r2.js` → `tekshirKalit` bilan bir xil).

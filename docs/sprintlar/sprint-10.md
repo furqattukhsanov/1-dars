@@ -1918,3 +1918,68 @@ aynan shu savolda rad etilgan edi (kod tayyor, maqsad tegmagan). Rasm
 varianti uchun javob endi taxminga emas, jadvaldagi songa tayanadi.
 ⚠️ Raqamlar HAQIQIY jadvallardan, nol ham haqiqiy javob; ma'lumot yo'q
 bo'lsa blok umuman chizilmaydi (o'ylab topilgan raqam qoidasi).
+## 2026-08-13 (davomi 3) — «Javobda rasm yo'q»: bo'sh javob endi qayta uriniladi
+
+Production'da chiqqan xato: `aiImage xatosi: javobda rasm yo'q
+(IMAGE_OTHER)`. Bu **UCHINCHI xil nosozlik** va u ikkalasiga ham
+o'xshamaydi:
+
+| Nima keldi | Belgisi | Ilgari nima bo'lardi |
+|---|---|---|
+| 5xx — provayder band | `kind = 'busy'` | qayta urinilardi ✅ |
+| Rad etish — prompt bloklandi | `kind = 'blocked'` | qayta urinilMASDI ✅ (to'g'ri) |
+| **Bo'sh javob** — HTTP 200, rasm yo'q | `finishReason: IMAGE_OTHER` | **qayta urinilMASDI** ❌ |
+
+🔴 **Aynan uchinchisi qayta urinishdan foyda ko'radi**, ikkalasidan ham
+ko'proq. Sabab nozik: prompt DETERMINISTIK (`sceneFor`/`fasonFor` kesh
+kalitidan urug' oladi), ya'ni qayta urinish AYNI promptni yuboradi —
+"o'zgarmagan so'rovni takrorlash foydasiz" degan odatiy mulohaza shu yerda
+NOTO'G'RI. Tasodifiylik prompt tomonda emas, **MODEL tomonda**: ayni prompt
+ayni javobni bermaydi. Rad etishdan farqi shunda — rad etilgan prompt HAR
+SAFAR rad etiladi, bo'sh javob esa keyingi urinishda rasm beradi.
+
+**Nima qilindi** (`server/lib/ai.js` → `generateImage`):
+
+- [2026-08-13] **3 martagacha uriniladi** (`BOSH_JAVOB_URINISH = 2` +
+  asosiy urinish), orasida **1.2 s** kutish. ⚠️ Kutish 503 dagidan
+  QISQA va bu ataylab: 503 provayder bandligini bildiradi (kutish
+  ma'noli), bo'sh javob esa bandlik belgisi EMAS — uzun kutish faqat vaqt
+  budjetini yeb qo'yardi
+- [2026-08-13] ⚠️ **Umumiy budjet `RASM_BUDJET_MS = 75 s`.** Bo'sh javob
+  HTTP 503 dan farqli o'laroq TEZ kelmaydi — model haqiqatan ishlaydi,
+  ya'ni har urinish o'nlab soniya. Budjetsiz qayta urinish javobni
+  **Cloudflare ~100 s chegarasidan** chiqarib yuborardi: foydalanuvchi 504
+  ko'rardi, kredit esa sarflangan bo'lardi — bu tuzatilayotgan nuqsondan
+  YOMONROQ holat
+- [2026-08-13] **Rad etishda qayta urinilmaydi** — `kind === 'blocked'`
+  darrov tashlanadi va foydalanuvchiga javoblarini o'zgartirish kerakligi
+  aytiladi. Bo'sh javob bilan rad etishni bitta "xato" ga qo'shib yuborish
+  aynan 2026-08-08 da tuzatilgan nuqson edi, u qayta ochilmadi
+- [2026-08-13] **Yangi Test 14q — bo'sh javob QAYTA URINILADI.**
+  ⚠️ `generateImage` ga sinov teshigi (`sinov`) qo'shildi: soxta `post`,
+  soxta `kut` va soxta budjet. Sabab — qayta urinish TSIKLI aynan tarmoq
+  javobiga qarab qaror qabul qiladi, ya'ni uni tekshirishning yagona
+  halol yo'li javoblarni boshqarish. Manba kodini skanerlaydigan qorovul
+  (Test 14o naqshi) bu yerda YETARLI EMAS: u tsikl BORLIGINI ko'radi,
+  tsikl TO'G'RI ishlashini emas — ya'ni kod MATNI emas, **XULQ**
+  tekshiriladi. Production yo'li (`routes/ai.js`) teshikni hech qachon
+  uzatmaydi va buni test alohida tasdiqlaydi.
+  ⚠️ Budjet ham teshikdan o'tadi, sababi amaliy: soxta kutish ONI
+  qaytganda 75 soniyalik budjet testni 75 soniya ushlab turardi
+  (o'lchandi — 27 million urinish). **4 mutatsiya bilan sinaldi, 4 tasi
+  ham ushlandi**
+- [2026-08-13] `test.js` ga soxta AI sirlari qo'shildi (`AI_PROVIDER`,
+  `AI_API_KEY`) — `lib/ai.js` ularni modul YUKLANGANDA o'qiydi, ya'ni
+  usiz test fayli import bosqichidayoq boshqa yo'lga tushardi. Testlar
+  tarmoqqa CHIQMAYDI
+
+### Ochiq qolgani
+
+1. 🔴 **Tuzatish production'da HALI sinalmagan** — `server/` CI orqali
+   chiqmaydi, qo'lda rsync va servis restarti kerak. Bu bandning
+   yopilish mezoni: xato jurnalda qayta chiqmasligi EMAS (u tasodifiy
+   keladi), balki **`aiImage xatosi: javobda rasm yo'q` alertidan keyin
+   ham foydalanuvchi rasm olgani** ko'rilishi
+2. Qayta urinish sarflangan vaqtni O'LCHAMAYDI — necha marta urinilgani
+   jurnalga yozilmaydi. Ya'ni "bo'sh javob qanchalik tez-tez bo'ladi"
+   degan savolga hozir javob yo'q; kerak bo'lsa alohida band
