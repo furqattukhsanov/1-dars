@@ -1204,8 +1204,19 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
   0 / 3 / 5 / 50), tugagan mahsulotda tugma bloklangani (screenshot), sotuvchi kartochkasidagi zaxira,
   forma maydonining bo'sh→null / 0→0 / 20→20 yuborishi. **Migratsiya production'da ALLAQACHON ishga
   tushirildi va tasdiqlandi** (zaxira olingandan keyin): 8 ta `in`→50, 2 ta `low`→5, 2 ta `made`→NULL,
-  1 ta test mahsuloti→NULL. **Hali qilinmagani:** backend kodining o'zi production'ga deploy qilinmagan,
-  va uch oqim uchidan-uchigacha sinovi (Sprint 8) deploydan keyin o'tkaziladi
+  1 ta test mahsuloti→NULL.
+
+  ✅ **BACKEND DEPLOY QILINGAN — o'lchandi (2026-08-13).** Bu yerda ilgari
+  "**Hali qilinmagani:** backend kodining o'zi production'ga deploy qilinmagan"
+  deb turardi va da'vo ESKIRDI. Dalil: jonli `/api/products` **24 ta e'lonning
+  hammasida** `stock` va `stockKey` maydonlarini qaytaradi (13 tasi `NULL` =
+  cheksiz, qolganlari 3–7997 oralig'ida) — ya'ni `catalog.js` ning zaxira
+  qo'shadigan kodi production'da ishlayapti. Serverning o'zi ham joyida:
+  `/api/version` = `5b913cc` va o'sha commitdan keyin `server/` ichida faqat
+  `test.js` o'zgargan. Uch oqim uchidan-uchigacha sinovi (Sprint 8) HAMON
+  ochiq — deploy uni almashtirmaydi.
+  ⚠️ Tekshirish buyrug'i (da'vo yana eskirmasin):
+  `curl -s https://lolamarket.uz/api/products | grep -c '"stockKey"'`
 
 - [2026-07-30] **Mahsulotga rasm yuklash qo'shildi** — sotuvchi mahsulot qo'shganda forma rasmsiz edi
   (Sprint 4 quyrug'idagi bo'shliq). Yechim `disputes.js`dagi Telegram file_id + HMAC proksi naqshini
