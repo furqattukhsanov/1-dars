@@ -84,6 +84,34 @@ function esc(s) {
 function initials(name) {
   return String(name || '?').split(' ').filter(Boolean).map((p) => p[0]).slice(0, 2).join('').toUpperCase();
 }
+// Davomiylik "0:14" ko'rinishida. `null` — Telegram `duration` bermagan holat
+// va u "0 soniya" deb KO'RSATILMAYDI: nol yolg'on raqam bo'lardi.
+function fmtDur(sec) {
+  if (sec == null) return null;
+  const s = Math.max(0, Math.round(sec));
+  return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+}
+function fmtMB(bytes) {
+  if (bytes == null) return null;
+  return (Math.round((bytes / (1024 * 1024)) * 10) / 10).toString().replace('.', ',') + ' MB';
+}
+
+/* Video bloki — moderatsiya kartochkasi va videolar ro'yxatida BIR XIL.
+   `preload="none"` SHART: sahifada 50 tagacha video bo'lishi mumkin va
+   metama'lumot ham oldindan yuklansa panel ochilishi og'irlashardi. Muqova
+   `poster` bo'lib turadi, baytlar esa faqat "play" bosilganda keladi.
+   Muqova bo'lmasa (Telegram thumbnail bermagan) mahsulot rasmiga tushamiz. */
+function videoBlock(m) {
+  if (!m.video) return '';
+  const poster = m.videoPoster || m.img || '';
+  return `<video class="mod-video" src="${esc(m.video)}"${poster ? ` poster="${esc(poster)}"` : ''}
+    controls preload="none" playsinline></video>`;
+}
+// "0:14 · 3,2 MB" — mavjud bo'lgani ko'rsatiladi, yo'g'i tashlab ketiladi
+// (panelda o'ylab topilgan raqam ko'rsatilmasin — loyiha qoidasi).
+function videoMeta(m) {
+  return [fmtDur(m.videoSeconds), fmtMB(m.videoBytes)].filter(Boolean).join(' · ');
+}
 
 /* ═══════════════════════ Holat ═══════════════════════ */
 
@@ -299,6 +327,7 @@ function renderAll() {
   renderApplications();
   renderSellers();
   renderModQueue();
+  renderVideoQueue();
   renderDisputes();
   renderTopSellers();
   renderUsers();
@@ -852,11 +881,13 @@ function renderModQueue() {
     <div class="mod-card glass">
       ${m.img ? `<img class="mod-thumb" src="${esc(m.img)}" alt="${esc(m.name)}" />`
                : `<div class="mod-thumb mod-thumb-empty">Rasm yo'q</div>`}
+      ${videoBlock(m)}
       <div class="mod-body">
         <div class="mod-name">${esc(m.name)}</div>
         <div class="mod-meta">${esc(m.sellerName || "Sotuvchi noma'lum")} · ${esc(m.date ? m.date.uz : '')}</div>
         <div class="mod-price">${fmtSom(m.price)}/${esc(m.unit || 'rulon')}</div>
         <div class="mod-meta">Zaxira: ${m.stock == null ? 'cheksiz' : esc(m.stock)}</div>
+        ${m.video ? `<div class="mod-meta">🎬 Video: ${esc(videoMeta(m))}</div>` : ''}
         <div class="mod-actions">
           <button class="btn-approve" data-prod="${esc(m.id)}" data-act="publish">Nashr</button>
           <button class="btn-reject"  data-prod="${esc(m.id)}" data-act="reject">Rad</button>
@@ -889,6 +920,44 @@ document.getElementById('modGrid').addEventListener('click', async (e) => {
     await runAdminAction('product_reject', id, r.reason ? { reason: r.reason } : {}, 'Rad etish');
   }
 });
+
+/* ─── Kelgan videolar (db/023) ─── */
+
+// ⚠️ Moderatsiya navbatidan ATAYLAB ALOHIDA ro'yxat. Navbat faqat `pending`
+// e'lonlarni ko'rsatadi, video esa ALLAQACHON NASHR QILINGAN mahsulotga ham
+// keladi (sotuvchi rasm yuborgach video oynasi ochiladi) — u holda video
+// hech qanday navbatga tushmasdan o'tib ketardi va uni hech kim ko'rmasdi.
+const VIDEO_STATUS = {
+  pending: '⏳ moderatsiyada',
+  published: '✅ nashrda',
+  rejected: '⛔ rad etilgan',
+  draft: '👁 yashirilgan',
+};
+
+function renderVideoQueue() {
+  const grid = document.getElementById('videoGrid');
+  if (!grid) return;
+  const list = state.summary.videoQueue || [];
+  document.getElementById('videoQueueCount').textContent = list.length + ' ta';
+  if (!list.length) {
+    grid.innerHTML = `<div class="empty-panel">Hali video kelmagan</div>`;
+    return;
+  }
+  grid.innerHTML = list.map((m) => {
+    // Bo'sh bo'laklar tashlab ketiladi — "🎬  · ✅ nashrda" kabi osilgan
+    // ajratkich qolmasin (davomiylik yoki hajm kelmagan bo'lishi mumkin).
+    const meta = [videoMeta(m), VIDEO_STATUS[m.status] || m.status].filter(Boolean).join(' · ');
+    return `
+    <div class="mod-card glass">
+      ${videoBlock(m)}
+      <div class="mod-body">
+        <div class="mod-name">${esc(m.name)}</div>
+        <div class="mod-meta">${esc(m.sellerName || "Sotuvchi noma'lum")} · ${esc(m.date ? m.date.uz : '')}</div>
+        <div class="mod-meta">🎬 ${esc(meta)}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
 
 /* ─── Bahsli holatlar ─── */
 

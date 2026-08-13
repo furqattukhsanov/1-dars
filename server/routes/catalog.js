@@ -9,7 +9,8 @@ const { escapeHtml, money, safeEqual } = require('../lib/format');
 const { validate } = require('../lib/validate');
 const { rateLimited, readBody, sendJson, ok, fail } = require('../lib/http');
 const { loadContacts } = require('../lib/contacts');
-const { sendOrderNotifyMessage, callTelegram, notify, tgGetFile, tgDownloadFile } = require('../lib/telegram-api');
+const { sendOrderNotifyMessage, callTelegram, notify, tgGetFile, tgDownloadFile,
+  MAX_DOWNLOAD_BYTES } = require('../lib/telegram-api');
 const { r2Put, r2PublicUrl, R2_ENABLED } = require('../lib/r2');
 
 // ============ /api/auth/telegram — Telegram orqali kirish ============
@@ -167,8 +168,13 @@ async function handleProductImage(msg) {
   const p = await openAwaitingProductImage(msg.from.id);
   if (!p) return false;
 
+  // `awaiting_video` shu yerda ochiladi (db/023). Bu YANGI e'londagi bayroqdan
+  // TASHQARI: migratsiyadan oldin yaratilgan mahsulotlarda u `false` bo'lib
+  // qoladi va ularga video qo'shishning boshqa yo'li yo'q edi. Rasm yuborish —
+  // sotuvchi shu e'lon bilan ishlayotganining aniq belgisi, ya'ni videoni
+  // aynan shu paytda kutish xavfsiz.
   await pool.query(
-    `UPDATE products SET img_file_id=$1, awaiting_image=false WHERE id=$2`,
+    `UPDATE products SET img_file_id=$1, awaiting_image=false, awaiting_video=true WHERE id=$2`,
     [fileId, p.id]);
 
   // ⚠️ `img_file_id` dan KEYIN va alohida `UPDATE` bilan: R2 yiqilsa ham
@@ -187,7 +193,180 @@ async function handleProductImage(msg) {
   await callTelegram('sendMessage', {
     chat_id: msg.chat.id,
     parse_mode: 'HTML',
-    text: `✅ Rasm qabul qilindi: <b>${escapeHtml(p.name_uz)}</b>`,
+    text: `✅ Rasm qabul qilindi: <b>${escapeHtml(p.name_uz)}</b>\n\n`
+      + `🎬 Xohlasangiz shu mahsulot uchun <b>qisqa video</b> ham yuboring — `
+      + `matoning tovlanishi va to'qimasi rasmdan ko'ra yaxshi ko'rinadi.\n`
+      + `${VIDEO_MAX_SECONDS} soniyagacha, <b>fayl sifatida emas</b> — oddiy video qilib.`,
+  });
+  return true;
+}
+
+// ============ MAHSULOT VIDEOSI (db/023) ============
+// Rasm yo'lining yonidagi ikkinchi tarmoq. Uchta joyda undan ATAYLAB farq
+// qiladi va har bir farqning sababi bor:
+//
+// 1️⃣ TARTIB TESKARI — avval R2, keyin baza. Rasmda R2 "eng yaxshi harakat":
+//    yiqilsa ham `img_file_id` orqali Telegram proksisi rasmni ko'rsataveradi.
+//    Videoda bu pog'ona YO'Q — `handleProductPhoto` faylni butunlay `pipe`
+//    qiladi va `Range` (206) bermaydi, iOS Safari esa `<video>` uchun aynan
+//    shuni talab qiladi. Ya'ni R2 siz yozilgan `vid_file_id` — hech qachon
+//    ochilmaydigan videoni "bor" deb ko'rsatuvchi jimgina yolg'on bo'lardi
+//    (`NULL` reyting va `ALERT_CHAT_ID` darslari bilan bitta oila).
+//
+// 2️⃣ RAD ETISH ESHITILADI. Chegaraga urilgan sotuvchi jim qoldirilsa
+//    "yubordim, ishlamadi" degan holatda qolardi va sababini faqat biz
+//    jurnaldan ko'rardik. Har rad etishda `awaiting_video` ATAYLAB `true`
+//    qoladi — qayta urinish darrov ishlashi kerak.
+//
+// 3️⃣ `ffmpeg` YO'Q. Muqovani (birinchi kadr) Telegram o'zi beradi
+//    (`msg.video.thumbnail`), ya'ni serverga nativ paket qo'shilmaydi —
+//    `lib/png.js` da `sharp` dan voz kechilgani bilan bir xil mulohaza.
+const VIDEO_MAX_SECONDS = 30;
+const VIDEO_MIME = 'video/mp4';
+
+function mb(baytlar) {
+  return Math.round((baytlar / (1024 * 1024)) * 10) / 10;
+}
+
+// Rad etish sababi (sotuvchiga ko'rsatiladigan matn) yoki `null`.
+//
+// ⚠️ Tekshiruv baytlarni YUKLASHDAN OLDIN bo'ladi: Telegram xabarning
+// o'zida `duration`, `file_size` va `mime_type` ni beradi. Yuklab bo'lgandan
+// keyin rad etish 12 MB ni bekorga tortib olish demakdir, ustiga Bot API
+// `getFile` 20 MB dan kattasini UMUMAN bermaydi va xato "fayl topilmadi"
+// bo'lib kelib, sababi butunlay boshqa narsaga o'xshab ko'rinardi.
+function videoRadSababi(v) {
+  const mime = String(v.mime_type || '').toLowerCase();
+  if (mime !== VIDEO_MIME) {
+    // Telefon kamerasidan Telegram orqali kelgan video har doim mp4/h264.
+    // Boshqa tur — odatda `.mov`/HEVC, ya'ni sotuvchi uni FAYL sifatida
+    // yuborgan: bunday video Android Chrome'da umuman ochilmaydi.
+    return `Video <b>MP4</b> bo'lishi kerak.\n\nTelegram'da uni <b>fayl (document)</b> `
+      + `sifatida emas, oddiy <b>video</b> qilib yuboring — Telegram o'zi to'g'ri formatga o'giradi.`;
+  }
+  const sek = Number(v.duration || 0);
+  if (sek > VIDEO_MAX_SECONDS) {
+    return `Video <b>${VIDEO_MAX_SECONDS} soniyadan</b> uzun bo'lmasin `
+      + `(sizniki — ${sek} s).\n\nQisqartirib qayta yuboring: xaridor uzun videoni oxirigacha ko'rmaydi, `
+      + `mobil internet esa behuda sarflanadi.`;
+  }
+  const bayt = Number(v.file_size || 0);
+  if (bayt > MAX_DOWNLOAD_BYTES) {
+    return `Video hajmi <b>${mb(MAX_DOWNLOAD_BYTES)} MB dan</b> kichik bo'lsin `
+      + `(sizniki — ${mb(bayt)} MB).\n\nTelegram'da videoni yuborishdan oldin sifatni pasaytiring `
+      + `yoki qisqaroq oling.`;
+  }
+  return null;
+}
+
+async function openAwaitingProductVideo(tgUserId) {
+  const { rows } = await pool.query(
+    `SELECT id, name_uz FROM products
+      WHERE submitted_by_tg = $1 AND awaiting_video = true
+      ORDER BY created_at DESC LIMIT 1`,
+    [String(tgUserId)]);
+  return rows[0] || null;
+}
+
+// Kalit TARKIBDAN yasaladi (baytlarning `sha256` i) — rasmdagi bilan AYNI
+// qoida. Obyekt R2 da `immutable, max-age=31536000` bilan yotadi, ya'ni bitta
+// kalit ostidagi fayl hech qachon o'zgarmasligi SHART: tasodifiy kalitda
+// video almashgan kuni eskisi bir yil davomida yangisi o'rniga ko'rinardi.
+// Muqova ham AYNI hashga bog'lanadi — video bilan birga eskiradi.
+async function uploadProductVideoToR2(productId, v) {
+  const filePath = await tgGetFile(v.file_id);
+  if (!filePath) throw new Error('videoning file_path i yo\'q');
+  const { buf } = await tgDownloadFile(filePath);
+  const hash = crypto.createHash('sha256').update(buf).digest('hex').slice(0, 32);
+  const toza = String(productId).replace(/[^a-zA-Z0-9_-]/g, '') || 'x';
+  const key = `mahsulot/${toza}/video/${hash}.mp4`;
+  await r2Put(key, buf, VIDEO_MIME);
+
+  // ---- Muqova ----
+  // ⚠️ O'Z `try` i bilan: muqova YO'QOLSA video yo'qolmaydi. Poster bo'lmasa
+  // chiqishda mahsulot rasmi ishlatiladi, ya'ni nuqson kosmetik. Xato esa
+  // YUTILMAYDI — alertga chiqadi (tasma/R2 bandlaridagi bilan bitta qoida).
+  let posterKey = null;
+  const thumbId = (v.thumbnail && v.thumbnail.file_id) || (v.thumb && v.thumb.file_id) || null;
+  if (thumbId) {
+    try {
+      const thumbPath = await tgGetFile(thumbId);
+      if (thumbPath) {
+        const t = await tgDownloadFile(thumbPath);
+        posterKey = `mahsulot/${toza}/video/${hash}-poster.jpg`;
+        await r2Put(posterKey, t.buf, mimeFromPath(thumbPath));
+      }
+    } catch (e) {
+      // Birinchi argument — alert guruhlash KALITI (CLAUDE.md, Test 10c).
+      console.error('video muqovasi R2 ga yozilmadi:', e.message);
+      posterKey = null;
+    }
+  }
+
+  return { key, posterKey, thumbId, bytes: buf.length };
+}
+
+async function handleProductVideo(msg) {
+  const v = msg.video;
+  if (!v || !v.file_id) return false;
+
+  const p = await openAwaitingProductVideo(msg.from.id);
+  // Mahsulot kutmayapti — video boshqa maqsadda yuborilgan. `false` qaytadi
+  // va webhook uni o'z yo'liga qo'yib yuboradi (bahs dalili allaqachon
+  // bundan OLDIN tekshirilgan).
+  if (!p) return false;
+
+  const sabab = videoRadSababi(v);
+  if (sabab) {
+    await callTelegram('sendMessage', {
+      chat_id: msg.chat.id,
+      parse_mode: 'HTML',
+      text: `⚠️ Video qabul qilinmadi.\n\n${sabab}`,
+    });
+    return true;
+  }
+
+  let natija;
+  try {
+    natija = await uploadProductVideoToR2(p.id, v);
+  } catch (e) {
+    // R2 o'chiq bo'lsa ham shu yo'ldan o'tadi (`r2Put` → "R2 sozlanmagan").
+    console.error('mahsulot videosi R2 ga yozilmadi:', e.message);
+    await callTelegram('sendMessage', {
+      chat_id: msg.chat.id,
+      parse_mode: 'HTML',
+      // ⚠️ "Qabul qilindi" DEYILMAYDI. Bazaga yozilmagan video keyin
+      // ko'rinmaydi va sotuvchi buni faqat oylar o'tib sezardi.
+      text: '⚠️ Videoni hozir saqlab bo\'lmadi — texnik nosozlik.\n\n'
+        + 'Birozdan keyin qayta yuboring, e\'lon video kutib turadi.',
+    });
+    return true;
+  }
+
+  await pool.query(
+    `UPDATE products
+        SET vid_file_id=$1, vid_r2_key=$2, vid_poster_file_id=$3,
+            vid_poster_r2_key=$4, vid_seconds=$5, vid_bytes=$6,
+            vid_at=now(), awaiting_video=false
+      WHERE id=$7`,
+    [v.file_id, natija.key, natija.thumbId, natija.posterKey,
+      v.duration == null ? null : Number(v.duration), natija.bytes, p.id]);
+
+  // Havola ATAYLAB beriladi: A+B bosqichida video hali katalogda
+  // ko'rsatilmaydi (frontend — D bandi), ya'ni usiz natijani KO'RIB
+  // bo'lmasdi. Hajm va davomiylik ham shu sabab yoziladi — namunalar
+  // yig'ilgach "video qancha joy oladi" degan savolga o'lchangan javob
+  // kerak, taxmin emas (hujjatdagi raqam — tekshirilmagan da'vo darsi).
+  const havola = r2PublicUrl(natija.key);
+  await callTelegram('sendMessage', {
+    chat_id: msg.chat.id,
+    parse_mode: 'HTML',
+    text: `✅ Video qabul qilindi: <b>${escapeHtml(p.name_uz)}</b>\n\n`
+      + `⏱ ${v.duration || 0} soniya · 📦 ${mb(natija.bytes)} MB`
+      + (havola ? `\n🔗 ${escapeHtml(havola)}` : '')
+      // ⚠️ "Katalogda ko'rinadi" DEYILMAYDI — frontend hali qo'shilmagan
+      // (D bandi). Bajarilmagan va'da bergandan ko'ra kamroq va'da berilsin.
+      + `\n\nSaqlandi — sifatini ko'rib chiqamiz.`,
   });
   return true;
 }
@@ -280,8 +459,11 @@ async function handleSubmitProduct(req, res, ip) {
     const me = await currentSeller(u);
     const sellerId = me && me.role === 'seller' ? me.seller_id : null;
     await pool.query(
-      `INSERT INTO products (id, seller_id, cat_key, price, unit, moq, name_uz, name_ru, comp_uz, stock, status, submitted_by_tg, awaiting_image)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'pending',$11,true)`,
+      // `awaiting_video` ham darrov ochiladi (db/023): sotuvchi videoni rasmdan
+      // OLDIN yuborishi mumkin va o'sha video yo'qolib ketmasin. Eski
+      // e'lonlarda bayroq rasm qabul qilinganda ochiladi.
+      `INSERT INTO products (id, seller_id, cat_key, price, unit, moq, name_uz, name_ru, comp_uz, stock, status, submitted_by_tg, awaiting_image, awaiting_video)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'pending',$11,true,true)`,
       [id, sellerId, d.cat_key, d.price, d.unit || 'rulon', d.moq || 1, d.name_uz, d.name_ru, d.comp_uz, d.stock, String(u.id)]
     );
     sendOrderNotifyMessage(
@@ -371,5 +553,9 @@ function handleGetContact(req, res, ip) {
 
 module.exports = {
   handleAuthTelegram, handleGetProducts, handleSubmitProduct, handleModerationList, handleModerationAction, handleGetContact,
-  handleProductPhoto, handleProductImage, productPhotoUrl,
+  handleProductPhoto, handleProductImage, handleProductVideo, productPhotoUrl,
+  // Sinov uchun ATAYLAB ochiq: chegara qorovulini (`videoRadSababi`) to'g'ridan-
+  // to'g'ri sinab bo'lsin — loyiha darsi: yozilgan qoida himoya emas, uni
+  // tekshiradigan test himoya (`lib/r2.js` → `tekshirKalit` bilan bir xil).
+  videoRadSababi, VIDEO_MAX_SECONDS,
 };

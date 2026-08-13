@@ -158,7 +158,14 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
   uchun brauzer `media-src` ga qaraydi, u aytilmasa `default-src 'self'` ga
   tushadi va R2 domeni rad etiladi. Qoida hozir majburlanmagani uchun video
   ishlayveradi, ya'ni bu **kelajakdagi tuzoq**: CSP yoqilgan kuni otiladi.
-  **SINALGANI:** 53 test yashil (`server/test.js`); migratsiya **pglite'da
+  **SINALGANI:** to'plam yashil — **59 test** (`server/test.js`). ⚠️ Raqam
+  hisobot paytida TUZATILDI: ish davomida u **53** deb aytilgan edi, chunki
+  `function test…` ta'riflari sanalgan — loyihada esa hisob RUNNER
+  CHIQISHIDAGI `Test NN` belgilari bo'yicha yuritiladi va ikki usul ayni
+  javobni berdi (59 va 59; funksiya ta'riflari esa 56 ta, ya'ni bir funksiya
+  bir nechta belgini qamraydi). Farq zararsiz emasdi: yonidagi yozuvda 59
+  turgani uchun 53 deb yozilsa **testlar KAMAYGANDEK ko'rinardi**. Bu ish
+  qo'shgan test soni — **NOL**; migratsiya **pglite'da
   BAJARILDI** va o'zining ichki tekshiruvi 5 mutatsiya bilan sinaldi (ustun
   yetishmasa, `NOT NULL` qo'yilsa, `DEFAULT true` bo'lsa, eski qatorlar ochiq
   qolsa — beshtasi ham QIZIL berdi); admin paneli brauzerda jonli chizdirildi

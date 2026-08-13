@@ -113,8 +113,13 @@ const MAX_DOWNLOAD_BYTES = 12 * 1024 * 1024;
 // Kengaytmadan tur — `routes/catalog.js` dagi bilan bir xil mulohaza:
 // Telegram CDN'i `content-type` bermaydi yoki `application/octet-stream`
 // beradi, AI provayderi esa haqiqiy turni talab qiladi.
+//
+// `mp4` mahsulot videosi uchun (db/023). U bo'lmasa pastdagi zaxira video
+// baytlarini `image/jpeg` deb e'lon qilardi — chaqiruvchi turni O'ZI bersa
+// ham, yolg'on zaxira keyingi ishlatuvchini aldashi mumkin edi.
 const MIME_BY_EXT = {
   jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp',
+  mp4: 'video/mp4',
 };
 
 function tgDownloadFile(filePath) {
@@ -228,4 +233,9 @@ module.exports = {
   callTelegram, sendOrderNotifyMessage, sendBuyerConfirmMessage,
   STATUS_COMMANDS, sendOpenAppMessage, callbackAnswer, notify, tgGetFile,
   tgDownloadFile, sendPhotoBytes, sendPhotoWithEffect,
+  // Chegara ATAYLAB eksport qilinadi: mahsulot videosi baytlarni YUKLASHDAN
+  // OLDIN `file_size` bo'yicha rad etadi va sotuvchiga aniq raqam aytadi
+  // ("12 MB dan kichik bo'lsin"). Raqam ikki joyda qo'lda yozilsa, biri
+  // o'zgargan kuni sotuvchiga aytilgan chegara YOLG'ON bo'lib qolardi.
+  MAX_DOWNLOAD_BYTES,
 };

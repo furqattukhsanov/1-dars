@@ -225,6 +225,7 @@ Bandlarning ma'nosi:
 | `style-src` | Uslub bizdan yoki Google Fonts'dan |
 | `font-src` | Shrift fayllari `fonts.gstatic.com` dan |
 | `img-src 'self' data: https://cdn.lolamarket.uz` | Rasm bizdan (`assets/`, `/api/product-photo`) va R2 omboridan (2026-08-09) |
+| `media-src 'self' https://cdn.lolamarket.uz` | Mahsulot videosi R2 dan (2026-08-13). **`img-src` buni qamramaydi** — `<video>` alohida bandga qaraydi |
 | `connect-src 'self'` | **`fetch` faqat o'z API'imizga** — ma'lumot tashqariga chiqmaydi |
 | `frame-ancestors` | Freym himoyasi, Telegram'ga ruxsat bilan |
 | `base-uri 'self'` | `<base>` orqali hamma yo'lni burib yuborishning oldini oladi |
@@ -265,11 +266,19 @@ qiymatni **founder almashtiradi** — bu yagona qolgan qadam.
 ### Kanonik qoida — BUGUNGI qiymat
 
 ```
-default-src 'self'; script-src 'self' https://telegram.org https://static.cloudflareinsights.com; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://cdn.lolamarket.uz; connect-src 'self'; frame-ancestors 'self' https://telegram.org https://*.telegram.org; base-uri 'self'; form-action 'self'; object-src 'none'
+default-src 'self'; script-src 'self' https://telegram.org https://static.cloudflareinsights.com; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://cdn.lolamarket.uz; media-src 'self' https://cdn.lolamarket.uz; connect-src 'self'; frame-ancestors 'self' https://telegram.org https://*.telegram.org; base-uri 'self'; form-action 'self'; object-src 'none'
 ```
 
 Eskisidan farqi **bitta**: `script-src` dan `'unsafe-inline'` olib tashlandi.
 Qolgan hamma band harfma-harf o'sha-o'sha.
+
+🔴 **`media-src` 2026-08-13 da QO'SHILDI — u bo'lmasa video JIMGINA o'ladi.**
+Mahsulot videosi (`db/023`) `cdn.lolamarket.uz` dan `<video>` bilan olinadi.
+`img-src` unga TEGISHLI EMAS: `<video>` uchun brauzer `media-src` ga qaraydi,
+u aytilmagan bo'lsa `default-src 'self'` ga tushadi va R2 domeni rad etiladi.
+Nuqson ko'rinmasdi — sahifa ochilardi, konsolda CSP xatosi qolardi, pleyer
+esa bo'sh turardi. Hozircha CSP majburlanmagani uchun video ishlaydi, ya'ni
+bu **kelajakdagi tuzoq**: qoida yoqilgan kuni otiladi.
 
 - `https://static.cloudflareinsights.com` **SAQLANADI** — beacon `src` li tashqi
   skript, inline emas, ya'ni `'unsafe-inline'` ga umuman bog'liq emas edi.

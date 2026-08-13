@@ -1113,6 +1113,22 @@ body { min-height: 100vh; padding-bottom: 0; }
   background: var(--ink-100);
 }
 
+/* Video moderatsiya kartochkasida rasm TAGIDA turadi — ustiga emas.
+   Sabab: moderator ikkalasini ham ko'rishi kerak, video rasmni almashtirsa
+   "rasm yo'q" holati bilan "video bor" holati chalkashardi.
+   `aspect-ratio` rasm bilan BIR XIL (4/3): ikki blok bir tekis tursin va
+   video yuklanganda kartochka sakrab ketmasin. */
+.mod-video {
+  width: 100%;
+  aspect-ratio: 4/3;
+  object-fit: cover;
+  display: block;
+  background: #000;
+  border-top: 1px solid var(--line, rgba(0, 0, 0, 0.08));
+}
+
+.section-header-gap { margin-top: 1.6rem; }
+
 .mod-body { padding: 0.9rem 1rem 1rem; display: flex; flex-direction: column; gap: 0.5rem; }
 .mod-name { font-weight: 700; font-size: 0.82rem; color: var(--text-strong); }
 .mod-meta { font-size: 0.68rem; color: var(--text-muted); }

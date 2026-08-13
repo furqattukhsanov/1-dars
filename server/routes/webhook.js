@@ -9,7 +9,7 @@ const {
 const { confirmWebLoginCode } = require('./web-auth');
 const { handleAdminActionCallback } = require('./admin');
 const { handleDisputeEvidence, handleDisputeEvidenceDone } = require('./disputes');
-const { handleProductImage } = require('./catalog');
+const { handleProductImage, handleProductVideo } = require('./catalog');
 const { hideReview } = require('./reviews');
 const { recordStatusChange } = require('../lib/order-history');
 const {
@@ -45,11 +45,20 @@ async function handleTelegramWebhook(req, res) {
     if (rateLimited(`webhook:${msg.chat.id}`, 20)) return;
 
     // Bahs dalili (rasm/video) — ochiq bahs bo'lsa qabul qilinadi.
-    // Bahs kutmasa — kutilayotgan mahsulot rasmi bo'lishi mumkin (faqat rasm).
+    // Bahs kutmasa — kutilayotgan mahsulot rasmi yoki videosi bo'lishi mumkin.
     if (msg.photo || msg.video) {
       const usedByDispute = await handleDisputeEvidence(msg)
         .catch((e) => { console.error('dispute evidence xatosi:', e.message); return false; });
       if (usedByDispute) return;
+      // Rasm va video AYRIM yo'ldan boradi: birinchisi `awaiting_image` ni,
+      // ikkinchisi `awaiting_video` ni kutadi (db/023). Ilgari ikkalasi ham
+      // `handleProductImage` ga tushardi va u videoni jimgina tashlab
+      // yuborardi — sotuvchi hech qanday javob olmasdi.
+      if (msg.video) {
+        await handleProductVideo(msg)
+          .catch((e) => console.error('product video xatosi:', e.message));
+        return;
+      }
       await handleProductImage(msg)
         .catch((e) => console.error('product image xatosi:', e.message));
       return;

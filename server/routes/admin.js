@@ -7,8 +7,28 @@ const { rateLimited, readBody, ok, fail } = require('../lib/http');
 const { callTelegram, callbackAnswer, notify } = require('../lib/telegram-api');
 const { handleSellerApplicationReview } = require('./seller-application');
 const { productPhotoUrl } = require('./catalog');
+const { r2PublicUrl } = require('../lib/r2');
 const { findReviewForAdmin, hideReview } = require('./reviews');
 const { recordStatusChange } = require('../lib/order-history');
+
+// Video blokining YAGONA yasovchisi — moderatsiya navbati va videolar ro'yxati
+// AYNI shakldan foydalanadi. Ikki joyda qo'lda yig'ilsa, biri yangilanib
+// ikkinchisi ortda qolardi (`aiClientConfig` bilan bir xil mulohaza).
+//
+// `video: null` — "video yo'q" degan ANIQ holat va panel bunda blokni umuman
+// chizmaydi. Havola R2 domeni ulanmagan bo'lsa ham `null` bo'ladi: taxminiy
+// URL YASALMAYDI, chunki ishlamaydigan pleyer yo'q pleyerdan yomonroq —
+// moderator "video buzuq" deb o'ylab, sababini hech qachon ko'rmasdi.
+function videoVM(r) {
+  const url = r2PublicUrl(r.vid_r2_key);
+  if (!url) return { video: null };
+  return {
+    video: url,
+    videoPoster: r2PublicUrl(r.vid_poster_r2_key),
+    videoSeconds: r.vid_seconds == null ? null : Number(r.vid_seconds),
+    videoBytes: r.vid_bytes == null ? null : Number(r.vid_bytes),
+  };
+}
 
 // ============ ADMIN PANEL RUXSATI ============
 // admin/index.html (standalone sahifa) Telegram initData ishlab chiqara olmaydi,
@@ -26,7 +46,7 @@ async function handleAdminSummary(req, res, ip) {
     const [
       modRes, appRes, sellerRes, todayRes, catRes, ordersRes,
       dailyRes, monthlyRes, totalsRes, topSellersRes,
-      appListRes, sellerListRes, modListRes, disputeRes, usersRes,
+      appListRes, sellerListRes, modListRes, disputeRes, usersRes, videoListRes,
     ] = await Promise.all([
       pool.query(`SELECT count(*)::int AS n FROM products WHERE status='pending'`),
       pool.query(`SELECT count(*)::int AS n FROM seller_applications WHERE status='pending' AND step='done'`),
@@ -113,6 +133,7 @@ async function handleAdminSummary(req, res, ip) {
 
       pool.query(`
         SELECT p.id, p.name_uz, p.price, p.unit, p.cat_key, p.img, p.img_file_id, p.stock, p.created_at,
+               p.vid_r2_key, p.vid_poster_r2_key, p.vid_seconds, p.vid_bytes,
                s.business_name_uz AS seller_name
           FROM products p
           LEFT JOIN sellers s ON s.id = p.seller_id
@@ -135,6 +156,23 @@ async function handleAdminSummary(req, res, ip) {
                count(*) FILTER (WHERE created_at >= now() - interval '30 days')::int AS new30,
                count(*) FILTER (WHERE phone IS NOT NULL)::int                     AS with_phone
           FROM users`),
+
+      // ---- Kelgan videolar (db/023). ATAYLAB `status` bo'yicha FILTRLANMAYDI.
+      // Moderatsiya navbati faqat `pending` e'lonlarni ko'rsatadi, video esa
+      // ALLAQACHON NASHR QILINGAN mahsulotga ham kelishi mumkin (sotuvchi rasm
+      // yuborgach bayroq ochiladi) — u holda video hech qanday navbatga
+      // tushmasdan katalogga chiqib ketardi va uni hech kim ko'rmasdi.
+      //
+      // Tartib `vid_at` bo'yicha, `created_at` bo'yicha EMAS: eski e'longa
+      // bugun kelgan video ro'yxatning tubida qolib ketardi.
+      pool.query(`
+        SELECT p.id, p.name_uz, p.status, p.vid_r2_key, p.vid_poster_r2_key,
+               p.vid_seconds, p.vid_bytes, p.vid_at, p.img, p.img_file_id,
+               s.business_name_uz AS seller_name
+          FROM products p
+          LEFT JOIN sellers s ON s.id = p.seller_id
+         WHERE p.vid_r2_key IS NOT NULL
+         ORDER BY p.vid_at DESC NULLS LAST LIMIT 50`),
     ]);
 
     const t = totalsRes.rows[0];
@@ -220,7 +258,7 @@ async function handleAdminSummary(req, res, ip) {
         joined: new Date(r.created_at).toISOString().slice(0, 10),
       })),
 
-      moderationQueue: modListRes.rows.map((r) => ({
+      moderationQueue: modListRes.rows.map((r) => Object.assign({
         id: r.id,
         name: r.name_uz,
         price: Number(r.price),
@@ -230,7 +268,16 @@ async function handleAdminSummary(req, res, ip) {
         stock: r.stock === null ? null : Number(r.stock),
         sellerName: r.seller_name,
         date: dateLabel(new Date(r.created_at)),
-      })),
+      }, videoVM(r))),
+
+      videoQueue: videoListRes.rows.map((r) => Object.assign({
+        id: r.id,
+        name: r.name_uz,
+        status: r.status,
+        sellerName: r.seller_name,
+        img: r.img_file_id ? productPhotoUrl(r.img_file_id) : r.img,
+        date: r.vid_at ? dateLabel(new Date(r.vid_at)) : null,
+      }, videoVM(r))),
     });
   } catch (e) {
     console.error('adminSummary xatosi:', e.message);
