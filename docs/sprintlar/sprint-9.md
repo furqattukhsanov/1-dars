@@ -203,6 +203,74 @@ LolaMarket ni rasmiy ishga tushirish. Birinchi haqiqiy xaridorlar va ishlab chiq
 
 ## Qilingan ishlar
 
+- [2026-08-13] 🔴 **PRODUCTION NOSOZLIGI: saytga kirish BUTUNLAY o'lgan edi —
+  sabab kodda emas, TOKEN ALMASHTIRISHNING TUSHIB QOLGAN UCHINCHI QADAMIDA.**
+  ⚠️ Bu band yangi funksiya EMAS va bu sprintga hech qanday `[x]` qo'shmaydi —
+  repoda faqat `CLAUDE.md` o'zgardi. Yozilishining sababi: nosozlik butunlay
+  infratuzilmada bo'lgani uchun uni **hech qanday test, hech qanday commit va
+  hech qanday kod ko'rib chiqish tuta olmasdi**, ya'ni yagona qorovul — yozib
+  qo'yilgan tartib.
+
+  **Nima bo'ldi.** Shu kuni oshkor bo'lgan bot tokeni BotFather'da revoke
+  qilindi va yangisi serverga yozildi (`.env.local` darsi, ~15:55). Lekin
+  **revoke Telegram webhook manzilini ham o'chirib yuboradi** va uni hech kim
+  qayta ro'yxatdan o'tkazmadi. Natija: foydalanuvchi saytda «Kirish» bosadi,
+  botga tushadi, «Start» bosadi — va **hech narsa bo'lmaydi**, chunki Telegram
+  xabarni qabul qiladi-yu uzatadigan manzili yo'q. `db/007` oqimining uchinchi
+  qadami (webhook Telegram ID ni serverga olib keladi) uzilgan, ya'ni
+  `sprint-3.md` da "production'da tasdiqlangan" deb yozilgan kirish oqimi
+  **bugun umuman ishlamayotgan** edi.
+
+  **Nuqson NEGA jimgina keldi — o'lchov bilan.** Uzilgan joydan boshqa
+  HAMMASI sog'lom ko'rinardi va har biri alohida tekshirilgan:
+  - sayt `POST /api/auth/web/start` → **200**, to'g'ri `t.me/...?start=web_...`
+    havolasi bilan;
+  - server `POST /api/telegram-webhook` → **401**, ya'ni endpoint tirik va
+    sirni talab qilyapti;
+  - token `getMe` → **@lolamarketbot**, ya'ni yangi token haqiqiy;
+  - `getWebhookInfo` → **`url: ""`**, `pending_update_count: **6**`.
+
+  Ya'ni uchta yashil belgi bor edi va ularning birortasi ham webhook haqida
+  hech narsa demasdi. **`getMe` yashil bo'lishi TOKEN to'g'ri deganidir,
+  BOT ishlayapti degani emas.** Navbatda qotib turgan 6 ta yangilanish —
+  aynan foydalanuvchining bosgan «Start» lari.
+
+  **Tuzatish va tasdiq.** `setWebhook` serverda founder tomonidan bajarildi
+  (sirlar serverning O'ZIDA `.env` dan o'qildi, yozishmaga chiqmadi). Keyin
+  `getWebhookInfo` → `url: https://lolamarket.uz/api/telegram-webhook`,
+  `pending_update_count: **0**`, `last_error_message` **yo'q**. Undan keyin
+  founder saytda kirishni **JONLI sinab ko'rdi va profil ochildi** — ya'ni
+  "tuzatdim" emas, "ishlayotgani ko'rindi" (`sprint-10` ning billing darsi
+  bilan bitta oila: buyruq bajarilgani natija emas).
+
+  ⚠️ **`getUpdates` ATAYLAB chaqirilmadi.** Webhook yo'q paytda u navbatdagi
+  yangilanishlarni **yeb yuboradi** va ular serverga hech qachon yetmaydi —
+  ya'ni tashxis qo'yish harakati foydalanuvchining bosgan tugmasini yo'q
+  qilardi. Tashxis uchun faqat `getWebhookInfo` ishlatildi: u hech narsani
+  o'zgartirmaydi.
+
+  ⚠️ **Nosozlik qancha turgani NOMA'LUM va bu ataylab yozilyapti.** Aniq
+  bilinadigani — token ~15:55 da almashtirilgan, shikoyat esa undan keyin
+  keldi. Yo'qolgan kirish urinishlari soni o'lchanmadi (navbatdagi 6 ta
+  yangilanish faqat quyi chegara: Telegram navbatni cheksiz saqlamaydi).
+  «O'ylab topilgan raqam ko'rsatilmasin» qoidasi shu yerda ham amal qiladi.
+
+  **Dars (`CLAUDE.md` → "Server va Deploy" ga yozildi).** Token almashtirish
+  ikki emas, **uch qadamlik amal**: (1) `.env`, (2) servis, (3) `setWebhook` +
+  `getWebhookInfo` bilan tasdiq. Bu `ALERT_CHAT_ID` va `/opt/lolamarket-notify/`
+  hodisalarining aynan uchinchi takrori: **sozlama "bor" ko'rinishi uning
+  ishlayotganini bildirmaydi**, va jimgina o'lik funksiya yo'q funksiyadan
+  yomonroq — yo'qligi savol tug'diradi, "sog'lom ko'rinishi" esa ishonch
+  uyg'otadi.
+  🔴 **Buni test bilan qulflab BO'LMAYDI** — holat repoda emas, Telegram
+  tomonida yashaydi. Ya'ni bu «yozilgan qoida himoya emas, uni tekshiradigan
+  test himoya» oilasidan **ikkinchi istisno** (birinchisi — prompt matnini
+  ko'z bilan o'qish). Shuning uchun tartib qo'lda bajariladigan ro'yxat
+  sifatida yozildi. Kelajakda yopish yo'li bor va u ochiq band sifatida
+  qoldiriladi: `self-check.js` soatiga bir marta `getWebhookInfo` ni so'rab,
+  `url` bo'sh yoki kutilganidan boshqa bo'lsa alert bersin — o'shanda bu
+  nosozlik jimgina emas, birinchi soatda ko'rinadigan bo'ladi.
+
 - [2026-08-13] **C3 ning "OCHIQ QOLGANI" aslida ALLAQACHON YOPILGAN edi — va
   buni faqat jonli o'lchov ko'rsatdi.** Quyidagi 2026-08-06 yozuvida "Cloudflare
   paneldagi CSP qiymatini founder almashtiradi — yagona qolgan qadam" deb
@@ -930,6 +998,20 @@ LolaMarket ni rasmiy ishga tushirish. Birinchi haqiqiy xaridorlar va ishlab chiq
 ---
 
 ## Qarorlar
+
+- [2026-08-13] Qaror: **BOT_TOKEN almashtirish — UCH qadamlik amal, ikki emas.**
+  `.env` ga yozish va servisni ko'tarish YETARLI EMAS: BotFather'dagi revoke
+  Telegram webhook manzilini ham o'chiradi, ya'ni uchinchi qadam —
+  `setWebhook`, va to'rtinchisi emas balki o'sha qadamning bir qismi sifatida
+  `getWebhookInfo` bilan **tasdiq**. Tekshirish belgisi ikkitasi: `url` to'g'ri
+  va `last_error_message` YO'Q (`secret_token` server `.env` dagi
+  `WEBHOOK_SECRET` bilan mos kelmasa webhook ro'yxatda TURADI-yu server har
+  xabarni 401 bilan rad etadi — nosozlik ayni shaklda qaytadi).
+  `getMe` javobiga tayanish TAQIQLANADI: u token haqida gapiradi, yetkazib
+  berish yo'li haqida emas. Sabab — o'sha kungi hodisa: uchinchi qadam tushib
+  qolgani uchun saytga kirish butunlay o'lgan, sayt/server/token esa uchalasi
+  ham yashil ko'rinib turgan. Bu `ALERT_CHAT_ID` qarori bilan bitta oila:
+  **sozlamaning "bor" ko'rinishi uning ishlayotganini bildirmaydi**
 
 - [2026-08-06] Qaror: **statik fayl o'zgarsa `?v=` HAM oshadi, va bitta fayl
   HAMMA sahifada BIR XIL versiya bilan chaqiriladi.** Brauzer keshining kaliti

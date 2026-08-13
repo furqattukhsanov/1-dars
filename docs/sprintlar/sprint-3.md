@@ -138,6 +138,20 @@ ma'lumotdan aniqlanadi. Har kim faqat o'z buyurtmalarini ko'radi.
   bazada 1 ta faol sessiya (`web_sessions`) bor, `users.tg_username` to'ldi. Ya'ni Sprint 3
   ning saytdagi kirish qismi endi faqat kod emas, **production'da tasdiqlangan** holatda
 
+> 🔴 **2026-08-13 — YUQORIDAGI "TASDIQLANGAN" DA'VOSIGA ILOVA (sprint yopilgandan
+> keyin qo'shildi, o'chirilmadi).** O'sha kuni bu oqim production'da **butunlay
+> o'lgan** edi va sabab shu sprintdagi kodning birortasida ham emas: bot tokeni
+> almashtirilganda Telegram **webhook manzili ham o'chgan** va qayta ro'yxatdan
+> o'tkazilmagan. Ya'ni oqimning 3-qadami — "Telegram webhook'ga ID'ni **o'zi**
+> yuboradi" — jimgina uzilib qolgan: bot «Start» ni oladi, uzatadigan joyi
+> yo'q (`getWebhookInfo` → `url: ""`, navbatda 6 ta yangilanish).
+> **Dars aynan bu sprintga tegishli:** kirishning eng kuchli tomoni — kimlik
+> brauzerdan emas, Telegram'dan kelishi — ayni paytda uning **eng nozik
+> tomoni**: oqim repodan TASHQARIDAGI holatga (webhook ro'yxati) bog'liq va
+> u yerdagi uzilishni na test, na deploy tekshiruvi ko'radi. Batafsil tashxis,
+> o'lchov va tiklash tartibi: `sprint-9.md` (2026-08-13) va `CLAUDE.md` →
+> "Server va Deploy".
+
 ---
 
 ## Qarorlar
