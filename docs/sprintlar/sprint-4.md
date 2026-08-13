@@ -229,6 +229,98 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
   taxmin emas) — kechagi to'rtta o'lik kalitning ustiga yangisi
   qo'shilmadi
 
+- [2026-08-13] **Mini App profilida ham «Buyurtmalarim» qatori paydo bo'ldi —
+  lekin RO'YXAT KO'CHIRILMADI, va bu ikki yuz orasidagi ATAYLAB QILINGAN
+  FARQ.** Founder aytgani: «mini appda ham shunday qilgin» — yuqoridagi
+  sayt ishining (`c1e309b`) juftligi.
+
+  ⚠️ **Yuqoridagi yozuvning "(b) Mini App'ga TEGILMADI" bandiga ILOVA, va
+  u banddagi da'vo ANIQLASHTIRILADI (o'chirilmaydi):** o'sha yerda "ikkala
+  yuz endi bitta mantiqda" deyilgan va bu MEXANIZM haqida to'g'ri edi —
+  Mini App'da buyurtmalar allaqachon O'Z EKRANIDA yashaydi (pastdagi
+  navigatsiya, `renderOrders()`). Bir xil BO'LMAGAN narsa boshqa edi:
+  **profil bo'limlari ro'yxati.** Saytda profilga kirgan xaridor
+  «Mening buyurtmalarim» qatorini ko'radi, Mini App'da esa ko'rmasdi va
+  buyurtmalarni faqat pastdagi tabdan topardi.
+
+  🔴 **Shuning uchun bu yerda qator YANGI ko'rinish OCHMAYDI — MAVJUD
+  ekranga IKKINCHI ESHIK qo'yadi** (`tab('orders')`). Saytda `drawerView =
+  'orders'` yangi ko'rinish yaratish KERAK edi, chunki u yerda ro'yxat
+  profil ichida chizilib boshqa bo'limlarni bosib turardi; bu yerda esa
+  ko'chiriladigan narsa YO'Q. **«Ikkala yuzda bir xil qilaman» deb Mini
+  App'dan navigatsiya tabini olib tashlash yoki ekranni profil ichiga
+  solish REGRESSIYA bo'lardi** — bir xillik SHAKLDA (bo'limlar ro'yxati),
+  mexanizmda emas.
+
+  **Nima qo'shildi** (`telegram-app/app.js` v81→v82): (1) `renderOrdersRow()`
+  — `profileRow()` orqali chizilgan qator (ikonka + «Buyurtmalarim» + izoh +
+  strelka), manzil va aloqa qatorlari bilan bir xil shakl; (2) `ICO.receipt`
+  — kvitansiya belgisi, saytdagi `myOrdersRowHtml()` dagi `path` bilan
+  **harfma-harf bir xil** (solishtirildi, ko'z bilan qaralmadi); (3) yangi
+  `T.ordersNone` kaliti (uz: «Hozircha buyurtma yo'q», ru: «Заказов пока
+  нет»).
+
+  ⚠️ **`profileRow()` ning CHEGARASI kengaytirildi — `arg` qo'shildi.**
+  Ilgari u FAQAT argumentsiz amalni chaqira olardi (`data-arg` umuman
+  chizilmasdi), ya'ni `tab('orders')` kabi amalni qator orqali berish
+  IMKONSIZ edi. Bitta satr, lekin bu funksiyaning shartnomasi —
+  delegatsiya `data-arg` ni allaqachon o'qiydi (`app.js` boshidagi
+  shartnoma: butun son bo'lsa `Number`, aks holda satr), yetishmagan joy
+  faqat uni CHIZISH edi.
+
+  ⚠️ **Qator ostidagi izoh MA'LUMOTDAN keladi, o'ylab topilgan son YO'Q:**
+  bo'sh bo'lsa «Hozircha buyurtma yo'q», bo'lsa `2 buyurtma · Yo'lda` —
+  eng yangi buyurtmaning holati. Holat yorlig'i MAVJUD `STATUS_TXT`
+  jadvalidan olinadi (u allaqachon `{uz, ru}`), ya'ni **yangi tarjima
+  jadvali YARATILMADI** va ro'yxat ekranidagi yorliq bilan bitta manbadan
+  keladi. `ORDERS[0]` ENG YANGISI ekani IKKI manbada TEKSHIRILDI, taxmin
+  qilinmadi: yangi buyurtma `ORDERS.unshift(...)` bilan boshiga qo'yiladi
+  va serverdan ro'yxat `ORDER BY created_at DESC` bilan keladi
+  (`server/routes/orders.js:427`).
+
+  **`T.ordersCount` esa YANGI EMAS — bu ish O'LIK KALITNI TIRILTIRDI.** U
+  ikkala tilda allaqachon bor edi va HECH QAYERDA ishlatilmayotgan qoldiq
+  edi. ⚠️ Nomi saytdagi kalit bilan bir xil, lekin jadval BOSHQA:
+  `script.js` va `app.js` o'z `STR` larini yuritadi — yuqoridagi yozuvdagi
+  «uch yangi tarjima kaliti» sayt jadvali haqida, bu yerda esa Mini App
+  jadvali.
+
+  **O'LCHANDI, KO'Z BILAN QARALMADI** (375×812, `getBoundingClientRect()`
+  bilan ichidagi element ota chegarasidan oshmasligi tekshirildi —
+  «flex ustundagi yangi blok» qoidasi, CLAUDE.md): Buyurtmalarim
+  **65.2px**, Til 62px, Bildirishnomalar 62px, Mening manzilim 65.2px,
+  Biz bilan bog'lanish 65.2px, Ijtimoiy tarmoqlar 62px — **hech biri
+  KESILMAGAN**. 62 va 65.2 orasidagi farq naqshdan: izohli qatorlar
+  (buyurtma, manzil, aloqa) ikki qatorli, izohsizlari bir qatorli — yangi
+  qator MAVJUD naqshga mos tushdi.
+
+  **Sinalgani: 60 test yashil** (runner chiqishidagi `✅ Test` satrlari
+  SANALDI, hisobotdan ko'chirilmadi — kechagi «48 test» darsi). Brauzerda
+  jonli (mobil 375×812): qator chizildi (`2 buyurtma · Yo'lda`), bosilganda
+  `S.screen` `orders` ga o'tdi va ekran chizildi (`LM-2481 / Yo'lda`),
+  pastdagi navigatsiyada «Buyurtma» yorildi; bo'sh holat, bitta buyurtma
+  («1 buyurtma · Yetkazildi») va **ruscha** yo'l («Мои заказы», `2 заказов
+  · В пути`) alohida tekshirildi. Konsolda JS xatosi yo'q.
+  ⚠️ Yo'l-yo'lakay: `app.js?v=82` haqiqatan yuklangani TARMOQ SO'ROVI bilan
+  tasdiqlandi, va `CACHE_VERSION` oshirilishi KERAK EMASLIGI ham
+  tekshirildi — `app.js` service worker `PRECACHE` ro'yxatida YO'Q
+  (`telegram-app/sw.js`), Test 17 yashil.
+
+  **Kesh:** `telegram-app/app.js?v=82` (`index.html` bilan birga),
+  Test 16 jadvalidagi hash yangilandi.
+
+  🔴 **HALOL CHEGARA, ATAYLAB YOZILADI:** (a) **DEPLOY QILINMAGAN** —
+  ish faqat repoda; (b) **TELEGRAM ICHIDA KO'RILMAGAN** — brauzerda
+  sinaldi, Mini App'ning haqiqiy muhiti esa WebView va u yerda faqat
+  founder ko'radi; buyurtmalari BOR haqiqiy xaridorda ham ko'rilmagan
+  (`ORDERS` sinov ma'lumoti bilan to'ldirilgan); (c) **YANGI TEST
+  YOZILMADI — qo'shilgan test soni NOL**, va bu yerda KONKRET KO'R NUQTA
+  bor: **Mini App'ning `STR` jadvali uz/ru to'liqligini HECH QANDAY test
+  qo'riqlamaydi** (Test 20 faqat `script.js` ni, Test 14j faqat serverdagi
+  AI yorliqlarini qamraydi), ya'ni yangi `ordersNone` kaliti bir tilda
+  tushib qolsa buni hech narsa aytmaydi. Bu «yozilgan qoida himoya emas —
+  uni tekshiradigan test himoya» oilasidan ATAYLAB ochiq qoldirilgan joy.
+
 - [2026-08-13] **Mahsulot ekrani (Mini App) qayta tartiblandi — rasm 2.1
   barobar kattalashdi va endi bosilsa to'liq ekranda ochiladi. Sabab
   O'LCHOV bilan topildi, "chiroyliroq bo'lsin" bilan emas.** Founder:
@@ -1287,6 +1379,21 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
   nuqson buyurtma soni bilan o'sadi, ya'ni o'zidan tuzalmaydi. Qator
   ochilishi ham BITTA mexanizmdan: saytda `drawerView`, yangi yo'l
   qurilmaydi
+- [2026-08-13] Qaror: **Mini App'da «Buyurtmalarim» qatori qo'shiladi, lekin
+  RO'YXAT PROFILGA KO'CHIRILMAYDI — ikkala yuz BIR XIL SHAKLDA bo'ladi,
+  bir xil MEXANIZMDA emas.** Founder: «mini appda ham shunday qilgin».
+  Yuqoridagi qaror saytda YANGI ko'rinish ochishni talab qilgan, chunki
+  u yerda ro'yxat profil ichida chizilardi; Mini App'da esa buyurtmalar
+  ALLAQACHON o'z ekranida (pastdagi navigatsiya), ya'ni ko'chiriladigan
+  narsa yo'q va qator MAVJUD ekranga ikkinchi eshik bo'ladi.
+  ⚠️ **Teng ko'rinadigan, lekin RAD ETILGAN ikki yo'l:** (1) Mini App'dan
+  buyurtma tabini olib tashlab ro'yxatni profil ichiga solish, (2) saytda
+  ham tab qurish. Ikkalasi ham "bir xillik" nomi bilan ISHLAYOTGAN narsani
+  buzardi — Mini App'da tab yo'qolsa buyurtmaga yetish bir bosish uzoqroq
+  bo'lardi, saytda esa drawer'da tab uchun joy yo'q. **Bir xillik
+  FOYDALANUVCHI KO'RADIGAN darajada (profil bo'limlari ro'yxati), kod
+  yo'lida emas** — bu `BTS_POINTS` ikki yuzda alohida yashashi bilan bitta
+  oilada: mazmun bir xil, mexanizm har yuzning o'ziga qulay
 - [2026-08-13] Qaror: **`ORDER_STATUS` jadvali `STR` tarjima jadvaliga
   KO'CHIRILMAYDI**, yorliq esa `{uz, ru}` shaklida o'sha jadvalning
   ichida turadi. Sabab: kalitlari — bazadagi `orders.status` qiymatlari

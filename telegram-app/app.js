@@ -184,7 +184,8 @@ const STR = {
     dispSent: "Bahs ochildi — botga muammo rasmini yuboring",
     dispOpenBadge: "Bahs ko'rib chiqilmoqda", dispResolvedBadge: "Bahs hal qilindi",
     dispDecision: "Qaror", dispRefund: "Qaytarildi", dispNeedPhoto: "Botga rasm yuboring",
-    profile: "Profil", editP: "Tahrirlash", ordersCount: "buyurtma", settings: "Sozlamalar", language: "Til", notifications: "Bildirishnomalar",
+    profile: "Profil", editP: "Tahrirlash", ordersCount: "buyurtma", ordersNone: "Hozircha buyurtma yo'q",
+    settings: "Sozlamalar", language: "Til", notifications: "Bildirishnomalar",
     // — Profil: mening manzilim —
     myAddr: "Mening manzilim", myAddrNone: "Doimiy olish nuqtasi tanlanmagan",
     myAddrHint: "Tanlansa, buyurtma berishda shu nuqta oldindan qo'yiladi",
@@ -338,7 +339,8 @@ const STR = {
     dispSent: "Спор открыт — отправьте фото боту",
     dispOpenBadge: "Спор рассматривается", dispResolvedBadge: "Спор решён",
     dispDecision: "Решение", dispRefund: "Возвращено", dispNeedPhoto: "Отправьте фото боту",
-    profile: "Профиль", editP: "Изменить", ordersCount: "заказов", settings: "Настройки", language: "Язык", notifications: "Уведомления",
+    profile: "Профиль", editP: "Изменить", ordersCount: "заказов", ordersNone: "Заказов пока нет",
+    settings: "Настройки", language: "Язык", notifications: "Уведомления",
     // — Профиль: мой адрес —
     myAddr: "Мой адрес", myAddrNone: "Постоянный пункт выдачи не выбран",
     myAddrHint: "Выбранный пункт будет подставлен при оформлении заказа",
@@ -3211,6 +3213,9 @@ const ICO = {
   pin: '<svg width="21" height="21" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M12 2a7.4 7.4 0 0 0-7.4 7.4C4.6 14.8 12 22 12 22s7.4-7.2 7.4-12.6A7.4 7.4 0 0 0 12 2zm0 10.1a2.7 2.7 0 1 1 0-5.4 2.7 2.7 0 0 1 0 5.4z"/></svg>',
   chat: '<svg width="21" height="21" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.2c-5.1 0-9.2 3.5-9.2 7.9 0 2.4 1.2 4.6 3.2 6.1L4.9 21l4.3-1.8c.9.2 1.8.3 2.8.3 5.1 0 9.2-3.5 9.2-7.9s-4.1-7.9-9.2-7.9z"/></svg>',
   share: '<svg width="21" height="21" viewBox="0 0 24 24" fill="currentColor"><circle cx="18" cy="5" r="2.7"/><circle cx="6" cy="12" r="2.7"/><circle cx="18" cy="19" r="2.7"/><path d="M8.2 10.8l7.6-4.4M8.2 13.2l7.6 4.4" stroke="currentColor" stroke-width="1.8" fill="none"/></svg>',
+  // Kvitansiya — saytdagi buyurtmalar qatori bilan AYNI belgi (`script.js`
+  // → `myOrdersRowHtml`): bir xil bo'lim ikki yuzda bir xil ko'rinsin.
+  receipt: '<svg width="21" height="21" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M6.2 2h11.6a1 1 0 0 1 1 1v18.1a.6.6 0 0 1-.9.5L15 20l-2.6 1.6a.8.8 0 0 1-.8 0L9 20l-2.9 1.6a.6.6 0 0 1-.9-.5V3a1 1 0 0 1 1-1zm2 5.2a1 1 0 0 0 0 2h7.6a1 1 0 0 0 0-2H8.2zm0 4.1a1 1 0 0 0 0 2h7.6a1 1 0 0 0 0-2H8.2zm0 4.1a1 1 0 0 0 0 2h4.3a1 1 0 0 0 0-2H8.2z"/></svg>',
 };
 
 // Til — SAYTDAGI naqsh (`script.js` → `toggleLang`): bitta qator joriy tilni
@@ -3223,8 +3228,10 @@ const LANGS = {
 
 function profileRow(o) {
   const teg = o.action ? 'button' : 'div';
+  // `arg` — amalga uzatiladigan qiymat (`tab('orders')` kabi). Ilgari yo'q edi
+  // va shu sababli qator FAQAT argumentsiz amalni chaqira olardi.
   return `
-  <${teg} ${o.action ? `data-action="${o.action}"` : ''} style="${ROW_BOX}${o.action ? ';cursor:pointer' : ''}">
+  <${teg} ${o.action ? `data-action="${o.action}"` : ''}${o.arg !== undefined ? ` data-arg="${o.arg}"` : ''} style="${ROW_BOX}${o.action ? ';cursor:pointer' : ''}">
     <span style="flex:none;width:22px;height:22px;display:flex;align-items:center;justify-content:center;color:var(--pom-700)">${o.ico}</span>
     <span style="flex:1;min-width:0">
       <span style="display:block;font-size:14.5px;font-weight:700;color:var(--text-strong);letter-spacing:-.01em">${o.label}</span>
@@ -3233,6 +3240,37 @@ function profileRow(o) {
     ${o.right || ''}
     ${o.chev ? ROW_CHEV : ''}
   </${teg}>`;
+}
+
+// ============ PROFIL: MENING BUYURTMALARIM ============
+// Saytdagi `myOrdersRowHtml()` ning juftligi (founder 2026-08-13: "mini appda
+// ham shunday qilgin"). ⚠️ MUHIM FARQ, VA U ATAYLAB: bu yerda ro'yxat
+// KO'CHIRILMAYDI — Mini App'da buyurtmalar allaqachon O'Z EKRANIDA yashaydi
+// (pastdagi navigatsiya, `renderOrders()`). Ya'ni saytda qator YANGI ko'rinish
+// ochgan, bu yerda esa MAVJUD ekranga ikkinchi eshik qo'shiladi: profilga
+// kirgan xaridor buyurtmalarini shu yerdan ham topadi va bo'limlar ikkala
+// yuzda bir xil ko'rinadi.
+//
+// ⚠️ Ostidagi yozuv MA'LUMOTDAN keladi, o'ylab topilgan son emas: buyurtma
+// bo'lmasa "Hozircha buyurtma yo'q", bo'lsa `3 buyurtma · Yo'lda` — eng
+// yangisining holati. `ORDERS[0]` ENG YANGISI ikkala manbada ham: yangi
+// buyurtma `unshift` bilan boshiga qo'yiladi, serverdan esa ro'yxat
+// `created_at DESC` bilan keladi (`routes/orders.js`).
+function renderOrdersRow() {
+  const T = STR[S.lang];
+  let sub = T.ordersNone;
+  if (ORDERS.length) {
+    const st = STATUS_TXT[ORDERS[0].statusKey] || STATUS_TXT.pending;
+    sub = `${ORDERS.length} ${T.ordersCount} · ${st[S.lang]}`;
+  }
+  return profileRow({
+    ico: ICO.receipt,
+    label: T.orders,
+    sub,
+    chev: true,
+    action: 'tab',
+    arg: 'orders',
+  });
 }
 
 // ============ PROFIL: MENING MANZILIM ============
@@ -3382,6 +3420,7 @@ function renderProfile() {
       </div>
     </div>
 
+    ${renderOrdersRow()}
     ${profileRow({
       ico: ICO.lang,
       label: T.language,
