@@ -288,6 +288,28 @@
   faqat o'qilganda ko'rinadi. Bu "yozilgan qoida himoya emas" oilasidan
   **istisno**: bu yerda test yozib bo'lmaydi, shuning uchun qadam qo'lda
   bajariladi.
+- **MAVJUD funksiyaning ustiga IKKINCHI YO'L qo'shilsa — AVVAL SO'RALADI**
+  (2026-08-13, qo'shilgan funksiya bir kunda olib tashlangandan keyin yozildi).
+  Yangi tugma, qator yoki havola qo'shilayotganda birinchi savol: **ortidagi
+  narsaga BOSHQA yo'l allaqachon bormi?** Bor bo'lsa — kod yozilmasdan oldin
+  founder'dan so'raladi.
+  Sabab: saytda buyurtmalar tarixi profil ichida chizilib boshqa bo'limlarni
+  bosib turgani uchun alohida ko'rinishga chiqarildi (`c1e309b`) — bu TO'G'RI
+  ish edi. Keyin "mini appda ham shunday qilgin" degan gap bo'yicha Mini App
+  profiliga ham xuddi shunday qator qo'shildi (`7d5e47f`) va u **ortiqcha**
+  edi: Mini App'da buyurtmalar allaqachon pastdagi navigatsiyada O'Z ekranida
+  yashaydi. Qator bir kunda olib tashlandi (`007cde7`), ya'ni ish, hisobot,
+  kesh versiyalari, deploy va qaytarish — hammasi bekorga ketdi.
+  ⚠️ **Eng muhimi: fakt QO'LDA EDI.** `7d5e47f` ning O'Z commit izohida va
+  sprint yozuvida "Mini App'da buyurtmalar allaqachon o'z ekranida yashaydi,
+  ya'ni ko'chiriladigan narsa yo'q" deb yozilgan — ya'ni ortiqchalik ko'rilgan,
+  lekin undan XULOSA chiqarilmagan. Demak nuqson bilimda emas, **qadamda**:
+  "shunday qilgin" degan gap ikki xil o'qiladi — *"o'sha shaklni qo'y"* va
+  *"o'sha muammoni yech"*; ikkinchi yuzda muammo yo'q bo'lsa, birinchi o'qish
+  ortiqcha ish tug'diradi.
+  Buni test bilan qulflab bo'lmaydi (prompt matni bandi bilan bitta oila) —
+  bu **ODAT**: yangi yo'l qo'shishdan oldin mavjud yo'llar SANALADI va
+  ortiqchalik topilsa AYTILADI, jimgina bajarilmaydi.
 - **Xaridor manzili — BAZADA, karta esa IXTIYORIY** (2026-08-13, founder
   qarori: profilda "Mening manzilim" bo'lsin va nuqta kartadan tanlansin).
   Yetkazish modeli O'ZGARMADI — mato baribir BTS nuqtasiga boradi; saqlanadigan
