@@ -27,7 +27,7 @@
        ko'p uchraydigan xatosi shu. -->
   <link rel="preconnect" href="https://telegram.org">
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@24,600..800&family=Hanken+Grotesk:wght@400..700&family=Geist+Mono:wght@600..700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=43" />
+  <link rel="stylesheet" href="style.css?v=45" />
   <!-- DIQQAT: uchala skript ham `defer` — TARTIB shu sababli saqlanadi
        (telegram → script.js → pwa.js). Bittasidan `defer` olib tashlansa,
        u tananing ichida parse paytida ishlaydi va DEFER'liklardan OLDIN
@@ -66,13 +66,16 @@
       </div>
 
       <div class="nav-actions">
-        <!-- Til almashtirish. Tanlov `localStorage` da saqlanadi; HTML
-             o'zbekcha qoladi (SEO), ruscha tarjima `data-i18n` orqali
-             tepasiga qo'yiladi. -->
-        <div class="lang-switch" role="group" aria-label="Til / Язык">
-          <button type="button" class="lang-btn on" data-lang-btn="uz" data-action="setLang" data-arg="uz">UZ</button>
-          <button type="button" class="lang-btn" data-lang-btn="ru" data-action="setLang" data-arg="ru">RU</button>
-        </div>
+        <!-- Til almashtirish — BITTA tugma: joriy tilni ko'rsatadi, bosilsa
+             ikkinchisiga o'tadi. Ikki tugma header'da joy yeb, desktopda
+             filtr tugmasi ustiga toshib chiqardi (2026-08-13 da founder
+             ko'rsatdi). Ikki til uchun tanlov ro'yxati ortiqcha.
+             Matn `applyLang()` da qo'yiladi. -->
+        <button type="button" class="lang-toggle" id="lang-toggle"
+                data-action="toggleLang" title="Til / Язык" aria-label="Til / Язык">
+          <span class="lang-flag" aria-hidden="true">🇺🇿</span>
+          <span class="lang-code">UZ</span>
+        </button>
 
         <button class="login-btn" id="login-btn" data-action="onLogin" aria-label="Kirish">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M4.8 19.6a7.4 7.4 0 0 1 14.4 0"/></svg>
@@ -168,7 +171,7 @@
       <button class="chip" data-cat="silk" data-i18n="catSilk">Ipak</button>
       <button class="chip" data-cat="cotton" data-i18n="catCotton">Paxta</button>
       <button class="chip" data-cat="wool" data-i18n="catWool">Jun</button>
-      <button class="chip" data-cat="linen">Zig'ir</button>
+      <button class="chip" data-cat="linen" data-i18n="catLinen">Zig'ir</button>
     </div>
 
     <div class="price-filter fade-up">
@@ -194,7 +197,7 @@
 
     <p class="verified-legend fade-up">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="#7a140d"><path d="M12 2l2.4 1.8 3-.2 1 2.8 2.6 1.5-.9 2.9.9 2.9-2.6 1.5-1 2.8-3-.2L12 22l-2.4-1.8-3 .2-1-2.8L3 16.3l.9-2.9L3 10.5l2.6-1.5 1-2.8 3 .2z"/><path d="M9 12l2 2 4-4" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      — LolaMarket tomonidan tekshirilgan ishlab chiqaruvchi
+      <span data-i18n="verifiedNote">— LolaMarket tomonidan tekshirilgan ishlab chiqaruvchi</span>
     </p>
 
     <div class="product-grid" id="product-grid">
@@ -627,7 +630,7 @@
     </button>
   </nav>
 
-  <script defer src="script.js?v=34"></script>
+  <script defer src="script.js?v=35"></script>
   <script defer src="pwa.js?v=2"></script>
 </body>
 </html>

@@ -1069,9 +1069,26 @@ body {
   .nav-inner { flex-wrap: nowrap; }
   /* Chap (logo) va o'ng (tugmalar) guruh teng kenglikda —
      shunda qidiruv header'ning aniq o'rtasida turadi */
-  .nav-brand, .nav-actions { flex: 1 1 0; min-width: 0; }
-  .nav-actions { margin-left: 0; justify-content: flex-end; }
-  .search-wrap { order: 0; flex: none; width: 560px; max-width: 100%; }
+  /* ⚠️ `min-width: max-content` IKKALASIGA ham kerak. `flex: 1 1 0` guruhlarni
+     TENG qiladi (shunda qidiruv o'rtada turadi), lekin `min-width: 0` bilan
+     ular tarkibidan KICHRAYA oladi — va o'shanda tarkib qutidan chiqib,
+     qo'shni elementlar ustiga tushadi. Bu 2026-08-13 da IKKI marta tishladi:
+     avval `.nav-actions` (til tugmasi filtr ustiga chiqdi), keyin
+     `.nav-brand` (logotip qidiruv ostida qoldi — kengligi NOL edi).
+     Endi torayadigan yagona element — qidiruv qutisi, u cho'ziluvchan.
+     Narxi: tor desktopda qidiruv aniq markazdan biroz siljiydi. Bu
+     KO'RINISH masalasi, ustma-ust tushish esa NUQSON. */
+  .nav-brand, .nav-actions { flex: 1 1 0; min-width: max-content; }
+  /* ⚠️ `min-width: max-content` — tugmalar guruhi TARKIBIDAN kichraymaydi.
+     Usiz guruh o'z ulushiga sig'masa, `justify-content: flex-end` tufayli
+     ortiqcha tarkib CHAPGA — qidiruv va filtr tugmasi USTIGA chiqardi
+     (2026-08-13, til tugmasi qo'shilgach). Endi torayadigan tomon —
+     qidiruv qutisi, u esa cho'ziluvchan. */
+  .nav-actions { margin-left: 0; justify-content: flex-end; min-width: max-content; }
+  /* 220px — qidiruv qutisining ma'noli eng kichik kengligi. Undan pastga
+     tushmaydi; 880px dan tor ekranda mobil joylashuv (ikkinchi qator)
+     baribir kuchga kiradi. */
+  .search-wrap { order: 0; flex: 0 1 560px; min-width: 220px; max-width: 100%; }
   .login-txt { display: inline; }
   .login-btn { padding: 0 15px; }
 }
@@ -2604,27 +2621,76 @@ body { padding-bottom: calc(var(--dock-h) + env(safe-area-inset-bottom, 0px)); }
 }
 .s-cat.on { background: var(--ink-900); border-color: var(--ink-900); color: #fff; }
 
-/* Til almashtirish (2026-08-13, C3). Ikki kichik tugma — header'da joy kam,
-   shuning uchun ochiladigan ro'yxat emas: ikkita til uchun u ortiqcha bosish
-   bo'lardi. */
-.lang-switch {
-  display: inline-flex; gap: 2px;
-  padding: 2px;
+/* ===== TIL TUGMASI (2026-08-13) =====
+   BITTA tugma: joriy tilni bayroq + kod bilan ko'rsatadi, bosilsa
+   ikkinchisiga o'tadi.
+
+   ⚠️ Ilgari bu yerda IKKI tugmali "pill" turardi va u desktopda filtr
+   tugmasi USTIGA toshib chiqardi (founder ko'rsatdi). Sabab quyida,
+   `.nav-actions` qoidasida — u tarkibidan kichrayishi mumkin edi.
+   Ikkalasi ham tuzatildi: tugma ikki barobar tor bo'ldi VA guruh endi
+   kichraymaydi.
+
+   O'lchamlar mavjud header tugmalaridan olingan (44px, `--glass-*`) —
+   yangi vizual til o'ylab topilmadi. */
+.lang-toggle {
+  flex: none;
+  display: inline-flex; align-items: center; gap: 7px;
+  height: 44px; padding: 0 13px;
   border-radius: 999px;
-  border: 1px solid var(--border-hair);
-  background: var(--glass-fill);
-}
-.lang-btn {
-  min-width: 30px; height: 26px; padding: 0 8px;
-  border: none; border-radius: 999px;
-  background: transparent;
-  font-family: var(--font-sans); font-size: 11.5px; font-weight: 700;
-  letter-spacing: .04em; color: var(--text-muted);
+  border: 1px solid var(--glass-border);
+  background: var(--glass-fill-strong);
+  box-shadow: var(--glass-highlight);
+  font-family: var(--font-sans);
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background .18s ease, border-color .18s ease;
 }
-.lang-btn.on { background: var(--ink-900); color: #fff; }
-@media (max-width: 720px) {
-  /* Telefonda header tor — til tugmasi qidiruv qatoridan keyin, kichikroq */
-  .lang-switch { order: 3; }
-  .lang-btn { min-width: 26px; padding: 0 6px; font-size: 11px; }
+.lang-toggle:hover { background: rgba(255, 255, 255, .9); }
+.lang-toggle:active { transform: scale(.97); }
+/* ⚠️ Windows'da regional-indikator bayroqlari glif bo'lib chizilmaydi va
+   "UZ" harflari ko'rinadi — yonidagi kod shuning uchun ham qoldirildi:
+   o'sha tizimda ham tugma o'qiladigan bo'lib qoladi. */
+.lang-flag { font-size: 17px; line-height: 1; }
+.lang-code {
+  font-size: 12.5px; font-weight: 700; letter-spacing: .04em;
+  color: var(--text-strong);
+}
+
+@media (max-width: 879px) {
+  /* Telefonda joy tor — faqat bayroq qoladi, tugma boshqa header
+     tugmalari bilan bir xil 44px doiraga tushadi. */
+  .lang-toggle { width: 44px; padding: 0; justify-content: center; gap: 0; }
+  .lang-code { display: none; }
+  .lang-flag { font-size: 19px; }
+}
+
+/* ==== KONFETTI (2026-08-13) ====
+   AI rasmi tayyor bo'lganda ekranga yog'iladi. Qatlam butun ekranni
+   qoplaydi, lekin `pointer-events: none` — bosishni USHLAB QOLMAYDI
+   (aks holda rasm tayyor bo'lgan lahzada tugmalar 3 soniya o'lik bo'lardi).
+   Element animatsiya tugagach JS'da o'chiriladi. */
+.konfetti {
+  position: fixed; inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  overflow: hidden;
+}
+.konfetti i {
+  position: absolute;
+  top: -14px;
+  width: 9px; height: 14px;
+  opacity: 0;
+  animation-name: konfetti-tush;
+  animation-timing-function: cubic-bezier(.25, .55, .45, 1);
+  animation-fill-mode: forwards;
+}
+@keyframes konfetti-tush {
+  0%   { opacity: 1; transform: translate3d(0, 0, 0) rotate(0); }
+  100% { opacity: 0; transform: translate3d(var(--x, 0), 105vh, 0) rotate(var(--r, 360deg)); }
+}
+/* Harakatni kamaytirish so'ralgan bo'lsa konfetti UMUMAN chizilmaydi —
+   qorovul JS'da ham bor, bu ikkinchi qatlam. */
+@media (prefers-reduced-motion: reduce) {
+  .konfetti { display: none; }
 }

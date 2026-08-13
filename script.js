@@ -41,6 +41,8 @@ const STR = {
     nothingFound: 'Hech narsa topilmadi',
     nothingFoundSub: "Boshqa so'z bilan qidiring yoki filtrni o'zgartiring.",
     catAll: 'Barchasi',
+    verifiedNote: '— LolaMarket tomonidan tekshirilgan ishlab chiqaruvchi',
+    bTavsiya: 'Tavsiya', bKamQoldi: 'Kam qoldi', bHunarmand: 'Hunarmand', bYangi: 'Yangi',
     ad1t: "Tasdiqlangan fabrikalardan to'g'ridan-to'g'ri",
     ad1s: "Rulon formatida ulgurji xarid — vositachisiz, himoyalangan to'lov bilan.",
     ad2t: 'Gulli naqsh — ipak kolleksiya',
@@ -53,6 +55,7 @@ const STR = {
     catSilk: 'Ipak',
     catCotton: 'Paxta',
     catWool: 'Jun',
+    catLinen: "Zig'ir",
     // ---- Zaxira holati ----
     stIn: 'Sotuvda', stLow: 'Kam qoldi', stMade: 'Buyurtmaga', stOut: 'Tugadi',
     // ---- Mahsulot ----
@@ -217,6 +220,8 @@ const STR = {
     nothingFound: 'Ничего не найдено',
     nothingFoundSub: 'Попробуйте другой запрос или измените фильтр.',
     catAll: 'Все',
+    verifiedNote: '— производитель проверен LolaMarket',
+    bTavsiya: 'Рекомендуем', bKamQoldi: 'Мало осталось', bHunarmand: 'Ремесленник', bYangi: 'Новинка',
     ad1t: 'Напрямую с проверенных фабрик',
     ad1s: 'Оптовая закупка рулонами — без посредников, с защищённой оплатой.',
     ad2t: 'Цветочный узор — шёлковая коллекция',
@@ -229,6 +234,7 @@ const STR = {
     catSilk: 'Шёлк',
     catCotton: 'Хлопок',
     catWool: 'Шерсть',
+    catLinen: 'Лён',
     stIn: 'В продаже', stLow: 'Мало осталось', stMade: 'Под заказ', stOut: 'Закончилось',
     product: 'Товар',
     unitPrice: 'Цена за рулон',
@@ -389,6 +395,12 @@ function L(obj) {
   return obj[LANG] || obj.uz || obj.ru || '';
 }
 
+/* Bitta tugma — ikki til. Uchinchi til qo'shilsa bu yerda ro'yxatga
+   aylantiriladi; hozir esa tanlov oynasi ortiqcha bosish bo'lardi. */
+function toggleLang() {
+  setLang(LANG === 'ru' ? 'uz' : 'ru');
+}
+
 function setLang(v) {
   const yangi = v === 'ru' ? 'ru' : 'uz';
   if (yangi === LANG) return;
@@ -415,9 +427,18 @@ function applyLang() {
   document.querySelectorAll('[data-i18n-aria]').forEach((el) => {
     el.setAttribute('aria-label', t(el.dataset.i18nAria));
   });
-  document.querySelectorAll('[data-lang-btn]').forEach((el) => {
-    el.classList.toggle('on', el.dataset.langBtn === LANG);
-  });
+  // Til tugmasi JORIY tilni ko'rsatadi (bosilsa ikkinchisiga o'tadi).
+  // ⚠️ Bayroq emoji `aria-hidden` — ekran o'quvchi uni "Uzbekistan flag" deb
+  // o'qib, yonidagi "UZ" bilan takrorlanmasin. Tugmaning o'z `aria-label`i
+  // ikki tilda ("Til / Язык") va u O'ZGARMAYDI: u tugmaning VAZIFASINI
+  // aytadi, joriy holatini emas.
+  const tugma = document.getElementById('lang-toggle');
+  if (tugma) {
+    const bayroq = tugma.querySelector('.lang-flag');
+    const kod = tugma.querySelector('.lang-code');
+    if (bayroq) bayroq.textContent = LANG === 'ru' ? '🇷🇺' : '🇺🇿';
+    if (kod) kod.textContent = LANG === 'ru' ? 'RU' : 'UZ';
+  }
   refreshAuthUi();
 }
 
@@ -1327,6 +1348,13 @@ const LOW_STOCK = 5;
 function stockTxt(k) {
   return { in: t('stIn'), low: t('stLow'), made: t('stMade'), out: t('stOut') }[k] || '';
 }
+/* HTML kartochkasidagi o'zbekcha belgi matnini tarjima KALITIGA bog'laydi.
+   Kartochkalar SEO uchun HTML da qo'lda yozilgan, ya'ni ularda `data-badge`
+   yo'q — matnning o'zidan kalit topiladi va `dataset` ga yoziladi (bir marta). */
+const BADGE_UZ = {
+  bTavsiya: 'Tavsiya', bKamQoldi: 'Kam qoldi', bHunarmand: 'Hunarmand', bYangi: 'Yangi',
+};
+
 /** `badge_tone` → mavjud CSS sinfi */
 const BADGE_TONE = { primary: 'tone-primary', teal: 'tone-teal', saffron: 'tone-saffron', neutral: 'tone-neutral' };
 
@@ -1463,6 +1491,21 @@ function mergeCatalog(list) {
       const t1 = el.querySelector('.product-name');
       if (t1) t1.textContent = nom;
     }
+    // Belgi ("Tavsiya", "Kam qoldi") — HTML kartochkasida qattiq yozilgan,
+    // shuning uchun til almashganda u ham yangilanadi. Bazadan kelgan belgi
+    // ustun; bo'lmasa HTML dagi o'zbekcha matn kalitga MOSLANADI.
+    const belgi = el.querySelector('.badge-pill');
+    if (belgi) {
+      const bz = L(p.badge) || BADGE_UZ[belgi.dataset.badgeKey || ''] || '';
+      if (!belgi.dataset.badgeKey) {
+        const topildi = Object.keys(BADGE_UZ).find((k) => BADGE_UZ[k] === belgi.textContent.trim());
+        if (topildi) belgi.dataset.badgeKey = topildi;
+      }
+      const kalit = belgi.dataset.badgeKey;
+      const matn = L(p.badge) || (kalit ? t(kalit) : '');
+      if (matn) belgi.textContent = matn;
+    }
+
     const sup = L(p.supplier);
     if (sup && el.dataset.supplier !== sup) {
       el.dataset.supplier = sup;
@@ -1942,6 +1985,7 @@ function askAiImage(id) {
         // animatsiyasi o'ynaydi, keyingi qayta chizishlarda o'ynamaydi
         // (galereyadan kelgan eski rasmlar ham animatsiyasiz).
         aiImages[key] = { state: 'done', url: j.data.image, fresh: true };
+        konfetti();
       } else {
         aiImages[key] = { state: 'error' };
       }
@@ -3484,6 +3528,51 @@ function esc(s) {
   return String(s).replace(/[&<>"']/g, (c) => (
     { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
   ));
+}
+
+/* ── Konfetti (2026-08-13) ───────────────────────────────────────────
+   AI rasmi tayyor bo'lganda "quiz javobi to'g'ri" hissini beradi.
+
+   ⚠️ NIMA UCHUN O'ZIMIZ CHIZAMIZ: Telegram'ning quizdagi konfettisi Mini
+   App'ga BERILMAGAN — jonli SDK'da (`window.Telegram.WebApp`) faqat
+   `HapticFeedback` ning uchta metodi bor, konfetti metodi yo'q (2026-08-13
+   da production'da o'qib tekshirildi). Shuning uchun effekt sahifada
+   chiziladi va u ikkala kanalda — saytda ham, Mini App'da ham — bir xil
+   ishlaydi. Telegram'ning HAQIQIY konfettisi alohida yo'l bilan keladi:
+   server tayyor rasmni foydalanuvchi chatiga `message_effect_id` bilan
+   yuboradi (`server/routes/ai.js`).
+
+   Uslub JS'da qo'yiladi (`el.style.x = ...`), shablon satriga
+   INTERPOLATSIYA QILINMAYDI — CLAUDE.md: atribut ichida boshqa til
+   boshlansa `esc()` yaramaydi. Bu yerda umuman HTML yig'ilmaydi.
+
+   Element hodisa tugagach O'ZINI o'chiradi: qolib ketsa har chizishda
+   yangi qatlam yig'ilib borardi. */
+const KONFETTI_RANG = ['#C9362D', '#E84B40', '#7A140D', '#F4C049', '#EFE3D0'];
+
+function konfetti() {
+  // Harakatni kamaytirishni so'ragan foydalanuvchida UMUMAN chizilmaydi.
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+  const qatlam = document.createElement('div');
+  qatlam.className = 'konfetti';
+  qatlam.setAttribute('aria-hidden', 'true');
+
+  for (let i = 0; i < 42; i++) {
+    const b = document.createElement('i');
+    b.style.left = (Math.random() * 100) + '%';
+    b.style.background = KONFETTI_RANG[i % KONFETTI_RANG.length];
+    b.style.animationDelay = (Math.random() * 0.5).toFixed(2) + 's';
+    b.style.animationDuration = (1.6 + Math.random() * 1.1).toFixed(2) + 's';
+    // Har bo'lak o'z yo'nalishida uchadi va o'z tezligida aylanadi.
+    b.style.setProperty('--x', (Math.random() * 160 - 80).toFixed(0) + 'px');
+    b.style.setProperty('--r', (Math.random() * 900 - 450).toFixed(0) + 'deg');
+    if (i % 3 === 0) b.style.borderRadius = '50%';
+    qatlam.appendChild(b);
+  }
+
+  document.body.appendChild(qatlam);
+  setTimeout(() => qatlam.remove(), 3200);
 }
 
 /* ── Katalogni bazadan yuklash ──

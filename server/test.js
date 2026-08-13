@@ -1372,8 +1372,8 @@ function testAssetVersionsAreFresh() {
   // AYNI faylni `?v=36` bilan — ya'ni admin panel 15 versiya orqada
   // qotib qolgan keshni cheksiz ushlab turardi.
   const KUTILGAN = {
-    'style.css': { v: 43, hash: 'ab2de2f1ad8a' },
-    'script.js': { v: 34, hash: '870b329a46c5' },
+    'style.css': { v: 45, hash: '22a12b415b6b' },
+    'script.js': { v: 35, hash: '22ced40c2c7e' },
     'pwa.js': { v: 2, hash: 'f46683d58662' },
     'panel.js': { v: 13, hash: 'bf0f406faad0' },
     'admin/admin.css': { v: 17, hash: 'dbefeb6757ff' },
