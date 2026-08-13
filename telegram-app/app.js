@@ -192,7 +192,7 @@ const STR = {
     contactSub: "Qo'ng'iroq yoki Telegram", contactTgWay: "Telegram orqali",
     phoneCopied: "Raqam nusxalandi — qo'ng'iroq ochilmasa, qo'lda tering",
     phoneCopyErr: "Raqamni nusxalab bo'lmadi — uni qo'lda ko'chiring",
-    help: "Yordam markazi", logout: "Chiqish", search: "Qidiruv", recent: "So'nggi qidiruvlar", noResults: "Hech narsa topilmadi",
+    logout: "Chiqish", search: "Qidiruv", recent: "So'nggi qidiruvlar", noResults: "Hech narsa topilmadi",
     noResultsSub: "Boshqa so'z bilan urinib ko'ring", resultsN: "natija topildi", // ⚠️ `tabHome` — `home` EKRANINING yorlig'i, u endi "Katalog" deb
     // o'qiladi: bosh sahifa katalogga birlashdi (2026-08-07). Kalit nomi
     // ekranga bog'langan, yorliq esa foydalanuvchi ko'radigan so'z.
@@ -344,7 +344,7 @@ const STR = {
     contactSub: "Звонок или Telegram", contactTgWay: "Через Telegram",
     phoneCopied: "Номер скопирован — если звонок не открылся, наберите вручную",
     phoneCopyErr: "Не удалось скопировать номер — скопируйте вручную",
-    help: "Центр помощи", logout: "Выйти", search: "Поиск", recent: "Недавние поиски", noResults: "Ничего не найдено",
+    logout: "Выйти", search: "Поиск", recent: "Недавние поиски", noResults: "Ничего не найдено",
     noResultsSub: "Попробуйте другой запрос", resultsN: "результатов", tabHome: "Каталог", tabAi: "AI",
     tabCart: "Корзина", tabOrders: "Заказы", tabProfile: "Профиль", added: "Добавлено в корзину 🌷", liked: "Добавлено в избранное",
     orderPlaced: "Заказ принят", orderPlacedSub: "Производитель подтвердит — мы сообщим вам",
@@ -606,9 +606,12 @@ const S = {
   mapsKey: null,
   // Manzil serverga saqlanmoqdami — tugma ikki marta bosilmasin.
   addrSaving: false,
-  // "Biz bilan bog'lanish" ochiqmi. Yopiq BOSHLANG'ICH: profil ekrani
-  // allaqachon uzun, doim ochiq ikki qator uni yana cho'zardi.
-  contactOpen: false,
+  // "Biz bilan bog'lanish" oynasi ochiqmi. Ilgari bu bo'lim JOYIDA
+  // ochilardi (2026-08-13), endi esa "Mening manzilim" kabi ALOHIDA oyna
+  // (founder qarori): profil ro'yxati o'zgarmas balandlikda qoladi va ikki
+  // bo'lim bir xil yo'l bilan ochiladi — bittasi joyida, ikkinchisi oynada
+  // ochilishi qaysi biri "ichkariga olib kirishini" taxmin qildirardi.
+  contactSheet: false,
   ordersTab: 'active',
   // — AI kiyim RASMI (2026-08-07) —
   // Serverdan keladi (`/api/auth/telegram` javobi): kalit yaroqsiz bo'lsa
@@ -2398,6 +2401,7 @@ function paintSheet() {
     : S.dispSheet ? renderDisputeSheet()
     : S.revSheet ? renderReviewSheet()
     : S.priceSheet ? renderPriceSheet()
+    : S.contactSheet ? renderContactSheet()
     : '';
   // Karta HTML bilan birga kelmaydi — u `#bts-map` tuguni DOM'ga
   // tushgandan keyin chiziladi. Shuning uchun mount aynan shu yerda:
@@ -2975,42 +2979,74 @@ function renderTgCard() {
   </div>`;
 }
 
+// ============ PROFIL QATORI ============
+// Profildagi HAMMA bo'lim SHU funksiyadan chiqadi (founder 2026-08-13:
+// "profilni shunday tartibla" — namunada bo'limlar bir xil balandlikdagi
+// alohida kartalar bo'lib turadi). Sabab uslubdan kattaroq: bir xil
+// qatorda ko'z faqat YOZUVni o'qiydi, har xil balandlikdagi bloklarda esa
+// avval shaklni ajratadi.
+//
+// ⚠️ `flex:none` SHART. Profil tanasi `display:flex;flex-direction:column`,
+// ya'ni qator O'Z mazmuniga emas, QOLGAN JOYGA qarab siqiladi — bu loyihada
+// uch marta tishlagan (`<picture>`, `.addr-map`, `.contact-block`) va uchala
+// safar ham JIMGINA bo'lgan: xato yo'q, DOM'da element bor, ekranda esa
+// mazmun kesilgan.
+const ROW_BOX = 'flex:none;display:flex;align-items:center;gap:13px;width:100%;box-sizing:border-box;min-height:62px;text-align:left;padding:13px 14px;border-radius:var(--radius-md);background:rgba(255,255,255,.6);backdrop-filter:blur(16px) saturate(160%);-webkit-backdrop-filter:blur(16px) saturate(160%);border:1px solid rgba(255,255,255,.55);box-shadow:0 5px 16px -12px rgba(81,1,0,.12);font-family:var(--font-sans)';
+const ROW_CHEV = '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" style="flex:none;color:var(--text-subtle)"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+// Profil belgilari — TO'LDIRILGAN (founder 2026-08-13). Ingichka chiziqli
+// belgi 21px da yorug' fonda yo'qolib ketardi; to'ldirilgani esa qator
+// boshida aniq langar bo'lib turadi.
+const ICO = {
+  lang: '<svg width="21" height="21" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="currentColor"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 0 20M12 2a15.3 15.3 0 0 0 0 20" fill="none" stroke="#fff" stroke-width="1.5" opacity=".92"/></svg>',
+  bell: '<svg width="21" height="21" viewBox="0 0 24 24" fill="currentColor"><path d="M12 22a2.3 2.3 0 0 0 2.3-2.3H9.7A2.3 2.3 0 0 0 12 22zm7.4-5.6V11a7.4 7.4 0 0 0-5.6-7.2v-.6a1.8 1.8 0 1 0-3.6 0v.6A7.4 7.4 0 0 0 4.6 11v5.4L3 18v.9h18V18l-1.6-1.6z"/></svg>',
+  pin: '<svg width="21" height="21" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M12 2a7.4 7.4 0 0 0-7.4 7.4C4.6 14.8 12 22 12 22s7.4-7.2 7.4-12.6A7.4 7.4 0 0 0 12 2zm0 10.1a2.7 2.7 0 1 1 0-5.4 2.7 2.7 0 0 1 0 5.4z"/></svg>',
+  chat: '<svg width="21" height="21" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.2c-5.1 0-9.2 3.5-9.2 7.9 0 2.4 1.2 4.6 3.2 6.1L4.9 21l4.3-1.8c.9.2 1.8.3 2.8.3 5.1 0 9.2-3.5 9.2-7.9s-4.1-7.9-9.2-7.9z"/></svg>',
+  share: '<svg width="21" height="21" viewBox="0 0 24 24" fill="currentColor"><circle cx="18" cy="5" r="2.7"/><circle cx="6" cy="12" r="2.7"/><circle cx="18" cy="19" r="2.7"/><path d="M8.2 10.8l7.6-4.4M8.2 13.2l7.6 4.4" stroke="currentColor" stroke-width="1.8" fill="none"/></svg>',
+};
+
+// Til — SAYTDAGI naqsh (`script.js` → `toggleLang`): bitta qator joriy tilni
+// bayrog'i bilan ko'rsatadi, bosilsa ikkinchisiga o'tadi. Til NOMI tarjima
+// jadvalida emas — har bir til O'Z tilida yoziladi va tarjimasi bo'lmaydi.
+const LANGS = {
+  uz: { flag: '🇺🇿', name: "O'zbek" },
+  ru: { flag: '🇷🇺', name: 'Русский' },
+};
+
+function profileRow(o) {
+  const teg = o.action ? 'button' : 'div';
+  return `
+  <${teg} ${o.action ? `data-action="${o.action}"` : ''} style="${ROW_BOX}${o.action ? ';cursor:pointer' : ''}">
+    <span style="flex:none;width:22px;height:22px;display:flex;align-items:center;justify-content:center;color:var(--pom-700)">${o.ico}</span>
+    <span style="flex:1;min-width:0">
+      <span style="display:block;font-size:14.5px;font-weight:700;color:var(--text-strong);letter-spacing:-.01em">${o.label}</span>
+      ${o.sub ? `<span style="display:block;font-size:12px;color:var(--text-muted);margin-top:2px;line-height:1.35;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${o.sub}</span>` : ''}
+    </span>
+    ${o.right || ''}
+    ${o.chev ? ROW_CHEV : ''}
+  </${teg}>`;
+}
+
 // ============ PROFIL: MENING MANZILIM ============
 // Doimiy BTS olish nuqtasi. Tanlansa bazada saqlanadi (`/api/pickup-point`)
 // va checkout uni oldindan qo'yadi — B2B xaridor deyarli doim bitta
 // nuqtadan oladi.
 //
-// ⚠️ Nuqta TANLANMAGAN bo'lsa soxta manzil ko'rsatilmaydi: blok "tanlanmagan"
-// deb turadi (`NULL` reyting qoidasi bilan bitta oila — yo'qlik KO'RINSIN).
+// ⚠️ Nuqta TANLANMAGAN bo'lsa soxta manzil ko'rsatilmaydi: qator
+// "tanlanmagan" deb turadi (`NULL` reyting qoidasi bilan bitta oila —
+// yo'qlik KO'RINSIN). To'liq manzil, ish vaqti va karta bir bosishda —
+// tanlash oynasida; qatorda esa xaridorga kerak bo'ladigan yagona javob
+// turadi: "qaysi nuqta".
 function renderMyAddress() {
   const T = STR[S.lang];
   const p = btsById(S.btsPoint);
-  const kartaBor = !!S.mapsKey;
-  return `
-  <div>
-    <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-subtle);margin-bottom:8px">${T.myAddr}</div>
-    <div style="padding:14px;border-radius:var(--radius-md);background:rgba(255,255,255,.6);backdrop-filter:blur(16px) saturate(160%);-webkit-backdrop-filter:blur(16px) saturate(160%);border:1px solid rgba(255,255,255,.55);box-shadow:0 5px 16px -12px rgba(81,1,0,.12)">
-      <div style="display:flex;align-items:flex-start;gap:12px">
-        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" style="flex:none;margin-top:1px;color:${p ? '#7a140d' : 'var(--text-muted)'}"><path d="M12 21s7-6.2 7-11a7 7 0 1 0-14 0c0 4.8 7 11 7 11z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="10" r="2.6" stroke="currentColor" stroke-width="2"/></svg>
-        <div style="flex:1;min-width:0">
-          ${p ? `
-            <div style="font-size:14px;font-weight:700;color:var(--text-strong);line-height:1.3">${p.name[S.lang]}</div>
-            <div style="font-size:12.5px;color:var(--text-muted);margin-top:3px;line-height:1.4">${p.addr[S.lang]}</div>
-            <div style="font-size:12px;color:var(--text-subtle);margin-top:2px">${T.workHours}: ${p.hours}</div>
-          ` : `
-            <div style="font-size:14px;font-weight:600;color:var(--text-body);line-height:1.3">${T.myAddrNone}</div>
-            <div style="font-size:12.5px;color:var(--text-muted);margin-top:3px;line-height:1.4">${T.myAddrHint}</div>
-          `}
-        </div>
-      </div>
-      <button data-action="openAddrPicker" style="margin-top:12px;width:100%;height:42px;border-radius:var(--radius-md);cursor:pointer;font-family:var(--font-sans);font-size:13.5px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:7px;${p
-        ? 'border:1px solid var(--glass-border);background:var(--glass-fill);color:var(--text-body)'
-        : 'border:none;background:linear-gradient(135deg,#8f1a10,#510100);color:#ffe9db;box-shadow:var(--shadow-sm)'}">
-        ${kartaBor ? `<svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M9 3L3 5.5v15L9 18l6 3 6-2.5v-15L15 6 9 3z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M9 3v15M15 6v15" stroke="currentColor" stroke-width="1.8"/></svg>` : ''}
-        ${p ? T.myAddrChange : (kartaBor ? T.myAddrPick : T.pickPoint)}
-      </button>
-    </div>
-  </div>`;
+  return profileRow({
+    ico: ICO.pin,
+    label: T.myAddr,
+    sub: p ? p.name[S.lang] : T.myAddrNone,
+    chev: true,
+    action: 'openAddrPicker',
+  });
 }
 
 // ============ PROFIL: BIZ BILAN BOG'LANISH ============
@@ -3032,33 +3068,41 @@ function renderMyAddress() {
 // Yechim muhitni ANIQLASHGA tayanmaydi (u yana bir taxmin bo'lardi):
 // havola `tel:` bo'lib qoladi — qayerda ishlasa o'sha yerda ishlayveradi —
 // va bosilganda raqam buferga HAM nusxalanadi. `preventDefault` yo'q.
+// Profildagi qator — "Mening manzilim" bilan BIR XIL yo'l: bosilsa alohida
+// oyna ochiladi (founder 2026-08-13). Ilgari bo'lim joyida ochilardi.
 function renderContact() {
   const T = STR[S.lang];
-  const ochiq = S.contactOpen;
-  const yol = 'display:flex;align-items:center;gap:12px;width:100%;text-align:left;cursor:pointer;text-decoration:none;padding:12px 13px;border:1px solid var(--glass-border-soft);border-radius:var(--radius-sm);background:rgba(255,255,255,.62);font-family:var(--font-sans)';
-  const belgi = 'flex:none;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center';
+  return profileRow({
+    ico: ICO.chat,
+    label: T.contactT,
+    sub: T.contactSub,
+    chev: true,
+    action: 'openContactSheet',
+  });
+}
+
+// Ikki yo'l — alohida oynada (`paintSheet` orqali, BTS oynasi bilan bitta
+// mexanizm). Oyna ochilganda profil QAYTA CHIZILMAYDI: ekran ortida turaveradi
+// va yopilganda skroll o'z joyida qoladi.
+function renderContactSheet() {
+  const T = STR[S.lang];
+  const yol = 'display:flex;align-items:center;gap:12px;width:100%;box-sizing:border-box;text-align:left;cursor:pointer;text-decoration:none;padding:13px;border:1px solid var(--glass-border-soft);border-radius:var(--radius-md);background:rgba(255,255,255,.62);font-family:var(--font-sans)';
+  const belgi = 'flex:none;width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center';
   const qiymat = 'display:block;font-size:15px;font-weight:700;color:var(--text-strong);letter-spacing:-.01em';
   const izoh = 'display:block;font-size:12px;color:var(--text-muted);margin-top:2px';
   const oq = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" style="flex:none;color:var(--text-subtle)"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 
   return `
-  <div id="contact-block" style="border:1px solid rgba(255,255,255,.55);border-radius:var(--radius-md);overflow:hidden;background:rgba(255,255,255,.6);backdrop-filter:blur(16px) saturate(160%);-webkit-backdrop-filter:blur(16px) saturate(160%);box-shadow:0 5px 16px -12px rgba(81,1,0,.12)">
-    <button data-action="toggleContact" aria-expanded="${ochiq}" style="display:flex;align-items:center;gap:12px;width:100%;text-align:left;cursor:pointer;padding:14px;border:none;background:none;font-family:var(--font-sans)">
-      <span style="flex:none;width:38px;height:38px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:linear-gradient(150deg,#8f1a10,#510100);color:#ffe9db">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4L7 21l1.1-3.3A8.4 8.4 0 1 1 21 11.5z" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/></svg>
-      </span>
-      <span style="flex:1;min-width:0">
-        <span style="display:block;font-size:14.5px;font-weight:700;color:var(--text-strong)">${T.contactT}</span>
-        <span style="${izoh}">${T.contactSub}</span>
-      </span>
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style="flex:none;color:var(--text-subtle);transition:transform var(--dur-base) var(--ease-out);transform:rotate(${ochiq ? '180' : '0'}deg)"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    </button>
+  <div data-action="closeContactSheet" style="position:absolute;inset:0;background:rgba(23,26,48,.34);z-index:60;animation:fade var(--dur-base) var(--ease-out)"></div>
+  <div style="position:absolute;left:0;right:0;bottom:0;z-index:61;display:flex;flex-direction:column;border-radius:var(--radius-xl) var(--radius-xl) 0 0;padding:10px 14px calc(18px + env(safe-area-inset-bottom));backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);background:var(--glass-tint);box-shadow:var(--glass-spec),0 -12px 40px -8px rgba(81,1,0,.28);animation:sheetUp var(--dur-base) var(--ease-out)">
+    <div style="width:38px;height:4px;border-radius:99px;background:var(--ink-200);margin:0 auto 12px;flex:none"></div>
+    <div style="flex:none;font-family:var(--font-display);font-size:17px;font-weight:800;color:var(--text-strong);letter-spacing:-.02em">${T.contactT}</div>
+    <div style="flex:none;font-size:12px;color:var(--text-muted);margin:3px 0 13px">${T.contactSub}</div>
 
-    ${ochiq ? `
-    <div style="padding:0 10px 10px;display:flex;flex-direction:column;gap:8px;animation:fade var(--dur-base) var(--ease-out)">
+    <div style="flex:none;display:flex;flex-direction:column;gap:9px">
       <a class="tap44" href="tel:${SUPPORT.tel}" data-action="copySupportPhone" style="${yol}">
         <span style="${belgi};background:var(--pom-100);color:#7a140d">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3-8.6A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8.1 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/></svg>
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor"><path d="M6.6 2.5a1.9 1.9 0 0 1 2.5.8l1.4 2.6a1.9 1.9 0 0 1-.4 2.3L8.6 9.6a14.6 14.6 0 0 0 5.8 5.8l1.4-1.5a1.9 1.9 0 0 1 2.3-.4l2.6 1.4a1.9 1.9 0 0 1 .8 2.5l-.8 1.7a2.4 2.4 0 0 1-2.7 1.3A19.6 19.6 0 0 1 3.6 5.2a2.4 2.4 0 0 1 1.3-2.7z"/></svg>
         </span>
         <span style="flex:1;min-width:0">
           <span style="${qiymat};font-family:var(--font-mono);font-weight:600;letter-spacing:0">${SUPPORT.telLabel}</span>
@@ -3067,104 +3111,111 @@ function renderContact() {
       </a>
       <button data-action="openSupportTg" style="${yol}">
         <span style="${belgi};background:rgba(55,174,226,.14);color:#1E96C8">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M21 4L2.5 11.5l6 2 2 6.5L15 15l5-11z"/></svg>
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor"><path d="M21 4L2.5 11.5l6 2 2 6.5L15 15l5-11z"/></svg>
         </span>
         <span style="flex:1;min-width:0">
           <span style="${qiymat}">${T.contactTgWay}</span>
           <span style="${izoh}">@${SUPPORT.tgUser}</span>
         </span>${oq}
       </button>
-    </div>` : ''}
+    </div>
   </div>`;
 }
 
-// ⚠️ Butun ekran QAYTA CHIZILMAYDI — faqat shu blok. `renderProfile()`
-// chaqirilsa skroll boshiga qaytardi va foydalanuvchi bo'limni ochib,
-// ekran tepaga sakraganini ko'rardi (`paintMapPick` bilan bitta naqsh).
-function toggleContact() {
-  S.contactOpen = !S.contactOpen;
-  const box = document.getElementById('contact-block');
-  if (box) box.outerHTML = renderContact();
-  else document.getElementById('screen-wrap').innerHTML = renderProfile();
+function openContactSheet() {
+  S.contactSheet = true;
+  paintSheet();
+}
+function closeContactSheet() {
+  S.contactSheet = false;
+  paintSheet();
 }
 
 // ============ EKRAN: PROFIL ============
+// TARTIB (founder namunasi, 2026-08-13) — uch qavat, aralashmaydi:
+//   1) KIMLIGI      — Telegram kartasi + korxona kartasi (aloqa shu kartaning
+//                     ICHIDA: telefon va pochta korxonaning o'z ma'lumoti,
+//                     alohida karta bo'lib turishi shart emas edi);
+//   2) BO'LIMLAR    — bir xil balandlikdagi alohida qatorlar (`profileRow`);
+//   3) AMAL + IZ    — bitta to'ldirilgan tugma (sotuvchi kabineti), keyin
+//                     chiqish va eng pastda brend izi.
+// "Sozlamalar" sarlavhasi OLIB TASHLANDI: qatorlarning o'zi nima ekanini
+// aytadi, sarlavha esa ro'yxatni ikkiga bo'lib ko'rsatardi.
+//
+// ⚠️ Bu yerda VERSIYA RAQAMI yo'q (namunada bor). Klientda haqiqiy versiya
+// satri mavjud emas, o'ylab topilgani esa "panelda o'ylab topilgan raqam
+// ko'rsatilmasin" qoidasiga tushadi: noto'g'ri raqam ishonch uyg'otadi,
+// yo'qligi esa savol tug'diradi.
 function renderProfile() {
   const T = STR[S.lang];
   return `
-  <div style="padding:16px 16px 28px;display:flex;flex-direction:column;gap:14px">
+  <div style="padding:16px 16px 28px;display:flex;flex-direction:column;gap:10px">
     ${renderTgCard()}
-    <div style="display:flex;align-items:center;gap:14px;padding:18px;border-radius:var(--radius-lg);background:var(--glass-fill-strong);backdrop-filter:var(--blur-md);-webkit-backdrop-filter:var(--blur-md);border:1px solid var(--glass-border);box-shadow:var(--glass-shadow)">
-      <span style="flex:none;width:58px;height:58px;border-radius:18px;background:linear-gradient(150deg,#7a140d,#510100);color:#ffe9db;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:800;font-size:22px">${COMPANY.initials}</span>
-      <div style="flex:1;min-width:0">
-        <div style="font-family:var(--font-display);font-size:17px;font-weight:700;color:var(--text-strong);letter-spacing:-.01em">${COMPANY.name[S.lang]}</div>
-        <div style="font-size:12.5px;color:var(--text-muted);margin-top:2px">${COMPANY.role[S.lang]} · ${COMPANY.since[S.lang]}</div>
-      </div>
-      <button style="flex:none;width:36px;height:36px;border-radius:10px;border:1px solid var(--glass-border);background:var(--glass-fill);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text-body)">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M4 20h4L18 10l-4-4L4 16v4z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M14 6l4 4" stroke="currentColor" stroke-width="2"/></svg>
-      </button>
-    </div>
 
-    <div style="display:flex;flex-direction:column;border:1px solid rgba(255,255,255,.55);border-radius:var(--radius-md);overflow:hidden;background:rgba(255,255,255,.6);backdrop-filter:blur(16px) saturate(160%);-webkit-backdrop-filter:blur(16px) saturate(160%);box-shadow:0 5px 16px -12px rgba(81,1,0,.12)">
-      <div style="display:flex;align-items:center;gap:12px;padding:14px;border-bottom:1px solid var(--border-hair)">
-        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" style="flex:none;color:var(--text-muted)"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3-8.6A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8.1 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
-        <span style="flex:1;font-size:14px;color:var(--text-body)">${S.tgPhone || COMPANY.phone}</span>
+    <div style="flex:none;display:flex;flex-direction:column;border-radius:var(--radius-lg);background:var(--glass-fill-strong);backdrop-filter:var(--blur-md);-webkit-backdrop-filter:var(--blur-md);border:1px solid var(--glass-border);box-shadow:var(--glass-shadow);overflow:hidden">
+      <div style="display:flex;align-items:center;gap:14px;padding:16px">
+        <span style="flex:none;width:54px;height:54px;border-radius:17px;background:linear-gradient(150deg,#7a140d,#510100);color:#ffe9db;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:800;font-size:21px">${COMPANY.initials}</span>
+        <div style="flex:1;min-width:0">
+          <div style="font-family:var(--font-display);font-size:17px;font-weight:700;color:var(--text-strong);letter-spacing:-.01em">${COMPANY.name[S.lang]}</div>
+          <div style="font-size:12.5px;color:var(--text-muted);margin-top:2px">${COMPANY.role[S.lang]} · ${COMPANY.since[S.lang]}</div>
+        </div>
+        <button style="flex:none;width:36px;height:36px;border-radius:10px;border:1px solid var(--glass-border);background:var(--glass-fill);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text-body)">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M4 20h4L18 10l-4-4L4 16v4z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M14 6l4 4" stroke="currentColor" stroke-width="2"/></svg>
+        </button>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-top:1px solid var(--border-hair)">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style="flex:none;color:var(--text-subtle)"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3-8.6A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8.1 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+        <span style="flex:1;min-width:0;font-size:13.5px;color:var(--text-body)">${S.tgPhone || COMPANY.phone}</span>
         ${(!S.tgPhone && inTelegram) ? `<button data-action="shareContact" style="flex:none;font-size:12px;font-weight:600;color:var(--teal-600);background:none;border:none;cursor:pointer">${T.shareContact}</button>` : ''}
       </div>
-      <div style="display:flex;align-items:center;gap:12px;padding:14px">
-        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" style="flex:none;color:var(--text-muted)"><rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" stroke-width="2"/><path d="M4 7l8 6 8-6" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
-        <span style="font-size:14px;color:var(--text-body)">${COMPANY.email}</span>
+      <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-top:1px solid var(--border-hair)">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style="flex:none;color:var(--text-subtle)"><rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" stroke-width="2"/><path d="M4 7l8 6 8-6" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+        <span style="flex:1;min-width:0;font-size:13.5px;color:var(--text-body)">${COMPANY.email}</span>
       </div>
     </div>
 
+    ${profileRow({
+      ico: ICO.lang,
+      label: T.language,
+      right: `<span style="flex:none;display:flex;align-items:center;gap:7px;font-size:14px;font-weight:600;color:var(--text-muted)">
+        <span aria-hidden="true" style="font-size:17px;line-height:1">${LANGS[S.lang].flag}</span>${LANGS[S.lang].name}
+      </span>`,
+      chev: true,
+      action: 'toggleLangUi',
+    })}
+    ${profileRow({
+      ico: ICO.bell,
+      label: T.notifications,
+      right: `<span class="tap44" data-action="toggleNotif" style="cursor:pointer;width:44px;height:26px;border-radius:999px;background:${S.notif?'#7a140d':'var(--ink-200)'};position:relative;flex:none;transition:background var(--dur-base) var(--ease-out)"><span style="position:absolute;top:3px;${S.notif?'right':'left'}:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:var(--shadow-sm);transition:left var(--dur-base) var(--ease-out),right var(--dur-base) var(--ease-out)"></span></span>`,
+    })}
     ${renderMyAddress()}
     ${renderContact()}
-
-    ${S.role === 'seller' ? `
-    <button data-action="enterSellerMode" style="display:flex;align-items:center;gap:12px;width:100%;text-align:left;cursor:pointer;padding:15px;border-radius:var(--radius-md);border:1px solid rgba(17,157,171,.25);background:var(--teal-50)">
-      <span style="flex:none;width:36px;height:36px;border-radius:11px;background:#fff;display:flex;align-items:center;justify-content:center;color:var(--teal-700)">
-        <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.6l8.5 4.2v10.4L12 21.4 3.5 17.2V6.8L12 2.6zm0 2.3L6.2 7.8 12 10.7l5.8-2.9L12 4.9z"/></svg>
-      </span>
-      <span style="flex:1">
-        <span style="display:block;font-size:14.5px;font-weight:700;color:var(--teal-700)">${T.toSeller}</span>
-        <span style="display:block;font-size:12px;color:var(--teal-700);opacity:.75;margin-top:1px">${S.seller?.name?.[S.lang] || ''}</span>
-      </span>
-      <span style="color:var(--teal-700);font-size:17px">›</span>
-    </button>` : ''}
-
-    <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-subtle);margin-top:4px">${T.settings}</div>
-    <div style="display:flex;flex-direction:column;border:1px solid rgba(255,255,255,.55);border-radius:var(--radius-md);overflow:hidden;background:rgba(255,255,255,.6);backdrop-filter:blur(16px) saturate(160%);-webkit-backdrop-filter:blur(16px) saturate(160%);box-shadow:0 5px 16px -12px rgba(81,1,0,.12)">
-      <div style="display:flex;align-items:center;gap:12px;padding:13px 14px;border-bottom:1px solid var(--border-hair)">
-        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" style="flex:none;color:var(--text-muted)"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18A14 14 0 0 1 12 3z" stroke="currentColor" stroke-width="2"/></svg>
-        <span style="flex:1;font-size:14px;font-weight:600;color:var(--text-strong)">${T.language}</span>
-        <span style="display:flex;align-items:center;background:var(--ink-50,var(--ink-100));border-radius:999px;padding:3px;gap:2px">
-          <button data-action="setLangUi" data-arg="uz" style="border:none;cursor:pointer;height:26px;padding:0 12px;border-radius:999px;font-size:12px;font-weight:700;font-family:var(--font-mono);background:${S.lang==='uz'?'var(--ink-900)':'transparent'};color:${S.lang==='uz'?'#fff':'var(--text-muted)'}">UZ</button>
-          <button data-action="setLangUi" data-arg="ru" style="border:none;cursor:pointer;height:26px;padding:0 12px;border-radius:999px;font-size:12px;font-weight:700;font-family:var(--font-mono);background:${S.lang==='ru'?'var(--ink-900)':'transparent'};color:${S.lang==='ru'?'#fff':'var(--text-muted)'}">RU</button>
-        </span>
-      </div>
-      <div style="display:flex;align-items:center;gap:12px;padding:13px 14px;border-bottom:1px solid var(--border-hair)">
-        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" style="flex:none;color:var(--text-muted)"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M10 21a2 2 0 0 0 4 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-        <span style="flex:1;font-size:14px;font-weight:600;color:var(--text-strong)">${T.notifications}</span>
-        <span class="tap44" data-action="toggleNotif" style="cursor:pointer;width:44px;height:26px;border-radius:999px;background:${S.notif?'#7a140d':'var(--ink-200)'};position:relative;flex:none;transition:background var(--dur-base) var(--ease-out)"><span style="position:absolute;top:3px;${S.notif?'right':'left'}:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:var(--shadow-sm);transition:left var(--dur-base) var(--ease-out),right var(--dur-base) var(--ease-out)"></span></span>
-      </div>
-      <div style="display:flex;align-items:center;gap:12px;padding:13px 14px;border-bottom:1px solid var(--border-hair)">
-        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" style="flex:none;color:var(--text-muted)"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M9.5 9a2.5 2.5 0 0 1 4.5 1.5c0 1.7-2.5 2-2.5 2M12 17h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-        <span style="flex:1;font-size:14px;font-weight:600;color:var(--text-strong)">${T.help}</span>
-        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" style="flex:none;color:var(--text-subtle)"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
-      <div style="display:flex;align-items:center;gap:12px;padding:13px 14px">
-        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" style="flex:none;color:var(--text-muted)"><circle cx="18" cy="5" r="2.4" stroke="currentColor" stroke-width="2"/><circle cx="6" cy="12" r="2.4" stroke="currentColor" stroke-width="2"/><circle cx="18" cy="19" r="2.4" stroke="currentColor" stroke-width="2"/><path d="M8.1 10.7l7.6-4.4M8.1 13.3l7.6 4.4" stroke="currentColor" stroke-width="2"/></svg>
-        <span style="flex:1;font-size:14px;font-weight:600;color:var(--text-strong)">${T.social}</span>
-        <a class="tap44" href="https://t.me/lolamarket_uz" target="_blank" rel="noopener" style="flex:none;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--text-strong);background:var(--glass-fill-strong);border:1px solid var(--glass-border);text-decoration:none">
+    ${profileRow({
+      ico: ICO.share,
+      label: T.social,
+      right: `<a class="tap44" href="https://t.me/lolamarket_uz" target="_blank" rel="noopener" style="flex:none;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--text-strong);background:var(--glass-fill-strong);border:1px solid var(--glass-border);text-decoration:none">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M22 2L11 13M22 2L15 22l-4-9-9-4 20-7z" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></svg>
         </a>
         <a class="tap44" href="https://instagram.com/lolamarket.uz" target="_blank" rel="noopener" style="flex:none;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--text-strong);background:var(--glass-fill-strong);border:1px solid var(--glass-border);text-decoration:none">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="5" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="2"/><circle cx="17.3" cy="6.7" r="1.1" fill="currentColor"/></svg>
-        </a>
-      </div>
+        </a>`,
+    })}
+
+    ${S.role === 'seller' ? `
+    <button data-action="enterSellerMode" style="flex:none;display:flex;align-items:center;gap:12px;width:100%;box-sizing:border-box;text-align:left;cursor:pointer;margin-top:6px;padding:16px;border:none;border-radius:var(--radius-md);background:linear-gradient(135deg,#8f1a10,#510100);color:#ffe9db;box-shadow:0 10px 22px -14px rgba(81,1,0,.9);font-family:var(--font-sans)">
+      <span style="flex:1;min-width:0">
+        <span style="display:block;font-size:15px;font-weight:700;letter-spacing:-.01em">${T.toSeller}</span>
+        ${S.seller?.name?.[S.lang] ? `<span style="display:block;font-size:12px;opacity:.78;margin-top:2px">${S.seller.name[S.lang]}</span>` : ''}
+      </span>
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" style="flex:none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>` : ''}
+
+    <button style="flex:none;height:46px;border-radius:var(--radius-md);border:1px solid var(--danger-100);background:transparent;color:var(--danger-500);cursor:pointer;font-size:14px;font-weight:600;margin-top:2px">${T.logout}</button>
+
+    <div style="flex:none;display:flex;flex-direction:column;align-items:center;gap:7px;margin-top:14px">
+      <img src="assets/lola-mark.png" width="40" height="40" alt="" style="border-radius:12px;opacity:.92">
+      <div style="font-size:11px;color:var(--text-subtle)">© 2026 LolaMarket</div>
     </div>
-    <button style="height:46px;border-radius:var(--radius-md);border:1px solid var(--danger-100);background:transparent;color:var(--danger-500);cursor:pointer;font-size:14px;font-weight:600;margin-top:2px">${T.logout}</button>
-    <div style="text-align:center;font-size:11px;color:var(--text-subtle);margin-top:6px">© 2026 LolaMarket</div>
   </div>`;
 }
 
@@ -3255,6 +3306,12 @@ function homeCard(p) {
 function setLangUi(l) {
   S.lang = l;
   render();
+}
+/* Bitta qator — ikki til (sayt bilan bitta naqsh: `script.js` → `toggleLang`).
+   Uchinchi til qo'shilsa bu yer tanlov ro'yxatiga aylanadi; ikki til uchun
+   ro'yxat ortiqcha bosish bo'lardi. */
+function toggleLangUi() {
+  setLangUi(S.lang === 'ru' ? 'uz' : 'ru');
 }
 function toggleNotif() {
   S.notif = !S.notif;

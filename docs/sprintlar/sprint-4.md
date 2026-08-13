@@ -103,6 +103,95 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
 
 ## Qilingan ishlar
 
+- [2026-08-13] **Profil ekrani qayta tartiblandi — IKKALA yuzda, founder
+  namunasi asosida. Namunadan FAQAT TARTIB olindi, mazmun emas.** Founder
+  boshqa ilovaning profil ekrani rasmini berdi. Nusxa ko'chirish oson
+  yo'l bo'lardi va u yerdagi har element bizga to'g'ri kelmasdi — shuning
+  uchun namunadan **shakl grammatikasi** olindi (bo'limlar bir xil
+  balandlikdagi alohida qatorlar), ichi esa LolaMarket'ning o'z mazmuni
+  bo'lib qoldi.
+
+  **Uch qavat, aralashmaydi** (`renderProfile()` — Mini App, `profileHtml()`
+  — sayt): (1) **kimligi** — Telegram kartasi + korxona kartasi, telefon va
+  pochta endi o'sha kartaning ICHIDA (ilgari alohida uchinchi karta edi:
+  ular korxonaning o'z ma'lumoti, alohida turishi shart emasdi);
+  (2) **bo'limlar** — bir xil balandlikdagi (`min-height: 62px`) qatorlar,
+  yangi `profileRow()` yordamchisi (Mini App) va `.p-row` sinflari (sayt);
+  (3) **amal + iz** — bitta to'ldirilgan CTA (sotuvchi kabineti) → chiqish →
+  logotip + `© 2026 LolaMarket`. "Sozlamalar" sarlavhasi OLIB TASHLANDI:
+  qatorlarning o'zi nima ekanini aytadi, sarlavha esa bitta ro'yxatni
+  ikkiga bo'lib ko'rsatardi. Saytda buyurtmalar ro'yxati YUQORIGA ko'chdi —
+  mazmun avval, bo'limlar keyin.
+
+  ⚠️ **Namunada BOR, lekin ATAYLAB QO'SHILMAGANI — va sabab qoidada
+  yozilgan:** ilova versiyasi raqami (klientda haqiqiy versiya satri MAVJUD
+  EMAS, o'ylab topilgani esa «panelda o'ylab topilgan raqam ko'rsatilmasin»
+  qoidasiga tushadi — noto'g'ri raqam ishonch uyg'otadi, yo'qligi esa savol
+  tug'diradi), yulduzli baholash, "Faol sessiyalar" / "Biz haqimizda" /
+  "FAQ" — ortida hech narsa yo'q qatorlar o'lik tugma bo'lardi.
+
+  **Founder ikkinchi bosqichda uchta tuzatish so'radi:**
+  🔴 **1) "Biz bilan bog'lanish" — endi ALOHIDA oyna, joyida ochiladigan
+  bo'lim EMAS.** Bu AYNI SHU KUNDAGI `9cd3b9d` qarorini ALMASHTIRADI (u
+  quyida, o'sha yozuvda turibdi — tarix uchun qoldirilyapti). Sabab uslub
+  emas: profilda ikkita "ichkariga olib kiradigan" qator turardi va ular
+  IKKI XIL ochilardi — biri joyida yoyilardi, ikkinchisi oyna chiqarardi.
+  Foydalanuvchi qaysi biri qanday ochilishini TAXMIN QILISHGA majbur edi.
+  Mini App'da `S.contactSheet` + `renderContactSheet()` (BTS oynasi bilan
+  BITTA `paintSheet` mexanizmi), saytda `drawerView === 'contact'` +
+  `contactWaysHtml()`. `contactOpen` / `toggleContact` ikkala yuzdan ham
+  butunlay olib tashlandi (qoldiq yo'qligi grep bilan tekshirildi).
+  **2) Qator belgilari TO'LDIRILGAN bo'ldi** (Mini App'da `ICO`
+  konstantasi): ingichka chiziqli belgi 21px da yorug' fonda yo'qolib
+  ketardi, to'ldirilgani esa qator boshida aniq langar bo'lib turadi.
+  **3) Til qatori saytdagi naqshga o'tdi:** UZ/RU tugmachalari o'rniga
+  bitta qator — `🇺🇿 O'zbek ›`, bosilsa `🇷🇺 Русский` (yangi
+  `toggleLangUi()`, `LANGS` konstantasi). Til NOMI tarjima jadvalida EMAS:
+  har bir til o'z tilida yoziladi. Uchinchi til qo'shilsa bu yer tanlov
+  ro'yxatiga aylanadi — ikki til uchun ro'yxat ortiqcha bosish bo'lardi.
+
+  **"Yordam markazi" qatori BUTUNLAY olib tashlandi** — ortida hech narsa
+  yo'q edi, ya'ni u bosiladigandek ko'rinib hech qayerga olib bormaydigan
+  qator edi. `help` tarjima kaliti ham ikkala tildan o'chirildi (qator
+  ketib kalit qolsa, u keyin "bor ekan" deb qayta ishlatilardi).
+
+  **Kesh qoidasi bajarildi:** `app.js?v=79→80`, `script.js?v=39→40`,
+  `style.css?v=48→49` — oxirgisi `index.html` va `admin/index.html` da BIR
+  XIL (bitta fayl ikki sahifada turli versiya bilan chaqirilgan holat
+  2026-08-06 da aynan shu yerda tishlagan); Test 16 jadvalidagi uchta hash
+  yangilandi.
+  ⚠️ **Raqam IKKI MARTA oshirildi va sabab muhim.** Ish `main` dan
+  shoxlangandan keyin media galereya (`1e17ccd`) va video o'chirish
+  (`5b913cc`) o'sha uchala faylni tegib, `?v=` ni AYNAN shu raqamlarga
+  (79 / 39 / 48) ko'targan edi. Rebase paytida faqat mazmun birlashadi —
+  `?v=` esa jimgina "allaqachon to'g'ri" bo'lib ko'rinardi, holbuki o'sha
+  raqam production'da BOSHQA tarkib bilan yotgan: qaytib kelgan
+  foydalanuvchi yangi HTML + eski JS birikmasini olardi. Shoxlangan ish
+  qo'shilganda `?v=` ni `main` dagi qiymatdan oshirish kerak, o'zining
+  eski qiymatidan emas.
+
+  **O'LCHANDI, ko'z bilan qaralmadi.** CLAUDE.md dagi "flex ustunda
+  siqiladigan blok" qoidasi shu kuni yozilgan va u ko'rish yetarli emasligini
+  aytadi — shuning uchun ikkala yuzda ham `getBoundingClientRect()` bilan
+  har bir qatorning ichidagi element ota chegarasidan oshmasligi tekshirildi:
+  **kesilgan blok YO'Q**, manzil va aloqa qatorlari **65.2px — teng**. Aloqa
+  oynasi ochildi/yopildi, til `uz→ru→uz` almashtirildi (bayroq ham, butun
+  profil tarjimasi ham yangilanadi), manzil tanlash oynasi yangi qatordan
+  ochilishi tasdiqlandi. **59 test PASS** — raqam ikki mustaqil usul bilan
+  olindi (test chiqishidagi `✅ Test` satrlari = 59, manbadagi noyob
+  e'lonlar = 59).
+
+  🔴 **OCHIQ QOLGANI, ataylab yoziladi:** (a) **to'rtta tarjima kaliti endi
+  O'LIK** — `myAddrPick`, `myAddrChange`, `myAddrHint` (ikkala yuzda) va
+  `workHoursL` (saytda): eski manzil kartasi ularni ishlatardi, yangi qator
+  esa faqat "qaysi nuqta" degan javobni ko'rsatadi. **Test 20 buni QIZIL
+  QILMAYDI** — u faqat ogohlantiradi, va o'lchandi: ishlatilmagan kalitlar
+  **12 → 16** ga chiqdi. Ya'ni bu jimgina o'sadigan qoldiq; kalitlarni
+  o'chirish yoki tanlash oynasida ishlatish alohida band; (b) production'ga
+  chiqarilmagan — CI va jonli tekshiruv hali yo'q, ya'ni bu yozuv
+  "yozildi", "ishlayapti" EMAS; (c) `panel.js` dagi "Yangilanish:" matni
+  hamon eskirgan (quyidagi yozuvning (c) bandi) — parallel ish tugagach
+  yopiladi
 - [2026-08-13] **Videoni O'CHIRISH amali (`video_remove`) — oldingi commit
   ochib qo'ygan teshik yopildi.** `1e17ccd` bilan video XARIDORGA ko'rina
   boshladi, olib tashlash yo'li esa YO'Q edi: nomaqbul video chiqsa faqat
@@ -948,6 +1037,38 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
 
 ## Qarorlar
 
+- [2026-08-13] Qaror (founder): **profil tartibi namunadan olinadi, MAZMUNI
+  esa YO'Q.** Founder boshqa ilovaning profil ekranini namuna qilib berdi.
+  Undan faqat **shakl grammatikasi** ko'chirildi — bo'limlar bir xil
+  balandlikdagi alohida qatorlar bo'lib turadi. Sabab uslubdan kattaroq:
+  bir xil qatorda ko'z faqat YOZUVni o'qiydi, har xil balandlikdagi
+  bloklarda esa avval SHAKLni ajratadi va har bo'lim qayta "o'rganiladi".
+  ⚠️ Namunadagi versiya raqami, yulduzli baholash va "Faol sessiyalar" /
+  "Biz haqimizda" / "FAQ" qatorlari **ATAYLAB ko'chirilmadi** — ortida hech
+  narsa yo'q qator o'lik tugma, o'ylab topilgan versiya raqami esa
+  «panelda o'ylab topilgan raqam ko'rsatilmasin» qoidasiga tushadi.
+  Namuna — TARTIB manbai, mazmun manbai emas
+- [2026-08-13] Qaror (founder): **"Biz bilan bog'lanish" — "Mening manzilim"
+  bilan BIR XIL yo'l, ya'ni ALOHIDA oyna.** ⚠️ Bu quyidagi o'sha kungi
+  «ochiladigan bo'lim» qarorini ALMASHTIRADI (`9cd3b9d`). Sabab: profilda
+  ikkita "ichkariga olib kiradigan" qator turardi va ular IKKI XIL
+  ochilardi — biri joyida yoyilardi, ikkinchisi oyna chiqarardi. Bir xil
+  ko'rinishdagi ikki qator har xil ish qilsa, foydalanuvchi bosishdan oldin
+  TAXMIN qilishga majbur bo'ladi. Mexanizm ham bitta: Mini App'da
+  `paintSheet`, saytda `drawerView` — ikkinchi yo'l qurilmaydi
+- [2026-08-13] Qaror: **ortida hech narsa yo'q qator QOLDIRILMAYDI.**
+  "Yordam markazi" strelkasi bilan turardi va hech qayerga olib bormasdi;
+  qator bilan birga `help` tarjima kaliti ham o'chirildi. Kalit qoldirilsa
+  u keyin "allaqachon bor ekan" deb qayta ishlatilardi. Bu `NULL` reyting
+  qoidasi bilan bitta oila: **bo'sh va'da yo'qlikdan yomonroq** —
+  yo'qligi savol tug'diradi, o'lik tugma esa ishonch uyg'otadi
+- [2026-08-13] Qaror: **til — bitta qator, ikki holat** (`toggleLangUi`),
+  UZ/RU tugmachalari emas. Sayt allaqachon shu naqshda ishlardi
+  (`script.js` → `toggleLang`) va ikki yuz bir xil bo'lishi kerak. Til NOMI
+  tarjima jadvaliga QO'YILMAYDI — har bir til o'z tilida yoziladi
+  (`LANGS`), aks holda "Русский" o'zbekcha interfeysda tarjima talab
+  qilardi va bu ma'nosiz. Uchinchi til qo'shilganda bu yer tanlov ro'yxatiga
+  aylanadi
 - [2026-08-13] Qaror: **nomaqbul video uchun BUTUN e'lonni rad etish emas,
   faqat videoni o'chirish** (`video_remove`). Sabab: e'lonni rad etish
   sotuvchini aybsiz mahsuloti bilan birga jazolaydi va u qaytadan hamma
@@ -992,11 +1113,15 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
   va o'lchov uni RAD ETDI. Ro'yxat keraksiz kengaysa CSP himoya sifatida
   susayadi, tor bo'lsa — funksiya jimgina o'ladi; ikkala xato ham
   KO'RINMAYDI, shuning uchun bu yerda o'lchov ixtiyoriy emas
-- [2026-08-13] Qaror (founder): **"Biz bilan bog'lanish" — ochiladigan bo'lim,
+- [2026-08-13] ~~Qaror (founder): **"Biz bilan bog'lanish" — ochiladigan bo'lim,
   ikki yo'l ichida** (qo'ng'iroq va Telegram), yopiq holat boshlang'ich.
   Ochilganda faqat blokning O'ZI qayta chiziladi — butun ekranni qayta chizish
   skrollni boshiga qaytarardi va foydalanuvchi bo'limni ochib ekran tepaga
-  sakraganini ko'rardi
+  sakraganini ko'rardi~~
+  🔴 **ALMASHTIRILDI o'sha kuni** — yuqoridagi "alohida oyna" qaroriga qarang
+  (profil qayta tartiblanganda). Yozuv tarix uchun qoldirildi: qaror
+  o'chirilsa, keyingi o'qigan odam nima uchun ikki bo'lim bir xil ochilishini
+  bilmasdi
 
 - [2026-08-13] Qaror: **video uchun R2 MAJBURIY — rasmdagidan farqli o'laroq,
   va shu sababli TARTIB TESKARI: avval R2, keyin baza.** Rasmda R2 yiqilsa

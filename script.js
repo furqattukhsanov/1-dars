@@ -1179,19 +1179,31 @@ function profileHtml() {
       </div>
     </div>
 
-    ${sellerMe && sellerMe.seller ? `
-    <button class="s-enter" data-action="openSellerCabinet">
-      <span class="s-enter-main">${t('sCabinet')}</span>
-      <span class="s-enter-sub">${esc(L(sellerMe.seller.name))}${sellerMe.seller.verified ? ` · ${t('sVerified')}` : ''}</span>
-    </button>` : ''}
-
-    ${myAddressHtml()}
-    ${contactHtml()}
-
     <div class="profile-sec-title">${t('myOrders')}</div>
     ${orders}
 
-    <button class="auth-ghost" style="margin-top:18px;width:100%" data-action="logout">${t('logout')}</button>`;
+    <div class="p-rows">
+      ${myAddressHtml()}
+      ${contactHtml()}
+    </div>
+
+    ${sellerMe && sellerMe.seller ? `
+    <button class="s-enter" data-action="openSellerCabinet">
+      <span class="s-enter-txt">
+        <span class="s-enter-main">${t('sCabinet')}</span>
+        <span class="s-enter-sub">${esc(L(sellerMe.seller.name))}${sellerMe.seller.verified ? ` · ${t('sVerified')}` : ''}</span>
+      </span>
+      <svg class="p-row-chev" width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>` : ''}
+
+    <button class="auth-ghost" style="margin-top:12px;width:100%" data-action="logout">${t('logout')}</button>
+
+    <div class="p-foot">
+      <img src="Photo/logo/lola-mark.png" width="40" height="40" alt="" loading="lazy">
+      <span>© 2026 LolaMarket</span>
+    </div>`;
 }
 
 /* ── Profil: "Mening manzilim" ──
@@ -1201,29 +1213,26 @@ function profileHtml() {
    ⚠️ Nuqta tanlanmagan bo'lsa SOXTA manzil ko'rsatilmaydi — blok
    "tanlanmagan" deb turadi (`NULL` reyting qoidasi bilan bitta oila:
    yo'qlik ko'rinsin, jimgina yolg'on gapirmasin). */
+/* Qator shakli (2026-08-13, founder namunasi): to'liq manzil, ish vaqti va
+   karta bir bosishda — tanlash oynasida; qatorda esa xaridorga kerak
+   bo'ladigan yagona javob turadi — "qaysi nuqta". */
 function myAddressHtml() {
   const p = btsById(btsPoint);
   return `
-    <div class="profile-sec-title">${t('myAddr')}</div>
-    <div class="addr-card">
-      <svg class="addr-pin" width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path d="M12 21s7-6.2 7-11a7 7 0 1 0-14 0c0 4.8 7 11 7 11z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-        <circle cx="12" cy="10" r="2.6" stroke="currentColor" stroke-width="2"/>
+    <button class="p-row" data-action="openAddrPicker">
+      <span class="p-row-ico" aria-hidden="true">
+        <svg width="21" height="21" viewBox="0 0 24 24" fill="currentColor">
+          <path fill-rule="evenodd" d="M12 2a7.4 7.4 0 0 0-7.4 7.4C4.6 14.8 12 22 12 22s7.4-7.2 7.4-12.6A7.4 7.4 0 0 0 12 2zm0 10.1a2.7 2.7 0 1 1 0-5.4 2.7 2.7 0 0 1 0 5.4z"/>
+        </svg>
+      </span>
+      <span class="p-row-main">
+        <span class="p-row-label">${t('myAddr')}</span>
+        <span class="p-row-sub">${p ? esc(p.name) : t('myAddrNone')}</span>
+      </span>
+      <svg class="p-row-chev" width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
-      <div class="addr-main">
-        ${p ? `
-          <div class="addr-name">${esc(p.name)}</div>
-          <div class="addr-sub">${esc(p.addr)}</div>
-          <div class="addr-sub">${t('workHoursL')}: ${esc(p.hours)}</div>
-        ` : `
-          <div class="addr-name addr-none">${t('myAddrNone')}</div>
-          <div class="addr-sub">${t('myAddrHint')}</div>
-        `}
-      </div>
-      <button class="${p ? 'addr-btn' : 'addr-btn is-primary'}" data-action="openAddrPicker">
-        ${p ? t('myAddrChange') : t('myAddrPick')}
-      </button>
-    </div>`;
+    </button>`;
 }
 
 /* ── Profil: "Biz bilan bog'lanish" ──
@@ -1244,68 +1253,62 @@ function myAddressHtml() {
    nusxalanadi. Qo'ng'iroq ochilsa nusxa xalaqit bermaydi, ochilmasa
    foydalanuvchi raqamni qo'lda tera oladi. `preventDefault` CHAQIRILMAYDI:
    u native qo'ng'iroqni o'ldirardi. */
-/* Ochiqmi — bo'lim BOSILGANDA ikki yo'l chiqadi (founder qarori
-   2026-08-13). Yopiq holat BOSHLANG'ICH: profil ekrani allaqachon uzun
-   (manzil + buyurtmalar), doim ochiq turgan ikki qator uni yana
-   cho'zardi. */
-let contactOpen = false;
-
+/* Profildagi qator — "Mening manzilim" bilan BIR XIL yo'l: bosilsa ALOHIDA
+   ko'rinish ochiladi (founder 2026-08-13). Ilgari bo'lim joyida ochilardi;
+   ikki bo'limning ikki xil ochilishi qaysi biri "ichkariga olib kirishini"
+   taxmin qildirardi. */
 function contactHtml() {
-  const ico = 'width="18" height="18" viewBox="0 0 24 24"';
   return `
-    <div class="contact-block" id="contact-block">
-      <button class="contact-head${contactOpen ? ' is-open' : ''}"
-              data-action="toggleContact"
-              aria-expanded="${contactOpen}" aria-controls="contact-ways">
-        <span class="contact-head-ico" aria-hidden="true">
-          <svg ${ico} fill="none"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4L7 21l1.1-3.3A8.4 8.4 0 1 1 21 11.5z" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/></svg>
-        </span>
-        <span class="contact-head-main">
-          <span class="contact-head-title">${t('contactT')}</span>
-          <span class="contact-head-sub">${t('contactSub')}</span>
-        </span>
-        <svg class="contact-chev" ${ico} fill="none" aria-hidden="true"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </button>
+    <button class="p-row" data-action="openContactView">
+      <span class="p-row-ico" aria-hidden="true">
+        <svg width="21" height="21" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.2c-5.1 0-9.2 3.5-9.2 7.9 0 2.4 1.2 4.6 3.2 6.1L4.9 21l4.3-1.8c.9.2 1.8.3 2.8.3 5.1 0 9.2-3.5 9.2-7.9s-4.1-7.9-9.2-7.9z"/></svg>
+      </span>
+      <span class="p-row-main">
+        <span class="p-row-label">${t('contactT')}</span>
+        <span class="p-row-sub">${t('contactSub')}</span>
+      </span>
+      <svg class="p-row-chev" width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>`;
+}
 
-      ${contactOpen ? `
-      <div class="contact-ways" id="contact-ways">
-        <a class="way way-phone" href="tel:${SUPPORT.tel}" data-action="copySupportPhone">
-          <span class="way-ico" aria-hidden="true">
-            <svg ${ico} fill="none"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3-8.6A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8.1 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/></svg>
-          </span>
-          <span class="way-main">
-            <span class="way-val is-mono">${SUPPORT.telLabel}</span>
-            <span class="way-sub">${t('contactCall')}</span>
-          </span>
-          <span class="way-go" aria-hidden="true">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          </span>
-        </a>
-        <a class="way way-tg" href="${SUPPORT.tgUrl}" target="_blank" rel="noopener">
-          <span class="way-ico" aria-hidden="true">
-            <svg ${ico} fill="currentColor"><path d="M21 4L2.5 11.5l6 2 2 6.5L15 15l5-11z"/></svg>
-          </span>
-          <span class="way-main">
-            <span class="way-val">${t('contactTgWay')}</span>
-            <span class="way-sub">@${SUPPORT.tgUser}</span>
-          </span>
-          <span class="way-go" aria-hidden="true">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          </span>
-        </a>
-      </div>` : ''}
+/* Ikki yo'l — alohida ko'rinishda (manzil tanlash bilan bitta mexanizm). */
+function contactWaysHtml() {
+  return `
+    <div class="contact-ways" id="contact-ways">
+      <a class="way way-phone" href="tel:${SUPPORT.tel}" data-action="copySupportPhone">
+        <span class="way-ico" aria-hidden="true">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor"><path d="M6.6 2.5a1.9 1.9 0 0 1 2.5.8l1.4 2.6a1.9 1.9 0 0 1-.4 2.3L8.6 9.6a14.6 14.6 0 0 0 5.8 5.8l1.4-1.5a1.9 1.9 0 0 1 2.3-.4l2.6 1.4a1.9 1.9 0 0 1 .8 2.5l-.8 1.7a2.4 2.4 0 0 1-2.7 1.3A19.6 19.6 0 0 1 3.6 5.2a2.4 2.4 0 0 1 1.3-2.7z"/></svg>
+        </span>
+        <span class="way-main">
+          <span class="way-val is-mono">${SUPPORT.telLabel}</span>
+          <span class="way-sub">${t('contactCall')}</span>
+        </span>
+        <span class="way-go" aria-hidden="true">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>
+      </a>
+      <a class="way way-tg" href="${SUPPORT.tgUrl}" target="_blank" rel="noopener">
+        <span class="way-ico" aria-hidden="true">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor"><path d="M21 4L2.5 11.5l6 2 2 6.5L15 15l5-11z"/></svg>
+        </span>
+        <span class="way-main">
+          <span class="way-val">${t('contactTgWay')}</span>
+          <span class="way-sub">@${SUPPORT.tgUser}</span>
+        </span>
+        <span class="way-go" aria-hidden="true">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>
+      </a>
     </div>`;
 }
 
-/* ⚠️ Butun profil QAYTA CHIZILMAYDI — faqat shu blok. `renderDrawer()`
-   oyna tanasini to'liq almashtiradi va o'shanda skroll boshiga qaytardi:
-   foydalanuvchi pastdagi bo'limni ochib, ekran tepaga sakraganini
-   ko'rardi. Bu naqsh loyihada allaqachon bor (`paintBtsInfo`). */
-function toggleContact() {
-  contactOpen = !contactOpen;
-  const box = document.getElementById('contact-block');
-  if (box) box.outerHTML = contactHtml();
-  else if (drawerView === 'profile') renderDrawer();
+/** Profildan aloqa ko'rinishiga o'tish (`openAddrPicker` bilan bitta naqsh) */
+function openContactView() {
+  drawerView = 'contact';
+  renderDrawer();
+  openDrawerEl();
 }
 
 /* Matnni buferga nusxalash. Ikki yo'l ATAYLAB: `navigator.clipboard`
@@ -3646,6 +3649,13 @@ function renderDrawer() {
     // tushgandan keyin chiziladi, ya'ni mount aynan shu yerda bo'lishi
     // kerak (har qayta chizishda tugun YANGI bo'ladi).
     mountAddrMap();
+    return;
+  }
+
+  if (drawerView === 'contact') {
+    title.textContent = t('contactT');
+    body.innerHTML = contactWaysHtml();
+    foot.hidden = true;
     return;
   }
 
