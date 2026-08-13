@@ -1375,7 +1375,7 @@ function testAssetVersionsAreFresh() {
     'style.css': { v: 49, hash: '6d1e0694e1c0' },
     'script.js': { v: 40, hash: 'd4a5ad5e9d22' },
     'pwa.js': { v: 2, hash: 'f46683d58662' },
-    'panel.js': { v: 16, hash: '6df8993440ec' },
+    'panel.js': { v: 17, hash: '67ea34687896' },
     'admin/admin.css': { v: 18, hash: '15b0bc977b85' },
     'admin/admin.js': { v: 24, hash: '9f912b5b0788' },
     'telegram-app/styles.css': { v: 25, hash: '1e53e59ed3cf' },

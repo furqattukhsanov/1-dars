@@ -158,7 +158,11 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
   har `render()` da ulansa listenerlar to'planib skroll qimmatlashardi.
 
   **Kesh qoidasi bajarildi:** `telegram-app/styles.css?v=24→25`,
-  `telegram-app/app.js?v=80→81`, Test 16 jadvalidagi ikki hash yangilandi.
+  `telegram-app/app.js?v=80→81`, `panel.js?v=15→16→17` (oxirgisi shu
+  tuzatish bilan), Test 16 jadvalidagi UCHTA hash yangilandi.
+  ⚠️ Bu yerda ilgari «ikki hash» deb yozilgan va `panel.js` umuman
+  eslatilmagan edi — `b651722` ning O'ZIDA esa uchta qator o'zgargan.
+  Yana bir marta: hujjatdagi raqam sanab tekshirilmasa — da'vo.
 
   **O'LCHANDI, ko'z bilan qaralmadi:** hero 469px / 57.7%; nom bloki hero
   chegarasidan chiqmaydi (0px); 3 qatorli uzun nomda ham nuqtalar bilan
@@ -175,12 +179,22 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
   qiymat bilan mos). Bu «hujjatdagi raqam — tekshirilmagan da'vo»
   qoidasining yana bir tasdig'i: raqam ko'chirilmaydi, qayta o'lchanadi
 
-  🔴 **HALOL CHEGARA:** brauzer paneli yashirin (`document.hidden`)
-  bo'lgani uchun skroll hodisasi TABIIY otilmadi va CSS o'tishlari kadr
-  olmadi — skroll SUN'IY hodisa bilan, header opacity esa HISOBLANGAN
-  qiymat bilan tekshirildi. **Telefonda jonli ko'rilmagan va DEPLOY
-  QILINMAGAN.** Sayt (`script.js`) ATAYLAB tegilmagan: u yerda mahsulot
-  yon oynada (`drawer`) ochiladi, bu ekranning juftligi yo'q.
+  ⚠️ **Brauzerda tekshirib BO'LMAGAN joy bor edi:** panel yashirin
+  (`document.hidden`) bo'lgani uchun skroll hodisasi TABIIY otilmadi va
+  CSS o'tishlari kadr olmadi — skroll SUN'IY hodisa bilan, header opacity
+  esa HISOBLANGAN qiymat bilan tekshirilgan edi.
+
+  ✅ **PRODUCTION'DA VA FOUNDER TELEFONDA TASDIQLADI** (2026-08-13,
+  `b651722`, CI success): `lolamarket.uz/mini-app/` HTML da `?v=25`/`?v=81`
+  va ikkala fayl repodagi bilan **hash bo'yicha bayt-baytga mos**
+  (`193eb813a690` / `1e53e59ed3cf`). Founder Telegram ichida ochib
+  ko'rdi — «hammasi joyida», ya'ni yuqoridagi uch nuqta (skroll bilan
+  header qaytishi, ikki barmoq bilan kattalashtirish, rasmning Telegram
+  paneli bilan to'qnashmasligi) JONLI tekshirildi. Servis restarti kerak
+  emas — faqat frontend o'zgardi.
+
+  🔴 Sayt (`script.js`) ATAYLAB tegilmagan: u yerda mahsulot yon oynada
+  (`drawer`) ochiladi, bu ekranning juftligi yo'q.
 
 - [2026-08-13] **Profil ekrani qayta tartiblandi — IKKALA yuzda, founder
   namunasi asosida. Namunadan FAQAT TARTIB olindi, mazmun emas.** Founder
