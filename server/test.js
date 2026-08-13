@@ -1375,9 +1375,9 @@ function testAssetVersionsAreFresh() {
     'style.css': { v: 48, hash: '6ea0a72bf846' },
     'script.js': { v: 39, hash: '991f3974ccaa' },
     'pwa.js': { v: 2, hash: 'f46683d58662' },
-    'panel.js': { v: 14, hash: '1c858b5d478f' },
+    'panel.js': { v: 15, hash: 'b81d8df2ff23' },
     'admin/admin.css': { v: 18, hash: '15b0bc977b85' },
-    'admin/admin.js': { v: 23, hash: '3616649126b1' },
+    'admin/admin.js': { v: 24, hash: '9f912b5b0788' },
     'telegram-app/styles.css': { v: 24, hash: '8f950b783fd7' },
     'telegram-app/app.js': { v: 79, hash: 'e97bb7372842' },
     'telegram-app/pwa.js': { v: 6, hash: '798ab85e1cde' },
@@ -2946,6 +2946,55 @@ function testTranslationKeys() {
     (olik.length ? `, ⚠️ ${olik.length} ta ishlatilmagan: ${olik.slice(0, 5).join(', ')}${olik.length > 5 ? '…' : ''}` : '') + ')');
 }
 
+
+// ============ TEST 23: admin amallari ro'yxati IKKI joyda bir xil ============
+// 2026-08-03 da `admin_actions_kind_check` da `review_hide` yo'q edi va sharh
+// yashirish PRODUCTION'DA BUTUNLAY ishlamasdi (`db/014`): kod yozilgan, tugma
+// bosiladi, `INSERT` esa CHECK'da yiqiladi — sabab hech qayerda ko'rinmaydi.
+// Naqsh 2026-08-13 da `video_remove` bilan qaytishi mumkin edi, shuning uchun
+// qorovul yozildi.
+//
+// Migratsiya fayli QO'LDA ko'rsatilmaydi — `db/` dagi cheklovni belgilaydigan
+// ENG KATTA raqamli fayl topiladi. Kelajakda `db/031` ro'yxatni qayta yozsa,
+// test avtomatik o'shanga qaraydi va bu yerni tahrirlash kerak bo'lmaydi.
+function testAdminActionKinds() {
+  const fs = require('fs');
+  const path = require('path');
+  const dbDir = path.join(__dirname, '..', 'db');
+  const fayllar = fs.readdirSync(dbDir)
+    .filter((f) => f.endsWith('.sql') && /admin_actions_kind_check/.test(fs.readFileSync(path.join(dbDir, f), 'utf8')))
+    .filter((f) => /CHECK \(kind IN/.test(fs.readFileSync(path.join(dbDir, f), 'utf8')))
+    .sort();
+  assert.ok(fayllar.length, 'admin_actions_kind_check ni belgilaydigan migratsiya topilmadi');
+  const oxirgi = fayllar[fayllar.length - 1];
+  const sql = fs.readFileSync(path.join(dbDir, oxirgi), 'utf8');
+
+  const m = sql.match(/CHECK \(kind IN \(([^)]*)\)\)/);
+  assert.ok(m, `${oxirgi}: CHECK (kind IN (...)) o'qib bo'lmadi`);
+  const sqlKinds = new Set([...m[1].matchAll(/'([a-z_]+)'/g)].map((x) => x[1]));
+
+  // Koddagi ro'yxat — `ADMIN_ACTIONS` obyektining kalitlari.
+  const src = fs.readFileSync(path.join(__dirname, 'routes', 'admin.js'), 'utf8');
+  const i = src.indexOf('const ADMIN_ACTIONS = {');
+  assert.ok(i > 0, 'admin.js da ADMIN_ACTIONS topilmadi — nomi o\'zgarganmi?');
+  const blok = src.slice(i, src.indexOf('\nfunction ', i));
+  const kodKinds = new Set([...blok.matchAll(/^  ([a-z_]+): \{/gm)].map((x) => x[1]));
+  assert.ok(kodKinds.size >= 8, `ADMIN_ACTIONS kalitlari topilmadi (${kodKinds.size} ta)`);
+
+  const kodda_sqlsiz = [...kodKinds].filter((k) => !sqlKinds.has(k));
+  assert.deepStrictEqual(kodda_sqlsiz, [],
+    `Bu amallar kodda BOR, lekin ${oxirgi} dagi CHECK da YO'Q — ular production'da ` +
+    `JIMGINA ishlamaydi (db/014 darsi): ${kodda_sqlsiz.join(', ')}`);
+
+  // Teskarisi ham muhim, lekin yumshoqroq: SQL da bor-u kodda yo'q tur —
+  // o'lik qiymat. U hech narsani buzmaydi, shuning uchun ogohlantirish.
+  const sqlda_kodsiz = [...sqlKinds].filter((k) => !kodKinds.has(k));
+
+  console.log(`✅ Test 23: Admin amallari ro'yxati ikki joyda bir xil — PASS ` +
+    `(${kodKinds.size} amal, manba ${oxirgi}` +
+    (sqlda_kodsiz.length ? `, ⚠️ SQL da ortiqcha: ${sqlda_kodsiz.join(', ')}` : '') + ')');
+}
+
 // ============ TEST RUNNER ============
 // ============ TEST 22: OLISH NUQTASI ID SHAKLI (2026-08-13) ============
 // "Mening manzilim" xaridorning O'Z tanlovini bazaga yozadi. Qiymat
@@ -3182,6 +3231,8 @@ async function runTests() {
     testFasonVariety();
     testPromptVersionGuard();
     testComboText();
+
+    testAdminActionKinds();
 
     testR2ConfigValidation();
     testR2KeyGuard();

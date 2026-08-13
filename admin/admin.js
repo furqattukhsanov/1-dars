@@ -954,10 +954,32 @@ function renderVideoQueue() {
         <div class="mod-name">${esc(m.name)}</div>
         <div class="mod-meta">${esc(m.sellerName || "Sotuvchi noma'lum")} · ${esc(m.date ? m.date.uz : '')}</div>
         <div class="mod-meta">🎬 ${esc(meta)}</div>
+        <div class="mod-actions">
+          <button class="btn-reject" data-vid="${esc(m.id)}">Videoni o'chirish</button>
+        </div>
       </div>
     </div>`;
   }).join('');
 }
+
+/* Videoni o'chirish — mahsulot O'CHMAYDI, faqat video olib tashlanadi.
+   Yozuv amali, ya'ni panel faqat SO'RAYDI: haqiqiy o'chirish Telegram'dagi
+   tugma bosilgandan keyin bo'ladi (2026-07-27 qarori — panel tokeni
+   `sessionStorage`da yashaydi va o'g'irlanishi mumkin). */
+document.getElementById('videoGrid').addEventListener('click', async (e) => {
+  const btn = e.target.closest('button[data-vid]');
+  if (!btn) return;
+  const id = btn.dataset.vid;
+  const m = (state.summary.videoQueue || []).find((x) => x.id === id);
+  const r = await askModal('Videoni o\'chirish', [
+    { type: 'static', label: 'Mahsulot', value: m ? m.name : id },
+    { type: 'static', label: 'Diqqat', value: "Mahsulot o'chmaydi — faqat video" },
+    { name: 'reason', label: 'Sabab', type: 'textarea',
+      hint: 'Sotuvchiga yuboriladi — u yangi video yuborishi mumkin' },
+  ], "Telegram'ga so'rov yuborish");
+  if (!r) return;
+  await runAdminAction('video_remove', id, r.reason ? { reason: r.reason } : {}, "Videoni o'chirish");
+});
 
 /* ─── Bahsli holatlar ─── */
 

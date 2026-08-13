@@ -411,6 +411,52 @@ function r2PublicBase(raw) {
 
 const R2_PUBLIC_BASE = r2PublicBase(process.env.R2_PUBLIC_BASE);
 
+// ============ CLOUDFLARE CACHE PURGE (2026-08-13) ============
+// Video o'chirilganda R2 dan o'chirish YETARLI EMAS: 2026-08-09 da O'LCHANGAN —
+// obyekt bucket'dan ketgandan keyin ham `cdn.lolamarket.uz` uni
+// `cf-cache-status: HIT` bilan berib turadi. Ya'ni "o'chirdim" degan tuyg'u
+// yolg'on bo'ladi va nomaqbul video internetda qolaveradi.
+//
+// ⚠️ IXTIYORIY va `process.exit` QILINMAYDI (R2/AI/karta kalitlari bilan
+// bitta naqsh): purge sozlanmagan bo'lsa video baribir bazadan va R2 dan
+// o'chiriladi — u ilovada KO'RINMAY qoladi. Lekin bu holat YASHIRILMAYDI:
+// admin tasdiq javobida "CDN keshi tozalanmadi, qo'lda purge kerak" deb
+// AYTILADI. Jimgina "o'chirildi" deyish eng yomon variant bo'lardi.
+function cfToken(raw) {
+  const v = String(raw || '').trim();
+  if (!v) return '';
+  // Cloudflare API tokeni — 40 belgidan uzun, faqat harf/raqam/tire/pastki
+  // chiziq. `<token>` kabi to'ldirilmagan namuna shu yerda ushlanadi
+  // (`ALERT_CHAT_ID` darsi: bo'sh emasligi haqiqiy qilmaydi).
+  if (!/^[A-Za-z0-9_-]{30,}$/.test(v)) {
+    console.error('CF_API_TOKEN yaroqsiz, CDN purge o\'chiq: uzunlik=' + v.length);
+    return '';
+  }
+  return v;
+}
+function cfZone(raw) {
+  const v = String(raw || '').trim();
+  if (!v) return '';
+  if (!/^[a-f0-9]{32}$/i.test(v)) {
+    console.error('CF_ZONE_ID yaroqsiz, CDN purge o\'chiq: uzunlik=' + v.length);
+    return '';
+  }
+  return v;
+}
+const CF_API_TOKEN = cfToken(process.env.CF_API_TOKEN);
+const CF_ZONE_ID = cfZone(process.env.CF_ZONE_ID);
+const CF_PURGE_ENABLED = !!(CF_API_TOKEN && CF_ZONE_ID);
+
+// Qisman to'ldirilgan holat — R2 dagi bilan AYNI qorovul.
+{
+  const berilgan = ['CF_API_TOKEN', 'CF_ZONE_ID']
+    .filter((n) => String(process.env[n] || '').trim() !== '').length;
+  if (berilgan > 0 && !CF_PURGE_ENABLED) {
+    console.error('Cloudflare purge sozlamasi to\'liq emas — CDN keshi tozalanmaydi:',
+      `yaroqli=${[CF_API_TOKEN, CF_ZONE_ID].filter(Boolean).length}/2 (.env da ${berilgan} ta yozilgan)`);
+  }
+}
+
 // ⚠️ QISMAN to'ldirilgan holat ALOHIDA qichqiradi va bu eng muhim qorovul.
 // To'rttadan uchtasi qo'yilgan bo'lsa odam "qo'ydim" deb o'ylab yuradi,
 // funksiya esa o'chiq turadi va buni hech narsa ko'rsatmasdi — `ALERT_CHAT_ID`
@@ -451,6 +497,7 @@ module.exports = {
   AI_PROVIDERS, AI_PROVIDER, AI_API_KEY, AI_ENABLED, AI_DAILY_LIMIT,
   AI_CREDITS_START, AI_CREDIT_COST, AI_UNLIMITED_TG_IDS,
   AI_IMAGE_MODEL, AI_IMAGE_CHAT_ID, AI_IMAGE_ENABLED, AI_IMAGE_EFFECT_ID,
+  CF_API_TOKEN, CF_ZONE_ID, CF_PURGE_ENABLED,
   R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET,
   R2_ENABLED, R2_ENDPOINT, R2_PUBLIC_BASE,
   YANDEX_MAPS_KEY, MAPS_ENABLED,

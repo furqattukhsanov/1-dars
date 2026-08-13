@@ -78,13 +78,15 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
 - [x] Mahsulot rasmi — bot orqali (Telegram file_id, disputes bilan bir xil HMAC-proksi naqshi)
 - [ ] Mahsulot **videosi** — bot orqali (qisqa video: matoning tovlanishi va to'qimasi
   rasmdan yaxshi ko'rinadi)
-  — **YARIM (2026-08-13): qabul qilish va saqlash TAYYOR, ko'rsatish esa YO'Q.**
+  — **QABUL, SAQLASH, KO'RSATISH va O'CHIRISH TAYYOR (2026-08-13).**
   Sotuvchi botga video yuboradi, u R2 ga tushadi va bazaga yoziladi (`db/023`),
-  admin panelda ko'rinadi. **Band OCHIQ qoladi, chunki xaridor uni HALI KO'RMAYDI** —
-  katalogda `<video>` yo'q (D bosqichi) va `/api/products` video maydonlarini
-  qaytarmaydi (C bosqichi). Bandni hozir `[x]` qilish "video qo'shildi" degan
-  yolg'on tasavvur berardi: yozilgan bayt ko'rsatilmaguncha xaridor uchun u
-  mavjud emas. Pastdagi "Qilingan ishlar"ga qarang
+  admin panelda ko'rinadi, xaridor uni media galereyaning 2-slaydida ko'radi
+  (D bosqichi), nomaqbul video esa `video_remove` amali bilan olib tashlanadi
+  (`db/024`). **Band OCHIQ qoladi ikki sabab bilan:** (1) C bosqichi — sotuvchi
+  O'Z videosini kabinetda ko'rmaydi va qayta yubora olmaydi (faqat bot orqali
+  bilvosita); (2) **deploy qilinmagan** — repodagi kod xaridor uchun mavjud
+  emas. Bandni hozir `[x]` qilish "hammasi ishlayapti" degan yolg'on tasavvur
+  berardi. Pastdagi "Qilingan ishlar"ga qarang
 - [x] Mahsulot tahrirlash va yashirish — `PATCH /api/seller/products`; tahrirlangan e'lon qayta moderatsiyaga (`pending`) tushadi, "yashirish" `draft` ga o'tkazadi (haqiqiy o'chirish yo'q)
 - [x] Rulon soni avtomatik kamayishi (buyurtma berilganda) — `products.stock` soni, buyurtma tranzaksiyasi ichida atomik `UPDATE ... WHERE stock >= qty`
 
@@ -100,6 +102,53 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
 ---
 
 ## Qilingan ishlar
+
+- [2026-08-13] **Videoni O'CHIRISH amali (`video_remove`) — oldingi commit
+  ochib qo'ygan teshik yopildi.** `1e17ccd` bilan video XARIDORGA ko'rina
+  boshladi, olib tashlash yo'li esa YO'Q edi: nomaqbul video chiqsa faqat
+  BUTUN e'lonni rad etish qolardi — ya'ni sotuvchi aybsiz mahsuloti bilan
+  birga jazolanardi. Endi **mahsulot o'chmaydi**, faqat video maydonlari
+  tozalanadi va sotuvchiga sabab bilan xabar ketadi ("yangi video
+  yuborishingiz mumkin").
+  **Amal panel → Telegram tasdiq yo'lidan o'tadi** (2026-07-27 qoidasi) —
+  panel faqat so'rov yaratadi. Brauzerda tekshirildi: tugma bosilganda
+  HECH QANDAY so'rov ketmadi, avval tasdiq oynasi chiqdi.
+  **TARTIB: BAZA birinchi, keyin R2, keyin CDN purge** — bazadan ketishi
+  bilan video ilovada ko'rinmay qoladi, ya'ni eng muhim natija BIRINCHI
+  qadamda qo'lga kiritiladi va keyingi ikkitasi yiqilsa ham xaridor uni
+  ko'rmaydi. Kalitlar `WITH ... FOR UPDATE` bilan O'CHIRISHDAN OLDIN
+  olinadi: `RETURNING` ustunlar `NULL` qilingandan KEYIN o'qiydi va
+  kalitlar yo'qolib, R2 dagi obyekt abadiy qolib ketardi.
+  🔴 **NATIJA HALOL AYTILADI.** R2 o'chirish yoki purge yiqilsa amal bekor
+  qilinmaydi, lekin admin javobida ANIQ yoziladi: "CDN keshi tozalanmadi —
+  havola bilan hamon ochilishi mumkin, qo'lda purge qiling". Sabab
+  2026-08-09 O'LCHOVI: R2 dan o'chirilgan obyekt `cdn.lolamarket.uz` da
+  `cf-cache-status: HIT` bilan berilaveradi — **o'chirish faylni
+  internetdan olib tashlamaydi**. Jimgina "o'chirildi" deyish eng yomon
+  variant bo'lardi: moderator ish tugadi deb o'ylaydi, video esa qolaveradi
+  (`NULL` reyting va `ALERT_CHAT_ID` darslari bilan bitta oila).
+  `CF_API_TOKEN` / `CF_ZONE_ID` `config.js` da SHAKLI bo'yicha tekshiriladi
+  va IXTIYORIY — `process.exit` YO'Q (R2/AI/karta kalitlari naqshi).
+  **TEST 23 — bu ishning eng muhim qismi.** `ADMIN_ACTIONS` kalitlarini
+  migratsiyadagi CHECK ro'yxati bilan solishtiradi. Migratsiya fayli QO'LDA
+  ko'rsatilmaydi — `db/` dagi cheklovni belgilaydigan ENG KATTA raqamli
+  fayl topiladi, ya'ni kelajakdagi migratsiya ham avtomatik qamraladi.
+  Sabab `db/014` darsi: `review_hide` CHECK'ga qo'shilmagani uchun sharh
+  yashirish production'da JIMGINA ishlamagan — kod yozilgan, tugma
+  bosiladi, `INSERT` esa CHECK'da yiqiladi.
+  **SINALGANI:** 60 test yashil (raqam mustaqil qayta o'lchandi, edi 59);
+  Test 23 **5 mutatsiya bilan sinaldi, 5 tasi ham ushlandi** (SQL dan
+  `video_remove` tushsa; kodda yangi amal bo'lib SQL da bo'lmasa; eski
+  `review_hide` SQL dan yo'qolsa; `ADMIN_ACTIONS` nomi o'zgarsa;
+  kelajakdagi migratsiya ro'yxatni qayta yozib `video_remove` ni tushirib
+  qoldirsa). Migratsiya **pglite'da bajarildi** + nazorat sinovi (eski tur
+  tushirilganda migratsiya HAQIQATAN yiqiladi) va **production'da ISHGA
+  TUSHIRILDI** — jonli cheklov `video_remove` ni o'z ichiga olgani
+  tasdiqlandi. Kesh: `admin/admin.js?v=24`, `panel.js?v=15`, Test 16 birga.
+  🔴 **HALOL CHEGARA:** (a) `CF_API_TOKEN` / `CF_ZONE_ID` `.env` da YO'Q —
+  purge O'CHIQ, ya'ni hozircha o'chirilgan video CDN keshida qolishi mumkin;
+  admin buni har safar xabarda KO'RADI, jimgina qolmaydi; (b) C bosqichi
+  (sotuvchi kabineti) hamon ochiq; (c) **deploy qilinmagan.**
 
 - [2026-08-13] **Mahsulot VIDEOSI — media galereya ikkala yuzda (D bosqichi):
   1-slayd rasm, 2-slayd video, va xaridor videoni ENDI ko'radi.** Founder
@@ -898,6 +947,35 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
 ---
 
 ## Qarorlar
+
+- [2026-08-13] Qaror: **nomaqbul video uchun BUTUN e'lonni rad etish emas,
+  faqat videoni o'chirish** (`video_remove`). Sabab: e'lonni rad etish
+  sotuvchini aybsiz mahsuloti bilan birga jazolaydi va u qaytadan hamma
+  narsani kiritishga majbur bo'lardi — jazo aybga mos kelmasdi. Mahsulot
+  o'z joyida qoladi, sotuvchi sabab bilan xabar oladi va yangi video
+  yuborishi mumkin
+
+- [2026-08-13] Qaror: **o'chirish tartibi — BAZA → R2 → CDN purge**, va
+  keyingi ikkitasi yiqilsa amal BEKOR QILINMAYDI. Sabab: bazadan ketishi
+  bilan video ilovada ko'rinmay qoladi, ya'ni eng muhim natija birinchi
+  qadamda bo'ladi; R2 xatosi tufayli butun amalni orqaga qaytarish esa
+  ko'rinib turgan nomaqbul videoni ekranda QOLDIRARDI. Lekin xato
+  YUTILMAYDI — `console.error` alertga chiqadi va natija matnida admin ga
+  aytiladi
+
+- [2026-08-13] Qaror: **CDN purge natijasi admin ga HALOL aytiladi**,
+  "o'chirildi" deb qo'ya qolinmaydi. Sabab 2026-08-09 o'lchovi: R2 dan
+  o'chirilgan obyekt `cf-cache-status: HIT` bilan berilaveradi — moderator
+  ish tugadi deb o'ylaydi, video esa to'g'ridan-to'g'ri havola bilan
+  ochilaveradi. Purge sozlanmagan bo'lsa ham ayni gap aytiladi
+  (`ALERT_CHAT_ID` darsi: jimgina yolg'on yo'qlikdan yomonroq)
+
+- [2026-08-13] Qaror: **`CF_API_TOKEN` / `CF_ZONE_ID` — IXTIYORIY,
+  `process.exit` yo'q.** Sabab: purge sozlanmagan bo'lsa ham video bazadan
+  va R2 dan o'chiriladi, ya'ni asosiy funksiya ishlaydi; ixtiyoriy sozlama
+  serverni o'ldirmaydi (R2, AI va karta kalitlari bilan bitta naqsh).
+  Qiymat baribir SHAKLI bo'yicha tekshiriladi — to'ldirilmagan `<token>`
+  namunasi bo'sh emas va `||` uni haqiqiy deb qabul qilardi
 
 - [2026-08-13] Qaror: **`tel:` havolasi QOLADI, lekin uning YONIDA zaxira
   turadi — muhit ANIQLANMAYDI.** "Kompyutermi yoki WebView'mi" deb tekshirish

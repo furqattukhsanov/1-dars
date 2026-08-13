@@ -7,6 +7,8 @@ const { rateLimited, readBody, ok, fail } = require('../lib/http');
 const { callTelegram, callbackAnswer, notify } = require('../lib/telegram-api');
 const { handleSellerApplicationReview } = require('./seller-application');
 const { productPhotoUrl, videoVM } = require('./catalog');
+const { r2Delete, r2PublicUrl } = require('../lib/r2');
+const { purgeUrls, CF_PURGE_ENABLED } = require('../lib/cloudflare');
 const { findReviewForAdmin, hideReview } = require('./reviews');
 const { recordStatusChange } = require('../lib/order-history');
 
@@ -336,6 +338,87 @@ const ADMIN_ACTIONS = {
       await notify(rows[0].submitted_by_tg,
         `✅ <b>E'loningiz nashr etildi</b>\n\n${escapeHtml(rows[0].name_uz)} endi katalogda ko'rinadi.`);
       return `✅ nashr etildi: ${rows[0].name_uz}`;
+    },
+  },
+
+  // ============ VIDEONI O'CHIRISH (db/024) ============
+  // `db/023` bilan video xaridorga ko'rina boshladi, olib tashlash yo'li esa
+  // yo'q edi — nomaqbul video chiqsa faqat BUTUN e'lonni rad etish qolardi,
+  // ya'ni sotuvchi aybsiz mahsuloti bilan birga jazolanardi.
+  video_remove: {
+    schema: { reason: { type: 'string', required: false, max: 500 } },
+    async check(targetId) {
+      const { rows } = await pool.query(
+        `SELECT id, name_uz, vid_seconds FROM products
+          WHERE id = $1 AND vid_r2_key IS NOT NULL`, [String(targetId)]);
+      if (!rows.length) throw new ClientError("video topilmadi — allaqachon o'chirilganmi?");
+      return rows[0];
+    },
+    summary: (t, p) =>
+      `🎬 <b>Videoni o'chirish</b>\n\n${escapeHtml(t.name_uz)}` +
+      (t.vid_seconds ? ` — ${escapeHtml(String(t.vid_seconds))} s` : '') +
+      (p.reason ? `\n<b>Sabab:</b> ${escapeHtml(p.reason)}` : '') +
+      `\n\n<i>Mahsulot o'chmaydi — faqat video olib tashlanadi.</i>`,
+    async run(a) {
+      // ---- 1. BAZA BIRINCHI ----
+      // Tartib ATAYLAB shunday: bazadan ketishi bilan video ilovada KO'RINMAY
+      // qoladi. R2 yoki purge yiqilsa ham xaridor uni endi ko'rmaydi, ya'ni
+      // eng muhim natija birinchi qadamda qo'lga kiritiladi.
+      //
+      // Kalitlar `WITH` bilan O'CHIRISHDAN OLDIN olinadi — `RETURNING` ustunni
+      // `NULL` qilingandan keyin o'qiydi va kalitlar yo'qolib, R2 dagi obyekt
+      // abadiy qolib ketardi.
+      const { rows } = await pool.query(
+        `WITH eski AS (
+           SELECT id, name_uz, submitted_by_tg, vid_r2_key, vid_poster_r2_key
+             FROM products WHERE id = $1 AND vid_r2_key IS NOT NULL FOR UPDATE)
+         UPDATE products p
+            SET vid_file_id=NULL, vid_r2_key=NULL, vid_poster_file_id=NULL,
+                vid_poster_r2_key=NULL, vid_seconds=NULL, vid_bytes=NULL, vid_at=NULL,
+                awaiting_video=false
+           FROM eski WHERE p.id = eski.id
+         RETURNING eski.name_uz, eski.submitted_by_tg,
+                   eski.vid_r2_key, eski.vid_poster_r2_key`,
+        [a.target_id]);
+      if (!rows.length) throw new ClientError('video holati o\'zgargan');
+      const e = rows[0];
+
+      // ---- 2. R2 ----
+      // Yiqilsa amal BEKOR QILINMAYDI (video allaqachon ko'rinmaydi), lekin
+      // natija jimgina "muvaffaqiyat" ham bo'lmaydi — pastda aytiladi.
+      const kalitlar = [e.vid_r2_key, e.vid_poster_r2_key].filter(Boolean);
+      let r2Xato = null;
+      for (const k of kalitlar) {
+        try { await r2Delete(k); } catch (err) {
+          r2Xato = err.message;
+          // Birinchi argument — alert guruhlash KALITI (CLAUDE.md, Test 10c).
+          console.error('video R2 dan o\'chirilmadi:', err.message);
+        }
+      }
+
+      // ---- 3. CDN keshi ----
+      // 🔴 R2 dan o'chirish YETARLI EMAS: 2026-08-09 da o'lchangan — obyekt
+      // ketgandan keyin ham CDN uni `cf-cache-status: HIT` bilan berib turadi.
+      const urls = kalitlar.map(r2PublicUrl).filter(Boolean);
+      const purge = urls.length ? await purgeUrls(urls) : { ok: true, sabab: null };
+      if (!purge.ok) console.error('video CDN keshi tozalanmadi:', purge.sabab || 'sabab yo\'q');
+
+      await notify(e.submitted_by_tg,
+        `🎬 <b>${escapeHtml(e.name_uz)}</b> videosi olib tashlandi.` +
+        (a.payload.reason ? `\n\n<b>Sabab:</b> ${escapeHtml(a.payload.reason)}` : '') +
+        `\n\nMahsulot o'z joyida — xohlasangiz yangi video yuborishingiz mumkin.`);
+
+      // ⚠️ Natija HALOL aytiladi. "O'chirildi" deb qo'ya qolish eng yomon
+      // variant bo'lardi: moderator ish tugadi deb o'ylaydi, video esa
+      // to'g'ridan-to'g'ri havola bilan hamon ochilaveradi.
+      let txt = `🎬 video olib tashlandi: ${e.name_uz}`;
+      if (r2Xato) txt += `\n⚠️ R2 dan o'chirilmadi (${r2Xato}) — obyekt bucket'da qoldi`;
+      if (!purge.ok) {
+        txt += CF_PURGE_ENABLED
+          ? `\n⚠️ CDN keshi tozalanmadi (${purge.sabab}) — havola bilan hamon ochilishi mumkin, Cloudflare'dan qo'lda purge qiling`
+          : `\n⚠️ CDN purge sozlanmagan — video ilovada ko'rinmaydi, lekin TO'G'RIDAN-TO'G'RI havola bilan ochilaveradi. Cloudflare'dan qo'lda purge qiling`;
+      }
+      return txt;
     },
   },
 
