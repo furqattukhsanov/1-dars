@@ -105,6 +105,9 @@ const STR = {
     phoneCopied: "Raqam nusxalandi — qo'ng'iroq ochilmasa, qo'lda tering",
     phoneCopyErr: "Raqamni nusxalab bo'lmadi — uni qo'lda ko'chiring",
     noOrders: "Hozircha buyurtma yo'q. Katalogdan mato tanlab birinchi buyurtmangizni bering.",
+    ordersNone: "Hozircha buyurtma yo'q",
+    ordersCount: 'buyurtma',
+    toProfile: 'Profilga qaytish',
     logout: 'Hisobdan chiqish',
     loggedOut: 'Hisobdan chiqdingiz',
     buyer: 'Xaridor',
@@ -301,6 +304,9 @@ const STR = {
     phoneCopied: 'Номер скопирован — если звонок не открылся, наберите вручную',
     phoneCopyErr: 'Не удалось скопировать номер — скопируйте вручную',
     noOrders: 'Пока заказов нет. Выберите ткань в каталоге и оформите первый заказ.',
+    ordersNone: 'Заказов пока нет',
+    ordersCount: 'заказов',
+    toProfile: 'Назад в профиль',
     logout: 'Выйти',
     loggedOut: 'Вы вышли из аккаунта',
     buyer: 'Покупатель',
@@ -1035,7 +1041,10 @@ function loadMyOrders() {
     })
     .catch(() => { myOrders = []; })
     .then(() => {
-      if (isOpen() && drawerView === 'profile') renderDrawer();
+      // Ikkala ko'rinish ham buyurtmaga qaraydi: ro'yxat 'orders' da,
+      // profildagi qatorning ostidagi yozuvi ('3 buyurtma · Yo'lda') esa
+      // 'profile' da — biri qolib ketsa u "Yuklanmoqda…" da qotib qolardi.
+      if (isOpen() && (drawerView === 'profile' || drawerView === 'orders')) renderDrawer();
     });
 }
 
@@ -1148,26 +1157,30 @@ function loginHtml() {
     </div>`;
 }
 
+/* Yorliq `{uz, ru}` shaklida va `L()` bilan o'qiladi — bu jadval STR'da
+   TURMAYDI, chunki kalitlari BAZADAGI `orders.status` qiymatlari (ular bilan
+   birga o'zgaradi), tarjima jadvali esa UI matnlari uchun. Ilgari yorliqlar
+   faqat o'zbekcha edi va ruscha saytda buyurtma holati o'zbekcha chiqardi. */
 const ORDER_STATUS = {
-  pending:   { label: 'Kutilmoqda',     tone: 'wait' },
-  confirmed: { label: 'Tasdiqlandi',    tone: 'ok'   },
-  shipped:   { label: "Yo'lda",         tone: 'ok'   },
-  delivered: { label: 'Yetkazildi',     tone: 'ok'   },
-  completed: { label: 'Yakunlandi',     tone: 'ok'   },
-  disputed:  { label: 'Bahsli',         tone: 'warn' },
-  refunded:  { label: 'Qaytarildi',     tone: 'warn' },
-  cancelled: { label: 'Bekor qilindi',  tone: 'warn' },
+  pending:   { label: { uz: 'Kutilmoqda',    ru: 'В ожидании'  }, tone: 'wait' },
+  confirmed: { label: { uz: 'Tasdiqlandi',   ru: 'Подтверждён' }, tone: 'ok'   },
+  shipped:   { label: { uz: "Yo'lda",        ru: 'В пути'      }, tone: 'ok'   },
+  delivered: { label: { uz: 'Yetkazildi',    ru: 'Доставлен'   }, tone: 'ok'   },
+  completed: { label: { uz: 'Yakunlandi',    ru: 'Завершён'    }, tone: 'ok'   },
+  disputed:  { label: { uz: 'Bahsli',        ru: 'Спорный'     }, tone: 'warn' },
+  refunded:  { label: { uz: 'Qaytarildi',    ru: 'Возвращён'   }, tone: 'warn' },
+  cancelled: { label: { uz: 'Bekor qilindi', ru: 'Отменён'     }, tone: 'warn' },
 };
+
+/** Holat yorlig'i — noma'lum holatda BAZADAGI qiymatning o'zi ko'rinadi
+    (jimgina bo'sh joy qoldirmaslik uchun; `t()` bilan bitta mulohaza). */
+function statusLabel(status) {
+  const st = ORDER_STATUS[status];
+  return st ? L(st.label) : String(status || '');
+}
 
 function profileHtml() {
   const u = me || {};
-  const orders = myOrders === null
-    ? `<div class="co-hint" style="text-align:center;padding:14px 0">${t('loading')}</div>`
-    : !myOrders.length
-      ? `<div class="co-hint" style="text-align:center;padding:14px 0">
-           ${t('noOrders')}
-         </div>`
-      : myOrders.map(orderRowHtml).join('');
 
   return `
     <div class="profile-card">
@@ -1179,10 +1192,8 @@ function profileHtml() {
       </div>
     </div>
 
-    <div class="profile-sec-title">${t('myOrders')}</div>
-    ${orders}
-
     <div class="p-rows">
+      ${myOrdersRowHtml()}
       ${myAddressHtml()}
       ${contactHtml()}
     </div>
@@ -1204,6 +1215,71 @@ function profileHtml() {
       <img src="Photo/logo/lola-mark.png" width="40" height="40" alt="" loading="lazy">
       <span>© 2026 LolaMarket</span>
     </div>`;
+}
+
+/* ── Profil: "Mening buyurtmalarim" ──
+   Ro'yxat profil ekranida CHIZILMAYDI — alohida ko'rinishda ochiladi
+   (founder, 2026-08-13: "buyurtmalar tarixi profilni ochganda uzun turibdi,
+   boshqa ma'lumotlarni ko'rib bo'lmayapti").
+   ⚠️ Sabab TAXMIN emas, ESKI TARTIB O'LCHANDI (375×812, oyna tanasi 750px):
+   uchta buyurtma bloki 500px egallardi (bitta qator 98px, ichida bahs va
+   ikki baholash qatori bo'lgani 259px), "Mening manzilim" qatori tepasi
+   723px da — ya'ni ekran chegarasidan 27px oldin boshlanib, "Biz bilan
+   bog'lanish" BUTUNLAY pastda qolardi; jami 1047px. Buyurtma soni o'sishi
+   bilan bo'limlar yanada pastga siljiydi, ya'ni nuqson vaqt bilan YOMONLASHAR
+   edi. Qator "Mening manzilim" va "Biz bilan bog'lanish" bilan BITTA
+   mexanizm: bir xil shakl — bir xil ochilish (o'sha kunning qarori,
+   CLAUDE.md).
+
+   ⚠️ Ostidagi yozuv BAZADAN keladi: yuklanmagan bo'lsa "Yuklanmoqda…",
+   bo'sh bo'lsa "buyurtma yo'q". O'ylab topilgan son ko'rsatilmaydi. */
+function myOrdersRowHtml() {
+  let sub;
+  if (myOrders === null) {
+    sub = t('loading');
+  } else if (!myOrders.length) {
+    sub = t('ordersNone');
+  } else {
+    // `/api/web/orders` `created_at DESC` bilan qaytaradi — [0] ENG YANGISI.
+    sub = `${myOrders.length} ${t('ordersCount')} · ${esc(statusLabel(myOrders[0].status))}`;
+  }
+  return `
+    <button class="p-row" data-action="openOrdersView">
+      <span class="p-row-ico" aria-hidden="true">
+        <svg width="21" height="21" viewBox="0 0 24 24" fill="currentColor">
+          <path fill-rule="evenodd" d="M6.2 2h11.6a1 1 0 0 1 1 1v18.1a.6.6 0 0 1-.9.5L15 20l-2.6 1.6a.8.8 0 0 1-.8 0L9 20l-2.9 1.6a.6.6 0 0 1-.9-.5V3a1 1 0 0 1 1-1zm2 5.2a1 1 0 0 0 0 2h7.6a1 1 0 0 0 0-2H8.2zm0 4.1a1 1 0 0 0 0 2h7.6a1 1 0 0 0 0-2H8.2zm0 4.1a1 1 0 0 0 0 2h4.3a1 1 0 0 0 0-2H8.2z"/>
+        </svg>
+      </span>
+      <span class="p-row-main">
+        <span class="p-row-label">${t('myOrders')}</span>
+        <span class="p-row-sub">${sub}</span>
+      </span>
+      <svg class="p-row-chev" width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>`;
+}
+
+/** Profildan buyurtmalar ro'yxatiga o'tish (`openAddrPicker` bilan bitta naqsh) */
+function openOrdersView() {
+  drawerView = 'orders';
+  renderDrawer();
+  openDrawerEl();
+}
+
+/* Ro'yxatning O'ZI. Qaytish tugmasi SHART: oynaning sarlavhasida "orqaga"
+   yo'q, ya'ni tugmasiz yagona chiqish yo'li — butun oynani yopish bo'lardi
+   va foydalanuvchi profilga qaytish uchun uni qaytadan ochishga majbur
+   bo'lardi (sharh va bahs formalaridagi naqsh bilan bir xil). */
+function ordersViewHtml() {
+  const body = myOrders === null
+    ? `<div class="co-hint" style="text-align:center;padding:14px 0">${t('loading')}</div>`
+    : !myOrders.length
+      ? `<div class="co-hint" style="text-align:center;padding:14px 0">${t('noOrders')}</div>`
+      : `<div class="order-list">${myOrders.map(orderRowHtml).join('')}</div>`;
+
+  return `${body}
+    <button class="auth-ghost" style="margin-top:12px;width:100%" data-action="backToProfile">${t('toProfile')}</button>`;
 }
 
 /* ── Profil: "Mening manzilim" ──
@@ -1540,7 +1616,7 @@ function disputeOf(orderId) {
 
 function toggleHistory(orderId) {
   openHistory[orderId] = !openHistory[orderId];
-  if (drawerView === 'profile') renderDrawer();
+  if (drawerView === 'orders') renderDrawer();
 }
 
 function loadMyDisputes() {
@@ -1548,11 +1624,11 @@ function loadMyDisputes() {
   apiJson('/api/disputes')
     .then((d) => { myDisputes = d && d.ok && Array.isArray(d.data) ? d.data : []; })
     .catch(() => { myDisputes = []; })
-    .then(() => { if (isOpen() && drawerView === 'profile') renderDrawer(); });
+    .then(() => { if (isOpen() && drawerView === 'orders') renderDrawer(); });
 }
 
 function orderRowHtml(o) {
-  const st = ORDER_STATUS[o.status] || { label: o.status, tone: 'wait' };
+  const st = ORDER_STATUS[o.status] || { tone: 'wait' };
   const items = REVIEW_OK_STATUS.includes(o.status) ? (o.items || []) : [];
   const hist = Array.isArray(o.history) ? o.history : [];
   const open = openHistory[o.id];
@@ -1562,7 +1638,7 @@ function orderRowHtml(o) {
     <div class="order-row">
       <div class="order-row-top">
         <span class="order-row-id">${esc(o.id)}</span>
-        <span class="order-tag ${st.tone}">${esc(st.label)}</span>
+        <span class="order-tag ${st.tone}">${esc(statusLabel(o.status))}</span>
       </div>
       <div class="order-row-bot">
         <span>${esc(o.date || '')}</span>
@@ -1579,12 +1655,9 @@ function orderRowHtml(o) {
       </button>
       ${open ? `
       <ol class="order-hist">
-        ${hist.map((h) => {
-          const hs = ORDER_STATUS[h.status] || { label: h.status };
-          return `<li class="order-hist-line"><span class="order-hist-dot"></span>
-            <span class="order-hist-txt">${esc(hs.label)}</span>
-            <span class="order-hist-date">${esc(h.date || '')}</span></li>`;
-        }).join('')}
+        ${hist.map((h) => `<li class="order-hist-line"><span class="order-hist-dot"></span>
+            <span class="order-hist-txt">${esc(statusLabel(h.status))}</span>
+            <span class="order-hist-date">${esc(h.date || '')}</span></li>`).join('')}
       </ol>` : ''}` : ''}
 
       <!-- Bahs: ochilgan bo'lsa holati, bo'lmasa tugma -->
@@ -1930,7 +2003,7 @@ function loadMyReviews() {
   apiJson('/api/reviews?mine=1')
     .then((d) => { myReviews = d && d.ok && Array.isArray(d.data) ? d.data : []; })
     .catch(() => { myReviews = []; })
-    .then(() => { if (isOpen() && drawerView === 'profile') renderDrawer(); });
+    .then(() => { if (isOpen() && drawerView === 'orders') renderDrawer(); });
 }
 
 function starsHtml(n, cls) {
@@ -3016,8 +3089,15 @@ function setReviewStars(n) {
 
 function onReviewBody(v) { reviewBody = v; }
 
-function backToProfile() {
-  drawerView = 'profile';
+/* Sharh va bahs formalari FAQAT buyurtma qatoridan ochiladi, ya'ni qaytish
+   joyi — buyurtmalar ro'yxati, profil EMAS: profilga qaytarilsa foydalanuvchi
+   baholaganidan keyin ro'yxatni qaytadan ochishga majbur bo'lardi.
+   ⚠️ Ilgari bu yerda `backToProfile` NING IKKINCHI, AYNI NUSXASI turardi
+   (yuqorida, `pickAddrPoint` yonida ham bor). Ikkinchi e'lon birinchisini
+   JIMGINA bekor qiladi — biri tahrirlansa hech narsa o'zgarmasdi va sabab
+   ko'rinmasdi. Endi ikkita ALOHIDA nishon, ikkita ALOHIDA nom bilan. */
+function backToOrders() {
+  drawerView = 'orders';
   renderDrawer();
 }
 
@@ -3038,7 +3118,7 @@ function reviewFormHtml() {
         data-input="onReviewBody">${esc(reviewBody)}</textarea>
 
       <div class="rv-btns">
-        <button class="auth-ghost" data-action="backToProfile">${t('cancelShort')}</button>
+        <button class="auth-ghost" data-action="backToOrders">${t('cancelShort')}</button>
         <button class="pd-add" data-action="submitReview" ${reviewSending ? 'disabled' : ''}>${reviewSending ? t('sending') : t('send')}</button>
       </div>
     </div>`;
@@ -3068,7 +3148,7 @@ function submitReview() {
       catalogMeta = null;
       catalogMetaTried = false;
       loadMyReviews();
-      backToProfile();
+      backToOrders();
     })
     .catch((e) => {
       reviewSending = false;
@@ -3133,7 +3213,7 @@ function disputeFormHtml() {
         data-input="onDisputeComment">${esc(disputeComment)}</textarea>
 
       <div class="rv-btns">
-        <button class="auth-ghost" data-action="backToProfile">${t('cancelShort')}</button>
+        <button class="auth-ghost" data-action="backToOrders">${t('cancelShort')}</button>
         <button class="pd-add" data-action="submitDispute" ${disputeSending ? 'disabled' : ''}>${disputeSending ? t('sending') : t('sendDispute')}</button>
       </div>
     </div>`;
@@ -3157,7 +3237,7 @@ function submitDispute() {
       if (!d || d.ok !== true) throw new Error((d && d.error) || "Murojaat yuborilmadi");
       showToast("Murojaat qabul qilindi — botda rasm so'raladi");
       loadMyDisputes();
-      backToProfile();
+      backToOrders();
     })
     .catch((e) => {
       disputeSending = false;
@@ -3637,6 +3717,13 @@ function renderDrawer() {
   if (drawerView === 'profile') {
     title.textContent = t('profile');
     body.innerHTML = profileHtml();
+    foot.hidden = true;
+    return;
+  }
+
+  if (drawerView === 'orders') {
+    title.textContent = t('myOrders');
+    body.innerHTML = ordersViewHtml();
     foot.hidden = true;
     return;
   }

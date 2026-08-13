@@ -125,6 +125,110 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
 
 ## Qilingan ishlar
 
+- [2026-08-13] **Saytda buyurtmalar tarixi profil ekranidan CHIQARILDI —
+  endi "Mening manzilim" va "Biz bilan bog'lanish" bilan BIR XIL qator,
+  ro'yxatning o'zi esa alohida ko'rinishda.** Founder aytgani: «webda
+  buyurtmalar tarixi profilni ochganda uzun turibdi boshqa ma'lumotlarni
+  ko'rib bo'lmayabdi shunga rasmda berganimdaqa qilgin buyurmalarim
+  bo'lmini» — ya'ni nafaqat "qisqartir", balki AYNAN o'sha kuni qo'yilgan
+  qator shakliga keltir.
+
+  🔴 **Sabab TAXMIN emas, ESKI TARTIB BRAUZERDA O'LCHANDI** (375×812, oyna
+  tanasi 750px, uchta buyurtma bilan): buyurtma bloki **500px** egallardi
+  (oddiy qator 98px, bahs + ikki baholash qatori bo'lgani **259px**),
+  «Mening manzilim» qatorining TEPASI **723px** da — ekran chegarasidan
+  atigi 27px oldin, «Biz bilan bog'lanish» esa **BUTUNLAY** pastda qolgan;
+  jami skroll **1047px / 750px**. Ustiga nuqson vaqt bilan
+  **YOMONLASHARDI**: buyurtma soni o'sgani sari bo'limlar yanada pastga
+  siljiydi. Yangi holatda profil tanasi **750/750** (skroll YO'Q) va
+  uchala qator **64.5px** — teng.
+
+  **Nima qo'shildi** (`script.js` v40→v41): (1) `myOrdersRowHtml()` —
+  profildagi yangi `.p-row` (ikonka + «Mening buyurtmalarim» + izoh +
+  strelka), manzil va aloqa qatorlari bilan bir xil shakl va **BITTA
+  mexanizm** (bosilsa alohida ko'rinish, o'sha kunning qarori); (2)
+  `drawerView = 'orders'` ko'rinishi (`ordersViewHtml()`,
+  `openOrdersView()`) — ro'yxat shu yerda, pastida «Profilga qaytish»
+  tugmasi (oyna sarlavhasida "orqaga" yo'q, tugmasiz yagona chiqish yo'li
+  butun oynani yopish bo'lardi); (3) sharh va bahs formalari endi
+  RO'YXATGA qaytadi — yangi `backToOrders()`.
+
+  ⚠️ **Qator ostidagi izoh BAZADAN keladi, o'ylab topilgan son YO'Q:**
+  `myOrders === null` → «Yuklanmoqda…», bo'sh → «Hozircha buyurtma yo'q»,
+  bor → `3 buyurtma · Yo'lda` (eng yangi buyurtmaning holati —
+  `/api/web/orders` `created_at DESC` qaytaradi, ya'ni `[0]`). Shu sababli
+  `loadMyOrders()` endi IKKALA ko'rinishni qayta chizadi (`profile` va
+  `orders`) — biri qolib ketsa izoh «Yuklanmoqda…» da qotib qolardi;
+  `loadMyDisputes` / `loadMyReviews` / `toggleHistory` esa aksincha,
+  `profile` dan `orders` ga ko'chdi, chunki ular chizadigan narsa endi
+  faqat o'sha yerda.
+
+  ⚠️ **`.order-list` va `.order-row` ga `flex: none` QO'YILDI** —
+  oyna tanasi `display:flex; flex-direction:column`, ya'ni bolasi o'z
+  mazmuniga emas QOLGAN JOYGA qarab siqiladi. Buyurtma qatorining ichida
+  ochiladigan tarix bloki bor, ya'ni balandligi bosilganda O'ZGARADI —
+  aynan shunday blok kesiladi. Bu shu kuni yozilgan «flex ustundagi yangi
+  blok» qoidasi (`<picture>` → `.addr-map` 63px → `.contact-block` 127px
+  oilasining TO'RTINCHI a'zosi, CLAUDE.md).
+
+  🔴 **Yo'l-yo'lakay topilgan nuqson — `backToProfile()` fayl ichida IKKI
+  MARTA, aynan bir xil tanada e'lon qilingan edi.** Ikkinchi e'lon
+  birinchisini JIMGINA bekor qiladi: birinchisini tahrirlagan odam hech
+  narsa o'zgarmaganini ko'radi va sababini topa olmaydi (konsolda xato
+  yo'q, `node --check` toza). Endi ikkita ALOHIDA nishon, ikkita ALOHIDA
+  nom — `backToProfile()` (manzil/aloqa oynasidan) va `backToOrders()`
+  (sharh/bahs formasidan).
+
+  **Yo'l-yo'lakay tuzatildi: `ORDER_STATUS` yorliqlari faqat o'zbekcha
+  edi** — ya'ni RUSCHA saytda buyurtma holati o'zbekcha chiqardi (til
+  almashtirgich C3 da qo'shilgandan beri jimgina turgan qoldiq). Endi
+  yorliq `{uz, ru}` va `L()` bilan o'qiladi, yangi `statusLabel()`
+  orqali uch joyda (qator izohi, holat yorlig'i, holat tarixi); noma'lum
+  holatda bazadagi qiymatning O'ZI ko'rinadi, bo'sh joy qolmaydi. Jadval
+  ATAYLAB `STR` ga ko'chirilmadi — kalitlari bazadagi `orders.status`
+  qiymatlari va ular bilan birga o'zgaradi, `STR` esa UI matnlari uchun.
+
+  **Kesh:** `script.js?v=41`, `style.css?v=50` — `index.html` va
+  `admin/index.html` da BIR XIL, Test 16 jadvalidagi hashlar yangilandi.
+  `.profile-sec-title` o'chirildi (endi ishlatilmaydi), `.order-row +
+  .order-row` margin'i `.order-list` gap'iga o'tdi.
+
+  ⚠️ **`panel.js?v=17→18` — VA SABABI KESH QOIDASINING AYNAN O'ZI.** Bu ish
+  `origin/main` bilan parallel bajarilgan va rebase paytida to'qnashdi:
+  mahsulot ekrani ishi ham, bu ish ham `panel.js` ning "Yangilanish:"
+  matnini almashtirib **IKKALASI v17 ga ko'targan** edi — ya'ni bitta
+  versiya raqami ostida IKKI XIL tarkib. `origin` dan v17 ni olgan
+  foydalanuvchida keshning kaliti o'zgarmasdi va u panelda **eski matnni
+  abadiy** ko'rib turardi. Shuning uchun birlashtirilgan tarkib v18 ga
+  ko'tarildi va Test 16 dagi hash qayta hisoblandi. Nizolar `panel.js`,
+  `server/test.js`, `loyiha-panel.html` va shu faylda edi; hech qaysi
+  tomonning yozuvi o'chirilmadi (ikkala faoliyat yozuvi ham, ikkala qaror
+  ham joyida).
+
+  **Sinalgani: 60 test yashil** (runner chiqishidagi `✅ Test` satrlari
+  SANALDI, hujjatdan ko'chirilmadi). Brauzerda jonli: uz va ru til,
+  «Yuklanmoqda…» / bo'sh / 1 ta / 4 ta buyurtma holatlari, tarix ochilishi
+  (ikkitasi birga), baholash formasidan qaytish (`orders` ga qaytdi), bahs
+  formasidan qaytish, «Profilga qaytish» (`profile` ga qaytdi). Konsolda
+  JS xatosi yo'q. **O'LCHANDI, ko'z bilan qaralmadi:**
+  `getBoundingClientRect()` bilan ichidagi element ota chegarasidan
+  oshmasligi tekshirildi — tarix bloklari OCHILGAN holatda ham
+  `oshgan: 0`. Ruscha yo'l alohida tasdiqlandi: `2 заказов · В пути`,
+  sarlavha `Мои заказы`, tarix `В ожидании / В пути`, tugma
+  `Назад в профиль`.
+
+  🔴 **HALOL CHEGARA, ATAYLAB YOZILADI:** (a) **DEPLOY QILINMAGAN** —
+  ish faqat repoda, xaridor uchun mavjud emas; (b) **Mini App'ga
+  TEGILMADI** va bu tekshirilgan, taxmin emas: u yerda buyurtmalar
+  allaqachon pastdagi navigatsiyadan ochiladigan alohida ekranda, ya'ni
+  ikkala yuz endi bitta mantiqda; (c) bu ish uchun **YANGI TEST
+  YOZILMADI — qo'shilgan test soni NOL**, qamrov faqat mavjud testlardan
+  (Test 16 kesh, Test 20 tarjima); (d) uch yangi tarjima kaliti
+  (`ordersNone`, `ordersCount`, `toProfile` — uz+ru) ISHLATILADI, ya'ni
+  Test 20 dagi «ishlatilmagan kalitlar» soni **16 da QOLDI** (o'lchandi,
+  taxmin emas) — kechagi to'rtta o'lik kalitning ustiga yangisi
+  qo'shilmadi
+
 - [2026-08-13] **Mahsulot ekrani (Mini App) qayta tartiblandi — rasm 2.1
   barobar kattalashdi va endi bosilsa to'liq ekranda ochiladi. Sabab
   O'LCHOV bilan topildi, "chiroyliroq bo'lsin" bilan emas.** Founder:
@@ -1160,6 +1264,29 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
 
 ## Qarorlar
 
+- [2026-08-13] Qaror (founder): **buyurtmalar tarixi profil ekranida
+  CHIZILMAYDI — u ham "Mening manzilim" kabi QATOR bo'lib, alohida
+  ko'rinishda ochiladi.** ⚠️ Bu AYNI SHU KUNDAGI «saytda buyurtmalar
+  ro'yxati YUQORIGA ko'chdi — mazmun avval, bo'limlar keyin» qarorini
+  ALMASHTIRADI (`2cfb240`; eski yozuv o'chirilmaydi — nima uchun tartib
+  ikki marta o'zgargani ko'rinib turishi kerak). Sabab uslub emas,
+  O'LCHOV: ro'yxat 500px egallagani uchun ostidagi ikki bo'lim skrollning
+  tubida qolardi va «Biz bilan bog'lanish» umuman ko'rinmasdi — ya'ni
+  "mazmun avval" qoidasi amalda BOSHQA mazmunni yashirardi. Ustiga
+  nuqson buyurtma soni bilan o'sadi, ya'ni o'zidan tuzalmaydi. Qator
+  ochilishi ham BITTA mexanizmdan: saytda `drawerView`, yangi yo'l
+  qurilmaydi
+- [2026-08-13] Qaror: **`ORDER_STATUS` jadvali `STR` tarjima jadvaliga
+  KO'CHIRILMAYDI**, yorliq esa `{uz, ru}` shaklida o'sha jadvalning
+  ichida turadi. Sabab: kalitlari — bazadagi `orders.status` qiymatlari
+  (`pending`, `shipped`…), ya'ni ro'yxat baza bilan birga o'zgaradi va
+  `orders_status_check` ga bog'langan; `STR` esa UI matnlari uchun. Ikkiga
+  bo'lib qo'yilsa yangi holat qo'shilganda ikki joyni birga yangilash
+  kerak bo'lardi — bu «bir xil ro'yxat ikki jadvalda takrorlanmasin»
+  tuzog'i (`admin_actions_kind_check` darsi). Noma'lum holatda bazadagi
+  qiymatning O'ZI ko'rsatiladi: bo'sh joy foydalanuvchiga hech narsa
+  demaydi, xom qiymat esa hech bo'lmasa nimanidir aytadi
+
 - [2026-08-13] Qaror (founder, QUIZ orqali): **mahsulot ekranida rasm —
   4:5 va to'liq kenglikda, nom esa rasm USTIDA.** To'rt savol ASCII
   maketlar bilan taklif qilindi va to'rttasida ham "Tavsiya" varianti
@@ -1187,7 +1314,6 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
   videosiz mahsulotda rasm hero divining `style` ida edi va "bosilsa
   kattalashsin" amali IKKI joyga yozilishi kerak bo'lardi — bitta xatti-
   harakat ikki joyda tug'ilsa, biri ertami-kech ortda qoladi
-
 - [2026-08-13] Qaror (founder): **profil tartibi namunadan olinadi, MAZMUNI
   esa YO'Q.** Founder boshqa ilovaning profil ekranini namuna qilib berdi.
   Undan faqat **shakl grammatikasi** ko'chirildi — bo'limlar bir xil
