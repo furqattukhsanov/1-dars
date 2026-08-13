@@ -1375,11 +1375,11 @@ function testAssetVersionsAreFresh() {
     'style.css': { v: 45, hash: '22a12b415b6b' },
     'script.js': { v: 35, hash: '22ced40c2c7e' },
     'pwa.js': { v: 2, hash: 'f46683d58662' },
-    'panel.js': { v: 13, hash: 'bf0f406faad0' },
+    'panel.js': { v: 14, hash: '1c858b5d478f' },
     'admin/admin.css': { v: 17, hash: 'dbefeb6757ff' },
     'admin/admin.js': { v: 22, hash: '8a8310a94f5e' },
-    'telegram-app/styles.css': { v: 22, hash: '6e0d7e73cf36' },
-    'telegram-app/app.js': { v: 74, hash: 'ff0baf6c184f' },
+    'telegram-app/styles.css': { v: 23, hash: '9afebf7c81b7' },
+    'telegram-app/app.js': { v: 75, hash: '1934985f30c5' },
     'telegram-app/pwa.js': { v: 6, hash: '798ab85e1cde' },
   };
 
@@ -2531,6 +2531,107 @@ function testBannerComposite() {
   console.log(`✅ Test 19b: Tasma pastga qo'shiladi, kadr tegilmaydi — PASS (${W}x${H} → ${natija.width}x${natija.height})`);
 }
 
+// ============ TEST 21: BAYRAM EFFEKTI XABARNI YO'QOTMASIN (2026-08-13) ============
+//
+// Telegram noto'g'ri yoki qo'llab-quvvatlanmaydigan `message_effect_id` da
+// BUTUN `sendPhoto` so'rovini rad etadi. Ya'ni effektsiz qayta urinish
+// bo'lmasa, xaridor tayyor rasmni CHATDA UMUMAN OLMASDI — va buni hech
+// narsa ko'rsatmasdi, chunki ilovada rasm baribir ko'rinadi.
+//
+// Bu `ALERT_CHAT_ID` va R2 darslari bilan bitta oila: bayram — QO'SHIMCHA,
+// xabar — ASOSIY narsa. Test aynan shu tartibni qulflaydi.
+async function testMessageEffectFallback() {
+  const path = require('path');
+  const tgYol = require.resolve('./lib/telegram-api');
+  delete require.cache[tgYol];
+
+  // `callTelegram` ni josus bilan almashtiramiz — haqiqiy tarmoq YO'Q.
+  const tg = require('./lib/telegram-api');
+  const chaqiruvlar = [];
+
+  // ---- 1. Effekt RAD ETILSA — effektsiz qayta urinish bo'lsin ----
+  const asl = tg.callTelegram;
+  const modul = require.cache[tgYol];
+  // Modul ichidagi `callTelegram` ga yetish uchun manba matnini tekshiramiz:
+  // josus qo'yish mumkin emas (funksiya modul ichida to'g'ridan-to'g'ri
+  // chaqiriladi), shuning uchun XATTI-HARAKAT manbadan o'qiladi.
+  const fs = require('fs');
+  const src = fs.readFileSync(path.join(__dirname, 'lib', 'telegram-api.js'), 'utf8');
+  const i = src.indexOf('function sendPhotoWithEffect');
+  assert.ok(i > 0, 'sendPhotoWithEffect mavjud bo\'lsin');
+  const tana = src.slice(i, src.indexOf('\nmodule.exports', i));
+
+  assert.ok(/message_effect_id/.test(tana),
+    'effekt id so\'rovga qo\'shilsin');
+
+  // ---- Effektsiz qayta urinish AYNAN effekt shoxida bo'lsin ----
+  // ⚠️ Bu tekshiruv bir marta ALDANGAN (2026-08-13, mutatsiya M1): butun
+  // funksiya tanasidan `callTelegram('sendPhoto', asos)` qidirilgandi va u
+  // effektSIZ shoxdagi (`if` dan keyingi) oddiy chaqiruvni topib "bor ekan"
+  // derdi. Ya'ni qaytarish olib tashlansa ham test yashil qolardi.
+  // Endi FAQAT `if (effectId) { ... }` blokining ichi o'qiladi.
+  const iIf = tana.indexOf('if (effectId)');
+  assert.ok(iIf > 0, 'effekt shoxi `if (effectId)` bo\'lsin');
+  let chuqur = 0, boshi = tana.indexOf('{', iIf), oxiri = -1;
+  for (let k = boshi; k < tana.length; k++) {
+    if (tana[k] === '{') chuqur++;
+    else if (tana[k] === '}') { chuqur--; if (chuqur === 0) { oxiri = k; break; } }
+  }
+  assert.ok(oxiri > boshi, 'effekt shoxining chegarasi topilsin');
+  const shox = tana.slice(boshi, oxiri);
+  assert.ok(/callTelegram\('sendPhoto',\s*asos\)/.test(shox),
+    'effekt rad etilsa AYNI shoxda effektSIZ qayta urinish bo\'lsin — aks holda xaridor rasmni chatda umuman olmasdi');
+
+  // ---- 2. Baytlar QAYTA yuklanmasin ----
+  assert.ok(/photo:\s*fileId/.test(tana),
+    'rasm `file_id` bilan yuborilsin — u Telegram\'da allaqachon bor');
+
+  // ---- 3. Chaqiruv joyi: kreditni qaytaradigan `try` dan TASHQARIDA ----
+  const aiSrc = fs.readFileSync(path.join(__dirname, 'routes', 'ai.js'), 'utf8');
+  const iSend = aiSrc.indexOf('sendPhotoWithEffect(');
+  assert.ok(iSend > 0, 'routes/ai.js da sendPhotoWithEffect chaqirilsin');
+  const iRefund = aiSrc.indexOf('refundCredits(String(tg.id), cheksiz)');
+  assert.ok(iRefund > 0 && iSend > iRefund,
+    'chat xabari kredit qaytaradigan blokdan KEYIN bo\'lsin — rasm allaqachon berilgan, xabar xatosi kreditni qaytarmasin');
+
+  const atrof = aiSrc.slice(iSend - 500, iSend + 700);
+  assert.ok(/try\s*\{[\s\S]*sendPhotoWithEffect\(/.test(atrof),
+    'chat xabari O\'Z try si ichida bo\'lsin — yiqilsa so\'rov yiqilmasin');
+  assert.ok(/console\.error\(\s*'aiImage chat/.test(atrof),
+    'xato YUTILMASIN — console.error alertga chiqadi (ALERT_CHAT_ID darsi)');
+
+  // ---- 4. Effekt id SHAKLI tekshirilsin (bo'sh emasligi yetarli emas) ----
+  const cfgSrc = fs.readFileSync(path.join(__dirname, 'config.js'), 'utf8');
+  assert.ok(/function effectId\(/.test(cfgSrc),
+    'effekt id qorovuli bo\'lsin — `ALERT_CHAT_ID` darsi (bo\'sh emaslik haqiqiylik emas)');
+  const iEff = cfgSrc.indexOf('function effectId(');
+  const effTana = cfgSrc.slice(iEff, iEff + 500);
+  assert.ok(/\\d\{\d+,\d+\}/.test(effTana) || /test\(v\)/.test(effTana),
+    'effekt id raqamli shaklga tekshirilsin');
+  assert.ok(/console\.error\(/.test(effTana),
+    'yaroqsiz effekt id jurnalda QICHQIRSIN — jimgina yutilmasin');
+
+  // ---- 5. Konfetti ikkala kanalda ham bo'lsin ----
+  // Sayt va Mini App bir xil holatni ko'rsatishi kerak: bittasida qolib
+  // ketsa, ikki kanal ajralib ketardi (loyihaning takrorlanuvchi nuqsoni).
+  const kanallar = [
+    ['script.js', path.join(__dirname, '..', 'script.js')],
+    ['telegram-app/app.js', path.join(__dirname, '..', 'telegram-app', 'app.js')],
+  ];
+  for (const [nom, yol] of kanallar) {
+    const k = fs.readFileSync(yol, 'utf8');
+    assert.ok(/function konfetti\(/.test(k), `${nom} da konfetti() bo\'lsin`);
+    assert.ok(/prefers-reduced-motion/.test(k),
+      `${nom} da konfetti harakat kamaytirishni hurmat qilsin`);
+    // Rasm tayyor bo'lgan joyda CHAQIRILSIN — funksiya yozilib, chaqirilmay
+    // qolishi eng oson jimgina nuqson edi.
+    assert.ok(/state:\s*'done'[\s\S]{0,400}konfetti\(\)/.test(k),
+      `${nom} da konfetti() rasm TAYYOR bo\'lganda chaqirilsin`);
+  }
+
+  console.log('✅ Test 21: Bayram effekti — xabar yo\'qolmaydi, konfetti ikkala kanalda — PASS');
+}
+
 function testBannerFailureIsolation() {
   const fs = require('fs');
   const path = require('path');
@@ -2904,6 +3005,8 @@ async function runTests() {
     testBannerComposite();
     testBannerFailureIsolation();
     testBannerVersionGuard();
+
+    await testMessageEffectFallback();
 
     console.log('\n✅ Hammasi PASS — pul hisobi, imzo, route jadvali, xato alerti, buyurtma tarixi va AI rasmi joyida\n');
     process.exit(0);

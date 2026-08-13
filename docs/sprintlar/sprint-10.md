@@ -1749,3 +1749,137 @@ mahsulot: **ikkala kanalda BIR XIL** (`script.js` → `aiSection`,
 - Animatsiya lokal brauzerda ko'rildi; haqiqiy 30 soniyalik chizish bilan
   (jonli Gemini) hali kuzatilmagan — bu «saytda birinchi haqiqiy rasm»
   ochiq bandi bilan birga yopiladi
+
+## 2026-08-13 (davomi 2) — AI rasmi tayyor bo'lganda BAYRAM
+
+Sprint 10 hamon `tugadi` holatida. Bu bo'lim funksiyaga emas, uning oxirgi
+soniyasiga tegadi: ~30 soniya kutgan xaridor natijani **jimgina** olardi —
+rasm paydo bo'lardi, xolos. Kutish holati kechagi bo'limda mahsulotga
+aylantirilgan edi, tugash lahzasi esa bo'sh qolgan edi.
+
+### Nima uchun konfettini O'ZIMIZ chizamiz — O'LCHANGAN, taxmin emas
+
+Boshlang'ich taxmin: «Telegram'ning quizdagi konfettisi bor, uni chaqiramiz».
+**Bu taxmin tekshirildi va NOTO'G'RI chiqdi.** 2026-08-13 da production'dagi
+JONLI SDK o'qildi: `window.Telegram.WebApp` da bayramga aloqador narsa
+faqat `HapticFeedback` ning uchta metodi (`impactOccurred`,
+`notificationOccurred`, `selectionChanged`) — konfetti metodi **YO'Q**.
+Rasmiy Bot API changelog ham buni tasdiqladi: `message_effect_id` **chat
+xabari** uchun qo'shilgan (7.4), Mini App SDK'siga berilmagan.
+
+⚠️ Bu CLAUDE.md dagi **«hujjatdagi raqam — tekshirilmagan da'vo»** qoidasining
+takrori, faqat raqam emas **imkoniyat** darajasida: «Telegram'da konfetti bor»
+degan gap to'g'ri, lekin **qaysi kanalda** borligi tekshirilmasa ish noto'g'ri
+narsaga yo'naltirilardi. Tekshirmasdan boshlangan bo'lsa, mavjud bo'lmagan
+metodni chaqiradigan kod yozilib, u `try/catch` ichida **jimgina hech narsa
+qilmasdi** — konsolda xato yo'q, tugma ishlaydi, bayram esa yo'q.
+
+Shuning uchun bayram IKKI KANALDAN keladi va ular boshqa-boshqa narsa:
+
+| Kanal | Nima | Qayerda |
+|---|---|---|
+| Ilova ichi | o'zimiz chizgan konfetti (42 bo'lak, brend ranglari) | `telegram-app/app.js`, `script.js` |
+| Telegram chati | Telegram'ning HAQIQIY effekti (🎉) | `sendPhotoWithEffect()` |
+
+### Bajarilgani
+
+| Band | Natija |
+|---|---|
+| `konfetti()` | Mini App'ga qo'shildi — sayt qismi `fc06b6f` da allaqachon chiqqan |
+| `sendPhotoWithEffect()` | YANGI (`lib/telegram-api.js`) — tayyor rasm foydalanuvchining O'Z chatiga `message_effect_id` bilan |
+| Baytlar | QAYTA YUKLANMAYDI — `file_id` uzatiladi, rasm Telegram'da allaqachon yotibdi |
+| Effekt rad etilsa | effektSIZ bir marta qayta uriniladi |
+| `AI_IMAGE_EFFECT_ID` | yangi sozlama, SHAKLI tekshiriladi (`^\d{5,25}$`) |
+| **Test 21** | YANGI qorovul — 5 mutatsiya bilan sinaldi |
+| Testlar | **55 → 56** (grep = 56, `npm test` = 56 — ikki mustaqil usul) |
+| Kesh | `telegram-app/styles.css?v=22 → 23`, `app.js?v=74 → 75`, `panel.js?v=13 → 14` |
+
+### Qilingan ishlar
+
+- [2026-08-13] **`konfetti()` Mini App'da** (`telegram-app/app.js`,
+  `styles.css`) — AI rasmi `state: 'done'` bo'lgan lahzada otiladi.
+  42 bo'lak, brend ranglari, har biriga tasodifiy yon siljish (`--x`),
+  aylanish (`--r`), kechikish va davomiylik. Qatlam `position: fixed` va
+  **`pointer-events: none`** — aks holda rasm tayyor bo'lgan lahzada butun
+  ekran 3 soniya bosishni yutib turardi, ya'ni «bayram» xaridorni
+  «ulashish» tugmasidan uzib qo'yardi. Element 3.2 s da o'zini o'chiradi
+- [2026-08-13] **`prefers-reduced-motion` IKKI qatlamda hurmat qilinadi** —
+  JS'da darrov `return`, CSS'da `display: none`. Bittasi yetardi, ikkinchisi
+  ataylab: uslub fayli keshda eskirib qolsa ham JS qorovuli ishlaydi
+- [2026-08-13] **Uslub JS'da `style` orqali qo'yiladi, shablon satriga
+  INTERPOLATSIYA QILINMAYDI** — CLAUDE.md `esc()` bandidagi «atribut ichida
+  boshqa til boshlansa `esc()` yaramaydi» darsi. Bu yerda tashqi matn yo'q,
+  lekin naqsh bitta bo'lsin
+- [2026-08-13] **`sendPhotoWithEffect()`** (`server/lib/telegram-api.js`) —
+  tayyor rasm foydalanuvchining O'Z chatiga `message_effect_id` bilan
+  yuboriladi. Baytlar QAYTA YUKLANMAYDI: `photo: fileId`, chunki rasm shu
+  bot orqali Telegram'ga allaqachon yuklangan. Yon foydasi rejalashtirilmagan
+  edi va u qimmatli: xaridor ilovani yopib qo'ysa ham **rasm chatida qoladi**
+- [2026-08-13] ⚠️ **Effekt rad etilsa xabar YO'QOLMAYDI.** Telegram noto'g'ri
+  yoki qo'llab-quvvatlanmaydigan `message_effect_id` da BUTUN `sendPhoto`
+  so'rovini rad etadi — ya'ni qaytarish yo'li bo'lmasa xaridor tayyor rasmni
+  chatda **umuman olmasdi**, va buni hech narsa ko'rsatmasdi, chunki ilovada
+  rasm baribir ko'rinadi. Endi rad javobida bir marta effektSIZ takrorlanadi:
+  **bayram — qo'shimcha, xabar — asosiy narsa**
+- [2026-08-13] **Chaqiruv kreditni qaytaradigan `try` dan TASHQARIDA**
+  (`routes/ai.js`, `refundCredits` blokidan keyin) va O'Z `try` si bilan
+  o'ralgan — R2 va tasma bandlari bilan AYNI qoida: rasm allaqachon
+  chizilgan, pul allaqachon to'langan va xaridor natijani ilovada olgan.
+  Chat xabari yiqilsa (bot bloklangan, chat ochilmagan — Telegram 403) butun
+  so'rov yiqilmasin va kredit qaytarilmasin
+- [2026-08-13] **Xato YUTILMAYDI** — `console.error` alertga chiqadi, birinchi
+  argument o'zgarmas belgi (`'aiImage chatga yuborilmadi:'` /
+  `'aiImage chat xabari xatosi:'`), o'zgaruvchan qism ikkinchisida.
+  `ALERT_CHAT_ID` darsi: aks holda «rasm chatga konfetti bilan ketyapti»
+  degan ishonch oylab o'lchanmagan da'vo bo'lib qolardi
+- [2026-08-13] **`AI_IMAGE_EFFECT_ID` SHAKLI tekshiriladi** (`config.js` →
+  `effectId()`, `^\d{5,25}$`). `process.env.X || ZAXIRA` naqshining O'ZI
+  yetarli emas — `ALERT_CHAT_ID` darsi: `.env` da namuna qolib ketsa u bo'sh
+  emas, ya'ni `||` uni haqiqiy qiymat deb qabul qilardi va Telegram HAR
+  SAFAR rad etardi. Yaroqsiz qiymat jurnalda QICHQIRADI va effektsiz
+  ishlanadi; `process.exit` YO'Q — bayram ixtiyoriy funksiya
+- [2026-08-13] **Yangi Test 21** — qorovul to'rt narsani qulflaydi:
+  (1) effekt rad etilganda AYNI shoxda effektsiz qayta urinish bor,
+  (2) rasm `file_id` bilan ketadi, (3) chaqiruv kredit qaytarish blokidan
+  KEYIN va o'z `try`/`console.error` i bilan, (4) `effectId()` shakl
+  qorovuli mavjud va jimgina yutmaydi. Beshinchisi — `konfetti()`
+  IKKALA kanalda bor va rasm TAYYOR bo'lgan joyda CHAQIRILADI (funksiya
+  yozilib chaqirilmay qolishi eng oson jimgina nuqson edi)
+- [2026-08-13] Kesh: `telegram-app/styles.css?v=22 → 23`,
+  `telegram-app/app.js?v=74 → 75`, `panel.js?v=13 → 14`; Test 16 jadvali
+  yangilandi
+
+### Qarorlar
+
+- [2026-08-13] **Qaror: konfetti ilovada O'ZIMIZ chiziladi, Telegram'niki
+  chatda ishlatiladi.** Sabab — Mini App SDK'da konfetti metodi yo'q
+  (jonli SDK o'qib tekshirildi). Muqobil «umuman qilmaymiz» rad etildi:
+  30 soniyalik kutishdan keyin jim natija kutishning o'zini qadrsizlantiradi
+- [2026-08-13] **Qaror: bayram effekti hech qachon xabarni yo'qotmaydi.**
+  Effektli so'rov rad etilsa effektsiz bir marta takrorlanadi. Bu R2
+  («ombor almashtirish bir tomonlama eshik bo'lmasin») va tasma
+  («tasma xatosi rasmni yo'qotmasin») qarorlari bilan bitta oila:
+  **qo'shimcha qulaylik asosiy natijani hech qachon garovga qo'ymaydi**
+- [2026-08-13] **Qaror: `AI_IMAGE_EFFECT_ID` ning zaxirasi kodda turadi**
+  (`5046509860389126442`), `.env` da almashtirsa bo'ladi. Muqobil «faqat
+  `.env` dan» rad etildi: sozlanmagan serverda bayram jimgina yo'q bo'lardi
+  va buni hech kim sezmasdi
+
+### Ochiq qolgani
+
+1. 🔴 **Haqiqiy Telegram bilan chat xabari va effekt HECH QACHON otilmagan.**
+   Effekt id `5046509860389126442` **hujjatdan olingan**, jonli tasdiqlanmagan
+   — ya'ni bu ayni paytda TEKSHIRILMAGAN DA'VO. Aynan shu sabab effektsiz
+   qaytarish yo'li yozildi: da'vo noto'g'ri chiqsa ham xaridor rasmni oladi.
+   Founder birinchi rasmni chizdirganda **chatga xabar kelgani** va
+   **effekt otilgani** ALOHIDA ko'rilsin — «xabar keldi» «effekt ishladi»
+   degani emas
+2. 🔴 **Deploy qilinmagan** — `server/` CI orqali CHIQMAYDI, qo'lda rsync va
+   servis restart kerak va uni founder bajaradi
+3. Konfetti lokal brauzerda ko'rildi; haqiqiy AI javobi bilan (jonli Gemini)
+   hali kuzatilmagan — bu «saytda birinchi haqiqiy rasm» ochiq bandi bilan
+   birga yopiladi
+4. Konfetti endi **ikki faylda takrorlangan** (`script.js` va
+   `telegram-app/app.js`) — 2026-08-13 dagi «AI bloki ikki joyda» bandi bilan
+   bitta ro'yxatda. Test 21 ikkalasi ham MAVJUD ekanini qo'riqlaydi, lekin
+   ular ajralib ketmasligini emas

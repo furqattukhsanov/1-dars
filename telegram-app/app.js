@@ -1657,6 +1657,7 @@ async function askAiImage(productId) {
       // titraydi — "mo'jiza tayyor" hissi.
       S.aiImages[id] = { state: 'done', url: j.data.image, fresh: true };
       try { window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('success'); } catch (e) { /* haptic ixtiyoriy */ }
+      konfetti();
     } else {
       S.aiImages[id] = { state: 'error' };
     }
@@ -1774,6 +1775,42 @@ function reviewsSection(productId) {
 // interpolatsiya qilinmasin — qiymat `dataset` orqali berilsin.
 function esc(s) {
   return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+}
+
+/* ── Konfetti (2026-08-13) ───────────────────────────────────────────
+   AI rasmi tayyor bo'lganda "quiz javobi to'g'ri" hissini beradi.
+   Saytdagi bilan AYNI funksiya (`script.js` → `konfetti`).
+
+   ⚠️ NIMA UCHUN O'ZIMIZ CHIZAMIZ: Telegram'ning quizdagi konfettisi Mini
+   App'ga BERILMAGAN — jonli SDK'da faqat `HapticFeedback` ning uchta
+   metodi bor (2026-08-13 da production'da o'qib tekshirildi). Telegram'ning
+   HAQIQIY konfettisi alohida keladi: server tayyor rasmni foydalanuvchi
+   chatiga `message_effect_id` bilan yuboradi (`server/routes/ai.js`).
+
+   Uslub JS'da qo'yiladi, shablon satriga INTERPOLATSIYA QILINMAYDI. */
+const KONFETTI_RANG = ['#C9362D', '#E84B40', '#7A140D', '#F4C049', '#EFE3D0'];
+
+function konfetti() {
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+  const qatlam = document.createElement('div');
+  qatlam.className = 'konfetti';
+  qatlam.setAttribute('aria-hidden', 'true');
+
+  for (let i = 0; i < 42; i++) {
+    const b = document.createElement('i');
+    b.style.left = (Math.random() * 100) + '%';
+    b.style.background = KONFETTI_RANG[i % KONFETTI_RANG.length];
+    b.style.animationDelay = (Math.random() * 0.5).toFixed(2) + 's';
+    b.style.animationDuration = (1.6 + Math.random() * 1.1).toFixed(2) + 's';
+    b.style.setProperty('--x', (Math.random() * 160 - 80).toFixed(0) + 'px');
+    b.style.setProperty('--r', (Math.random() * 900 - 450).toFixed(0) + 'deg');
+    if (i % 3 === 0) b.style.borderRadius = '50%';
+    qatlam.appendChild(b);
+  }
+
+  document.body.appendChild(qatlam);
+  setTimeout(() => qatlam.remove(), 3200);
 }
 
 // ============ EKRAN: QIDIRUV ============

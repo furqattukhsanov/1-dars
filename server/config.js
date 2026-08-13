@@ -183,6 +183,30 @@ const AI_IMAGE_MODEL = (() => {
 // xabarlarini ko'mib yubormasin.
 const AI_IMAGE_CHAT_ID = chatId(process.env.AI_IMAGE_CHAT_ID, 'AI_IMAGE_CHAT_ID', ADMIN_CHAT_ID);
 
+// Tayyor rasm foydalanuvchining O'Z chatiga shu effekt bilan yuboriladi —
+// Telegram'ning quizdagi bayram animatsiyasi (Bot API 7.4, `message_effect_id`).
+// Sabab: Mini App SDK'da konfetti metodi YO'Q (2026-08-13 da jonli SDK o'qib
+// tekshirildi — faqat `HapticFeedback` ning uchtasi bor), ya'ni Telegram'ning
+// HAQIQIY effektiga yagona yo'l — chatga xabar yuborish.
+//
+// ⚠️ SHAKL TEKSHIRILADI, bo'sh emasligining o'zi yetarli emas (`ALERT_CHAT_ID`
+// darsi): effekt id — o'nlik raqamlar satri. Yaroqsiz qiymat jimgina qabul
+// qilinsa, Telegram HAR SAFAR rad etardi va biz buni bilmasdik.
+// Bo'sh qoldirilsa effekt umuman qo'shilmaydi (rasm baribir yuboriladi).
+function effectId(xom, nom) {
+  const v = String(xom == null ? '' : xom).trim();
+  if (!v) return null;
+  if (!/^\d{5,25}$/.test(v)) {
+    // Birinchi argument — alert guruhlash KALITI (CLAUDE.md, Test 10c).
+    console.error('Yaroqsiz message_effect_id — effektsiz ishlaymiz:', `${nom}=${v}`);
+    return null;
+  }
+  return v;
+}
+// 🎉 — Telegram'ning standart bayram effekti. `.env` da almashtirsa bo'ladi.
+const AI_IMAGE_EFFECT_ID = effectId(
+  process.env.AI_IMAGE_EFFECT_ID || '5046509860389126442', 'AI_IMAGE_EFFECT_ID');
+
 // Rasm tugmasi shu bayroqqa qarab chiziladi. `AI_ENABLED` ning O'ZI yetarli
 // emas — matn ishlab, rasm ishlamaydigan holat HAQIQIY holat (2026-08-06 da
 // aynan shunday edi: matn HTTP 200, rasm HTTP 429 `limit: 0`).
@@ -389,7 +413,7 @@ module.exports = {
   ADMIN_PANEL_TOKEN, PREPAY_RATE, COMMISSION_RATE, ADMIN_TG_IDS, DELIVERY_FEE_ESTIMATE,
   AI_PROVIDERS, AI_PROVIDER, AI_API_KEY, AI_ENABLED, AI_DAILY_LIMIT,
   AI_CREDITS_START, AI_CREDIT_COST, AI_UNLIMITED_TG_IDS,
-  AI_IMAGE_MODEL, AI_IMAGE_CHAT_ID, AI_IMAGE_ENABLED,
+  AI_IMAGE_MODEL, AI_IMAGE_CHAT_ID, AI_IMAGE_ENABLED, AI_IMAGE_EFFECT_ID,
   R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET,
   R2_ENABLED, R2_ENDPOINT, R2_PUBLIC_BASE,
   chatId, aiKey, r2Sir, r2AccountId, r2Bucket, r2PublicBase,

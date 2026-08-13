@@ -736,3 +736,33 @@ button:active { opacity: .88; }
   color: var(--text-body);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
+
+/* ==== KONFETTI (2026-08-13) ====
+   AI rasmi tayyor bo'lganda ekranga yog'iladi. Qatlam butun ekranni
+   qoplaydi, lekin `pointer-events: none` — bosishni USHLAB QOLMAYDI
+   (aks holda rasm tayyor bo'lgan lahzada tugmalar 3 soniya o'lik bo'lardi).
+   Element animatsiya tugagach JS'da o'chiriladi. */
+.konfetti {
+  position: fixed; inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  overflow: hidden;
+}
+.konfetti i {
+  position: absolute;
+  top: -14px;
+  width: 9px; height: 14px;
+  opacity: 0;
+  animation-name: konfetti-tush;
+  animation-timing-function: cubic-bezier(.25, .55, .45, 1);
+  animation-fill-mode: forwards;
+}
+@keyframes konfetti-tush {
+  0%   { opacity: 1; transform: translate3d(0, 0, 0) rotate(0); }
+  100% { opacity: 0; transform: translate3d(var(--x, 0), 105vh, 0) rotate(var(--r, 360deg)); }
+}
+/* Harakatni kamaytirish so'ralgan bo'lsa konfetti UMUMAN chizilmaydi —
+   qorovul JS'da ham bor, bu ikkinchi qatlam. */
+@media (prefers-reduced-motion: reduce) {
+  .konfetti { display: none; }
+}

@@ -195,8 +195,37 @@ function sendPhotoBytes(chatId, buf, filename, caption) {
   });
 }
 
+/* Tayyor rasmni foydalanuvchining O'Z chatiga yuboradi — bayram effekti bilan.
+   Rasm allaqachon Telegram'da yotibdi, shuning uchun baytlar EMAS, `file_id`
+   uzatiladi (ikkinchi marta yuklash shart emas).
+
+   ⚠️ EFFEKT IXTIYORIY VA U YIQILSA XABAR BARIBIR KETADI. Telegram noto'g'ri
+   yoki qo'llab-quvvatlanmaydigan `message_effect_id` da BUTUN so'rovni rad
+   etadi — ya'ni effektsiz qayta urinish bo'lmasa foydalanuvchi rasmni
+   umuman olmasdi. Shuning uchun rad javobida bir marta effektSIZ
+   takrorlanadi: bayram — qo'shimcha, xabar — asosiy narsa.
+
+   Qaytaradi: `{ ok, effekt }` — `effekt` effekt bilan ketganini bildiradi
+   (chaqiruvchi buni jurnalga yozadi, "konfetti ishlayapti" degan ishonch
+   o'lchanmagan da'vo bo'lib qolmasin). */
+async function sendPhotoWithEffect(chatId, fileId, caption, effectId) {
+  const asos = { chat_id: String(chatId), photo: fileId };
+  if (caption) asos.caption = caption;
+
+  if (effectId) {
+    const r = await callTelegram('sendPhoto', Object.assign({}, asos, { message_effect_id: effectId }));
+    if (r.status === 200) return { ok: true, effekt: true };
+    // Effekt sabab rad etilgan bo'lishi mumkin — effektsiz bir marta urinamiz.
+    const r2 = await callTelegram('sendPhoto', asos);
+    return { ok: r2.status === 200, effekt: false, sabab: r.body };
+  }
+
+  const r = await callTelegram('sendPhoto', asos);
+  return { ok: r.status === 200, effekt: false, sabab: r.status === 200 ? null : r.body };
+}
+
 module.exports = {
   callTelegram, sendOrderNotifyMessage, sendBuyerConfirmMessage,
   STATUS_COMMANDS, sendOpenAppMessage, callbackAnswer, notify, tgGetFile,
-  tgDownloadFile, sendPhotoBytes,
+  tgDownloadFile, sendPhotoBytes, sendPhotoWithEffect,
 };

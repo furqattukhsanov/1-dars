@@ -1,12 +1,12 @@
 const {
-  AI_ENABLED, AI_IMAGE_ENABLED, AI_IMAGE_CHAT_ID,
+  AI_ENABLED, AI_IMAGE_ENABLED, AI_IMAGE_CHAT_ID, AI_IMAGE_EFFECT_ID,
   AI_CREDITS_START, AI_CREDIT_COST, AI_UNLIMITED_TG_IDS,
 } = require('../config');
 const { pool } = require('../db');
 const { requestUser } = require('../lib/auth');
 const { rateLimited, clientIp, readBody, sendJson, ok, fail } = require('../lib/http');
 const { imageSourceHash, generateImage, normalizeChoices, choicesHash, joriyJavobmi } = require('../lib/ai');
-const { tgGetFile, tgDownloadFile, sendPhotoBytes } = require('../lib/telegram-api');
+const { tgGetFile, tgDownloadFile, sendPhotoBytes, sendPhotoWithEffect } = require('../lib/telegram-api');
 const { productPhotoUrl } = require('./catalog');
 const { r2Put, r2PublicUrl, R2_ENABLED } = require('../lib/r2');
 const { addBanner } = require('../lib/watermark');
@@ -333,6 +333,36 @@ async function handleAiImage(req, res) {
       } catch (e) {
         // Birinchi argument — alert guruhlash KALITI (CLAUDE.md, Test 10c).
         console.error('aiImage R2 ga yozilmadi:', e.message);
+      }
+    }
+
+    // ---- 4c. Foydalanuvchining O'Z chatiga — BAYRAM effekti bilan ----
+    // ⚠️ ENG YAXSHI HARAKAT, R2 bandi bilan AYNI qoida: rasm allaqachon
+    // ilovada ko'rinadi, ya'ni xaridor to'lagan narsasini olgan. Chat xabari
+    // yiqilsa (foydalanuvchi botni bloklagan, chat ochilmagan — Telegram 403)
+    // butun so'rov yiqilmasin va kredit qaytarilmasin.
+    //
+    // Nima uchun umuman yuboriladi: Mini App SDK'da konfetti metodi YO'Q
+    // (2026-08-13 da jonli SDK o'qildi), ya'ni Telegram'ning HAQIQIY bayram
+    // animatsiyasiga yagona yo'l — chatga xabar. Yon foydasi: xaridor
+    // ilovani yopib qo'ysa ham rasm chatida qoladi.
+    //
+    // Xato YUTILMAYDI — `console.error` alertga chiqadi, aks holda "chatga
+    // konfetti bilan yuborilyapti" degan ishonch oylab o'lchanmagan da'vo
+    // bo'lib qolardi (`ALERT_CHAT_ID` darsi).
+    if (fileId) {
+      try {
+        const n = await sendPhotoWithEffect(
+          tg.id, fileId, `✨ ${p.name_uz || productId} — AI kiyim rasmi tayyor`,
+          AI_IMAGE_EFFECT_ID
+        );
+        if (!n.ok) {
+          // Birinchi argument — alert guruhlash KALITI (CLAUDE.md, Test 10c).
+          console.error('aiImage chatga yuborilmadi:', String(n.sabab || '').slice(0, 200));
+        }
+      } catch (e) {
+        // Birinchi argument — alert guruhlash KALITI (CLAUDE.md, Test 10c).
+        console.error('aiImage chat xabari xatosi:', e.message);
       }
     }
 
