@@ -1373,7 +1373,7 @@ function testAssetVersionsAreFresh() {
   // qotib qolgan keshni cheksiz ushlab turardi.
   const KUTILGAN = {
     'style.css': { v: 43, hash: 'ab2de2f1ad8a' },
-    'script.js': { v: 33, hash: 'dfcb1d6d1142' },
+    'script.js': { v: 34, hash: '870b329a46c5' },
     'pwa.js': { v: 2, hash: 'f46683d58662' },
     'panel.js': { v: 13, hash: 'bf0f406faad0' },
     'admin/admin.css': { v: 17, hash: 'dbefeb6757ff' },
@@ -2819,6 +2819,25 @@ function testTranslationKeys() {
   const htmlKeys = [...html.matchAll(/data-i18n(?:-ph|-aria)?="([A-Za-z0-9_]+)"/g)].map((x) => x[1]);
   const htmlYoq = htmlKeys.filter((k) => STR.uz[k] === undefined || STR.ru[k] === undefined);
   assert.strictEqual(htmlYoq.length, 0, `index.html dagi data-i18n kalitlari jadvalda yo'q: ${htmlYoq.join(', ')}`);
+
+  // ⚠️ `STR` dan TASHQARI jadvallar ham qamraladi (2026-08-13). Sabab:
+  // AI savol va javob yorliqlari (`AI_Q` / `AI_O`) alohida jadvalda yashaydi
+  // va ular BOSHIDA faqat o'zbekcha edi — natijada rus tilida AI bloki YARIM
+  // tarjima bo'lib qolardi (sarlavha ruscha, savollar o'zbekcha). Nuqson
+  // jonli saytda o'lchab topildi, Test 20 esa uni KO'RMAGAN edi, chunki
+  // faqat `STR` ga qarardi.
+  ['AI_Q', 'AI_O'].forEach((nom) => {
+    const jm = src.match(new RegExp(`const ${nom} = \\{[\\s\\S]*?\\n\\};`));
+    assert.ok(jm, `${nom} jadvali topilmadi`);
+    // eslint-disable-next-line no-eval
+    const J = eval('(' + jm[0].replace(new RegExp(`^const ${nom} = `), '').replace(/;$/, '') + ')');
+    assert.ok(J.uz && J.ru, `${nom} da uz va ru bo'lishi shart`);
+    const a1 = Object.keys(J.uz), b1 = Object.keys(J.ru);
+    const yetishmaydi = a1.filter((k) => !(k in J.ru)).concat(b1.filter((k) => !(k in J.uz)));
+    assert.strictEqual(yetishmaydi.length, 0, `${nom}: ikki tilda mos kelmagan kalitlar: ${yetishmaydi.join(', ')}`);
+    const bosh2 = a1.filter((k) => !String(J.uz[k]).trim() || !String(J.ru[k]).trim());
+    assert.strictEqual(bosh2.length, 0, `${nom}: bo'sh yorliq: ${bosh2.join(', ')}`);
+  });
 
   const olik = uzK.filter((k) => !ishlatilgan.has(k) && !htmlKeys.includes(k));
   console.log(`✅ Test 20: Tarjima kalitlari to'liq — PASS (${uzK.length} kalit × 2 til, ` +

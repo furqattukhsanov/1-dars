@@ -1581,21 +1581,53 @@ let aiCredits = null;
 /* Yorliqlar — kalitlar serverdan, matn shu yerda (Mini App bilan bir xil).
    ⚠️ Yorliq topilmasa kalitning O'ZI chiziladi: jimgina yo'qolib qolgandan
    ko'ra "notanish kalit" ko'rinib turgani yaxshi. */
+/* ⚠️ Savol va javob yorliqlari IKKI TILDA (2026-08-13). Dastlab bu yerda
+   faqat o'zbekchasi turardi va rus tilida AI bloki YARIM tarjima bo'lib
+   qolardi: sarlavha va tugma ruscha, savollar esa o'zbekcha. Bu jonli
+   saytda o'lchab topildi, kod o'qib emas.
+   Yorliqlar Mini App'dagi (`telegram-app/app.js` → `STR.*.aiQ` / `aiO`)
+   bilan AYNI — ikki yuzada bir xil savol boshqacha nomlanmasin. */
 const AI_Q = {
-  kiyim: "Nima tikilsin?", uslub: "Qayerga?", dizayn: "Dizayn yo'nalishi",
-  rang: "Qo'shimcha rang", qoshimcha: "Qo'shimcha material",
+  uz: {
+    kiyim: "Nima tikilsin?", uslub: "Qayerga?", dizayn: "Dizayn yo'nalishi",
+    rang: "Qo'shimcha rang", qoshimcha: "Qo'shimcha material",
+  },
+  ru: {
+    kiyim: 'Что сшить?', uslub: 'Куда?', dizayn: 'Направление дизайна',
+    rang: 'Дополнительный цвет', qoshimcha: 'Доп. материал',
+  },
 };
 const AI_O = {
-  koylak_milliy: 'Milliy ko\'ylak', koylak: 'Ko\'ylak', kostyum: 'Kostyum',
-  palto: 'Palto', yubka: 'Yubka', romol: 'Ro\'mol',
-  kundalik: 'Kundalik', bayram: 'Bayram / to\'y', ish: 'Ish',
-  neoklassika: 'Neoklassika', zamonaviy: 'Zamonaviy',
-  minimalistik: 'Minimalistik', combo: 'Combo',
-  oq: 'Oq', qora: 'Qora', bej: 'Bej', kok: 'Ko\'k',
-  yashil: 'Yashil', bordo: 'Bordo', oltin: 'Oltin',
-  yoq: 'Yo\'q', charm: 'Charm', jinsi: 'Jinsi',
-  bahmal: 'Bahmal', dantel: 'Dantel', trikotaj: 'Trikotaj',
+  uz: {
+    koylak_milliy: 'Milliy ko\'ylak', koylak: 'Ko\'ylak', kostyum: 'Kostyum',
+    palto: 'Palto', yubka: 'Yubka', romol: 'Ro\'mol',
+    kundalik: 'Kundalik', bayram: 'Bayram / to\'y', ish: 'Ish',
+    neoklassika: 'Neoklassika', zamonaviy: 'Zamonaviy',
+    minimalistik: 'Minimalistik', combo: 'Combo',
+    oq: 'Oq', qora: 'Qora', bej: 'Bej', kok: 'Ko\'k',
+    yashil: 'Yashil', bordo: 'Bordo', oltin: 'Oltin',
+    yoq: 'Yo\'q', charm: 'Charm', jinsi: 'Jinsi',
+    bahmal: 'Bahmal', dantel: 'Dantel', trikotaj: 'Trikotaj',
+  },
+  ru: {
+    koylak_milliy: 'Нац. платье', koylak: 'Платье', kostyum: 'Костюм',
+    palto: 'Пальто', yubka: 'Юбка', romol: 'Платок',
+    kundalik: 'Повседневно', bayram: 'Праздник / свадьба', ish: 'Работа',
+    neoklassika: 'Неоклассика', zamonaviy: 'Современный',
+    minimalistik: 'Минимализм', combo: 'Комбо',
+    oq: 'Белый', qora: 'Чёрный', bej: 'Бежевый', kok: 'Синий',
+    yashil: 'Зелёный', bordo: 'Бордовый', oltin: 'Золотой',
+    yoq: 'Нет', charm: 'Кожа', jinsi: 'Джинса',
+    bahmal: 'Бархат', dantel: 'Кружево', trikotaj: 'Трикотаж',
+  },
 };
+
+/* Yorliqni joriy tilda beradi. Topilmasa KALITNING O'ZI qaytadi —
+   serverdan yangi kalit kelsa u jimgina yo'qolib qolmasin. */
+function aiLabel(jadval, k) {
+  const tbl = jadval[LANG] || jadval.uz;
+  return (tbl && tbl[k]) || jadval.uz[k] || k;
+}
 
 /** Serverdan kelgan AI sozlamasini SHAKLI bo'yicha qabul qiladi.
     ⚠️ `!= null` yetarli emas (CLAUDE.md — "sozlama qiymati bo'sh emasligi
@@ -1661,11 +1693,11 @@ function aiSection(id) {
     const savollar = guruhlar.map((guruh, i) => `
       <div class="ai-q">
         <span class="ai-q-num">${i + 1}</span>
-        <span class="ai-q-label">${esc(AI_Q[guruh] || guruh)}</span>
+        <span class="ai-q-label">${esc(aiLabel(AI_Q, guruh))}</span>
       </div>
       <div class="ai-chips">
         ${kalitlar(guruh).map((k) => `
-          <button class="ai-chip${tanlov[guruh] === k ? ' on' : ''}" data-action="pickAiChoice" data-arg="${esc(id)}|${esc(guruh)}|${esc(k)}">${esc(AI_O[k] || k)}</button>`).join('')}
+          <button class="ai-chip${tanlov[guruh] === k ? ' on' : ''}" data-action="pickAiChoice" data-arg="${esc(id)}|${esc(guruh)}|${esc(k)}">${esc(aiLabel(AI_O, k))}</button>`).join('')}
       </div>`).join('');
 
     // Erkin matn (faqat combo). Belgilar ro'yxati bu yerda TAKRORLANMAYDI —
