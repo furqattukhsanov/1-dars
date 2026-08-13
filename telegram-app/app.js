@@ -188,6 +188,8 @@ const STR = {
     // — Profil: biz bilan bog'lanish —
     contactT: "Biz bilan bog'lanish", contactCall: "Qo'ng'iroq qilish",
     contactTg: "Telegram orqali yozish",
+    phoneCopied: "Raqam nusxalandi — qo'ng'iroq ochilmasa, qo'lda tering",
+    phoneCopyErr: "Raqamni nusxalab bo'lmadi — uni qo'lda ko'chiring",
     help: "Yordam markazi", logout: "Chiqish", search: "Qidiruv", recent: "So'nggi qidiruvlar", noResults: "Hech narsa topilmadi",
     noResultsSub: "Boshqa so'z bilan urinib ko'ring", resultsN: "natija topildi", // ⚠️ `tabHome` — `home` EKRANINING yorlig'i, u endi "Katalog" deb
     // o'qiladi: bosh sahifa katalogga birlashdi (2026-08-07). Kalit nomi
@@ -336,6 +338,8 @@ const STR = {
     // — Профиль: связаться с нами —
     contactT: "Связаться с нами", contactCall: "Позвонить",
     contactTg: "Написать в Telegram",
+    phoneCopied: "Номер скопирован — если звонок не открылся, наберите вручную",
+    phoneCopyErr: "Не удалось скопировать номер — скопируйте вручную",
     help: "Центр помощи", logout: "Выйти", search: "Поиск", recent: "Недавние поиски", noResults: "Ничего не найдено",
     noResultsSub: "Попробуйте другой запрос", resultsN: "результатов", tabHome: "Каталог", tabAi: "AI",
     tabCart: "Корзина", tabOrders: "Заказы", tabProfile: "Профиль", added: "Добавлено в корзину 🌷", liked: "Добавлено в избранное",
@@ -1755,6 +1759,43 @@ function setAiText(qiymat, productId) {
 // AYNI sabab: Mini App Telegram WebView ichida yashaydi, oddiy `<a>` esa
 // `t.me` ni ICHKI brauzerda ochib, foydalanuvchini chatga tushirmasdi.
 // `openTelegramLink` uni Telegram'ning o'ziga uzatadi.
+// Matnni buferga. Ikki yo'l ATAYLAB: `navigator.clipboard` xavfsiz
+// kontekst va ruxsat talab qiladi hamda Telegram WebView'ida mavjud
+// bo'lmasligi mumkin — o'shanda eski `execCommand` yo'li ishlaydi.
+// Ikkalasi ham yiqilsa `false` qaytadi va foydalanuvchiga AYTILADI:
+// jimgina "nusxalandi" deyish yolg'on bo'lardi.
+function copyText(matn) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    return navigator.clipboard.writeText(matn).then(() => true).catch(() => legacyCopy(matn));
+  }
+  return Promise.resolve(legacyCopy(matn));
+}
+function legacyCopy(matn) {
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = matn;
+    ta.setAttribute('readonly', '');
+    // Ko'rinmas, lekin ekranda: `display:none` bo'lsa tanlab bo'lmaydi,
+    // ekrandan tashqariga chiqarilsa iOS sahifani sakratadi.
+    ta.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;opacity:0';
+    document.body.appendChild(ta);
+    ta.select();
+    ta.setSelectionRange(0, matn.length);
+    const ok = document.execCommand('copy');
+    ta.remove();
+    return ok;
+  } catch (e) {
+    return false;
+  }
+}
+
+// ⚠️ `preventDefault` YO'Q — havola o'z ishini qilaveradi, bu faqat
+// USTIGA qo'shiladigan zaxira (yuqoridagi izohga qara).
+function copySupportPhone() {
+  const T = STR[S.lang];
+  copyText(SUPPORT.tel).then((ok) => showToast(ok ? T.phoneCopied : T.phoneCopyErr));
+}
+
 function openSupportTg() {
   const tg = window.Telegram && window.Telegram.WebApp;
   if (tg && tg.openTelegramLink) tg.openTelegramLink(SUPPORT.tgUrl);
@@ -2876,9 +2917,17 @@ function renderMyAddress() {
 // "faqat telegramga haqiqatan o'tadigan qil"). Telegram tashqarisida
 // (brauzerda ochilgan Mini App) zaxira yo'l — oddiy `window.open`.
 //
-// Telefon esa ODDIY `<a href="tel:">` bo'lib qoladi va bu ataylab: `tel:`
-// ni WebView ham, brauzer ham o'zi to'g'ri boshqaradi, `openLink()` esa uni
-// veb-sahifa deb ochishga urinardi.
+// 🔴 **TELEFON — `tel:` NING O'ZI YETARLI EMAS** (2026-08-13, founder
+// "qo'ng'iroq tugmasi ishlamayapti" deganidan keyin tuzatildi). Bu yerda
+// ilgari "`tel:` ni WebView ham, brauzer ham o'zi to'g'ri boshqaradi" deb
+// yozilgandi — TEKSHIRILMAGAN DA'VO edi: Telegram WebView'i `http(s)` dan
+// boshqa sxemani ko'pincha umuman ochmaydi, kompyuter brauzerida esa
+// telefon ilovasi bo'lmasa bosish jimgina hech narsa qilmaydi. Xato yo'q,
+// konsol toza, tugma esa o'lik.
+//
+// Yechim muhitni ANIQLASHGA tayanmaydi (u yana bir taxmin bo'lardi):
+// havola `tel:` bo'lib qoladi — qayerda ishlasa o'sha yerda ishlayveradi —
+// va bosilganda raqam buferga HAM nusxalanadi. `preventDefault` yo'q.
 function renderContact() {
   const T = STR[S.lang];
   const qator = 'display:flex;align-items:center;gap:12px;width:100%;text-align:left;cursor:pointer;padding:13px 14px;border:none;background:none;font-family:var(--font-sans);text-decoration:none';
@@ -2887,7 +2936,7 @@ function renderContact() {
   <div>
     <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-subtle);margin-bottom:8px">${T.contactT}</div>
     <div style="display:flex;flex-direction:column;border:1px solid rgba(255,255,255,.55);border-radius:var(--radius-md);overflow:hidden;background:rgba(255,255,255,.6);backdrop-filter:blur(16px) saturate(160%);-webkit-backdrop-filter:blur(16px) saturate(160%);box-shadow:0 5px 16px -12px rgba(81,1,0,.12)">
-      <a class="tap44" href="tel:${SUPPORT.tel}" style="${qator};border-bottom:1px solid var(--border-hair)">
+      <a class="tap44" href="tel:${SUPPORT.tel}" data-action="copySupportPhone" style="${qator};border-bottom:1px solid var(--border-hair)">
         <span style="${belgi};background:var(--pom-100);color:#7a140d">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3-8.6A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8.1 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
         </span>

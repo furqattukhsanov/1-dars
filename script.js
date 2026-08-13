@@ -99,6 +99,8 @@ const STR = {
     contactT: "Biz bilan bog'lanish",
     contactCall: "Qo'ng'iroq qilish",
     contactTg: 'Telegram orqali yozish',
+    phoneCopied: "Raqam nusxalandi — qo'ng'iroq ochilmasa, qo'lda tering",
+    phoneCopyErr: "Raqamni nusxalab bo'lmadi — uni qo'lda ko'chiring",
     noOrders: "Hozircha buyurtma yo'q. Katalogdan mato tanlab birinchi buyurtmangizni bering.",
     logout: 'Hisobdan chiqish',
     loggedOut: 'Hisobdan chiqdingiz',
@@ -290,6 +292,8 @@ const STR = {
     contactT: 'Связаться с нами',
     contactCall: 'Позвонить',
     contactTg: 'Написать в Telegram',
+    phoneCopied: 'Номер скопирован — если звонок не открылся, наберите вручную',
+    phoneCopyErr: 'Не удалось скопировать номер — скопируйте вручную',
     noOrders: 'Пока заказов нет. Выберите ткань в каталоге и оформите первый заказ.',
     logout: 'Выйти',
     loggedOut: 'Вы вышли из аккаунта',
@@ -1217,16 +1221,28 @@ function myAddressHtml() {
 }
 
 /* ── Profil: "Biz bilan bog'lanish" ──
-   Saytda ikkalasi ham ODDIY havola bo'lib qoladi va bu ataylab: brauzerda
-   `tel:` ni tizim o'zi ochadi, `t.me/...` esa Telegram ilovasiga o'tadi
-   (o'rnatilmagan bo'lsa — veb-versiyaga). Mini App'da esa bu ishlamaydi
-   va u yerda `openTelegramLink()` ishlatilgan (`telegram-app/app.js`) —
-   farq WebView'dan kelib chiqadi, uslubdan emas. */
+   🔴 **`tel:` HAR JOYDA ISHLAYDI DEB O'YLAMANG** (2026-08-13, founder
+   "qo'ng'iroq tugmasi ishlamayapti" deganidan keyin tuzatildi). Bu yerda
+   ilgari "`tel:` ni WebView ham, brauzer ham o'zi to'g'ri boshqaradi" deb
+   yozilgandi — TEKSHIRILMAGAN DA'VO edi va noto'g'ri chiqdi:
+     * kompyuter brauzerida telefon ilovasi ro'yxatdan o'tmagan bo'lsa
+       bosish JIMGINA hech narsa qilmaydi;
+     * Telegram WebView'i `http(s)` dan boshqa sxemani ko'pincha umuman
+       ochmaydi.
+   Ikkala holatda ham xato YO'Q, konsol TOZA, tugma esa o'lik — ya'ni
+   nuqsonni faqat odam bosib ko'rgandagina sezadi.
+
+   YECHIM muhitni ANIQLASHGA tayanmaydi (aniqlash yana bir tekshirilmagan
+   taxmin bo'lardi): havola `tel:` bo'lib QOLADI — qayerda ishlasa, o'sha
+   yerda ishlayveradi — va bosilganda raqam BUZILMASDAN buferga ham
+   nusxalanadi. Qo'ng'iroq ochilsa nusxa xalaqit bermaydi, ochilmasa
+   foydalanuvchi raqamni qo'lda tera oladi. `preventDefault` CHAQIRILMAYDI:
+   u native qo'ng'iroqni o'ldirardi. */
 function contactHtml() {
   return `
     <div class="profile-sec-title">${t('contactT')}</div>
     <div class="contact-list">
-      <a class="contact-row" href="tel:${SUPPORT.tel}">
+      <a class="contact-row" href="tel:${SUPPORT.tel}" data-action="copySupportPhone">
         <span class="contact-ico is-phone" aria-hidden="true">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3-8.6A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8.1 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
         </span>
@@ -1247,6 +1263,45 @@ function contactHtml() {
         <span class="contact-arrow" aria-hidden="true">›</span>
       </a>
     </div>`;
+}
+
+/* Matnni buferga nusxalash. Ikki yo'l ATAYLAB: `navigator.clipboard`
+   xavfsiz kontekst (HTTPS) va ruxsat talab qiladi hamda Telegram
+   WebView'ida mavjud bo'lmasligi mumkin — o'shanda eski `execCommand`
+   yo'li ishlaydi. Ikkalasi ham yiqilsa `false` qaytadi va CHAQIRUVCHI
+   buni foydalanuvchiga aytadi (jimgina "nusxalandi" deyish — yolg'on). */
+function copyText(matn) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    return navigator.clipboard.writeText(matn).then(() => true).catch(() => legacyCopy(matn));
+  }
+  return Promise.resolve(legacyCopy(matn));
+}
+function legacyCopy(matn) {
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = matn;
+    ta.setAttribute('readonly', '');
+    // Ekrandan tashqarida emas, KO'RINMAS: `display:none` bo'lsa tanlab
+    // bo'lmaydi, ekrandan tashqariga chiqarilsa iOS sahifani sakratadi.
+    ta.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;opacity:0';
+    document.body.appendChild(ta);
+    ta.select();
+    ta.setSelectionRange(0, matn.length);
+    const ok = document.execCommand('copy');
+    ta.remove();
+    return ok;
+  } catch (e) {
+    return false;
+  }
+}
+
+/* Qo'ng'iroq qatori bosilganda. ⚠️ `preventDefault` YO'Q — havola o'z
+   ishini qilaveradi (qayerda `tel:` ishlasa, telefon o'sha yerda ochiladi),
+   bu faqat USTIGA qo'shiladigan zaxira. */
+function copySupportPhone() {
+  copyText(SUPPORT.tel).then((ok) => {
+    showToast(ok ? t('phoneCopied') : t('phoneCopyErr'));
+  });
 }
 
 /* ── Manzil tanlash ko'rinishi (karta + ro'yxat) ──
