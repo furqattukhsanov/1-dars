@@ -82,11 +82,33 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
   Sotuvchi botga video yuboradi, u R2 ga tushadi va bazaga yoziladi (`db/023`),
   admin panelda ko'rinadi, xaridor uni media galereyaning 2-slaydida ko'radi
   (D bosqichi), nomaqbul video esa `video_remove` amali bilan olib tashlanadi
-  (`db/024`). **Band OCHIQ qoladi ikki sabab bilan:** (1) C bosqichi — sotuvchi
+  (`db/024`). **Band OCHIQ qoladi BITTA sabab bilan:** C bosqichi — sotuvchi
   O'Z videosini kabinetda ko'rmaydi va qayta yubora olmaydi (faqat bot orqali
-  bilvosita); (2) **deploy qilinmagan** — repodagi kod xaridor uchun mavjud
-  emas. Bandni hozir `[x]` qilish "hammasi ishlayapti" degan yolg'on tasavvur
-  berardi. Pastdagi "Qilingan ishlar"ga qarang
+  bilvosita). O'lchandi: `renderProductForm()` tanasida `video` so'zi **0
+  marta** uchraydi. Bandni hozir `[x]` qilish "hammasi ishlayapti" degan
+  yolg'on tasavvur berardi. Pastdagi "Qilingan ishlar"ga qarang
+
+  ✅ **DEPLOY QILINGAN va PRODUCTION'DA O'LCHANDI (2026-08-13).** Bu yerda
+  ilgari ikkinchi sabab sifatida «deploy qilinmagan — repodagi kod xaridor
+  uchun mavjud emas» deb yozilgandi va u ESKIRGAN da'voga aylangan edi.
+  Jonli o'lchov: `/api/products` javobida `video`, `videoPoster`,
+  `videoBytes`, `videoSeconds` kalitlari BOR — ya'ni `db/023` production
+  bazasida qo'llangan (aks holda so'rov ustun topolmay yiqilardi va endpoint
+  javob bermasdi). **24 e'londan 2 tasida HAQIQIY video bor va ular CDN'dan
+  ochiladi:** `cdn.lolamarket.uz/mahsulot/.../video/*.mp4` —
+  `content-type: video/mp4`, **2.13 MB / 11 s** va **1.76 MB / 15 s**, poster
+  ham bor, `cf-cache-status: HIT`. (Oddiy GET `200` qaytaradi, `Range`
+  sarlavhasi bilan `206` — `<video>` elementi Range yuboradi, ya'ni qism-qism
+  yuklash ishlaydi; yozuvning birinchi nusxasida `206` SHARTSIZ yozilgan edi.) Ya'ni butun quvur jonli: bot → R2 → baza →
+  API → galereya. Galereya kodi ikkala yuzda ham chiqarilgan (Mini App
+  `app.js?v=81`, sayt `script.js?v=40` — o'lchandi).
+  ⚠️ Ikkala video ham **«Test video»** nomli e'londa — quvur ishlayapti,
+  lekin haqiqiy sotuvchi mazmuni hali yo'q.
+  ⚠️ Bu yozuv nima uchun kerak bo'ldi: da'vo yozilgan kunida to'g'ri edi va
+  KEYIN eskirdi — hech kim uni buzmadi, shunchaki dunyo o'zgardi. Shuning
+  uchun «deploy qilinmagan» kabi VAQTGA bog'liq gap yozilganda, uni
+  tekshiradigan buyruq ham yoniga yozilsin (bu yerda: `/api/products`
+  javobidagi `video` kaliti).
 - [x] Mahsulot tahrirlash va yashirish — `PATCH /api/seller/products`; tahrirlangan e'lon qayta moderatsiyaga (`pending`) tushadi, "yashirish" `draft` ga o'tkazadi (haqiqiy o'chirish yo'q)
 - [x] Rulon soni avtomatik kamayishi (buyurtma berilganda) — `products.stock` soni, buyurtma tranzaksiyasi ichida atomik `UPDATE ... WHERE stock >= qty`
 
@@ -280,11 +302,14 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
   esa faqat "qaysi nuqta" degan javobni ko'rsatadi. **Test 20 buni QIZIL
   QILMAYDI** — u faqat ogohlantiradi, va o'lchandi: ishlatilmagan kalitlar
   **12 → 16** ga chiqdi. Ya'ni bu jimgina o'sadigan qoldiq; kalitlarni
-  o'chirish yoki tanlash oynasida ishlatish alohida band; (b) production'ga
-  chiqarilmagan — CI va jonli tekshiruv hali yo'q, ya'ni bu yozuv
-  "yozildi", "ishlayapti" EMAS; (c) `panel.js` dagi "Yangilanish:" matni
-  hamon eskirgan (quyidagi yozuvning (c) bandi) — parallel ish tugagach
-  yopiladi
+  o'chirish yoki tanlash oynasida ishlatish alohida band **(a bandi HAMON
+  ROST)**; (b) ✅ **production'ga chiqarildi** — bu yerda ilgari
+  "chiqarilmagan, bu yozuv «yozildi», «ishlayapti» EMAS" deb turardi va
+  da'vo ESKIRDI: o'lchandi (2026-08-13), jonli `script.js?v=40` repodagi
+  bilan bayt-baytga mos (`d4a5ad5e9d22`), ichida `p-row` 14 marta va
+  `toggleContact` **0 marta** — ya'ni yozuvda va'da qilingan o'zgarish
+  aynan production'da; (c) ✅ `panel.js` dagi "Yangilanish:" matni ham
+  yangilandi (`b651722`) — u da'vo ham eskirgan edi
 - [2026-08-13] **Videoni O'CHIRISH amali (`video_remove`) — oldingi commit
   ochib qo'ygan teshik yopildi.** `1e17ccd` bilan video XARIDORGA ko'rina
   boshladi, olib tashlash yo'li esa YO'Q edi: nomaqbul video chiqsa faqat
@@ -330,7 +355,9 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
   🔴 **HALOL CHEGARA:** (a) `CF_API_TOKEN` / `CF_ZONE_ID` `.env` da YO'Q —
   purge O'CHIQ, ya'ni hozircha o'chirilgan video CDN keshida qolishi mumkin;
   admin buni har safar xabarda KO'RADI, jimgina qolmaydi; (b) C bosqichi
-  (sotuvchi kabineti) hamon ochiq; (c) **deploy qilinmagan.**
+  (sotuvchi kabineti) hamon ochiq; (c) ✅ **deploy qilindi** — `b651722`
+  (2026-08-13) `admin/admin.js` ni ham chiqardi. Bu yerda ilgari «deploy
+  qilinmagan» deb turardi va da'vo ESKIRDI (yozilganda to'g'ri edi).
 
 - [2026-08-13] **Mahsulot VIDEOSI — media galereya ikkala yuzda (D bosqichi):
   1-slayd rasm, 2-slayd video, va xaridor videoni ENDI ko'radi.** Founder
@@ -381,7 +408,10 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
   (`db/014` tuzog'i) va Cloudflare purge (2026-08-09 o'lchovi: o'chirilgan
   obyekt `cf-cache-status: HIT` bilan berilaveradi); (b) C (sotuvchi
   kabineti) va F (qorovul testlar) OCHIQ — bu ish qo'shgan test soni yana
-  NOL; (c) **deploy qilinmagan** — ungacha xaridor uchun u mavjud emas.
+  NOL; (c) ✅ **deploy qilindi va production'da o'lchandi** (2026-08-13):
+  24 e'londan 2 tasida haqiqiy video bor va CDN'dan ochiladi (2.13 MB / 11 s
+  va 1.76 MB / 15 s), galereya ikkala yuzda jonli. Ilgari bu yerda «deploy qilinmagan — ungacha
+  xaridor uchun u mavjud emas» deb turardi.
 
 - [2026-08-13] **"Biz bilan bog'lanish" ochiladigan bo'lim bo'ldi, qo'ng'iroq
   tugmasi TIRILDI, va C4 (karta CSP'si) jonli o'lchov bilan tuzatildi.**
