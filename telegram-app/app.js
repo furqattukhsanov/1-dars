@@ -35,6 +35,12 @@ document.addEventListener('click', (e) => {
   fn(/^-?\d+$/.test(arg) ? Number(arg) : arg);
 });
 
+// Esc — to'liq ekran rasmni yopadi. Brauzerda sinash uchun kerak (Telegram
+// ichida klaviatura yo'q, lekin Mini App sayt sifatida ham ochiladi).
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && S.photoView) closePhoto();
+});
+
 document.addEventListener('input', (e) => {
   const el = e.target.closest('[data-input]');
   if (!el) return;
@@ -73,6 +79,9 @@ const STR = {
     day: "kun", addCart: "Savatga qo'shish", order: "Buyurtma berish", specs: "Tafsilotlar", width: "Eni", weight: "Zichlik",
     comp: "Tarkibi", leadTime: "Yetkazish muddati", minOrder: "Minimal buyurtma (MOQ)", supplierL: "Yetkazib beruvchi",
     mediaPhoto: "Rasm", mediaVideo: "Video",
+    // To'liq ekran ko'rish — matoning ipini ko'rish uchun
+    pvHint: "Ikki marta bosing yoki barmoq bilan kattalashtiring",
+    pvClose: "Yopish",
     verified: "Tasdiqlangan", reviews: "sharh", message: "Xabar yuborish", qty: "Miqdor", cart: "Savat", cartEmpty: "Savat bo'sh",
     // — AI kiyim RASMI (2026-08-07) —
     // ⚠️ `aiLimit` ("Bugungi N ta generatsiya tugadi. Ertaga 00:00 da
@@ -244,6 +253,8 @@ const STR = {
     day: "дн.", addCart: "В корзину", order: "Оформить заказ", specs: "Характеристики", width: "Ширина", weight: "Плотность",
     comp: "Состав", leadTime: "Срок поставки", minOrder: "Мин. заказ (MOQ)", supplierL: "Поставщик",
     mediaPhoto: "Фото", mediaVideo: "Видео",
+    pvHint: "Нажмите дважды или разведите пальцами",
+    pvClose: "Закрыть",
     verified: "Проверен", reviews: "отзыв.", message: "Написать", qty: "Количество", cart: "Корзина", cartEmpty: "Корзина пуста",
     // — Изображение одежды от AI (2026-08-07) —
     // ⚠️ Рисунок НЕ зависит от языка (в нём нет текста), поэтому кеш общий.
@@ -655,6 +666,9 @@ const S = {
   aiTab: 'feed',         // AI ekrani: 'feed' | 'mine'
   aiWizard: null,        // AI ekranida tanlangan mato id (sehrgar)
   aiPickOpen: false,     // mato tanlash ro'yxati ochiqmi
+  // Ochiq to'liq ekran rasm (mahsulot ekrani) — `null` = yopiq. Faqat URL
+  // saqlanadi, masshtab esa modul o'zgaruvchisida (`_pv`).
+  photoView: null,
   // — Bahsli holatlar (xaridor tomoni) —
   disputes: [],          // /api/disputes dan — o'z bahslari
   dispSheet: null,       // ochiq sheet: { orderId }
@@ -924,6 +938,10 @@ function updateHeader() {
   document.getElementById('btn-back').classList.toggle('hidden', !['detail','checkout','s-form'].includes(sc));
   document.getElementById('header-brand').style.display = sc === 'home' ? 'flex' : 'none';
   document.getElementById('btn-header-search').classList.toggle('hidden', !['home','orders','cart'].includes(sc));
+  // Mahsulot ekranida qo'ng'iroq YASHIRINADI: rasm endi header ostidan
+  // o'tadi va o'ng yuqori burchakni "sevimli" tugmasi egallaydi — ikkalasi
+  // AYNI nuqtada ustma-ust tushardi (2026-08-13).
+  document.querySelector('.notif-btn').classList.toggle('hidden', sc === 'detail');
 
   const titleEl = document.getElementById('header-title');
   const subEl   = document.getElementById('header-sub');
@@ -1326,12 +1344,24 @@ async function loadAiGallery() {
 // bosa olmaydi. O'rniga markazda bitta katta tugma: bosilsa o'ynaydi,
 // yana bosilsa to'xtaydi. ≤30 s lik mahsulot klipida qidiruv chizig'i
 // kerak emas.
+//
+// ⚠️ RASM SLAYDI IKKALA HOLATDA HAM SHU YERDA chiziladi — video bo'lsa ham,
+// bo'lmasa ham (2026-08-13). Ilgari videosiz mahsulotda rasm hero divining
+// `style` iga qo'yilardi, ya'ni rasm ikki xil joyda tug'ilardi. "Bosilsa
+// kattalashsin" qo'shilganda bu darrov tuzoqqa aylanardi: amalni ikki joyga
+// yozish kerak bo'lardi va bittasi ertami-kech esdan chiqardi.
 function detailMedia(p, T) {
-  if (!p.video) return '';
+  // Naqsh (CSS gradient) bilan chizilgan mahsulotda kattalashtiradigan
+  // SURAT yo'q — u yerda amal umuman qo'yilmaydi, aks holda bosilganda
+  // hech narsa qilmaydigan tugma bo'lardi.
+  const zoom = p.img ? ` data-action="openPhoto" data-arg="${p.id}"` : '';
+  const photo = `<div class="pd-slide"${zoom} style="${p.bgStyle}"></div>`;
+  if (!p.video) return `<div class="pd-media">${photo}</div>`;
+
   const poster = p.videoPoster || '';
   return `
     <div class="pd-slides" id="pd-slides">
-      <div class="pd-slide" style="${p.bgStyle}"></div>
+      ${photo}
       <div class="pd-slide pd-vidwrap">
         <video id="pd-vid" class="pd-vid" src="${p.video}"${poster ? ` poster="${poster}"` : ''}
                playsinline preload="none" aria-label="${T.mediaVideo}"></video>
@@ -1403,40 +1433,214 @@ function mountDetailMedia() {
   }
 }
 
+/* ═══ TO'LIQ EKRAN KO'RISH (2026-08-13, founder tanlovi) ═══
+
+   Sabab UI'da emas, MAHSULOTDA: B2B xaridor mato zichligini va naqsh
+   aniqligini KO'RISHI kerak — 469px lik kadrda ip ko'rinmaydi. Shuning
+   uchun rasm bosilsa butun ekranga ochiladi va kattalashtirsa bo'ladi.
+
+   ⚠️ Brauzerning O'Z pinch-zoomiga tayanib bo'lmaydi: `html` da
+   `touch-action: manipulation` va `overflow: hidden` turibdi (Mini App
+   ekrani sahifa emas, ilova), ya'ni sahifa masshtabi umuman ishlamaydi.
+   Shu sabab masshtab shu yerda O'LCHANADI va `transform` bilan qo'llanadi.
+
+   Holat `S` da EMAS, modul o'zgaruvchisida: u ekran holatining bir qismi
+   emas (orqaga qaytish tarixiga tushmaydi, saqlanmaydi) — ko'rish
+   lahzasining o'zi, xuddi galereya surilishi kabi. */
+let _pv = { s: 1, x: 0, y: 0 };
+
+function openPhoto(id) {
+  const p = vm(byId(id));
+  // Naqsh bilan chizilgan mahsulotda kattalashtiradigan surat YO'Q —
+  // bunday mahsulotda `detailMedia` amalni umuman qo'ymaydi, bu ikkinchi
+  // qatlam (ID boshqa joydan kelib qolsa).
+  if (!p || !p.img) return;
+  _pv = { s: 1, x: 0, y: 0 };
+  S.photoView = p.img;
+  paintSheet();
+}
+
+function closePhoto() {
+  S.photoView = null;
+  paintSheet();
+}
+
+function renderPhotoView() {
+  const T = STR[S.lang];
+  // `esc()` — qiymat oddiy atribut ichiga tushadi (`src="..."`), ya'ni bu
+  // aynan `esc()` ishlaydigan holat. `cssUrl()` bu yerda KERAK EMAS: CSS
+  // `url()` boshlanmaydi.
+  return `
+  <div class="pv" id="pv">
+    <img class="pv-img" id="pv-img" src="${esc(S.photoView)}" alt="">
+    <button class="pv-x" data-action="closePhoto" aria-label="${T.pvClose}">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+    </button>
+    <div class="pv-hint" id="pv-hint"><span>${T.pvHint}</span></div>
+  </div>`;
+}
+
+function mountPhotoView() {
+  const box = document.getElementById('pv');
+  const img = document.getElementById('pv-img');
+  if (!box || !img) return;
+
+  const dist = (t) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+
+  function clamp() {
+    _pv.s = Math.min(4, Math.max(1, _pv.s));
+    if (_pv.s <= 1.01) { _pv.s = 1; _pv.x = 0; _pv.y = 0; return; }
+    // Kattalashtirilgan rasm chetidan tashqariga sudralib ketmasin —
+    // aks holda ekranda qora bo'shliq qolib, rasm yo'qolgandek tuyulardi.
+    const maxX = Math.max(0, (img.offsetWidth  * _pv.s - box.clientWidth)  / 2);
+    const maxY = Math.max(0, (img.offsetHeight * _pv.s - box.clientHeight) / 2);
+    _pv.x = Math.min(maxX, Math.max(-maxX, _pv.x));
+    _pv.y = Math.min(maxY, Math.max(-maxY, _pv.y));
+  }
+
+  function apply() {
+    img.style.transform = `translate3d(${_pv.x}px,${_pv.y}px,0) scale(${_pv.s})`;
+    const hint = document.getElementById('pv-hint');
+    if (hint) hint.classList.toggle('is-off', _pv.s > 1.02);
+  }
+
+  // Qayta chizilganda (masalan serverdan ma'lumot kelib `render()` ishlasa)
+  // masshtab tugun bilan birga nolga tushmasin — holat moduldan tiklanadi.
+  clamp(); apply();
+
+  let start = null, moved = false, lastTap = 0;
+
+  box.addEventListener('touchstart', (e) => {
+    moved = false;
+    if (e.touches.length === 2) {
+      start = { d: dist(e.touches), s: _pv.s, x: _pv.x, y: _pv.y };
+    } else if (e.touches.length === 1) {
+      start = { d: 0, px: e.touches[0].clientX, py: e.touches[0].clientY, x: _pv.x, y: _pv.y };
+    }
+  }, { passive: true });
+
+  box.addEventListener('touchmove', (e) => {
+    if (!start) return;
+    if (e.touches.length === 2 && start.d) {
+      _pv.s = start.s * (dist(e.touches) / start.d);
+      moved = true;
+    } else if (e.touches.length === 1 && _pv.s > 1) {
+      const dx = e.touches[0].clientX - start.px;
+      const dy = e.touches[0].clientY - start.py;
+      if (Math.abs(dx) > 6 || Math.abs(dy) > 6) moved = true;
+      _pv.x = start.x + dx;
+      _pv.y = start.y + dy;
+    } else {
+      return;
+    }
+    clamp(); apply();
+    e.preventDefault();
+  }, { passive: false });
+
+  box.addEventListener('touchend', (e) => {
+    if (e.touches.length) return;           // hali barmoq bor — gest tugamagan
+    clamp(); apply();
+    // Sintetik `click` ni to'xtatamiz: aks holda u pastdagi kechikkan
+    // yopishdan OLDIN otilib, ikki marta bosish umuman ishlamay qolardi.
+    e.preventDefault();
+    const wasMoved = moved;
+    start = null;
+    if (wasMoved) return;
+
+    const now = Date.now();
+    if (now - lastTap < 300) {              // ikki marta bosildi — kattalashtirish
+      lastTap = 0;
+      _pv.s = _pv.s > 1 ? 1 : 2.5;
+      _pv.x = 0; _pv.y = 0;
+      clamp(); apply();
+      return;
+    }
+    lastTap = now;
+    // Bir marta bosish: kattalashtirilgan bo'lsa qaytaradi, aks holda yopadi.
+    // Kechikish — ikki marta bosishga fursat berish uchun.
+    setTimeout(() => {
+      if (lastTap !== now) return;          // ikkinchi bosish bo'ldi
+      if (_pv.s > 1) { _pv.s = 1; _pv.x = 0; _pv.y = 0; apply(); }
+      else closePhoto();
+    }, 300);
+  }, { passive: false });
+
+  // Sichqoncha (brauzer, Telegram tashqarisida sinov) — bosilsa yopiladi.
+  box.addEventListener('click', () => {
+    if (_pv.s > 1) { _pv.s = 1; _pv.x = 0; _pv.y = 0; apply(); return; }
+    closePhoto();
+  });
+}
+
+/* Mahsulot ekranida header rasm USTIDA suzadi: tepada turganda shaffof
+   (rasm ekran chetigacha borsin), rasmdan pastga tushilganda shishaga va
+   nomga qaytadi.
+
+   ⚠️ Hodisa `#screen-wrap` ga BIR MARTA ulanadi (`_hdrBound`) — u tugun
+   qayta chizilmaydi, ya'ni har `render()` da ulansa listenerlar to'planib
+   ketardi va skroll qimmatlashardi. */
+let _hdrBound = false;
+
+function syncDetailHeader() {
+  const hdr  = document.getElementById('app-header');
+  const wrap = document.getElementById('screen-wrap');
+  if (!hdr || !wrap) return;
+  const hero = S.screen === 'detail' ? document.getElementById('pd-hero') : null;
+  if (!hero) { hdr.classList.remove('hdr-clear'); return; }
+  // Chegara: rasm pastki qirrasi header ostiga kirgan payt.
+  hdr.classList.toggle('hdr-clear', wrap.scrollTop < hero.offsetHeight - 76);
+}
+
+function bindDetailHeader() {
+  if (_hdrBound) return;
+  const wrap = document.getElementById('screen-wrap');
+  if (!wrap) return;
+  wrap.addEventListener('scroll', syncDetailHeader, { passive: true });
+  _hdrBound = true;
+}
+
 // ============ EKRAN: DETAIL ============
 function renderDetail() {
   const T = STR[S.lang];
   const p = vm(byId(S.selectedId));
   if (!p) return '';
+  // Nom RASM USTIDA turadi (founder tanlovi 2026-08-13), shuning uchun
+  // kartochka to'g'ridan-to'g'ri NARXdan boshlanadi. Ilgari nom bitta
+  // ekranda ikki marta yozilgan edi — header'da ham, kartochkada ham.
+  const rating = p.rating == null ? '' : `
+    <span style="display:inline-flex;align-items:center;gap:3px">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="#EFA91F"><path d="M12 2l2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 17.8 5.9 21.4l1.4-6.8L2.2 9.1l6.9-.8z"/></svg>
+      <span style="font-family:var(--font-mono)">${p.rating}</span>
+      <span style="font-weight:500;opacity:.8">· ${p.reviews} ${T.reviews}</span>
+    </span>`;
+
   return `
   <div style="display:flex;flex-direction:column">
-    <div style="position:relative;height:248px;${p.video ? '' : p.bgStyle}">
+    <div class="pd-hero" id="pd-hero">
       ${detailMedia(p, T)}
-      ${p.badgeShow ? `<span style="position:absolute;top:14px;left:16px;display:inline-flex;align-items:center;height:26px;padding:0 12px;border-radius:999px;font-size:12px;font-weight:600;background:${p.badgeBg};color:${p.badgeFg}">${p.badge}</span>` : ''}
+      <div class="pd-scrim-t"></div>
+      <div class="pd-scrim-b"></div>
       ${S.aiImageEnabled ? `<button class="ai-jump" data-action="scrollToAi">✦ ${T.aiJump}</button>` : ''}
-      <button data-action="toggleLike" data-arg="${p.id}" style="position:absolute;top:12px;right:14px;width:38px;height:38px;border-radius:50%;border:1px solid var(--glass-border);background:var(--glass-fill-strong);backdrop-filter:var(--blur-md);-webkit-backdrop-filter:var(--blur-md);display:flex;align-items:center;justify-content:center;color:${p.heartStroke};box-shadow:var(--glass-highlight)">
+      <button data-action="toggleLike" data-arg="${p.id}" style="position:absolute;top:10px;right:14px;width:38px;height:38px;border-radius:50%;border:1px solid var(--glass-border);background:var(--glass-fill-strong);backdrop-filter:var(--blur-md);-webkit-backdrop-filter:var(--blur-md);display:flex;align-items:center;justify-content:center;color:${p.heartStroke};box-shadow:var(--glass-highlight)">
         <svg width="19" height="19" viewBox="0 0 24 24" fill="${p.heartFill}"><path d="M12 20.8s-6.9-4.3-9-8a5.2 5.2 0 0 1-.5-3.7A4.8 4.8 0 0 1 6.3 5.5c1.9 0 3.4 1 4.3 2.3.4.6 1 .6 1.4 0 .9-1.3 2.4-2.3 4.3-2.3a4.8 4.8 0 0 1 3.8 3.6 5.2 5.2 0 0 1-.5 3.7c-2.1 3.7-9 8-9 8z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
       </button>
+      <div class="pd-cap">
+        ${p.badgeShow ? `<span class="pd-cap-badge" style="background:${p.badgeBg};color:${p.badgeFg}">${p.badge}</span>` : ''}
+        <h1 class="pd-cap-title">${p.name}</h1>
+        <span class="pd-cap-sub">${p.city}${rating ? ' ·' : ''} ${rating}</span>
+      </div>
     </div>
 
-    <div style="margin-top:-22px;border-radius:28px 28px 0 0;background:var(--glass-fill-strong);backdrop-filter:var(--blur-lg);-webkit-backdrop-filter:var(--blur-lg);border-top:1px solid var(--glass-border);box-shadow:var(--glass-highlight);padding:20px 16px 32px;display:flex;flex-direction:column;gap:16px">
+    <div class="pd-card">
       <div>
-        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
-          <h1 style="font-family:var(--font-display);font-size:23px;font-weight:800;color:var(--text-strong);letter-spacing:-.02em;line-height:1.15;margin:0">${p.name}</h1>
-          ${p.rating == null ? '' : `
-          <span style="display:inline-flex;align-items:center;gap:4px;flex:none;font-family:var(--font-mono);font-size:13px;font-weight:600;color:var(--text-body)">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="#EFA91F"><path d="M12 2l2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 17.8 5.9 21.4l1.4-6.8L2.2 9.1l6.9-.8z"/></svg>${p.rating}
-            <span style="color:var(--text-subtle);font-weight:500">· ${p.reviews} ${T.reviews}</span>
-          </span>`}
-        </div>
-        <div style="display:flex;align-items:baseline;gap:4px;margin-top:10px">
+        <div style="display:flex;align-items:baseline;gap:4px">
           <span style="font-family:var(--font-mono);font-size:30px;font-weight:600;color:var(--text-strong);letter-spacing:-.02em">${money(p.price)}</span>
           <span style="font-size:15px;color:var(--text-muted)">/${uShort(p.unit)}</span>
           <span style="margin-left:auto;display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:var(--text-body)"><span style="width:7px;height:7px;border-radius:50%;background:${p.stockCol}"></span>${p.stockTxt}</span>
         </div>
       </div>
 
-      <div style="display:flex;align-items:center;gap:12px;padding:13px 14px;border-radius:var(--radius-md);background:rgba(255,255,255,.6);backdrop-filter:blur(16px) saturate(160%);-webkit-backdrop-filter:blur(16px) saturate(160%);border:1px solid rgba(255,255,255,.55);box-shadow:0 5px 16px -12px rgba(81,1,0,.14)">
+      <div class="pd-panel" style="display:flex;align-items:center;gap:12px;padding:13px 14px">
         <span style="flex:none;width:42px;height:42px;border-radius:12px;background:linear-gradient(150deg,#7a140d,#510100);color:#ffe9db;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:16px">${p.supplier[0]}</span>
         <div style="flex:1;min-width:0">
           <div style="display:flex;align-items:center;gap:5px;font-size:14px;font-weight:700;color:var(--text-strong)">
@@ -1454,14 +1658,14 @@ function renderDetail() {
         <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#7a140d;margin-bottom:10px">${T.specs}</div>
         <div style="border:1px solid var(--border-hair);border-radius:var(--radius-md);overflow:hidden">
           ${[[T.width, p.width],[T.weight, p.weight],[T.comp, p.comp],[T.leadTime, p.leadLabel],[T.minOrder, p.moqLabel]].map(([k,v],i) => `
-          <div style="display:flex;justify-content:space-between;padding:11px 14px;background:${i%2===0?'var(--glass-fill)':'rgba(240,243,252,.45)'};${i>0?'border-top:1px solid var(--border-hair)':''}" >
+          <div style="display:flex;justify-content:space-between;padding:11px 14px;background:${i%2===0?'#fff':'#F8F5F3'};${i>0?'border-top:1px solid var(--border-hair)':''}" >
             <span style="font-size:13px;color:var(--text-muted)">${k}</span>
             <span style="font-family:var(--font-mono);font-size:13px;font-weight:600;color:var(--text-strong);text-align:right">${v}</span>
           </div>`).join('')}
         </div>
       </div>
 
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border-radius:var(--radius-md);background:rgba(255,255,255,.6);backdrop-filter:blur(16px) saturate(160%);-webkit-backdrop-filter:blur(16px) saturate(160%);border:1px solid rgba(255,255,255,.55);box-shadow:0 5px 16px -12px rgba(81,1,0,.14)">
+      <div class="pd-panel" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px">
         <span style="font-size:14px;font-weight:700;color:var(--text-strong)">${T.qty}</span>
         <div style="display:flex;align-items:center;gap:14px">
           <button data-action="decQty" style="width:36px;height:36px;border-radius:50%;border:1px solid var(--glass-border);background:var(--glass-fill-strong);display:flex;align-items:center;justify-content:center;color:var(--text-strong);box-shadow:var(--glass-highlight);cursor:pointer">
@@ -2397,12 +2601,16 @@ function renderPriceSheet() {
 function paintSheet() {
   const wrap = document.getElementById('sheet-wrap');
   if (!wrap) return;
-  wrap.innerHTML = S.btsSheet ? renderBtsSheet()
+  wrap.innerHTML = S.photoView ? renderPhotoView()
+    : S.btsSheet ? renderBtsSheet()
     : S.dispSheet ? renderDisputeSheet()
     : S.revSheet ? renderReviewSheet()
     : S.priceSheet ? renderPriceSheet()
     : S.contactSheet ? renderContactSheet()
     : '';
+  // Masshtab hodisalari HTML bilan kelmaydi — tugun DOM'ga tushgandan keyin
+  // ulanadi (kartadagi bilan bitta sabab: har chizishda tugun YANGI).
+  if (S.photoView) mountPhotoView();
   // Karta HTML bilan birga kelmaydi — u `#bts-map` tuguni DOM'ga
   // tushgandan keyin chiziladi. Shuning uchun mount aynan shu yerda:
   // sheet qayta chizilgan har safar tugun YANGI bo'ladi.
@@ -3522,9 +3730,17 @@ function render() {
   // ham yo'q, lekin mount xatosi butun ekranni qulatmasligi kerak.
   if (S.screen === 'detail') { try { mountDetailMedia(); } catch (e) { console.error('mountDetailMedia xatosi:', e.message); } }
 
+  // Mahsulot ekranida rasm ekranning eng tepasidan boshlanadi va shaffof
+  // header ostidan o'tadi — boshqa ekranlarda tepadagi joy QAYTADI, aks
+  // holda kontent header ostida qolib ketardi.
+  if (wrap) wrap.classList.toggle('flush', S.screen === 'detail');
+  bindDetailHeader();
+  syncDetailHeader();
+
   // Ekran almashsa ochiq sheet qolib ketmasin
   if (S.screen !== 'checkout') S.btsSheet = false;
   if (S.screen !== 'home') S.priceSheet = false;
+  if (S.screen !== 'detail') S.photoView = null;
   paintSheet();
 }
 

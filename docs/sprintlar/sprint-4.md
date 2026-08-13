@@ -103,6 +103,85 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
 
 ## Qilingan ishlar
 
+- [2026-08-13] **Mahsulot ekrani (Mini App) qayta tartiblandi — rasm 2.1
+  barobar kattalashdi va endi bosilsa to'liq ekranda ochiladi. Sabab
+  O'LCHOV bilan topildi, "chiroyliroq bo'lsin" bilan emas.** Founder:
+  «rasm kichikroq hamda orqada ko'ringandek tuyuladi». 375×812 da
+  o'lchandi: hero 248px, ko'rinadigani 226px = ekranning **27.8%**;
+  katalog kartochkasidagi AYNI rasm esa 164×230px — ya'ni mahsulotga
+  KIRGAN sari rasm KICHRAYARDI (230 → 226). Ikkinchi sabab: mato TIK
+  suratga olinadi (3:4), hero esa YOTIQ 3:2 edi va naqshning yupqa
+  tasmasini qirqardi. Uchinchisi "orqada" hissini tushuntiradi: surat
+  tepadan shisha header, pastdan shisha kartochka bilan siqilgan va
+  kartochka ORQASIDAN ko'rinib turardi.
+
+  **Tavsiyalar QUIZ orqali berildi** — to'rt savol ASCII maketlar bilan
+  taklif qilindi va founder to'rttasida ham "Tavsiya" variantini tanladi:
+  (1) **4:5 to'liq kenglikdagi hero** — 469px, ekranning **57.7%**,
+  shaffof header OSTIDAN o'tadi; (2) rasm ustida faqat ikki gradient
+  (`.pd-scrim-t/b`) — kartochka esa QATTIQ oq sirt bo'ldi, shisha va blur
+  olib tashlandi; (3) **nom rasm USTIDA** (`.pd-cap`) — ilgari u bitta
+  ekranda IKKI MARTA yozilardi (header + kartochka), endi kartochka
+  to'g'ridan-to'g'ri narxdan boshlanadi, header'dagi nom esa skroll
+  rasmdan pastga tushganda qaytadi (`syncDetailHeader`, `.hdr-clear`);
+  (4) **rasmga bosilsa TO'LIQ EKRAN + zoom** — pinch, ikki marta bosish
+  `1↔2.5`, chegara 4x, surish rasm chetida to'xtaydi (`openPhoto` /
+  `closePhoto` / `renderPhotoView` / `mountPhotoView`, `S.photoView`).
+
+  ⚠️ **Zoom brauzerning O'ZIniki EMAS va bo'la olmasdi:** `html` da
+  `touch-action: manipulation` + `overflow: hidden` turibdi (Mini App
+  ekrani sahifa emas, ilova), ya'ni sahifa masshtabi umuman ishlamaydi —
+  shuning uchun masshtab qo'lda o'lchanadi va `transform` bilan
+  qo'llaniladi. Masshtab holati `S` da EMAS, modul o'zgaruvchisida
+  (`_pv`): u ekran holatining bir qismi emas — orqaga qaytish tarixiga
+  tushmaydi va saqlanmaydi, ko'rish LAHZASINING o'zi.
+
+  **Tuzoqlar, aytib o'tishga arziydigan:**
+  🔴 `.pd-hero` ga `flex: none` — bu shu kuni yozilgan «flex ustunda
+  siqiladigan blok» qoidasi (UCH marta tishlagan), `aspect-ratio` bola
+  siqilishidan KAFOLAT bermaydi. O'lchab tekshirildi.
+  ⚠️ **Rasm slaydi endi BITTA joyda chiziladi** (`detailMedia`) —
+  videoli va videosiz holatda ham. Ilgari videosiz mahsulotda rasm hero
+  divining `style` ida edi, ya'ni "bosilsa kattalashsin" amalini IKKI
+  joyga yozish kerak bo'lardi va bittasi ertami-kech esdan chiqardi.
+  ⚠️ **Naqsh (CSS gradient) bilan chizilgan mahsulotda zoom amali UMUMAN
+  qo'yilmaydi** — bosilganda hech narsa qilmaydigan tugma bo'lmasin
+  («ortida hech narsa yo'q qator qoldirilmaydi» qoidasi bilan bitta
+  oila); `openPhoto` da ikkinchi qatlam tekshiruv ham bor.
+  ⚠️ **Qo'ng'iroq tugmasi mahsulot ekranida YASHIRILADI** — rasm header
+  ostidan o'tgani uchun o'ng yuqori burchakni "sevimli" egallaydi va
+  ikkalasi AYNI nuqtada ustma-ust tushardi.
+  ⚠️ Kartochka ichidagi bloklar `.pd-panel` (`#FCF8F6`) ga o'tdi: ilgari
+  ular yarim shaffof oq + blur edi va QATTIQ oq sirt ustida ko'rinmay
+  qolardi — fon o'zgarsa, uning ustidagi shisha ham qayta ko'riladi.
+  ⚠️ Skroll qorovuli `#screen-wrap` ga BIR MARTA ulanadi (`_hdrBound`) —
+  har `render()` da ulansa listenerlar to'planib skroll qimmatlashardi.
+
+  **Kesh qoidasi bajarildi:** `telegram-app/styles.css?v=24→25`,
+  `telegram-app/app.js?v=80→81`, Test 16 jadvalidagi ikki hash yangilandi.
+
+  **O'LCHANDI, ko'z bilan qaralmadi:** hero 469px / 57.7%; nom bloki hero
+  chegarasidan chiqmaydi (0px); 3 qatorli uzun nomda ham nuqtalar bilan
+  to'qnashmaydi; rasmsiz (naqshli) mahsulotda zoom ochilmaydi; videoli
+  galereyada 2 slayd, nuqtalar joyida, video slaydi zoom ochmaydi; zoom
+  mexanikasi — pinch 100→200px = **aniq 2x**, chegara 4x, surish chetda
+  aniq (187.5 / 344) to'xtadi; header qorovuli 393px chegarada ikki
+  tomonga ham to'g'ri ishladi. **60 test yashil** (`node server/test.js`).
+  ⚠️ **Raqam MUSTAQIL qayta o'lchandi va ish hisobotidagi qiymat XATO
+  chiqdi** («48 test»). Sabab worktree'da `server/node_modules` yo'q edi:
+  `pg` topilmagani uchun test 6-chi qadamda YIQILARDI, ya'ni "yashil"
+  deb sanalgan raqam to'liq bo'lmagan yurishdan olingan. Modullar
+  ulangandan keyin `grep -c '^✅ Test'` → **60** (oldingi commitdagi
+  qiymat bilan mos). Bu «hujjatdagi raqam — tekshirilmagan da'vo»
+  qoidasining yana bir tasdig'i: raqam ko'chirilmaydi, qayta o'lchanadi
+
+  🔴 **HALOL CHEGARA:** brauzer paneli yashirin (`document.hidden`)
+  bo'lgani uchun skroll hodisasi TABIIY otilmadi va CSS o'tishlari kadr
+  olmadi — skroll SUN'IY hodisa bilan, header opacity esa HISOBLANGAN
+  qiymat bilan tekshirildi. **Telefonda jonli ko'rilmagan va DEPLOY
+  QILINMAGAN.** Sayt (`script.js`) ATAYLAB tegilmagan: u yerda mahsulot
+  yon oynada (`drawer`) ochiladi, bu ekranning juftligi yo'q.
+
 - [2026-08-13] **Profil ekrani qayta tartiblandi — IKKALA yuzda, founder
   namunasi asosida. Namunadan FAQAT TARTIB olindi, mazmun emas.** Founder
   boshqa ilovaning profil ekrani rasmini berdi. Nusxa ko'chirish oson
@@ -1036,6 +1115,34 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
 ---
 
 ## Qarorlar
+
+- [2026-08-13] Qaror (founder, QUIZ orqali): **mahsulot ekranida rasm —
+  4:5 va to'liq kenglikda, nom esa rasm USTIDA.** To'rt savol ASCII
+  maketlar bilan taklif qilindi va to'rttasida ham "Tavsiya" varianti
+  tanlandi: (1) 4:5 hero, shaffof header ostidan o'tadi; (2) rasm ustida
+  faqat gradient, kartochka QATTIQ oq sirt (shisha/blur emas); (3) nom
+  rasm ustida — ilgari u bitta ekranda IKKI marta yozilardi; (4) rasmga
+  bosilsa to'liq ekran + zoom. ⚠️ Qaror **o'lchovdan** tug'ildi, diddan
+  emas: hero ekranning 27.8% i edi va katalog kartochkasidagi AYNI rasm
+  undan KATTAROQ ko'rinardi (230px → 226px), ya'ni mahsulotga kirish
+  rasmni kichraytirardi. Yangi o'lchov — 57.7%
+- [2026-08-13] Qaror: **B2B xaridorga rasmni KATTALASHTIRISH kerak, chunki
+  savdo predmeti — ipning o'zi.** 469px lik kadrda mato zichligi va naqsh
+  aniqligi KO'RINMAYDI. Shu sabab to'liq ekran ko'rish qo'shildi, va u
+  brauzerning O'Z pinch-zoomiga tayanmaydi: Mini App'da `touch-action:
+  manipulation` + `overflow: hidden` sahifa masshtabini butunlay
+  o'chiradi, ya'ni "brauzer o'zi kattalashtiradi" degan taxmin JIMGINA
+  ishlamaydigan tugma bo'lardi
+- [2026-08-13] Qaror: **naqsh bilan chizilgan (rasmsiz) mahsulotda zoom
+  amali UMUMAN qo'yilmaydi.** Bosilganda hech narsa qilmaydigan tugma
+  bo'lmasin — "Yordam markazi" qatori bilan bitta oila. Xuddi shu sabab
+  qo'ng'iroq tugmasi mahsulot ekranida yashiriladi: rasm header ostidan
+  o'tgani uchun u "sevimli" tugmasi bilan AYNI nuqtada ustma-ust tushardi
+- [2026-08-13] Qaror: **bitta rasm — bitta chizish joyi.** `detailMedia`
+  endi rasm slaydini videoli va videosiz holatda ham O'ZI chizadi. Ilgari
+  videosiz mahsulotda rasm hero divining `style` ida edi va "bosilsa
+  kattalashsin" amali IKKI joyga yozilishi kerak bo'lardi — bitta xatti-
+  harakat ikki joyda tug'ilsa, biri ertami-kech ortda qoladi
 
 - [2026-08-13] Qaror (founder): **profil tartibi namunadan olinadi, MAZMUNI
   esa YO'Q.** Founder boshqa ilovaning profil ekranini namuna qilib berdi.
