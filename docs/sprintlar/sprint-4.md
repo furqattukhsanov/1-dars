@@ -125,6 +125,74 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
 
 ## Qilingan ishlar
 
+- [2026-08-13] **Mini App profilidagi «Buyurtmalarim» qatori OLIB TASHLANDI —
+  `7d5e47f` ORQAGA QAYTARILDI.** Founder buyurdi va sababini aytdi:
+  **Mini App'da buyurtmalar bo'limi ALLAQACHON BOR EDI** (pastdagi
+  navigatsiya, `renderOrders()`), ya'ni qator ORTIQCHA IKKINCHI ESHIK edi.
+
+  🔴 **BU YOZUVNING ENG MUHIM QISMI FUNKSIYA HAQIDA EMAS — DARS HAQIDA, VA U
+  ISHNI BAJARGAN AGENT HAQIDA: o'sha ortiqchalik BILIB TURIB qo'shilgan.**
+  `7d5e47f` commitining O'Z izohida va pastdagi sprint yozuvida «Mini App'da
+  buyurtmalar allaqachon o'z ekranida yashaydi, ya'ni **ko'chiriladigan narsa
+  yo'q**» deb yozilgan. Ya'ni **fakt aniq edi, xulosa esa chiqarilmadi:**
+  o'sha jumlaning o'zi «demak bu qator ortiqcha» degan savolni berishi kerak
+  edi va bermadi. To'g'ri qadam — qo'shishdan OLDIN so'rash: «bu ortiqcha
+  bo'lishi mumkin, kerakmi?».
+  ⚠️ **Founder «shunday qilgin» degani «foydali bo'lsa qil» degani emas** —
+  buyruq bajarildi, foydasi esa TEKSHIRILMADI. **Qoida: MAVJUD funksiyaning
+  ustiga IKKINCHI YO'L qo'shilganda avval SO'RALADI.** Bu yozuv
+  o'chirilmasin — keyingi safar bir xil holat yuzaga kelganda qorovul shu
+  bo'ladi, chunki bu yerda test yozib bo'lmaydi (prompt qoidasi bilan bitta
+  oilada: qulflab bo'lmaydigan narsa ODAT bo'lib qoladi).
+
+  **Nima qaytarildi:** (1) `telegram-app/app.js` — `git checkout 384e28f --`
+  bilan o'zgarishdan OLDINGI holatga qaytarildi va **BAYT-BAYTGA** mos
+  (`sha256` boshi `193eb813a690`, `384e28f` dagi bilan bir xil —
+  SOLISHTIRILDI, ko'z bilan qaralmadi); `renderOrdersRow`, `ICO.receipt`,
+  kvitansiya `path` i, `ordersNone` kaliti (uz + ru) va `profileRow()` ning
+  `arg` qo'shimchasi — hammasi ketdi, `grep` bilan har biri **0 marta**
+  uchraydi, ya'ni qoldiq yo'q. (2) `telegram-app/index.html` —
+  `app.js?v=82` → **`?v=81`**. (3) `server/test.js` Test 16 jadvali — `v: 82,
+  hash: cca346ab4d3a` → `v: 81, hash: 193eb813a690`.
+
+  ⚠️ **KESH VERSIYASI ORQAGA TUSHIRILDI va bu YERDA TO'G'RI — bilib
+  qilingan.** Odatda `?v=` faqat OSHADI, chunki kalit tarkibga bog'langan
+  bo'lishi kerak; bu yerda fayl TARKIBI ham aynan v81 dagi tarkib, ya'ni
+  kalit tarkibga QAYTA MOS keldi va Test 16 uni tasdiqlaydi. 2026-07-22 dagi
+  «versiya orqaga tushib ketdi» nosozligidan farqi shu — **o'shanda tarkib
+  BOSHQA edi**, ya'ni bir xil URL ostida ikki xil fayl yuz bergan.
+
+  **Sinalgani: 60 test yashil** (runner chiqishidagi satrlar SANALDI,
+  hisobotdan ko'chirilmadi). Brauzerda jonli (mobil 375×812): profil
+  qatorlari endi AVVALGI beshtasi — Til, Bildirishnomalar, Mening manzilim,
+  Biz bilan bog'lanish, Ijtimoiy tarmoqlar; «Buyurtmalarim» qatori YO'Q.
+  ⚠️ **REGRESSIYA TEKSHIRUVI ALOHIDA QILINDI — olib tashlash ham buzishi
+  mumkin:** pastdagi navigatsiyadagi «Buyurtma» tugmasi bosildi, `S.screen`
+  `orders` ga O'TDI va ekran to'g'ri chizildi (`Faol / Tarix / LM-2481 /
+  Yo'lda / Marg'ilon ipak ikat`) — ya'ni buyurtmalar bo'limining O'ZI
+  shikastlanmadi (`profileRow()` ning `arg` i olinganda uni ishlatadigan
+  boshqa qator qolmaganini ham shu tasdiqlaydi). Konsolda JS xatosi yo'q.
+
+  **Kesh:** `telegram-app/app.js?v=81`, `panel.js?v=20` (panel matni
+  yolg'onga aylangani uchun qayta yozildi), Test 16 jadvalidagi ikki hash
+  birga.
+
+  🔴 **ENG MUHIM HALOL CHEGARA, VA U O'LCHANDI — TAXMIN EMAS: ORTIQCHA QATOR
+  AYNI PAYTDA PRODUCTION'DA VA XARIDOR UNI KO'RIB TURADI.** `7d5e47f` push
+  qilingan (`origin/main` = `7d5e47f`), CI «Deploy to Server» yurishi
+  **success** bo'lgan (12:53:57Z) va jonli `lolamarket.uz/mini-app/index.html`
+  hamon `app.js?v=82` ni chaqiradi — jonli faylning hashi `cca346ab4d3a`,
+  ya'ni AYNAN qaytarilgan versiya. **Bu qaytarish PUSH QILINMAGUNCHA
+  production'da hech narsa o'zgarmaydi.**
+  ⚠️ **Yo'l-yo'lakay topilgan ESKIRGAN DA'VO:** `7d5e47f` ning o'z
+  yozuvidagi «DEPLOY QILINMAGAN» bandi yozilgan lahzada TO'G'RI edi va
+  **push CI ni ishga tushirgani bilan yolg'onga aylandi** — hech kim da'voni
+  buzmadi, u shunchaki eskirdi. Bu «vaqtga bog'liq gap yozilganda uni
+  tekshiradigan buyruq ham yoniga yozilsin» darsining (o'sha kuni video
+  bandida yozilgan) **ikkinchi tasdig'i**, va bu safar u bir kun emas,
+  **bir necha soatda** eskirdi. Tekshirish buyrug'i:
+  `curl -s https://lolamarket.uz/mini-app/index.html | grep -o 'app\.js?v=[0-9]*'`
+
 - [2026-08-13] **Saytda buyurtmalar tarixi profil ekranidan CHIQARILDI —
   endi "Mening manzilim" va "Biz bilan bog'lanish" bilan BIR XIL qator,
   ro'yxatning o'zi esa alohida ko'rinishda.** Founder aytgani: «webda
@@ -229,9 +297,16 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
   taxmin emas) — kechagi to'rtta o'lik kalitning ustiga yangisi
   qo'shilmadi
 
-- [2026-08-13] **Mini App profilida ham «Buyurtmalarim» qatori paydo bo'ldi —
+- [2026-08-13] 🔴 **BU ISH O'SHA KUNNING O'ZIDA ORQAGA QAYTARILDI — yuqoridagi
+  «qator OLIB TASHLANDI» yozuviga qarang.** Qator ORTIQCHA edi. Yozuv
+  O'CHIRILMADI va bu ataylab: darsning ISBOTI aynan shu matnning ICHIDA
+  turadi — «ko'chiriladigan narsa YO'Q» degan fakt quyida O'Z QO'LI bilan
+  yozilgan va shunga qaramay qator qo'shilgan. ⚠️ Quyidagi «DEPLOY
+  QILINMAGAN» bandi ham o'sha holatda qoldirildi — u keyin ESKIRGAN da'voga
+  aylandi (commit push qilinib CI uni production'ga chiqargan).
+  ~~**Mini App profilida ham «Buyurtmalarim» qatori paydo bo'ldi —
   lekin RO'YXAT KO'CHIRILMADI, va bu ikki yuz orasidagi ATAYLAB QILINGAN
-  FARQ.** Founder aytgani: «mini appda ham shunday qilgin» — yuqoridagi
+  FARQ.**~~ Founder aytgani: «mini appda ham shunday qilgin» — yuqoridagi
   sayt ishining (`c1e309b`) juftligi.
 
   ⚠️ **Yuqoridagi yozuvning "(b) Mini App'ga TEGILMADI" bandiga ILOVA, va
@@ -1379,9 +1454,22 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
   nuqson buyurtma soni bilan o'sadi, ya'ni o'zidan tuzalmaydi. Qator
   ochilishi ham BITTA mexanizmdan: saytda `drawerView`, yangi yo'l
   qurilmaydi
-- [2026-08-13] Qaror: **Mini App'da «Buyurtmalarim» qatori qo'shiladi, lekin
+- [2026-08-13] Qaror (founder): **Mini App profilida «Buyurtmalarim» qatori
+  BO'LMAYDI — buyurtmalar bo'limi u yerda ALLAQACHON bor** (pastdagi
+  navigatsiya, `renderOrders()`), ya'ni qator ORTIQCHA ikkinchi eshik.
+  Bu pastdagi qarorni BEKOR QILADI (eski yozuv o'chirilmaydi).
+  ⚠️ **Ustiga qo'yiladigan UMUMIY qoida, va u aynan shu xatodan
+  tug'ildi: MAVJUD funksiyaning ustiga IKKINCHI YO'L qo'shilganda avval
+  SO'RALADI — «bu ortiqcha bo'lishi mumkin, kerakmi?».** Sabab: pastdagi
+  qarorda «Mini App'da buyurtmalar allaqachon o'z ekranida, ya'ni
+  ko'chiriladigan narsa yo'q» deb YOZILGAN va shunga qaramay qator
+  qo'shilgan — ya'ni **fakt qo'lda edi, xulosa chiqarilmadi**, va founder
+  buyrug'i «foydali» degan tekshiruvni almashtirib qo'ydi. Bu qoidani test
+  bilan qulflab BO'LMAYDI (prompt qoidasi bilan bitta oilada), shuning
+  uchun u **odat** — va yozuv shu sababli o'chirilmaydi
+- [2026-08-13] ~~Qaror: **Mini App'da «Buyurtmalarim» qatori qo'shiladi, lekin
   RO'YXAT PROFILGA KO'CHIRILMAYDI — ikkala yuz BIR XIL SHAKLDA bo'ladi,
-  bir xil MEXANIZMDA emas.** Founder: «mini appda ham shunday qilgin».
+  bir xil MEXANIZMDA emas.**~~ Founder: «mini appda ham shunday qilgin».
   Yuqoridagi qaror saytda YANGI ko'rinish ochishni talab qilgan, chunki
   u yerda ro'yxat profil ichida chizilardi; Mini App'da esa buyurtmalar
   ALLAQACHON o'z ekranida (pastdagi navigatsiya), ya'ni ko'chiriladigan
@@ -1394,6 +1482,12 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
   FOYDALANUVCHI KO'RADIGAN darajada (profil bo'limlari ro'yxati), kod
   yo'lida emas** — bu `BTS_POINTS` ikki yuzda alohida yashashi bilan bitta
   oilada: mazmun bir xil, mexanizm har yuzning o'ziga qulay
+  🔴 **BEKOR QILINDI o'sha kunning o'zida — yuqoridagi qarorga qarang.**
+  Yozuv tarix uchun qoldirildi va sababi bor: **bu qarorning O'ZI xatoni
+  ochib turadi** — «ko'chiriladigan narsa yo'q» jumlasi shu yerda yozilgan,
+  ya'ni ortiqchalik qaror qabul qilingan paytda KO'RINIB TURGAN. O'chirilsa,
+  keyingi o'qigan odam nima uchun «avval so'ralsin» qoidasi paydo bo'lganini
+  bilmasdi
 - [2026-08-13] Qaror: **`ORDER_STATUS` jadvali `STR` tarjima jadvaliga
   KO'CHIRILMAYDI**, yorliq esa `{uz, ru}` shaklida o'sha jadvalning
   ichida turadi. Sabab: kalitlari — bazadagi `orders.status` qiymatlari

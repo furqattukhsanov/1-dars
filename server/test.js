@@ -1375,11 +1375,11 @@ function testAssetVersionsAreFresh() {
     'style.css': { v: 50, hash: 'f1efe488a160' },
     'script.js': { v: 41, hash: 'c9f52b28c119' },
     'pwa.js': { v: 2, hash: 'f46683d58662' },
-    'panel.js': { v: 19, hash: 'af94192e280b' },
+    'panel.js': { v: 20, hash: '9d151edac7b9' },
     'admin/admin.css': { v: 18, hash: '15b0bc977b85' },
     'admin/admin.js': { v: 24, hash: '9f912b5b0788' },
     'telegram-app/styles.css': { v: 25, hash: '1e53e59ed3cf' },
-    'telegram-app/app.js': { v: 82, hash: 'cca346ab4d3a' },
+    'telegram-app/app.js': { v: 81, hash: '193eb813a690' },
     'telegram-app/pwa.js': { v: 6, hash: '798ab85e1cde' },
   };
 
