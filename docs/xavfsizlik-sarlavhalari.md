@@ -361,3 +361,43 @@ curl -sI https://lolamarket.uz/ | grep -i content-security-policy
 ⚠️ **Deploy OLDIN, CSP KEYIN.** Yangi `offline.js` va `panel.js` serverga
 chiqmasdan turib CSP almashtirilsa, oflayn sahifa va panel bir muddat
 ishlamay turadi.
+
+---
+
+## C4 — Yandex karta CSP qoidasiga qo'shilishi kerak (2026-08-13)
+
+**Holat:** kod TAYYOR va production'da, CSP esa hali qo'llanmagan
+(yuqoridagi C3 founder qadamini kutmoqda). Ya'ni bugun karta ishlaydi.
+**Xavf KELAJAKDA:** C3 dagi kanonik qoida O'ZGARTIRILMASDAN qo'llansa,
+profildagi "Mening manzilim" kartasi **JIMGINA** o'ladi — sayt sinmaydi,
+xato faqat brauzer konsolida qoladi va uni hech kim ko'rmaydi.
+
+Profildagi manzil tanlash Yandex Maps JS API 2.1 dan foydalanadi
+(`server/lib/maps.js`, `script.js` → `loadYmaps`). Skript **dinamik**
+yuklanadi, ya'ni u HTML'da ko'rinmaydi va supurishlarda topilmaydi.
+
+### Kanonik qoidaga qo'shiladigan manbalar
+
+| Direktiva | Qo'shiladi | Nima uchun |
+|---|---|---|
+| `script-src` | `https://api-maps.yandex.ru https://yastatic.net` | yuklovchi skript va uning modullari |
+| `connect-src` | `https://api-maps.yandex.ru https://*.maps.yandex.net` | modul va plitka metama'lumoti |
+| `img-src` | `https://*.maps.yandex.net https://yastatic.net` | karta plitkalari va belgilar |
+
+`style-src` ga TEGILMAYDI: unda `'unsafe-inline'` allaqachon bor va Yandex
+o'z uslublarini aynan shu yo'l bilan qo'yadi.
+
+### 🔴 Bu ro'yxat — TEKSHIRILMAGAN DA'VO
+
+U Yandex hujjatidan olingan, **jonli o'lchovdan emas** (yozilgan kunda CSP
+umuman qo'llanmagan va karta kaliti ham hali yo'q edi). CLAUDE.md qoidasi
+shuni talab qiladi: raqam yoki ro'yxat tekshirilmagan bo'lsa, u shunday
+DEB BELGILANSIN.
+
+**Tekshirish yo'li — `Content-Security-Policy-Report-Only` bosqichi
+(yuqoridagi "Ishga tushirish tartibi"):** qoida `Report-Only` da turganda
+profil → "Mening manzilim" → "Kartadan tanlash" ochiladi va konsoldagi
+`Refused to load` xabarlari O'QILADI. Haqiqiy ro'yxat o'sha yerda ko'rinadi
+va shu jadval o'shanga qarab tuzatiladi. Bu qadam **o'tkazib yuborilmasin**:
+`static.cloudflareinsights.com` ni ham aynan kuzatuv rejimi topgan edi
+(repodagi kodda u umuman yo'q edi).

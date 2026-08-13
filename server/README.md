@@ -244,6 +244,18 @@ www-data'ga tegishli, ya'ni bu himoya hali yo'q.
 | `R2_SECRET_ACCESS_KEY` | R2 sirli kaliti. Jurnalga hech qachon yozilmaydi — faqat uzunligi |
 | `R2_BUCKET` | Bucket nomi (`lolamarket-storage`). URL YO'LIGA qo'yiladi, nomlash qoidasi tekshiriladi |
 | `R2_PUBLIC_BASE` | Ommaviy manzil (`https://cdn.lolamarket.uz`). **Yuklashdan ALOHIDA sozlama:** yuklash ishlashi rasmning ommaviy ko'rinishini bildirmaydi. Berilmasa yuklash ishlayveradi, URL esa eski Telegram proksisidan beriladi |
+| `YANDEX_MAPS_KEY` | Profildagi "Mening manzilim" kartasi uchun Yandex Maps JS API kaliti. Shakli tekshiriladi (`<key>` namunasi qolib ketsa karta o'chadi). **Berilmasa server TO'XTAMAYDI** — nuqta ro'yxatdan tanlanadi va manzil bo'limi to'liq ishlayveradi |
+
+**Karta (2026-08-13).** Kalit `developer.tech.yandex.ru` dan olinadi
+(*JavaScript API va Geocoder API*), so'ng u yerda `lolamarket.uz` domeniga
+cheklanadi. ⚠️ **Bu kalit SIR EMAS** — u brauzerdagi `<script src=...>` da
+baribir ko'rinadi, himoya domen cheklovidan keladi. Shunga qaramay `.env` da
+yashaydi: shunda kalit almashtirilganda deploy kutilmaydi.
+⚠️ Kalitsiz holat **ishlaydigan holat**, buzilgan emas: karta tugmasi umuman
+chizilmaydi va xaridor nuqtani ro'yxatdan tanlaydi. Bu ataylab — karta tashqi
+xizmat, u yiqilsa xaridor manzilini o'zgartira olmay qolmasin.
+🔴 CSP qo'llanganda `api-maps.yandex.ru` qoidaga qo'shilishi SHART, aks holda
+karta jimgina o'ladi — `docs/xavfsizlik-sarlavhalari.md` → **C4**.
 
 **R2 fayl ombori (2026-08-09).** To'rttadan bittasi yetishmasa funksiya
 O'CHADI va jurnalda qichqiradi (`yaroqli=3/4` ko'rinishida) — chala sozlama

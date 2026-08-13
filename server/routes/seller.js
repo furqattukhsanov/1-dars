@@ -26,6 +26,10 @@ async function handleMe(req, res, ip) {
     ok(res, {
       role: me ? me.role : 'buyer',
       isAdmin: isAdmin(u),
+      // Doimiy BTS olish nuqtasi (profil → "Mening manzilim", db/022).
+      // Tanlanmagan bo'lsa `null` — bo'sh satr EMAS: "tanlanmagan" holati
+      // KO'RINSIN, aks holda frontend uni mavjud nuqta deb chizardi.
+      pickupPointId: (me && me.pickup_point_id) || null,
       seller: me && me.seller_id
         ? { id: me.seller_id, name: { uz: me.business_name_uz, ru: me.business_name_ru || me.business_name_uz }, verified: me.is_verified }
         : null,

@@ -23,6 +23,7 @@ const {
   handleMe, handleSellerProducts, handleSellerProductUpdate,
   handleSellerOrders, handleSellerOrderAction,
 } = require('./routes/seller');
+const { handleSavePickupPoint } = require('./routes/profile');
 const {
   handleCreateOrder, handleCreateWebOrder, handleGetOrders,
   handleOrderNotify, handleOrderStatus,
@@ -215,6 +216,15 @@ function routeRequest(req, res) {
     if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
     if (req.method !== 'GET') return fail(res, 'method not allowed', 405);
     return handleMe(req, res, ip);
+  }
+
+  // Profildagi "Mening manzilim" — doimiy BTS olish nuqtasi. O'QISH
+  // `/api/me` da (qo'shimcha so'rov qilinmasin), YOZUV shu yerda.
+  if (path === '/api/pickup-point') {
+    cors(res, 'POST, OPTIONS');
+    if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
+    if (req.method !== 'POST') return fail(res, 'method not allowed', 405);
+    return handleSavePickupPoint(req, res, ip);
   }
 
   if (path === '/api/seller/products') {

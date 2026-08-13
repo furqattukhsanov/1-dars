@@ -103,6 +103,43 @@ function chatId(raw, name, fallback) {
 // ko'mib yubormasin.
 const ALERT_CHAT_ID = chatId(process.env.ALERT_CHAT_ID, 'ALERT_CHAT_ID', ADMIN_CHAT_ID);
 
+// ============ KARTA (Yandex Maps JS API) ============
+// Profildagi "Mening manzilim" — xaridor doimiy BTS olish nuqtasini KARTADAN
+// belgilaydi (2026-08-13 founder qarori). Karta Yandex'dan olinadi: O'zbekiston
+// ko'chalari va uy raqamlari bo'yicha eng to'liq baza o'shanda.
+//
+// ⚠️ Bu kalit SIR EMAS — u brauzerdagi `<script src="...apikey=...">` da
+// baribir ko'rinadi va Yandex uni DOMEN bo'yicha cheklaydi. Shunga qaramay
+// `.env` da yashaydi va repoga yozilmaydi: shunda kalit almashtirilganda
+// deploy kutilmaydi va test/production har xil kalit ishlatishi mumkin.
+//
+// ⚠️ SHAKL TEKSHIRILADI (`ALERT_CHAT_ID` darsi — bo'sh emaslik haqiqiylik
+// EMAS). Aniq formatga (UUID) BOG'LANMAYDI, `aiKey()` bilan bitta mulohaza:
+// Yandex kalit shaklini o'zgartirsa haqiqiy kalit rad etilib qolardi.
+// Tutiladigani — namuna qolib ketganini ochib beradigan belgilar.
+function mapsKey(raw) {
+  const v = String(raw || '').trim();
+  if (!v) return '';
+  if (!/^[A-Za-z0-9._-]{20,120}$/.test(v)) {
+    // Birinchi argument — alert guruhlash kaliti (CLAUDE.md, Test 10c).
+    // ⚠️ Kalitning O'ZI jurnalga yozilmaydi — faqat uzunligi.
+    console.error('YANDEX_MAPS_KEY yaroqsiz, karta o\'chirildi:', `uzunlik=${v.length}`);
+    return '';
+  }
+  return v;
+}
+
+const YANDEX_MAPS_KEY = mapsKey(process.env.YANDEX_MAPS_KEY);
+
+// Karta YOQILGANMI. ⚠️ Kalitsiz ham nuqta tanlash TO'LIQ ishlaydi — ro'yxat,
+// qidiruv va "eng yaqinini topish" (brauzer GPS) kartaga bog'liq emas.
+// O'chgani faqat kartaning O'ZI. Bu ataylab: karta tashqi xizmat, u yiqilsa
+// yoki kalit tugasa xaridor manzilini o'zgartira olmay qolmasin.
+const MAPS_ENABLED = !!YANDEX_MAPS_KEY;
+if (!MAPS_ENABLED) {
+  console.error('Karta o\'chiq — YANDEX_MAPS_KEY berilmagan:', 'nuqta ro\'yxatdan tanlanadi');
+}
+
 // ============ AI (Sprint 10) ============
 // 2026-08-07 dan beri yagona AI funksiyasi — kiyim RASMI. Matn g'oyalari
 // founder qarori bilan olib tashlandi. Pastdagi `AI_PROVIDER` / `AI_API_KEY`
@@ -416,5 +453,6 @@ module.exports = {
   AI_IMAGE_MODEL, AI_IMAGE_CHAT_ID, AI_IMAGE_ENABLED, AI_IMAGE_EFFECT_ID,
   R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET,
   R2_ENABLED, R2_ENDPOINT, R2_PUBLIC_BASE,
-  chatId, aiKey, r2Sir, r2AccountId, r2Bucket, r2PublicBase,
+  YANDEX_MAPS_KEY, MAPS_ENABLED,
+  chatId, aiKey, mapsKey, r2Sir, r2AccountId, r2Bucket, r2PublicBase,
 };

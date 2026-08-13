@@ -3,6 +3,7 @@ const crypto = require('crypto');
 const { pool } = require('../db');
 const { BOT_TOKEN, ADMIN_PANEL_TOKEN, AI_IMAGE_ENABLED } = require('../config');
 const { aiClientConfig } = require('../lib/ai');
+const { mapsClientConfig } = require('../lib/maps');
 const { verifyInitData, authUser, requestUser, isAdmin, currentSeller } = require('../lib/auth');
 const { escapeHtml, money, safeEqual } = require('../lib/format');
 const { validate } = require('../lib/validate');
@@ -48,6 +49,8 @@ async function handleAuthTelegram(req, res, ip) {
       ok: true,
       user: rows[0],
       ...aiClientConfig(AI_IMAGE_ENABLED),
+      // Karta sozlamasi — AYNI naqsh (lib/maps.js).
+      ...mapsClientConfig(),
     });
   } catch (e) {
     console.error('auth xatosi:', e.message);

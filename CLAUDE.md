@@ -262,6 +262,38 @@
   faqat o'qilganda ko'rinadi. Bu "yozilgan qoida himoya emas" oilasidan
   **istisno**: bu yerda test yozib bo'lmaydi, shuning uchun qadam qo'lda
   bajariladi.
+- **Xaridor manzili — BAZADA, karta esa IXTIYORIY** (2026-08-13, founder
+  qarori: profilda "Mening manzilim" bo'lsin va nuqta kartadan tanlansin).
+  Yetkazish modeli O'ZGARMADI — mato baribir BTS nuqtasiga boradi; saqlanadigan
+  narsa "men doim SHU nuqtadan olaman" degan tanlov (`users.pickup_point_id`,
+  `db/022`). **Haqiqat manbai — BAZA:** server "tanlanmagan" desa
+  `localStorage` dagi eski qiymat O'CHIRILADI, aks holda boshqa qurilmada
+  o'chirilgan tanlov bu yerda jimgina TIRILARDI (ilgari `setBtsPoint` faqat
+  yozardi, o'chirmasdi — shu tuzatildi).
+  ⚠️ **Karta yiqilsa funksiya YIQILMASIN.** `YANDEX_MAPS_KEY` bo'lmasa yoki
+  Yandex javob bermasa — karta tugmasi umuman chizilmaydi va nuqta ro'yxatdan
+  tanlanadi. Ro'yxat HAR DOIM yonida turadi: manzil o'zgartirishni tashqi
+  xizmatga bog'lab qo'yish "ishlamaydigan tugma" holatini yaratardi. Kalit
+  shakli `config.js` da tekshiriladi va `process.exit` QILINMAYDI (AI kaliti
+  bilan bitta naqsh — ixtiyoriy funksiya serverni o'ldirmaydi).
+  🔴 **BTS koordinatalari TAXMINIY** — tuman/shahar markazi aniqligida, eshik
+  koordinatasi EMAS, chunki ro'yxatning O'ZI namuna (BTS API ulanmagan). Karta
+  ustidagi `mapApprox` ogohlantirishi BTS'dan haqiqiy koordinata kelmaguncha
+  OLIB TASHLANMAYDI: "o'ylab topilgan raqam" qoidasi bu yerda ayniqsa qimmat —
+  xarita nuqtani ANIQ ko'rsatayotgandek tuyuladi, ya'ni noto'g'ri joyga
+  boradigan xaridorga yolg'on ishonch beradi.
+  ⚠️ `BTS_POINTS` va `SUPPORT` (bog'lanish raqami) ikkala yuzda ALOHIDA
+  yashaydi — bu bilib qilingan vaqtinchalik qaror, lekin endi **Test 22c**
+  qo'riqlaydi: ro'yxatlar, koordinatalar va kontakt maydonlari harfma-harf
+  bir xil bo'lishi shart (6 mutatsiya bilan sinaldi). Yangi nuqta qo'shilsa
+  test uni avtomatik qamraydi.
+  ⚠️ Mini App'da Telegram havolasi ODDIY `<a>` BO'LMAYDI — `openTelegramLink()`
+  ishlatiladi, aks holda `t.me/...` WebView ichidagi brauzerda ochilib
+  foydalanuvchi chatga TUSHMASDI. Saytda esa oddiy havola to'g'ri ishlaydi:
+  farq WebView'dan, uslubdan emas.
+  🔴 CSP qo'llanganda `api-maps.yandex.ru` qoidaga qo'shilmasa karta JIMGINA
+  o'ladi — `docs/xavfsizlik-sarlavhalari.md` → **C4** (u yerdagi manba ro'yxati
+  hujjatdan olingan, jonli o'lchovdan EMAS va shunday belgilangan).
 - **Hujjatdagi raqam — TEKSHIRILMAGAN DA'VO** (2026-08-06). Optimizatsiya yoki
   tuzatish bandi ochilganda **bazaviy raqamning O'ZI qayta o'lchansin**, undan
   ish boshlanmasin. Sabab: raqam bandning kattaligini va navbatdagi o'rnini

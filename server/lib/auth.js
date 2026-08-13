@@ -74,7 +74,11 @@ function adminPanelAuth(req, res) {
 async function currentSeller(tgUser) {
   if (!tgUser || !tgUser.id) return null;
   const { rows } = await pool.query(
-    `SELECT u.id AS user_id, u.role, s.id AS seller_id, s.business_name_uz, s.business_name_ru, s.is_verified
+    // `pickup_point_id` shu yerdan olinadi, alohida so'rov bilan emas:
+    // "men kimman" javobi (`/api/me`) baribir shu qatorni o'qiydi va
+    // profil manzilni O'SHA javobdan ko'rsatadi (db/022).
+    `SELECT u.id AS user_id, u.role, u.pickup_point_id,
+            s.id AS seller_id, s.business_name_uz, s.business_name_ru, s.is_verified
        FROM users u
        LEFT JOIN sellers s ON s.user_id = u.id
       WHERE u.tg_user_id = $1`,

@@ -16,3 +16,12 @@ skills-lock.json
 
 # Deploy paytida yaratiladi (server/config.js shundan versiyani o'qiydi)
 server/version.txt
+
+# ⚠️ SIRLAR — hech qachon repoga tushmasin (2026-08-13).
+# Bu qator ilgari YO'Q edi: `server/.env` da bot tokeni, admin panel kaliti
+# va R2 sirlari yashaydi, ya'ni bitta `git add -A` ularni ommaviy repoga
+# chiqarib yuborishi mumkin edi. Fayl lokal kompyuterda yo'q bo'lgani uchun
+# bu xavf ko'rinmasdan turgan — birinchi marta yaratilgan kuni tishlardi.
+.env
+.env.*
+!.env.example

@@ -49,7 +49,15 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
   uchun umumiy (`localStorage` → `lolamarket_bts_point`). Band OCHIQ qoladi, chunki
   bandda yozilgani "ko'rsatish" emas, **"eng yaqinini telefon/manzil asosida
   aniqlash"** — u hozir ham yo'q va uni "bajarildi" deb belgilash bandning o'zini
-  yolg'onga aylantirardi
+  yolg'onga aylantirardi.
+  — **YANA BIR QADAM (2026-08-13):** nuqta endi KARTADA ko'rinadi (profil →
+  "Mening manzilim") va tanlov `localStorage` dan BAZAGA ko'chdi
+  (`users.pickup_point_id`, `db/022`), ya'ni u telefon va kompyuterda bir xil.
+  Kartada `geolocationControl` bor — xaridor O'ZI qayerdaligini ko'radi va
+  eng yaqinini KO'Z bilan tanlaydi. Band baribir OCHIQ: bu "ko'rsatish",
+  **avtomatik aniqlash emas**. 🔴 Ustiga koordinatalar TAXMINIY (tuman markazi
+  aniqligida, BTS API ulanmagan) — shuning uchun karta ustida doimiy
+  ogohlantirish turadi va u haqiqiy koordinata kelmaguncha olinmaydi
 - [x] Buyurtma xulosasi: mahsulot narxi + logistika narxi alohida — taxminiy summa (`DELIVERY_FEE_ESTIMATE`), jamiga qo'shilmaydi
 - [ ] Buyurtma tasdiqlash → `orders` jadvalida `created` holati
 
@@ -68,6 +76,15 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
 ### Mahsulot boshqaruvi (Ishlab chiqaruvchi)
 - [x] Mahsulot qo'shish: kategoriya, narx, MOQ, tarkib — Mini App'dagi `s-form` ekrani orqali
 - [x] Mahsulot rasmi — bot orqali (Telegram file_id, disputes bilan bir xil HMAC-proksi naqshi)
+- [ ] Mahsulot **videosi** — bot orqali (qisqa video: matoning tovlanishi va to'qimasi
+  rasmdan yaxshi ko'rinadi)
+  — **YARIM (2026-08-13): qabul qilish va saqlash TAYYOR, ko'rsatish esa YO'Q.**
+  Sotuvchi botga video yuboradi, u R2 ga tushadi va bazaga yoziladi (`db/023`),
+  admin panelda ko'rinadi. **Band OCHIQ qoladi, chunki xaridor uni HALI KO'RMAYDI** —
+  katalogda `<video>` yo'q (D bosqichi) va `/api/products` video maydonlarini
+  qaytarmaydi (C bosqichi). Bandni hozir `[x]` qilish "video qo'shildi" degan
+  yolg'on tasavvur berardi: yozilgan bayt ko'rsatilmaguncha xaridor uchun u
+  mavjud emas. Pastdagi "Qilingan ishlar"ga qarang
 - [x] Mahsulot tahrirlash va yashirish — `PATCH /api/seller/products`; tahrirlangan e'lon qayta moderatsiyaga (`pending`) tushadi, "yashirish" `draft` ga o'tkazadi (haqiqiy o'chirish yo'q)
 - [x] Rulon soni avtomatik kamayishi (buyurtma berilganda) — `products.stock` soni, buyurtma tranzaksiyasi ichida atomik `UPDATE ... WHERE stock >= qty`
 
@@ -83,6 +100,151 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
 ---
 
 ## Qilingan ishlar
+
+- [2026-08-13] **Mahsulot VIDEOSI — qabul qilish, saqlash va moderatsiya
+  (A+B+E bosqichlari).** Sotuvchi botga qisqa video yuboradi, u
+  `cdn.lolamarket.uz` ga tushadi va admin panelda ko'riladi. Rasm yo'lining
+  yonidagi ikkinchi tarmoq (`db/023_product_video.sql` — sakkiz ustun:
+  `vid_file_id`, `vid_r2_key`, `vid_poster_file_id`, `vid_poster_r2_key`,
+  `vid_seconds`, `vid_bytes`, `vid_at`, `awaiting_video`).
+  **ENG MUHIM FARQ — TARTIB TESKARI: avval R2, KEYIN baza.** Rasmda R2 "eng
+  yaxshi harakat" edi: yiqilsa ham `img_file_id` orqali Telegram proksisi
+  rasmni ko'rsataverardi. **Videoda bu pog'ona YO'Q** — `handleProductPhoto`
+  faylni butunlay `pipe` qiladi va `Range` (HTTP 206) bermaydi, iOS Safari esa
+  `<video>` uchun aynan shuni talab qiladi. Ya'ni R2 siz yozilgan `vid_file_id`
+  hech qachon ochilmaydigan videoni "bor" deb ko'rsatuvchi **jimgina yolg'on**
+  bo'lardi. Endi R2 yiqilsa bazaga UMUMAN yozilmaydi va sotuvchi buni ESHITADI
+  ("hozir saqlab bo'lmadi, qayta yuboring" — "qabul qilindi" DEYILMAYDI).
+  `vid_file_id` shunga qaramay saqlanadi: R2 — qo'shimcha ombor, almashtiruvchi
+  emas (2026-08-09 qoidasi).
+  **Chegaralar — mp4, ≤30 s, ≤12 MB — va HAR RAD ETISH TUSHUNTIRILADI**
+  (`videoRadSababi`): sotuvchi nima uchun o'tmaganini va nima qilishini
+  o'qiydi ("fayl sifatida emas, oddiy video qilib yuboring"). Tekshiruv
+  baytlarni YUKLASHDAN OLDIN bo'ladi — Telegram `duration`/`file_size`/
+  `mime_type` ni xabarning o'zida beradi; keyin rad etish 12 MB ni bekorga
+  tortib olish bo'lardi, ustiga Bot API 20 MB dan kattasini umuman bermaydi va
+  xato "fayl topilmadi" bo'lib kelib sababi butunlay boshqa narsaga o'xshardi.
+  Har rad etishda `awaiting_video` **ochiq qoladi** — qayta urinish darrov
+  ishlasin.
+  **`ffmpeg` QO'SHILMADI:** muqovani (birinchi kadr) Telegram o'zi beradi
+  (`msg.video.thumbnail`) — `lib/png.js` da `sharp` dan voz kechilgani bilan
+  bitta mulohaza, nativ paket deploy'ga yangi sinish nuqtasi qo'shardi.
+  Muqova o'z `try` i bilan: u yo'qolsa video yo'qolmaydi (chiqishda mahsulot
+  rasmiga tushamiz), xato esa YUTILMAYDI — alertga chiqadi.
+  **Kalit TARKIBDAN** (baytlarning `sha256` i) — obyekt `immutable,
+  max-age=31536000` bilan yotadi, tasodifiy kalitda video almashgan kuni
+  eskisi bir yil ko'rinib turardi. Muqova ayni hashga bog'lanadi va video
+  bilan birga eskiradi.
+  **Admin panel (E):** moderatsiya kartochkasida `<video>` rasm TAGIDA (ustiga
+  emas — moderator ikkalasini ham ko'rishi kerak), yonida davomiylik va hajm.
+  **Alohida "Kelgan videolar" ro'yxati** qo'shildi va u ATAYLAB `status`
+  bo'yicha filtrlanmaydi: navbat faqat `pending` e'lonlarni ko'rsatadi, video
+  esa ALLAQACHON NASHR QILINGAN mahsulotga ham keladi — u holda video hech
+  qanday navbatga tushmasdan katalogga chiqib ketardi va uni **hech kim
+  ko'rmasdi**. Tartib `vid_at` bo'yicha, `created_at` bo'yicha EMAS: eski
+  e'longa bugun kelgan video ro'yxat tubida qolib ketardi. `preload="none"` —
+  ro'yxatda 50 tagacha video bo'lishi mumkin. Video bloki BITTA funksiyadan
+  chiqadi (`videoVM` serverda, `videoBlock` panelda) — ikki joyda qo'lda
+  yig'ilsa biri ortda qolardi. Havola yasab qo'yilmaydi: R2 domeni ulanmagan
+  bo'lsa `video: null` va blok umuman chizilmaydi — ishlamaydigan pleyer yo'q
+  pleyerdan yomonroq, moderator "video buzuq" deb o'ylab sababini hech qachon
+  ko'rmasdi. Davomiylik yoki hajm kelmasa o'sha bo'lak tashlab ketiladi
+  ("o'ylab topilgan raqam ko'rsatilmasin" qoidasi — `null` "0 soniya" emas).
+  **Webhook'da video ALOHIDA yo'lga ajratildi:** ilgari `msg.video` ham
+  `handleProductImage` ga tushardi va u videoni **jimgina tashlab yuborardi** —
+  sotuvchi hech qanday javob olmasdi.
+  **CSP:** `docs/xavfsizlik-sarlavhalari.md` ga `media-src 'self'
+  https://cdn.lolamarket.uz` qo'shildi. `img-src` buni QAMRAMAYDI — `<video>`
+  uchun brauzer `media-src` ga qaraydi, u aytilmasa `default-src 'self'` ga
+  tushadi va R2 domeni rad etiladi. Qoida hozir majburlanmagani uchun video
+  ishlayveradi, ya'ni bu **kelajakdagi tuzoq**: CSP yoqilgan kuni otiladi.
+  **SINALGANI:** 53 test yashil (`server/test.js`); migratsiya **pglite'da
+  BAJARILDI** va o'zining ichki tekshiruvi 5 mutatsiya bilan sinaldi (ustun
+  yetishmasa, `NOT NULL` qo'yilsa, `DEFAULT true` bo'lsa, eski qatorlar ochiq
+  qolsa — beshtasi ham QIZIL berdi); admin paneli brauzerda jonli chizdirildi
+  va XSS qorovuli ham sinaldi (mahsulot nomi va sotuvchi nomiga
+  `<img src=x onerror=…>` — bajarilmadi).
+  ⚠️ **Bu ish YANGI QOROVUL QO'SHMADI va bu ataylab belgilangan qarz:** F
+  bandi (chegaralar, R2-avval tartibi va `awaiting_video` bayrog'i uchun
+  testlar) OCHIQ. Loyihaning o'z darsi — "yozilgan qoida himoya emas, uni
+  tekshiradigan test himoya" — bu yerda hali BAJARILMAGAN.
+  Kesh: `admin/admin.css?v=18`, `admin/admin.js?v=23` — Test 16 jadvali
+  birga yangilandi.
+  🔴 **OCHIQ:** (a) `db/023` migratsiyasi **serverda hali ishga
+  tushirilmagan** — ungacha video yuborilsa endpoint xato beradi (bayroq
+  ustuni yo'q); (b) **C** — `/api/products` va sotuvchi kabineti video
+  maydonlarini qaytarmaydi; (c) **D** — katalogda media galereya
+  (1-slayd rasm, 2-slayd video); (d) **F** — qorovul testlar.
+  ⚠️ **D dan OLDIN video O'CHIRISH amali kerak:** hozir kelgan videoni olib
+  tashlashning YO'LI YO'Q, ya'ni nomaqbul video xaridorga ko'rsatila
+  boshlagan zahoti uni to'xtatib bo'lmaydi. Amal uch qismdan iborat —
+  Telegram tasdig'i (panel yozuvi qoidasi), `admin_actions_kind_check` ga
+  yangi tur uchun migratsiya (`db/014` tuzog'i: ro'yxatga qo'shilmasa amal
+  production'da JIMGINA ishlamaydi) va **Cloudflare cache purge**, chunki
+  2026-08-09 da o'lchangan: obyekt R2 dan o'chirilgandan keyin ham CDN uni
+  `cf-cache-status: HIT` bilan berib turadi — **o'chirish uni internetdan
+  olib tashlamaydi**
+
+- [2026-08-13] **Profilda "Mening manzilim" va "Biz bilan bog'lanish" —
+  ikkala yuzda.** Founder so'ragan ish: xaridor doimiy BTS olish nuqtasini
+  KARTADAN belgilasin. **Yetkazish modeli O'ZGARMADI** — mato baribir BTS
+  nuqtasiga boradi (PRD, `db/010`); saqlanadigan yagona narsa "men doim SHU
+  nuqtadan olaman" degan tanlov. **Bazaga ko'chdi:** `users.pickup_point_id`
+  (`db/022_pickup_point.sql` — migratsiya o'zi ichida tekshiradi: ustun bormi,
+  `NULL` qabul qiladimi, uzunlik chegarasi HAQIQATAN ishlaydimi). Yozuv —
+  `POST /api/pickup-point` (`server/routes/profile.js`), o'qish — `/api/me`
+  javobidagi `pickupPointId` (qo'shimcha so'rov qilinmaydi).
+  **Kimlik `requestUser()` dan** — `authUser()` dan EMAS: C1 va C2 da ikki
+  marta tishlagan naqsh uchinchi marta takrorlanmasin, aks holda manzil faqat
+  Mini App'da saqlanib, sayt xaridori jimgina 401 olardi.
+  **"Biz bilan bog'lanish":** telefon `+998 (93) 999-39-96` bosilsa qo'ng'iroq
+  (`tel:`), `@furqattukhsanov` bosilsa Telegram ochiladi. ⚠️ Mini App'da bu
+  oddiy `<a>` EMAS — `openTelegramLink()`, chunki `t.me/...` havolasi WebView
+  ichidagi brauzerda ochilib foydalanuvchi chatga TUSHMASDI.
+  **Karta IXTIYORIY:** `YANDEX_MAPS_KEY` (`server/config.js` da shakl
+  tekshiruvi — `ALERT_CHAT_ID` darsi; `server/lib/maps.js` sozlamani IKKALA
+  kanalga bitta funksiyadan tarqatadi). Kalitsiz karta tugmasi umuman
+  chizilmaydi va nuqta ro'yxatdan tanlanadi — funksiya TO'LIQ ishlayveradi va
+  server TO'XTAMAYDI. Bu ataylab: manzil o'zgartirishni tashqi xizmatga
+  bog'lash "ishlamaydigan tugma" holatini yaratardi.
+  **Yo'l-yo'lakay ikki JIMGINA nuqson tuzatildi:** (a) karta qutisi flex
+  konteynerda 300px o'rniga **63px** ga siqilardi — karta "yuklanmayapti"dek
+  ko'rinardi, aslida joyi yo'q edi; (b) nuqta bo'shatilganda `localStorage`
+  dan O'CHIRILMASDI (`setBtsPoint` faqat yozardi) — boshqa qurilmada bekor
+  qilingan tanlov bu yerda qayta yuklashda TIRILARDI.
+  **Xavfsizlik:** `.gitignore` ga `.env` qo'shildi — ilgari YO'Q edi, ya'ni
+  bitta `git add -A` `server/.env` ni (bot tokeni, admin kaliti, R2 sirlari)
+  ommaviy repoga chiqarib yuborishi mumkin edi. Fayl lokal kompyuterda yo'q
+  bo'lgani uchun bu xavf ko'rinmasdan turgan.
+  **Qorovullar:** Test 22 (nuqta id SHAKLI — ro'yxat emas, `db/014` tuzog'i
+  takrorlanmasin: `bts-12`, `BTS-112`, `bts-112\n`, `../../etc/passwd` va 13
+  boshqa yaroqsiz qiymat rad etiladi; endpoint tekshiruvni HAQIQATAN
+  chaqirishi ham o'qiladi), 22b (karta sozlamasi: `<key>` namunasi rad
+  etiladi, o'chiq holatda `mapsKey` `null` — bo'sh satr EMAS, ikkala kanal
+  bitta funksiyadan oladi, `process.exit` YO'Q), 22c (`BTS_POINTS` va
+  `SUPPORT` ikki yuzda harfma-harf bir xil — ro'yxat MANBADAN o'qiladi, ya'ni
+  yangi nuqta avtomatik qamraladi; koordinata almashib ketsa —
+  kenglik/uzunlik 41/69 → 69/41 — chegara tekshiruvi ushlaydi).
+  **12 mutatsiya bilan sinaldi, 12 tasi ham ushlandi. Jami 59 test yashil.**
+  ⚠️ Ish davomida bu raqam **60** deb aytilgan edi va u NOTO'G'RI chiqdi —
+  hisobot yozilayotganda ikki mustaqil usul bilan qayta o'lchandi: runner
+  chiqishidagi noyob `Test NN` identifikatorlari = 59 va `test.js` manbasidagi
+  sarlavhalar = 59; ustiga oldingi commit 56 ta edi va bu ishda 3 ta qo'shildi
+  (56 + 3 = 59). Raqam INDEKSDAN alohida o'lchandi (`git show :server/test.js`),
+  ya'ni u ish daraxtidagi boshqa o'zgarishlarga tayanmaydi. Bu CLAUDE.md dagi
+  «hujjatdagi raqam — tekshirilmagan da'vo» qoidasining aynan o'zi va u
+  «32 test → aslida 33 ta» darsining takrori: yozib qo'yilganda ishonch
+  uyg'otadi, tekshirilganda esa yolg'on bo'lib chiqadi.
+  Kesh: `style.css` v46, `script.js` v36, `telegram-app/app.js` v76 — Test 16
+  jadvali bilan birga (uchala HTML'da bir xil raqam).
+  **Hujjat:** CLAUDE.md ga qoida, `server/README.md` ga `YANDEX_MAPS_KEY`,
+  `docs/xavfsizlik-sarlavhalari.md` ga **C4** — CSP yoqilganda
+  `api-maps.yandex.ru` qo'shilmasa karta JIMGINA o'ladi (u yerdagi manba
+  ro'yxati hujjatdan olingan, jonli o'lchovdan EMAS va shunday belgilangan).
+  🔴 **OCHIQ (founder qadamlari):** serverdagi `.env` ga `YANDEX_MAPS_KEY`
+  qo'shilishi va `db/022` migratsiyasi ishga tushirilishi kerak. Ikkalasisiz
+  ham sayt sinmaydi — karta chizilmaydi, manzil esa saqlanmaydi (endpoint
+  ustun yo'qligidan xato beradi).
 
 - [2026-08-13] **C2 — Sotuvchi kabineti SAYTDA.** C1 (AI saytda) bilan AYNI
   tuzoq, faqat kengroq: `requireSeller()` (`server/lib/auth.js`) `authUser()`
@@ -597,6 +759,81 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
 
 ## Qarorlar
 
+- [2026-08-13] Qaror: **video uchun R2 MAJBURIY — rasmdagidan farqli o'laroq,
+  va shu sababli TARTIB TESKARI: avval R2, keyin baza.** Rasmda R2 yiqilsa
+  Telegram proksisi ishlab turadi, videoda esa bu pog'ona AMALDA YO'Q —
+  `handleProductPhoto` faylni butunlay `pipe` qiladi va `Range` (HTTP 206)
+  bermaydi, iOS Safari esa `<video>` uchun aynan shuni talab qiladi. Ya'ni
+  R2 siz yozilgan `vid_file_id` hech qachon ochilmaydigan videoni "bor" deb
+  ko'rsatardi. R2 yiqilsa bazaga UMUMAN yozilmaydi va sotuvchi buni ESHITADI —
+  "qabul qilindi" DEYILMAYDI. Bu `NULL` reyting va `ALERT_CHAT_ID` qarorlari
+  bilan bitta oilada: **jimgina yolg'on yo'qlikdan yomonroq**. `vid_file_id`
+  baribir saqlanadi — R2 qo'shimcha ombor, almashtiruvchi emas
+- [2026-08-13] Qaror: **video chegaralari — mp4, ≤30 s, ≤12 MB — va har rad
+  etish SOTUVCHIGA TUSHUNTIRILADI, bayroq esa ochiq qoladi.** Chegaraga
+  urilgan sotuvchi jim qoldirilsa "yubordim, ishlamadi" holatida qolardi va
+  sababni faqat biz jurnaldan ko'rardik. Tekshiruv baytlarni yuklashdan OLDIN
+  bo'ladi (Telegram `duration`/`file_size`/`mime_type` ni xabarda beradi):
+  keyin rad etish 12 MB ni bekorga tortib olish bo'lardi, ustiga Bot API
+  20 MB dan kattasini umuman bermaydi va xato "fayl topilmadi" bo'lib kelib
+  sababi boshqa narsaga o'xshardi. Chegara raqami BITTA joyda
+  (`MAX_DOWNLOAD_BYTES` eksport qilinadi) — ikki joyda qo'lda yozilsa, biri
+  o'zgargan kuni sotuvchiga aytilgan chegara YOLG'ON bo'lib qolardi
+- [2026-08-13] Qaror: **`ffmpeg` QO'SHILMAYDI — muqovani Telegram o'zi beradi**
+  (`msg.video.thumbnail`). Nativ paket deploy'ga yangi sinish nuqtasi
+  qo'shardi va kerak bo'lgani atigi bitta narsa — birinchi kadr. Bu `lib/png.js`
+  da `sharp` dan voz kechilgan qaror bilan bitta naqsh. Muqova yo'qolsa video
+  yo'qolmaydi (chiqishda mahsulot rasmiga tushamiz), lekin xato yutilmaydi
+- [2026-08-13] Qaror: **admin paneldagi "Kelgan videolar" ro'yxati moderatsiya
+  navbatidan ALOHIDA turadi va `status` bo'yicha FILTRLANMAYDI.** Navbat faqat
+  `pending` e'lonlarni ko'rsatadi, video esa ALLAQACHON NASHR QILINGAN
+  mahsulotga ham keladi (sotuvchi rasm yuborgach bayroq ochiladi) — u holda
+  video hech qanday navbatga tushmasdan katalogga chiqib ketardi va uni hech
+  kim ko'rmasdi. Tartib `vid_at` bo'yicha, `created_at` bo'yicha emas
+- [2026-08-13] Qaror (founder): **mahsulot media GALEREYA bo'ladi — 1-slayd
+  rasm, 2-slayd video** (D bosqichida quriladi). Video rasmni ALMASHTIRMAYDI:
+  rasm katalog lentasida va qidiruvda ishlaydi, video esa faqat tafsilot
+  ochilganda. ⚠️ **D dan OLDIN video o'chirish amali kerak** — hozir kelgan
+  videoni olib tashlashning yo'li yo'q, ya'ni nomaqbul video xaridorga
+  ko'rsatila boshlagan zahoti uni to'xtatib bo'lmaydi; amal Telegram tasdig'i,
+  `admin_actions_kind_check` migratsiyasi va Cloudflare purge bilan birga
+  qilinadi (CDN keshi o'chirishni QAYTARMAYDI — 2026-08-09 da o'lchangan)
+
+- [2026-08-13] Qaror: **doimiy olish nuqtasi BAZADA saqlanadi
+  (`users.pickup_point_id`), `localStorage` esa ZAXIRA bo'lib qoladi.** Haqiqat
+  manbai — BAZA: server "tanlanmagan" desa brauzerdagi eski qiymat
+  O'CHIRILADI. Sabab: tanlov bugungacha faqat brauzerda yotardi, B2B xaridor
+  esa telefonda ham, kompyuterda ham kiradi — u har safar nuqtani qaytadan
+  tanlardi, kesh tozalansa esa tanlov umuman yo'qolardi. `localStorage` OLIB
+  TASHLANMAYDI: u kirmagan (mehmon) xaridor uchun va server javobi kelgunicha
+  ko'rsatiladigan zaxira. ⚠️ Aynan shu yerda jimgina nuqson bor edi —
+  `setBtsPoint` faqat YOZARDI, o'chirmasdi, ya'ni boshqa qurilmada bekor
+  qilingan tanlov qayta yuklashda TIRILARDI. Bu `NULL` reyting va
+  `ALERT_CHAT_ID` qarorlari bilan bitta oilada: **jimgina yolg'on yo'qlikdan
+  yomonroq**
+- [2026-08-13] Qaror: **karta IXTIYORIY funksiya — u yiqilsa manzil tanlash
+  YIQILMAYDI.** `YANDEX_MAPS_KEY` bo'lmasa yoki Yandex javob bermasa karta
+  tugmasi umuman chizilmaydi va nuqta ro'yxatdan tanlanadi; ro'yxat HAR DOIM
+  yonida turadi. Kalit shakli `config.js` da tekshiriladi, lekin
+  `process.exit` QILINMAYDI (AI kaliti bilan bitta naqsh). Sabab: xaridorning
+  manzilini o'zgartirish qobiliyatini tashqi xizmatga bog'lab qo'yish
+  "ishlamaydigan tugma" holatini yaratardi — bu funksiya yo'qligidan
+  yomonroq. Qorovul: Test 22b
+- [2026-08-13] Qaror: **nuqtalar ro'yxati SERVERGA ko'chirilmaydi — serverda
+  faqat SHAKL tekshiriladi** (`lib/maps.js` → `isPickupPointId`, `bts-NNN`).
+  BTS API ulanmagan, ro'yxat frontendda yashaydi; uni serverga yoki `CHECK`
+  ga uchinchi nusxa qilish CLAUDE.md ataylab ogohlantirgan naqsh bo'lardi —
+  `admin_actions_kind_check` da aynan shu tishlagan va sharh yashirish
+  production'da JIMGINA ishlamagan (`db/014`). ⚠️ Ro'yxat baribir IKKI yuzda
+  takrorlanadi (sayt + Mini App) — bu bilib qilingan vaqtinchalik qaror,
+  lekin endi Test 22c uni harfma-harf qulflaydi
+- [2026-08-13] Qaror: **BTS koordinatalari TAXMINIY deb BELGILANADI va
+  ogohlantirish karta ustida DOIM turadi.** Nuqtalar tuman/shahar markazi
+  aniqligida, eshik koordinatasi EMAS — ro'yxatning O'ZI namuna. Ogohlantirish
+  BTS'dan haqiqiy koordinata kelmaguncha olib tashlanmaydi. Sabab: "o'ylab
+  topilgan raqam ko'rsatilmasin" qoidasi bu yerda ayniqsa qimmat — xarita
+  nuqtani ANIQ ko'rsatayotgandek tuyuladi va noto'g'ri joyga boradigan
+  xaridorga yolg'on ishonch beradi
 - [2026-08-12] Qaror: **sayt katalogi HTML dagi kartochkalarni bazaga
   ALMASHTIRMAYDI — ikkalasi BIRLASHTIRILADI** (`script.js` → `mergeCatalog`).
   HTML kartochkalari qoladi (SEO va birinchi chizilish: bo'sh grid API javobini

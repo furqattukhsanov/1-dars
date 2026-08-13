@@ -1,6 +1,7 @@
 const { BOT_USERNAME, PREPAY_RATE, DELIVERY_FEE_ESTIMATE, AI_IMAGE_ENABLED } = require('../config');
 const { pool } = require('../db');
 const { aiClientConfig } = require('../lib/ai');
+const { mapsClientConfig } = require('../lib/maps');
 const { safeEqual, dateLabel, sha256, randHex } = require('../lib/format');
 const { rateLimited, sendJson, fail, parseCookies } = require('../lib/http');
 const { callTelegram } = require('../lib/telegram-api');
@@ -137,6 +138,8 @@ async function handleWebMe(req, res, ip) {
       // "Kirish" taklif qiladi. Aks holda AI funksiyasi kirmagan odam uchun
       // MAVJUD EMASday ko'rinardi va u nima uchun kirishini bilmasdi.
       ...aiClientConfig(AI_IMAGE_ENABLED),
+      // Karta sozlamasi — AYNI naqsh: qo'lda yig'ilsa bitta kanalda qolardi.
+      ...mapsClientConfig(),
     });
   } catch (e) {
     console.error('webMe xatosi:', e.message);

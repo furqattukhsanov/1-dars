@@ -2476,6 +2476,108 @@ body { padding-bottom: calc(var(--dock-h) + env(safe-area-inset-bottom, 0px)); }
    qayta ishlatiladi — kabinet uchun ikkinchi tugma uslubi yozilmadi.
    ==================================================== */
 
+/* --- Profil: "Mening manzilim" va "Biz bilan bog'lanish" (2026-08-13) --- */
+.addr-card {
+  display: flex; align-items: flex-start; gap: 12px;
+  flex-wrap: wrap;
+  padding: 14px;
+  border: 1px solid var(--border-hair);
+  border-radius: var(--radius-md);
+  background: var(--glass-fill-strong);
+}
+.addr-pin { flex: none; margin-top: 1px; color: var(--pom-700); }
+.addr-main { flex: 1; min-width: 0; }
+.addr-name { font-size: 14px; font-weight: 700; color: var(--text-strong); line-height: 1.3; }
+.addr-name.addr-none { font-weight: 600; color: var(--text-body); }
+.addr-sub { font-size: 12.5px; color: var(--text-muted); margin-top: 3px; line-height: 1.4; }
+.addr-btn {
+  flex: none; width: 100%;
+  height: 40px; padding: 0 16px;
+  border: 1px solid var(--border-hair);
+  border-radius: var(--radius-sm);
+  background: var(--glass-fill);
+  color: var(--text-body);
+  font-family: var(--font-sans); font-size: 13.5px; font-weight: 600;
+  cursor: pointer;
+}
+.addr-btn.is-primary {
+  border: none;
+  background: var(--grad-pom);
+  color: var(--pom-100);
+}
+
+/* Karta konteyneri. ⚠️ Balandlik ANIQ berilgan: Yandex kartasi o'z
+   konteyneridan balandlik oladi va `auto` bo'lsa u NOLGA tushib, karta
+   jimgina ko'rinmay qolardi (`<picture>` darsi bilan bitta oila).
+   ⚠️ `flex: none` HAM SHART va bu o'lchab topildi (2026-08-13): oyna
+   tanasi `display: flex; flex-direction: column`, ya'ni `height: 300px`
+   ning O'ZI yetarli emas — blok 63px gacha SIQILIB qolardi va buni
+   hech qanday xato ko'rsatmasdi. */
+.addr-map {
+  flex: none;
+  height: 300px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--ink-100);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; color: var(--text-muted);
+}
+.addr-approx {
+  margin: 8px 2px 14px;
+  font-size: 11.5px; line-height: 1.45;
+  color: var(--text-subtle);
+}
+.addr-opts { display: flex; flex-direction: column; gap: 8px; }
+.addr-opt {
+  display: flex; align-items: center; gap: 11px;
+  width: 100%; text-align: left; cursor: pointer;
+  padding: 12px 13px;
+  border: 1px solid var(--border-hair);
+  border-radius: var(--radius-md);
+  background: var(--glass-fill);
+}
+.addr-opt.is-on { border-color: var(--pom-700); box-shadow: 0 0 0 1px var(--pom-700); }
+.addr-opt-main { flex: 1; min-width: 0; }
+.addr-opt-name { display: block; font-size: 13.5px; font-weight: 700; color: var(--text-strong); }
+.addr-opt-sub { display: block; font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.addr-opt-dot {
+  flex: none; width: 20px; height: 20px;
+  border-radius: 50%;
+  border: 2px solid var(--ink-200);
+}
+.addr-opt.is-on .addr-opt-dot {
+  border-color: var(--pom-700);
+  background:
+    radial-gradient(circle at 50% 50%, var(--pom-700) 0 4.5px, transparent 4.5px);
+}
+
+.contact-list {
+  display: flex; flex-direction: column;
+  border: 1px solid var(--border-hair);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--glass-fill-strong);
+}
+.contact-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 13px 14px;
+  text-decoration: none;
+  color: inherit;
+}
+.contact-row + .contact-row { border-top: 1px solid var(--border-hair); }
+.contact-ico {
+  flex: none; width: 34px; height: 34px;
+  border-radius: 11px;
+  display: flex; align-items: center; justify-content: center;
+}
+.contact-ico.is-phone { background: var(--pom-100); color: var(--pom-700); }
+.contact-ico.is-tg { background: rgba(55, 174, 226, .13); color: #1e96c8; }
+.contact-main { flex: 1; min-width: 0; }
+.contact-val { display: block; font-size: 14.5px; font-weight: 700; color: var(--text-strong); }
+.contact-val.is-mono { font-family: var(--font-mono); font-weight: 600; }
+.contact-sub { display: block; font-size: 12px; color: var(--text-muted); margin-top: 1px; }
+.contact-arrow { flex: none; font-size: 17px; color: var(--text-subtle); }
+
 /* Profildagi kirish tugmasi — kabinet bor ekanini KO'RSATADI */
 .s-enter {
   width: 100%; margin-top: 16px;

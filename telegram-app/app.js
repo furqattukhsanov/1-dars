@@ -175,6 +175,19 @@ const STR = {
     dispOpenBadge: "Bahs ko'rib chiqilmoqda", dispResolvedBadge: "Bahs hal qilindi",
     dispDecision: "Qaror", dispRefund: "Qaytarildi", dispNeedPhoto: "Botga rasm yuboring",
     profile: "Profil", editP: "Tahrirlash", ordersCount: "buyurtma", settings: "Sozlamalar", language: "Til", notifications: "Bildirishnomalar",
+    // — Profil: mening manzilim —
+    myAddr: "Mening manzilim", myAddrNone: "Doimiy olish nuqtasi tanlanmagan",
+    myAddrHint: "Tanlansa, buyurtma berishda shu nuqta oldindan qo'yiladi",
+    myAddrPick: "Kartadan tanlash", myAddrChange: "O'zgartirish",
+    myAddrSaved: "Manzil saqlandi", myAddrErr: "Manzil saqlanmadi — qayta urinib ko'ring",
+    myAddrGuest: "Saqlash uchun ilovani Telegram orqali oching",
+    viewList: "Ro'yxat", viewMap: "Karta",
+    mapApprox: "Belgi tuman markazi aniqligida — aniq joyni BTS bilan tekshiring",
+    mapOff: "Karta yuklanmadi — nuqtani ro'yxatdan tanlang",
+    mapLoading: "Karta yuklanmoqda…",
+    // — Profil: biz bilan bog'lanish —
+    contactT: "Biz bilan bog'lanish", contactCall: "Qo'ng'iroq qilish",
+    contactTg: "Telegram orqali yozish",
     help: "Yordam markazi", logout: "Chiqish", search: "Qidiruv", recent: "So'nggi qidiruvlar", noResults: "Hech narsa topilmadi",
     noResultsSub: "Boshqa so'z bilan urinib ko'ring", resultsN: "natija topildi", // ⚠️ `tabHome` — `home` EKRANINING yorlig'i, u endi "Katalog" deb
     // o'qiladi: bosh sahifa katalogga birlashdi (2026-08-07). Kalit nomi
@@ -310,6 +323,19 @@ const STR = {
     dispOpenBadge: "Спор рассматривается", dispResolvedBadge: "Спор решён",
     dispDecision: "Решение", dispRefund: "Возвращено", dispNeedPhoto: "Отправьте фото боту",
     profile: "Профиль", editP: "Изменить", ordersCount: "заказов", settings: "Настройки", language: "Язык", notifications: "Уведомления",
+    // — Профиль: мой адрес —
+    myAddr: "Мой адрес", myAddrNone: "Постоянный пункт выдачи не выбран",
+    myAddrHint: "Выбранный пункт будет подставлен при оформлении заказа",
+    myAddrPick: "Выбрать на карте", myAddrChange: "Изменить",
+    myAddrSaved: "Адрес сохранён", myAddrErr: "Адрес не сохранён — попробуйте ещё раз",
+    myAddrGuest: "Чтобы сохранить, откройте приложение через Telegram",
+    viewList: "Список", viewMap: "Карта",
+    mapApprox: "Метка с точностью до центра района — уточните адрес в BTS",
+    mapOff: "Карта не загрузилась — выберите пункт из списка",
+    mapLoading: "Карта загружается…",
+    // — Профиль: связаться с нами —
+    contactT: "Связаться с нами", contactCall: "Позвонить",
+    contactTg: "Написать в Telegram",
     help: "Центр помощи", logout: "Выйти", search: "Поиск", recent: "Недавние поиски", noResults: "Ничего не найдено",
     noResultsSub: "Попробуйте другой запрос", resultsN: "результатов", tabHome: "Каталог", tabAi: "AI",
     tabCart: "Корзина", tabOrders: "Заказы", tabProfile: "Профиль", added: "Добавлено в корзину 🌷", liked: "Добавлено в избранное",
@@ -455,6 +481,14 @@ const DELIVERY_FEE_ESTIMATE = 25000;
 
 // BTS olish nuqtalari. Vaqtinchalik ro'yxat — BTS integratsiyasi ulangach
 // bu ma'lumot serverdan (/api/bts-points) keladi.
+//
+// 🔴 `lat`/`lng` — TUMAN/SHAHAR MARKAZI aniqligida, BTS eshigining aniq
+// koordinatasi EMAS (2026-08-13). Ro'yxatning O'ZI namuna bo'lgani uchun
+// aniq koordinata o'ylab topilgan raqam bo'lardi — CLAUDE.md ataylab
+// taqiqlaydigan narsa, va bu yerda u ayniqsa qimmat: xarita nuqtani ANIQ
+// ko'rsatayotgandek tuyuladi, ya'ni yolg'on ishonch uyg'otadi va xaridor
+// noto'g'ri joyga borardi. Shuning uchun kartada `mapApprox` ogohlantirishi
+// DOIM ko'rinadi va u BTS'dan haqiqiy koordinata kelganda olib tashlanadi.
 const BTS_REGIONS = [
   { key:'tas', name:{ uz:"Toshkent",  ru:"Ташкент" } },
   { key:'far', name:{ uz:"Farg'ona",  ru:"Фергана" } },
@@ -463,15 +497,15 @@ const BTS_REGIONS = [
   { key:'and', name:{ uz:"Andijon",   ru:"Андижан" } },
 ];
 const BTS_POINTS = [
-  { id:'bts-112', region:'tas', name:{ uz:"BTS №112 — Chilonzor", ru:"BTS №112 — Чиланзар" }, addr:{ uz:"Bunyodkor ko'ch. 45", ru:"ул. Бунёдкор 45" }, hours:"9:00–19:00" },
-  { id:'bts-097', region:'tas', name:{ uz:"BTS №097 — Yunusobod", ru:"BTS №097 — Юнусабад" }, addr:{ uz:"Amir Temur ko'ch. 12", ru:"ул. Амира Темура 12" }, hours:"9:00–18:00" },
-  { id:'bts-054', region:'tas', name:{ uz:"BTS №054 — Sergeli", ru:"BTS №054 — Сергели" }, addr:{ uz:"Yangi Sergeli 8", ru:"Янги Сергели 8" }, hours:"9:00–19:00" },
-  { id:'bts-021', region:'tas', name:{ uz:"BTS №021 — Mirzo Ulug'bek", ru:"BTS №021 — Мирзо Улугбек" }, addr:{ uz:"Mustaqillik ko'ch. 78", ru:"ул. Мустакиллик 78" }, hours:"9:00–18:00" },
-  { id:'bts-140', region:'far', name:{ uz:"BTS №140 — Farg'ona markaz", ru:"BTS №140 — Фергана центр" }, addr:{ uz:"Mustaqillik ko'ch. 24", ru:"ул. Мустакиллик 24" }, hours:"9:00–18:00" },
-  { id:'bts-146', region:'far', name:{ uz:"BTS №146 — Marg'ilon", ru:"BTS №146 — Маргилан" }, addr:{ uz:"Toshkent ko'ch. 5", ru:"ул. Ташкентская 5" }, hours:"9:00–18:00" },
-  { id:'bts-203', region:'sam', name:{ uz:"BTS №203 — Samarqand markaz", ru:"BTS №203 — Самарканд центр" }, addr:{ uz:"Registon ko'ch. 3", ru:"ул. Регистан 3" }, hours:"9:00–19:00" },
-  { id:'bts-311', region:'bux', name:{ uz:"BTS №311 — Buxoro markaz", ru:"BTS №311 — Бухара центр" }, addr:{ uz:"Bahouddin Naqshband 17", ru:"ул. Бахоуддина Накшбанда 17" }, hours:"9:00–18:00" },
-  { id:'bts-408', region:'and', name:{ uz:"BTS №408 — Andijon markaz", ru:"BTS №408 — Андижан центр" }, addr:{ uz:"Navoiy shoh ko'chasi 41", ru:"пр. Навои 41" }, hours:"9:00–18:00" },
+  { id:'bts-112', lat:41.2756, lng:69.2044, region:'tas', name:{ uz:"BTS №112 — Chilonzor", ru:"BTS №112 — Чиланзар" }, addr:{ uz:"Bunyodkor ko'ch. 45", ru:"ул. Бунёдкор 45" }, hours:"9:00–19:00" },
+  { id:'bts-097', lat:41.3556, lng:69.2894, region:'tas', name:{ uz:"BTS №097 — Yunusobod", ru:"BTS №097 — Юнусабад" }, addr:{ uz:"Amir Temur ko'ch. 12", ru:"ул. Амира Темура 12" }, hours:"9:00–18:00" },
+  { id:'bts-054', lat:41.2232, lng:69.2200, region:'tas', name:{ uz:"BTS №054 — Sergeli", ru:"BTS №054 — Сергели" }, addr:{ uz:"Yangi Sergeli 8", ru:"Янги Сергели 8" }, hours:"9:00–19:00" },
+  { id:'bts-021', lat:41.3253, lng:69.3346, region:'tas', name:{ uz:"BTS №021 — Mirzo Ulug'bek", ru:"BTS №021 — Мирзо Улугбек" }, addr:{ uz:"Mustaqillik ko'ch. 78", ru:"ул. Мустакиллик 78" }, hours:"9:00–18:00" },
+  { id:'bts-140', lat:40.3894, lng:71.7864, region:'far', name:{ uz:"BTS №140 — Farg'ona markaz", ru:"BTS №140 — Фергана центр" }, addr:{ uz:"Mustaqillik ko'ch. 24", ru:"ул. Мустакиллик 24" }, hours:"9:00–18:00" },
+  { id:'bts-146', lat:40.4711, lng:71.7244, region:'far', name:{ uz:"BTS №146 — Marg'ilon", ru:"BTS №146 — Маргилан" }, addr:{ uz:"Toshkent ko'ch. 5", ru:"ул. Ташкентская 5" }, hours:"9:00–18:00" },
+  { id:'bts-203', lat:39.6547, lng:66.9758, region:'sam', name:{ uz:"BTS №203 — Samarqand markaz", ru:"BTS №203 — Самарканд центр" }, addr:{ uz:"Registon ko'ch. 3", ru:"ул. Регистан 3" }, hours:"9:00–19:00" },
+  { id:'bts-311', lat:39.7747, lng:64.4286, region:'bux', name:{ uz:"BTS №311 — Buxoro markaz", ru:"BTS №311 — Бухара центр" }, addr:{ uz:"Bahouddin Naqshband 17", ru:"ул. Бахоуддина Накшбанда 17" }, hours:"9:00–18:00" },
+  { id:'bts-408', lat:40.7821, lng:72.3442, region:'and', name:{ uz:"BTS №408 — Andijon markaz", ru:"BTS №408 — Андижан центр" }, addr:{ uz:"Navoiy shoh ko'chasi 41", ru:"пр. Навои 41" }, hours:"9:00–18:00" },
 ];
 function btsById(id) { return BTS_POINTS.find(p => p.id === id) || null; }
 
@@ -481,13 +515,39 @@ function loadBtsPoint() {
   try { return localStorage.getItem('lolamarket_bts_point') || null; }
   catch (e) { return null; }
 }
+// ⚠️ Bo'sh qiymatda kalit O'CHIRILADI (2026-08-13). Aks holda boshqa
+// qurilmada o'chirilgan tanlov bu yerda brauzer xotirasidan TIRILIB
+// qolardi va buni hech narsa ko'rsatmasdi.
 function saveBtsPoint(id) {
-  try { localStorage.setItem('lolamarket_bts_point', id); } catch (e) {}
+  try {
+    if (id) localStorage.setItem('lolamarket_bts_point', id);
+    else localStorage.removeItem('lolamarket_bts_point');
+  } catch (e) {}
 }
 
 const RECENT_SEARCHES = {
   uz: ["adras","ipak","so'zana","jun","Marg'ilon"],
   ru: ["адрас","шёлк","сюзане","шерсть","Маргилан"],
+};
+
+// ============ BIZ BILAN BOG'LANISH ============
+// LolaMarket qo'llab-quvvatlash kanallari (2026-08-13 founder qarori).
+//
+// ⚠️ AYNI blok saytda ham bor (`script.js` → `SUPPORT`) — BTS ro'yxati bilan
+// bitta naqsh: nusxa BILIB QILINGAN, chunki uchinchi manba (server) hali yo'q.
+// Raqam yoki username o'zgarsa IKKALASI birga yangilansin, aks holda ikki
+// yuzda ikki xil raqam turib qolardi.
+//
+// ⚠️ `tel` — raqamning MOSHINA o'qiydigan shakli (probel va qavssiz): brauzer
+// `tel:` havolasini aynan shu ko'rinishda ishonchli ochadi. `label` esa odam
+// o'qiydigan shakl. Ikkalasi ALOHIDA saqlanadi — bittasidan ikkinchisini
+// yasash (probellarni olib tashlash) bir kun kelib `+998 (93)` kabi shaklda
+// jimgina buzilardi.
+const SUPPORT = {
+  tel: '+998939993996',
+  telLabel: '+998 (93) 999-39-96',
+  tgUser: 'furqattukhsanov',
+  tgUrl: 'https://t.me/furqattukhsanov',
 };
 
 const COMPANY = {
@@ -523,6 +583,21 @@ const S = {
   btsRegion: 'tas',
   btsSheet: false,
   btsQuery: '',
+  // Nuqta tanlash oynasi qaysi ko'rinishda — ro'yxat yoki karta.
+  // Ro'yxat BIRINCHI va bu ataylab: u kartaga, kalitga va tarmoqqa
+  // bog'liq emas, ya'ni HAR DOIM ishlaydi (`mapsKey` yo'q bo'lsa karta
+  // tugmasi umuman chizilmaydi).
+  btsView: 'list',
+  // Oyna QAYERDAN ochilgan — yopilganda qaysi ekran qayta chizilishini
+  // shu hal qiladi (checkout / profil).
+  btsFrom: 'checkout',
+  // Karta sozlamasi SERVERDAN (`/api/auth/telegram` → `mapsClientConfig`).
+  // Boshlang'ich `null` — javob kelmaguncha karta tugmasi ko'rinmaydi,
+  // ya'ni bosilib "ishlamadi" deydigan tugma bo'lmaydi (AI tugmasi bilan
+  // bitta mulohaza).
+  mapsKey: null,
+  // Manzil serverga saqlanmoqdami — tugma ikki marta bosilmasin.
+  addrSaving: false,
   ordersTab: 'active',
   // — AI kiyim RASMI (2026-08-07) —
   // Serverdan keladi (`/api/auth/telegram` javobi): kalit yaroqsiz bo'lsa
@@ -1676,6 +1751,16 @@ function setAiText(qiymat, productId) {
 
 // Ulashish — rasm allaqachon Telegram'da yashaydi, ya'ni bu deyarli tekin
 // kanal. Havola bizning domendagi `/api/product-photo` proksisi.
+// Qo'llab-quvvatlash Telegram'i. `shareAiImage` bilan AYNI mexanizm va
+// AYNI sabab: Mini App Telegram WebView ichida yashaydi, oddiy `<a>` esa
+// `t.me` ni ICHKI brauzerda ochib, foydalanuvchini chatga tushirmasdi.
+// `openTelegramLink` uni Telegram'ning o'ziga uzatadi.
+function openSupportTg() {
+  const tg = window.Telegram && window.Telegram.WebApp;
+  if (tg && tg.openTelegramLink) tg.openTelegramLink(SUPPORT.tgUrl);
+  else window.open(SUPPORT.tgUrl, '_blank');
+}
+
 function shareAiImage(url) {
   const T = STR[S.lang];
   const toliq = String(url || '').startsWith('http') ? url : location.origin + url;
@@ -2022,6 +2107,52 @@ function renderCheckout() {
 }
 
 // ============ BTS NUQTASI TANLASH (bottom-sheet) ============
+// Ikki ko'rinish: RO'YXAT (har doim ishlaydi) va KARTA (kalit bo'lsa).
+// Karta tugmasi `S.mapsKey` bo'lmasa UMUMAN chizilmaydi — bosilgach
+// "ishlamadi" deydigan tugma bo'lmasin (AI tugmasi bilan bitta mulohaza).
+function btsViewTabs() {
+  const T = STR[S.lang];
+  if (!S.mapsKey) return '';
+  const btn = (k, matn) => {
+    const on = S.btsView === k;
+    return `<button data-action="setBtsView" data-arg="${k}" style="flex:1;cursor:pointer;height:32px;border-radius:999px;border:none;font-family:var(--font-sans);font-size:12.5px;font-weight:700;background:${on ? 'var(--ink-900)' : 'transparent'};color:${on ? '#fff' : 'var(--text-muted)'}">${matn}</button>`;
+  };
+  return `<div style="display:flex;gap:3px;padding:3px;margin-bottom:10px;border-radius:999px;background:var(--ink-50,var(--ink-100));flex:none">
+    ${btn('list', T.viewList)}${btn('map', T.viewMap)}
+  </div>`;
+}
+
+// Karta ko'rinishi. Tugma `#bts-map` ga Yandex tomonidan chiziladi
+// (`mountBtsMap`), pastdagi kartochka esa tanlangan nuqtani ko'rsatadi va
+// TO'LIQ QAYTA CHIZISHSIZ yangilanadi (`paintMapPick`) — aks holda har
+// belgi bosilganda karta qaytadan yuklanardi va ekran sakrardi.
+function renderBtsMapView() {
+  const T = STR[S.lang];
+  return `
+    <div id="bts-map" style="flex:none;height:min(46vh,300px);border-radius:var(--radius-md);overflow:hidden;background:var(--ink-50,var(--ink-100));display:flex;align-items:center;justify-content:center;font-size:12.5px;color:var(--text-muted)">${T.mapLoading}</div>
+    <div style="display:flex;align-items:flex-start;gap:6px;font-size:11px;line-height:1.4;color:var(--text-subtle);margin:8px 2px 0;flex:none">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style="flex:none;margin-top:1px"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 8h.01M11 12h1v4h1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <span>${T.mapApprox}</span>
+    </div>
+    <div id="bts-map-pick" style="flex:none;margin-top:10px">${btsMapPickHtml()}</div>`;
+}
+
+// Kartadagi tanlov kartochkasi. Alohida funksiya, chunki u ikki joydan
+// chiziladi: sheet ochilganda va belgi bosilganda (qayta chizishsiz).
+function btsMapPickHtml() {
+  const T = STR[S.lang];
+  const p = btsById(S.btsPoint);
+  if (!p) {
+    return `<div style="text-align:center;font-size:12.5px;color:var(--text-muted);padding:13px 0">${T.pickPoint}</div>`;
+  }
+  return `
+    <div style="padding:12px;border-radius:var(--radius-md);background:#fff;box-shadow:0 0 0 1.5px #7a140d">
+      <div style="font-size:13.5px;font-weight:700;color:var(--text-strong)">${p.name[S.lang]}</div>
+      <div style="font-size:12px;color:var(--text-muted);margin-top:2px">${p.addr[S.lang]} · ${p.hours}</div>
+    </div>
+    <button data-action="pickBts" data-arg="${p.id}" style="margin-top:9px;width:100%;height:48px;border:none;border-radius:var(--radius-md);background:linear-gradient(135deg,#8f1a10,#510100);color:#ffe9db;font-family:var(--font-sans);font-size:15px;font-weight:600;cursor:pointer;box-shadow:var(--shadow-sm)">${T.pickSelect}</button>`;
+}
+
 function renderBtsSheet() {
   const T = STR[S.lang];
   const q = S.btsQuery.trim().toLowerCase();
@@ -2036,6 +2167,8 @@ function renderBtsSheet() {
     <div style="width:38px;height:4px;border-radius:99px;background:var(--ink-200);margin:0 auto 12px;flex:none"></div>
     <div style="font-family:var(--font-display);font-size:17px;font-weight:800;color:var(--text-strong);letter-spacing:-.02em;margin-bottom:11px;flex:none">${T.pickSheetT}</div>
 
+    ${btsViewTabs()}
+    ${S.btsView === 'map' && S.mapsKey ? renderBtsMapView() : `
     <div style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.8);border-radius:999px;height:44px;padding:0 14px;flex:none;box-shadow:var(--shadow-sm)">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style="flex:none;color:var(--ink-400)"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M20 20l-3.5-3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
       <input id="bts-search" value="${S.btsQuery}" data-input="onBtsSearch" placeholder="${T.pickSearchPh}" style="flex:1;align-self:stretch;border:none;background:none;outline:none;font-family:var(--font-sans);font-size:16px;color:var(--text-strong)">
@@ -2065,7 +2198,7 @@ function renderBtsSheet() {
       }).join('')}
     </div>
 
-    <button data-action="closeBtsSheet" style="flex:none;margin-top:10px;width:100%;height:50px;border:none;border-radius:var(--radius-md);background:linear-gradient(135deg,#8f1a10,#510100);color:#ffe9db;font-family:var(--font-sans);font-size:15px;font-weight:600;cursor:pointer;box-shadow:var(--shadow-sm)">${T.pickSelect}</button>
+    <button data-action="closeBtsSheet" style="flex:none;margin-top:10px;width:100%;height:50px;border:none;border-radius:var(--radius-md);background:linear-gradient(135deg,#8f1a10,#510100);color:#ffe9db;font-family:var(--font-sans);font-size:15px;font-weight:600;cursor:pointer;box-shadow:var(--shadow-sm)">${T.pickSelect}</button>`}
   </div>`;
 }
 
@@ -2121,17 +2254,41 @@ function paintSheet() {
     : S.revSheet ? renderReviewSheet()
     : S.priceSheet ? renderPriceSheet()
     : '';
+  // Karta HTML bilan birga kelmaydi — u `#bts-map` tuguni DOM'ga
+  // tushgandan keyin chiziladi. Shuning uchun mount aynan shu yerda:
+  // sheet qayta chizilgan har safar tugun YANGI bo'ladi.
+  if (S.btsSheet && S.btsView === 'map' && S.mapsKey) mountBtsMap();
 }
 function openBtsSheet() {
   S.btsSheet = true;
   S.btsQuery = '';
+  S.btsFrom = 'checkout';
   paintSheet();
 }
+
+// Profildagi "Mening manzilim" — AYNI sheet, lekin kartadan boshlanadi va
+// yopilganda checkout emas, PROFIL qayta chiziladi. `S.btsFrom` shuning
+// uchun bor: usiz yopish har doim `renderCheckout()` chaqirardi va profildan
+// ochilgan oyna yopilganda ekran jimgina checkout'ga sakrab ketardi.
+function openAddrPicker() {
+  S.btsSheet = true;
+  S.btsQuery = '';
+  S.btsFrom = 'profile';
+  S.btsView = S.mapsKey ? 'map' : 'list';
+  paintSheet();
+}
+
 function closeBtsSheet() {
+  const qayerdan = S.btsFrom;
   S.btsSheet = false;
   paintSheet();
-  document.getElementById('screen-wrap').innerHTML = renderCheckout();
+  document.getElementById('screen-wrap').innerHTML =
+    qayerdan === 'profile' ? renderProfile() : renderCheckout();
   updateNav();
+}
+function setBtsView(k) {
+  S.btsView = k === 'map' ? 'map' : 'list';
+  paintSheet();
 }
 function setBtsRegion(k) {
   S.btsRegion = k;
@@ -2148,7 +2305,148 @@ function pickBts(id) {
   saveBtsPoint(id);
   const p = btsById(id);
   if (p) S.btsRegion = p.region;
+  // Tanlov BAZAGA ham yoziladi (`db/022`) — shunda u boshqa qurilmada va
+  // saytda ham topiladi. `localStorage` qolaveradi: server javobi kelgunicha
+  // va kirmagan (mehmon) foydalanuvchi uchun zaxira.
+  savePickupPoint(id, S.btsFrom === 'profile');
   closeBtsSheet();
+}
+
+// ---- Kartadagi belgini bosish ----
+// ⚠️ Bu yerda QAYTA CHIZISH YO'Q: butun sheet qayta chizilsa karta o'chib,
+// qaytadan yuklanardi va ekran har bosishda sakrardi (bu naqsh loyihada
+// allaqachon bor — `paintBtsInfo`, `setAiText`). Faqat pastdagi kartochka
+// almashtiriladi.
+function mapPickBts(id) {
+  if (!btsById(id)) return;
+  S.btsPoint = id;
+  paintMapPick();
+  paintMapMarkers();
+}
+function paintMapPick() {
+  const box = document.getElementById('bts-map-pick');
+  if (box) box.innerHTML = btsMapPickHtml();
+}
+
+// ============ MANZILNI SERVERGA SAQLASH ============
+// ⚠️ Xato YUTILMAYDI, lekin JOYIGA qarab boshqacha ko'rsatiladi:
+//   * profildan tanlangan bo'lsa — xaridor aynan "manzilimni saqlayapman"
+//     deb turibdi, ya'ni jimgina muvaffaqiyatsizlik YOLG'ON bo'lardi
+//     (u keyingi kirishda manzilini topmasdi). Toast chiqadi.
+//   * checkout'dan bo'lsa — nuqta buyurtmaga baribir ketadi (`address`
+//     matni bilan), ya'ni xaridor uchun hech narsa buzilmaydi. Uni ortiqcha
+//     xato bilan qo'rqitmaymiz, lekin jurnalga yozamiz.
+async function savePickupPoint(id, koRsat) {
+  if (!tgInitData()) {
+    if (koRsat) showToast(STR[S.lang].myAddrGuest);
+    return;
+  }
+  if (S.addrSaving) return;
+  S.addrSaving = true;
+  try {
+    const r = await fetch('/api/pickup-point', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Telegram-Init-Data': tgInitData() },
+      body: JSON.stringify({ pointId: id }),
+    });
+    const d = await r.json().catch(() => null);
+    if (!d || d.ok !== true) throw new Error((d && d.error) || 'saqlanmadi');
+    if (koRsat) showToast(STR[S.lang].myAddrSaved);
+  } catch (e) {
+    // Birinchi argument — alert guruhlash kaliti (CLAUDE.md).
+    console.error('pickupPoint saqlanmadi:', e.message);
+    if (koRsat) showToast(STR[S.lang].myAddrErr);
+  } finally {
+    S.addrSaving = false;
+  }
+}
+
+// ============ YANDEX KARTA ============
+// ⚠️ Skript DINAMIK yuklanadi — `<head>` ga qo'yilmaydi. Ikki sabab:
+// (1) CLAUDE.md qoidasi — tashqi skript HTML tahlilini to'xtatmasin
+// (`telegram-web-app.js` bir marta ~613 ms yegan); (2) karta profil
+// oynasi ochilmaguncha umuman kerak emas, ya'ni ko'pchilik foydalanuvchi
+// uni HECH QACHON yuklamaydi.
+//
+// ⚠️ Til skript MANZILIGA yoziladi va keyin o'zgarmaydi: Yandex tilni
+// yuklashda oladi. Foydalanuvchi tilni almashtirsa karta eski tilda
+// qolaveradi — bu bilib qilingan murosa, alternativa sahifani qayta
+// yuklash bo'lardi.
+let ymapsPromise = null;
+function loadYmaps() {
+  if (ymapsPromise) return ymapsPromise;
+  if (!S.mapsKey) return Promise.reject(new Error('kalit yo\'q'));
+  ymapsPromise = new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://api-maps.yandex.ru/2.1/?apikey=' + encodeURIComponent(S.mapsKey) +
+      '&lang=' + (S.lang === 'ru' ? 'ru_RU' : 'en_US');
+    s.async = true;
+    s.onload = () => {
+      if (window.ymaps && window.ymaps.ready) window.ymaps.ready(() => resolve(window.ymaps));
+      else reject(new Error('ymaps topilmadi'));
+    };
+    // ⚠️ Yiqilgan urinish ESLAB QOLINMAYDI: `ymapsPromise` bo'shatiladi,
+    // aks holda bir marta uzilgan tarmoq kartani sessiya oxirigacha
+    // o'lik qoldirardi.
+    s.onerror = () => { ymapsPromise = null; reject(new Error('skript yuklanmadi')); };
+    document.head.appendChild(s);
+  });
+  return ymapsPromise;
+}
+
+let btsMap = null;
+let btsMarkers = {};
+
+async function mountBtsMap() {
+  const box = document.getElementById('bts-map');
+  if (!box || !S.mapsKey) return;
+  btsMap = null;
+  btsMarkers = {};
+  try {
+    const ymaps = await loadYmaps();
+    // Kutish paytida oyna yopilgan bo'lishi mumkin — o'shanda kartani
+    // mavjud bo'lmagan tugunga chizishga urinmaymiz.
+    if (!document.body.contains(box)) return;
+    box.innerHTML = '';
+
+    const tanlangan = btsById(S.btsPoint);
+    btsMap = new ymaps.Map(box, {
+      center: tanlangan ? [tanlangan.lat, tanlangan.lng] : [41.3111, 69.2797],
+      zoom: tanlangan ? 12 : 6,
+      // `geolocationControl` — "eng yaqin nuqta" savoliga tayyor javob:
+      // xaridor o'z joyini bir bosishda ko'radi va yonidagini tanlaydi.
+      controls: ['zoomControl', 'geolocationControl'],
+    }, { suppressMapOpenBlock: true });
+
+    for (const p of BTS_POINTS) {
+      const m = new ymaps.Placemark([p.lat, p.lng], {
+        hintContent: p.name[S.lang],
+      }, { preset: 'islands#dotIcon', iconColor: '#7a140d' });
+      m.events.add('click', () => mapPickBts(p.id));
+      btsMarkers[p.id] = m;
+      btsMap.geoObjects.add(m);
+    }
+    paintMapMarkers();
+  } catch (e) {
+    // Xato YUTILMAYDI, lekin xaridor tiqilib qolmaydi: ro'yxat yonida
+    // turibdi va u kartaga umuman bog'liq emas.
+    console.error('Karta yuklanmadi:', e.message);
+    if (document.body.contains(box)) {
+      box.textContent = STR[S.lang].mapOff;
+    }
+  }
+}
+
+// Tanlangan belgi ajralib tursin. Belgilar QAYTA YARATILMAYDI — faqat
+// rangi almashtiriladi, aks holda karta har bosishda "sakrardi".
+function paintMapMarkers() {
+  for (const id in btsMarkers) {
+    const on = id === S.btsPoint;
+    btsMarkers[id].options.set({
+      preset: on ? 'islands#circleIcon' : 'islands#dotIcon',
+      iconColor: on ? '#7a140d' : '#9b8f88',
+    });
+  }
 }
 
 // ============ BAHSLI HOLAT (xaridor tomoni) ============
@@ -2532,6 +2830,87 @@ function renderTgCard() {
   </div>`;
 }
 
+// ============ PROFIL: MENING MANZILIM ============
+// Doimiy BTS olish nuqtasi. Tanlansa bazada saqlanadi (`/api/pickup-point`)
+// va checkout uni oldindan qo'yadi — B2B xaridor deyarli doim bitta
+// nuqtadan oladi.
+//
+// ⚠️ Nuqta TANLANMAGAN bo'lsa soxta manzil ko'rsatilmaydi: blok "tanlanmagan"
+// deb turadi (`NULL` reyting qoidasi bilan bitta oila — yo'qlik KO'RINSIN).
+function renderMyAddress() {
+  const T = STR[S.lang];
+  const p = btsById(S.btsPoint);
+  const kartaBor = !!S.mapsKey;
+  return `
+  <div>
+    <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-subtle);margin-bottom:8px">${T.myAddr}</div>
+    <div style="padding:14px;border-radius:var(--radius-md);background:rgba(255,255,255,.6);backdrop-filter:blur(16px) saturate(160%);-webkit-backdrop-filter:blur(16px) saturate(160%);border:1px solid rgba(255,255,255,.55);box-shadow:0 5px 16px -12px rgba(81,1,0,.12)">
+      <div style="display:flex;align-items:flex-start;gap:12px">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" style="flex:none;margin-top:1px;color:${p ? '#7a140d' : 'var(--text-muted)'}"><path d="M12 21s7-6.2 7-11a7 7 0 1 0-14 0c0 4.8 7 11 7 11z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="10" r="2.6" stroke="currentColor" stroke-width="2"/></svg>
+        <div style="flex:1;min-width:0">
+          ${p ? `
+            <div style="font-size:14px;font-weight:700;color:var(--text-strong);line-height:1.3">${p.name[S.lang]}</div>
+            <div style="font-size:12.5px;color:var(--text-muted);margin-top:3px;line-height:1.4">${p.addr[S.lang]}</div>
+            <div style="font-size:12px;color:var(--text-subtle);margin-top:2px">${T.workHours}: ${p.hours}</div>
+          ` : `
+            <div style="font-size:14px;font-weight:600;color:var(--text-body);line-height:1.3">${T.myAddrNone}</div>
+            <div style="font-size:12.5px;color:var(--text-muted);margin-top:3px;line-height:1.4">${T.myAddrHint}</div>
+          `}
+        </div>
+      </div>
+      <button data-action="openAddrPicker" style="margin-top:12px;width:100%;height:42px;border-radius:var(--radius-md);cursor:pointer;font-family:var(--font-sans);font-size:13.5px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:7px;${p
+        ? 'border:1px solid var(--glass-border);background:var(--glass-fill);color:var(--text-body)'
+        : 'border:none;background:linear-gradient(135deg,#8f1a10,#510100);color:#ffe9db;box-shadow:var(--shadow-sm)'}">
+        ${kartaBor ? `<svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M9 3L3 5.5v15L9 18l6 3 6-2.5v-15L15 6 9 3z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M9 3v15M15 6v15" stroke="currentColor" stroke-width="1.8"/></svg>` : ''}
+        ${p ? T.myAddrChange : (kartaBor ? T.myAddrPick : T.pickPoint)}
+      </button>
+    </div>
+  </div>`;
+}
+
+// ============ PROFIL: BIZ BILAN BOG'LANISH ============
+// ⚠️ TELEGRAM HAVOLASI ODDIY `<a>` EMAS. Mini App Telegram'ning O'Z
+// WebView'i ichida ishlaydi va u yerdagi `t.me/...` havolasi ichki brauzerda
+// ochilib, foydalanuvchi chatga TUSHMAY qolardi. `openTelegramLink()` esa
+// Telegram'ning o'ziga uzatadi — chat HAQIQATAN ochiladi (founder sharti:
+// "faqat telegramga haqiqatan o'tadigan qil"). Telegram tashqarisida
+// (brauzerda ochilgan Mini App) zaxira yo'l — oddiy `window.open`.
+//
+// Telefon esa ODDIY `<a href="tel:">` bo'lib qoladi va bu ataylab: `tel:`
+// ni WebView ham, brauzer ham o'zi to'g'ri boshqaradi, `openLink()` esa uni
+// veb-sahifa deb ochishga urinardi.
+function renderContact() {
+  const T = STR[S.lang];
+  const qator = 'display:flex;align-items:center;gap:12px;width:100%;text-align:left;cursor:pointer;padding:13px 14px;border:none;background:none;font-family:var(--font-sans);text-decoration:none';
+  const belgi = 'flex:none;width:34px;height:34px;border-radius:11px;display:flex;align-items:center;justify-content:center';
+  return `
+  <div>
+    <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-subtle);margin-bottom:8px">${T.contactT}</div>
+    <div style="display:flex;flex-direction:column;border:1px solid rgba(255,255,255,.55);border-radius:var(--radius-md);overflow:hidden;background:rgba(255,255,255,.6);backdrop-filter:blur(16px) saturate(160%);-webkit-backdrop-filter:blur(16px) saturate(160%);box-shadow:0 5px 16px -12px rgba(81,1,0,.12)">
+      <a class="tap44" href="tel:${SUPPORT.tel}" style="${qator};border-bottom:1px solid var(--border-hair)">
+        <span style="${belgi};background:var(--pom-100);color:#7a140d">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3-8.6A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8.1 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+        </span>
+        <span style="flex:1;min-width:0">
+          <span style="display:block;font-family:var(--font-mono);font-size:14.5px;font-weight:600;color:var(--text-strong)">${SUPPORT.telLabel}</span>
+          <span style="display:block;font-size:12px;color:var(--text-muted);margin-top:1px">${T.contactCall}</span>
+        </span>
+        <span style="flex:none;color:var(--text-subtle);font-size:17px">›</span>
+      </a>
+      <button data-action="openSupportTg" style="${qator}">
+        <span style="${belgi};background:rgba(55,174,226,.13);color:#1E96C8">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M21 4L2.5 11.5l6 2 2 6.5L15 15l5-11z"/></svg>
+        </span>
+        <span style="flex:1;min-width:0">
+          <span style="display:block;font-size:14.5px;font-weight:700;color:var(--text-strong)">@${SUPPORT.tgUser}</span>
+          <span style="display:block;font-size:12px;color:var(--text-muted);margin-top:1px">${T.contactTg}</span>
+        </span>
+        <span style="flex:none;color:var(--text-subtle);font-size:17px">›</span>
+      </button>
+    </div>
+  </div>`;
+}
+
 // ============ EKRAN: PROFIL ============
 function renderProfile() {
   const T = STR[S.lang];
@@ -2560,6 +2939,9 @@ function renderProfile() {
         <span style="font-size:14px;color:var(--text-body)">${COMPANY.email}</span>
       </div>
     </div>
+
+    ${renderMyAddress()}
+    ${renderContact()}
 
     ${S.role === 'seller' ? `
     <button data-action="enterSellerMode" style="display:flex;align-items:center;gap:12px;width:100%;text-align:left;cursor:pointer;padding:15px;border-radius:var(--radius-md);border:1px solid rgba(17,157,171,.25);background:var(--teal-50)">
@@ -2996,6 +3378,10 @@ async function loginTelegram() {
       // Savol kalitlari serverdan. Kelmasa — savol chizilmaydi va tugma
       // ham chizilmaydi (pastdagi `aiImageSection` shuni tekshiradi).
       S.aiChoiceKeys = d.aiImageChoices || null;
+      // Karta kaliti ham SHU javobdan (`mapsClientConfig`). Kelmasa
+      // `null` da qoladi va profilda karta tugmasi chizilmaydi — nuqta
+      // ro'yxatdan tanlanadi (funksiya ishlayveradi).
+      S.mapsKey = (d.mapsEnabled && typeof d.mapsKey === 'string' && d.mapsKey) ? d.mapsKey : null;
       S.aiComboKeys = d.aiComboChoices || null;
       if (Number.isInteger(d.aiComboTextMax) && d.aiComboTextMax > 0) {
         S.aiComboTextMax = d.aiComboTextMax;
@@ -3461,6 +3847,19 @@ async function loadMe() {
     const d = await sellerFetch('/api/me');
     S.role = d.role || 'buyer';
     S.seller = d.seller || null;
+    // Doimiy olish nuqtasi BAZADAN — u boshqa qurilmada tanlangan bo'lishi
+    // mumkin. ⚠️ `localStorage` faqat server JAVOB BERMAGANDA yashaydi:
+    // server "tanlanmagan" desa, brauzerdagi eski qiymat bosib turmasin,
+    // aks holda xaridor boshqa qurilmada o'chirgan tanlov bu yerda tirilib
+    // qolardi. Ya'ni haqiqat manbai — baza.
+    if (d.pickupPointId !== undefined) {
+      S.btsPoint = btsById(d.pickupPointId) ? d.pickupPointId : null;
+      saveBtsPoint(S.btsPoint);
+      if (S.btsPoint) S.btsRegion = btsById(S.btsPoint).region;
+      if (S.screen === 'profile') {
+        document.getElementById('screen-wrap').innerHTML = renderProfile();
+      }
+    }
   } catch (e) { /* rol aniqlanmadi — xaridor bo'lib qolaveradi */ }
 }
 

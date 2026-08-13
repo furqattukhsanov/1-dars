@@ -83,6 +83,22 @@ const STR = {
     btsHint: 'BTS Pochta orqali yetkaziladi — sizga eng qulay nuqtani tanlang.',
     // ---- Profil ----
     myOrders: 'Mening buyurtmalarim',
+    myAddr: 'Mening manzilim',
+    myAddrNone: 'Doimiy olish nuqtasi tanlanmagan',
+    myAddrHint: "Tanlansa, buyurtma berishda shu nuqta oldindan qo'yiladi",
+    myAddrPick: 'Kartadan tanlash',
+    myAddrChange: "O'zgartirish",
+    myAddrSaved: 'Manzil saqlandi',
+    myAddrErr: "Manzil saqlanmadi — qayta urinib ko'ring",
+    myAddrClose: 'Yopish',
+    workHoursL: 'Ish vaqti',
+    mapApprox: 'Belgi tuman markazi aniqligida — aniq joyni BTS bilan tekshiring',
+    mapOff: "Karta yuklanmadi — nuqtani ro'yxatdan tanlang",
+    mapLoading: 'Karta yuklanmoqda…',
+    pickSelect: 'Tanlash',
+    contactT: "Biz bilan bog'lanish",
+    contactCall: "Qo'ng'iroq qilish",
+    contactTg: 'Telegram orqali yozish',
     noOrders: "Hozircha buyurtma yo'q. Katalogdan mato tanlab birinchi buyurtmangizni bering.",
     logout: 'Hisobdan chiqish',
     loggedOut: 'Hisobdan chiqdingiz',
@@ -258,6 +274,22 @@ const STR = {
     orderAccepted: 'Заказ принят',
     btsHint: 'Доставка через BTS Pochta — выберите удобный пункт выдачи.',
     myOrders: 'Мои заказы',
+    myAddr: 'Мой адрес',
+    myAddrNone: 'Постоянный пункт выдачи не выбран',
+    myAddrHint: 'Выбранный пункт будет подставлен при оформлении заказа',
+    myAddrPick: 'Выбрать на карте',
+    myAddrChange: 'Изменить',
+    myAddrSaved: 'Адрес сохранён',
+    myAddrErr: 'Адрес не сохранён — попробуйте ещё раз',
+    myAddrClose: 'Закрыть',
+    workHoursL: 'Часы работы',
+    mapApprox: 'Метка с точностью до центра района — уточните адрес в BTS',
+    mapOff: 'Карта не загрузилась — выберите пункт из списка',
+    mapLoading: 'Карта загружается…',
+    pickSelect: 'Выбрать',
+    contactT: 'Связаться с нами',
+    contactCall: 'Позвонить',
+    contactTg: 'Написать в Telegram',
     noOrders: 'Пока заказов нет. Выберите ткань в каталоге и оформите первый заказ.',
     logout: 'Выйти',
     loggedOut: 'Вы вышли из аккаунта',
@@ -1054,6 +1086,9 @@ apiJson('/api/auth/web/me')
     // ochib ulgurishi mumkin va o'shanda AI bloki JIMGINA yo'q bo'lardi
     // (xato yo'q, sabab ko'rinmaydi). Checkout va boshqa ko'rinishlarga
     // TEGILMAYDI — u yerda xaridor yozayotgan maydonlar o'chib ketardi.
+    // Karta kaliti — AYNI kanaldan (`mapsClientConfig`). Kelmasa `null` da
+    // qoladi: manzil bo'limi ishlayveradi, faqat kartasiz (ro'yxat bilan).
+    mapsKey = (d.mapsEnabled && typeof d.mapsKey === 'string' && d.mapsKey) ? d.mapsKey : null;
     aiCfg = readAiConfig(d);
     if (aiCfg && isOpen() && drawerView === 'detail') renderDrawer();
     if (d.user) {
@@ -1140,10 +1175,229 @@ function profileHtml() {
       <span class="s-enter-sub">${esc(L(sellerMe.seller.name))}${sellerMe.seller.verified ? ` · ${t('sVerified')}` : ''}</span>
     </button>` : ''}
 
+    ${myAddressHtml()}
+    ${contactHtml()}
+
     <div class="profile-sec-title">${t('myOrders')}</div>
     ${orders}
 
     <button class="auth-ghost" style="margin-top:18px;width:100%" data-action="logout">${t('logout')}</button>`;
+}
+
+/* ── Profil: "Mening manzilim" ──
+   Doimiy BTS olish nuqtasi. Tanlansa bazada saqlanadi (`/api/pickup-point`)
+   va checkout uni oldindan qo'yadi.
+
+   ⚠️ Nuqta tanlanmagan bo'lsa SOXTA manzil ko'rsatilmaydi — blok
+   "tanlanmagan" deb turadi (`NULL` reyting qoidasi bilan bitta oila:
+   yo'qlik ko'rinsin, jimgina yolg'on gapirmasin). */
+function myAddressHtml() {
+  const p = btsById(btsPoint);
+  return `
+    <div class="profile-sec-title">${t('myAddr')}</div>
+    <div class="addr-card">
+      <svg class="addr-pin" width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M12 21s7-6.2 7-11a7 7 0 1 0-14 0c0 4.8 7 11 7 11z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+        <circle cx="12" cy="10" r="2.6" stroke="currentColor" stroke-width="2"/>
+      </svg>
+      <div class="addr-main">
+        ${p ? `
+          <div class="addr-name">${esc(p.name)}</div>
+          <div class="addr-sub">${esc(p.addr)}</div>
+          <div class="addr-sub">${t('workHoursL')}: ${esc(p.hours)}</div>
+        ` : `
+          <div class="addr-name addr-none">${t('myAddrNone')}</div>
+          <div class="addr-sub">${t('myAddrHint')}</div>
+        `}
+      </div>
+      <button class="${p ? 'addr-btn' : 'addr-btn is-primary'}" data-action="openAddrPicker">
+        ${p ? t('myAddrChange') : t('myAddrPick')}
+      </button>
+    </div>`;
+}
+
+/* ── Profil: "Biz bilan bog'lanish" ──
+   Saytda ikkalasi ham ODDIY havola bo'lib qoladi va bu ataylab: brauzerda
+   `tel:` ni tizim o'zi ochadi, `t.me/...` esa Telegram ilovasiga o'tadi
+   (o'rnatilmagan bo'lsa — veb-versiyaga). Mini App'da esa bu ishlamaydi
+   va u yerda `openTelegramLink()` ishlatilgan (`telegram-app/app.js`) —
+   farq WebView'dan kelib chiqadi, uslubdan emas. */
+function contactHtml() {
+  return `
+    <div class="profile-sec-title">${t('contactT')}</div>
+    <div class="contact-list">
+      <a class="contact-row" href="tel:${SUPPORT.tel}">
+        <span class="contact-ico is-phone" aria-hidden="true">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3-8.6A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8.1 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+        </span>
+        <span class="contact-main">
+          <span class="contact-val is-mono">${SUPPORT.telLabel}</span>
+          <span class="contact-sub">${t('contactCall')}</span>
+        </span>
+        <span class="contact-arrow" aria-hidden="true">›</span>
+      </a>
+      <a class="contact-row" href="${SUPPORT.tgUrl}" target="_blank" rel="noopener">
+        <span class="contact-ico is-tg" aria-hidden="true">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M21 4L2.5 11.5l6 2 2 6.5L15 15l5-11z"/></svg>
+        </span>
+        <span class="contact-main">
+          <span class="contact-val">@${SUPPORT.tgUser}</span>
+          <span class="contact-sub">${t('contactTg')}</span>
+        </span>
+        <span class="contact-arrow" aria-hidden="true">›</span>
+      </a>
+    </div>`;
+}
+
+/* ── Manzil tanlash ko'rinishi (karta + ro'yxat) ──
+   Karta va ro'yxat BIRGA turadi, ular bir-birining o'rnini bosmaydi:
+   karta "qayerdaligini ko'rsatadi", ro'yxat esa kalitsiz ham, karta
+   yiqilganda ham ishlaydigan YAGONA ishonchli yo'l. */
+function addressPickerHtml() {
+  const rows = BTS_POINTS.map((p) => {
+    const on = p.id === btsPoint;
+    return `
+      <button class="addr-opt${on ? ' is-on' : ''}" data-action="pickAddrPoint" data-arg="${p.id}">
+        <span class="addr-opt-main">
+          <span class="addr-opt-name">${esc(p.name)}</span>
+          <span class="addr-opt-sub">${esc(p.addr)} · ${esc(p.hours)}</span>
+        </span>
+        <span class="addr-opt-dot" aria-hidden="true"></span>
+      </button>`;
+  }).join('');
+
+  return `
+    ${mapsKey ? `
+      <div id="addr-map" class="addr-map">${t('mapLoading')}</div>
+      <div class="addr-approx">${t('mapApprox')}</div>
+    ` : ''}
+    <div class="addr-opts">${rows}</div>`;
+}
+
+/** Profildan manzil tanlashga o'tish */
+function openAddrPicker() {
+  drawerView = 'address';
+  renderDrawer();
+  openDrawerEl();
+}
+
+/** Tanlangandan keyin profilga qaytiladi — oyna yopilmaydi */
+function backToProfile() {
+  drawerView = 'profile';
+  renderDrawer();
+}
+
+/* ⚠️ Bu yerda BUTUN ko'rinish qayta chizilMAYDI: karta o'chib qaytadan
+   yuklanardi va ekran har bosishda sakrardi (checkout formasidagi
+   `paintBtsInfo` bilan bitta mulohaza). Faqat ro'yxatdagi belgi va
+   kartadagi nuqta yangilanadi, so'ng profilga qaytiladi. */
+function pickAddrPoint(id) {
+  if (!btsById(id)) return;
+  setBtsPoint(id);
+  paintAddrMarkers();
+  savePickupPoint(id);
+  backToProfile();
+}
+
+/* ── Manzilni serverga saqlash ──
+   ⚠️ Xato YUTILMAYDI: xaridor aynan "manzilimni saqlayapman" deb turibdi,
+   ya'ni jimgina muvaffaqiyatsizlik keyingi kirishda YOLG'ON bo'lib
+   chiqardi — u manzilini topmasdi va sababini bilmasdi.
+   Kirmagan foydalanuvchida so'rov UMUMAN yuborilmaydi: tanlov
+   `localStorage` da qoladi va checkout uni baribir ishlatadi. */
+function savePickupPoint(id) {
+  if (!me) return;
+  apiJson('/api/pickup-point', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ pointId: id }),
+  })
+    .then((d) => {
+      if (!d || !d.ok) throw new Error((d && d.error) || 'saqlanmadi');
+      showToast(t('myAddrSaved'));
+    })
+    .catch((e) => {
+      // Birinchi argument — alert guruhlash kaliti (CLAUDE.md).
+      console.error('pickupPoint saqlanmadi:', e.message);
+      showToast(t('myAddrErr'));
+    });
+}
+
+/* ── Yandex karta ──
+   ⚠️ Skript DINAMIK yuklanadi, `<head>` da turmaydi: CLAUDE.md qoidasi
+   (tashqi skript HTML tahlilini to'xtatmasin) va ko'pchilik foydalanuvchi
+   bu oynani umuman ochmaydi.
+
+   ⚠️ Til skript manziliga yoziladi va keyin o'zgarmaydi — Yandex uni
+   yuklashda oladi. Til almashtirilsa karta eski tilda qolaveradi; buni
+   tuzatish sahifani qayta yuklashni talab qilardi. */
+let ymapsPromise = null;
+function loadYmaps() {
+  if (ymapsPromise) return ymapsPromise;
+  if (!mapsKey) return Promise.reject(new Error("kalit yo'q"));
+  ymapsPromise = new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://api-maps.yandex.ru/2.1/?apikey=' + encodeURIComponent(mapsKey) +
+      '&lang=' + (LANG === 'ru' ? 'ru_RU' : 'en_US');
+    s.async = true;
+    s.onload = () => {
+      if (window.ymaps && window.ymaps.ready) window.ymaps.ready(() => resolve(window.ymaps));
+      else reject(new Error('ymaps topilmadi'));
+    };
+    // Yiqilgan urinish ESLAB QOLINMAYDI — aks holda bir marta uzilgan
+    // tarmoq kartani sessiya oxirigacha o'lik qoldirardi.
+    s.onerror = () => { ymapsPromise = null; reject(new Error('skript yuklanmadi')); };
+    document.head.appendChild(s);
+  });
+  return ymapsPromise;
+}
+
+let addrMap = null;
+let addrMarkers = {};
+
+function mountAddrMap() {
+  const box = document.getElementById('addr-map');
+  if (!box || !mapsKey) return;
+  addrMap = null;
+  addrMarkers = {};
+  loadYmaps()
+    .then((ymaps) => {
+      // Kutish paytida ko'rinish almashgan bo'lishi mumkin.
+      if (!document.body.contains(box)) return;
+      box.textContent = '';
+      const sel = btsById(btsPoint);
+      addrMap = new ymaps.Map(box, {
+        center: sel ? [sel.lat, sel.lng] : [41.3111, 69.2797],
+        zoom: sel ? 12 : 6,
+        // `geolocationControl` — "menga eng yaqini qaysi" savoliga tayyor
+        // javob: xaridor o'z joyini bir bosishda ko'radi.
+        controls: ['zoomControl', 'geolocationControl'],
+      }, { suppressMapOpenBlock: true });
+
+      BTS_POINTS.forEach((p) => {
+        const m = new ymaps.Placemark([p.lat, p.lng], { hintContent: p.name },
+          { preset: 'islands#dotIcon', iconColor: '#7a140d' });
+        m.events.add('click', () => pickAddrPoint(p.id));
+        addrMarkers[p.id] = m;
+        addrMap.geoObjects.add(m);
+      });
+      paintAddrMarkers();
+    })
+    .catch((e) => {
+      // Xato yutilmaydi, lekin xaridor tiqilib qolmaydi — ro'yxat yonida.
+      console.error('Karta yuklanmadi:', e.message);
+      if (document.body.contains(box)) box.textContent = t('mapOff');
+    });
+}
+
+function paintAddrMarkers() {
+  Object.keys(addrMarkers).forEach((id) => {
+    const on = id === btsPoint;
+    addrMarkers[id].options.set({
+      preset: on ? 'islands#circleIcon' : 'islands#dotIcon',
+      iconColor: on ? '#7a140d' : '#9b8f88',
+    });
+  });
 }
 
 // Sharh faqat mato yetib kelgandan keyin — server bilan bir xil ro'yxat
@@ -2109,6 +2363,14 @@ function loadSellerMe() {
     .then((d) => {
       if (!d || !d.ok || !d.data) return;
       sellerMe = d.data;
+      // Doimiy olish nuqtasi BAZADAN — u Mini App'da yoki boshqa
+      // qurilmada tanlangan bo'lishi mumkin.
+      // ⚠️ Haqiqat manbai — BAZA: server "tanlanmagan" desa, brauzerdagi
+      // eski qiymat uni bosib turmaydi, aks holda boshqa qurilmada
+      // o'chirilgan tanlov bu yerda tirilib qolardi.
+      if (d.data.pickupPointId !== undefined) {
+        setBtsPoint(btsById(d.data.pickupPointId) ? d.data.pickupPointId : null);
+      }
       if (isOpen() && drawerView === 'profile') renderDrawer();
     })
     .catch(() => { /* kabinet tugmasi chizilmaydi */ });
@@ -2845,6 +3107,13 @@ function restAmount(total) { return total - prepayAmount(total); }
    uchinchi nusxa (server) hali yo'q. Nomlar o'zgarsa IKKALASI birga
    yangilansin — aks holda sayt va Mini App boshqa-boshqa nuqta nomini
    buyurtmaga yozib yuborardi. */
+// 🔴 `lat`/`lng` — TUMAN/SHAHAR MARKAZI aniqligida, BTS eshigining aniq
+// koordinatasi EMAS (2026-08-13). Ro'yxatning O'ZI namuna bo'lgani uchun
+// aniq koordinata o'ylab topilgan raqam bo'lardi (CLAUDE.md taqiqi), va
+// kartada u ayniqsa qimmatga tushardi: xarita ANIQ ko'rsatayotgandek
+// tuyuladi, ya'ni yolg'on ishonch beradi. Shuning uchun karta ustida
+// `mapApprox` ogohlantirishi DOIM turadi — u BTS'dan haqiqiy koordinata
+// kelgan kuni olib tashlanadi.
 const BTS_REGIONS = [
   { key: 'tas', name: 'Toshkent' },
   { key: 'far', name: "Farg'ona" },
@@ -2853,17 +3122,42 @@ const BTS_REGIONS = [
   { key: 'and', name: 'Andijon' },
 ];
 const BTS_POINTS = [
-  { id: 'bts-112', region: 'tas', name: "BTS №112 — Chilonzor",         addr: "Bunyodkor ko'ch. 45",        hours: '9:00–19:00' },
-  { id: 'bts-097', region: 'tas', name: "BTS №097 — Yunusobod",         addr: "Amir Temur ko'ch. 12",       hours: '9:00–18:00' },
-  { id: 'bts-054', region: 'tas', name: "BTS №054 — Sergeli",           addr: "Yangi Sergeli 8",            hours: '9:00–19:00' },
-  { id: 'bts-021', region: 'tas', name: "BTS №021 — Mirzo Ulug'bek",    addr: "Mustaqillik ko'ch. 78",      hours: '9:00–18:00' },
-  { id: 'bts-140', region: 'far', name: "BTS №140 — Farg'ona markaz",   addr: "Mustaqillik ko'ch. 24",      hours: '9:00–18:00' },
-  { id: 'bts-146', region: 'far', name: "BTS №146 — Marg'ilon",         addr: "Toshkent ko'ch. 5",          hours: '9:00–18:00' },
-  { id: 'bts-203', region: 'sam', name: "BTS №203 — Samarqand markaz",  addr: "Registon ko'ch. 3",          hours: '9:00–19:00' },
-  { id: 'bts-311', region: 'bux', name: "BTS №311 — Buxoro markaz",     addr: "Bahouddin Naqshband 17",     hours: '9:00–18:00' },
-  { id: 'bts-408', region: 'and', name: "BTS №408 — Andijon markaz",    addr: "Navoiy shoh ko'chasi 41",    hours: '9:00–18:00' },
+  { id: 'bts-112', lat: 41.2756, lng: 69.2044, region: 'tas', name: "BTS №112 — Chilonzor",         addr: "Bunyodkor ko'ch. 45",        hours: '9:00–19:00' },
+  { id: 'bts-097', lat: 41.3556, lng: 69.2894, region: 'tas', name: "BTS №097 — Yunusobod",         addr: "Amir Temur ko'ch. 12",       hours: '9:00–18:00' },
+  { id: 'bts-054', lat: 41.2232, lng: 69.22, region: 'tas', name: "BTS №054 — Sergeli",           addr: "Yangi Sergeli 8",            hours: '9:00–19:00' },
+  { id: 'bts-021', lat: 41.3253, lng: 69.3346, region: 'tas', name: "BTS №021 — Mirzo Ulug'bek",    addr: "Mustaqillik ko'ch. 78",      hours: '9:00–18:00' },
+  { id: 'bts-140', lat: 40.3894, lng: 71.7864, region: 'far', name: "BTS №140 — Farg'ona markaz",   addr: "Mustaqillik ko'ch. 24",      hours: '9:00–18:00' },
+  { id: 'bts-146', lat: 40.4711, lng: 71.7244, region: 'far', name: "BTS №146 — Marg'ilon",         addr: "Toshkent ko'ch. 5",          hours: '9:00–18:00' },
+  { id: 'bts-203', lat: 39.6547, lng: 66.9758, region: 'sam', name: "BTS №203 — Samarqand markaz",  addr: "Registon ko'ch. 3",          hours: '9:00–19:00' },
+  { id: 'bts-311', lat: 39.7747, lng: 64.4286, region: 'bux', name: "BTS №311 — Buxoro markaz",     addr: "Bahouddin Naqshband 17",     hours: '9:00–18:00' },
+  { id: 'bts-408', lat: 40.7821, lng: 72.3442, region: 'and', name: "BTS №408 — Andijon markaz",    addr: "Navoiy shoh ko'chasi 41",    hours: '9:00–18:00' },
 ];
 function btsById(id) { return BTS_POINTS.find((p) => p.id === id) || null; }
+
+/* ── Biz bilan bog'lanish ──
+   LolaMarket qo'llab-quvvatlash kanallari (2026-08-13 founder qarori).
+
+   ⚠️ AYNI blok Mini App'da ham bor (`telegram-app/app.js` → `SUPPORT`) —
+   BTS ro'yxati bilan bitta naqsh: nusxa BILIB QILINGAN, chunki uchinchi
+   manba (server) hali yo'q. Raqam yoki username o'zgarsa IKKALASI birga
+   yangilansin, aks holda ikki yuzda ikki xil raqam turib qolardi.
+
+   ⚠️ `tel` — moshina o'qiydigan shakl (probel va qavssiz), `telLabel` —
+   odam o'qiydigan shakl. Bittasidan ikkinchisini yasash (probellarni olib
+   tashlash) bir kun kelib jimgina buzilardi, shuning uchun ikkalasi
+   ALOHIDA yoziladi. */
+const SUPPORT = {
+  tel: '+998939993996',
+  telLabel: '+998 (93) 999-39-96',
+  tgUser: 'furqattukhsanov',
+  tgUrl: 'https://t.me/furqattukhsanov',
+};
+
+/* Yandex karta kaliti — SERVERDAN (`/api/auth/web/me` → `mapsClientConfig`).
+   `null` = karta o'chiq: nuqta ro'yxatdan tanlanadi va funksiya to'liq
+   ishlayveradi (karta tashqi xizmat, u yiqilsa manzil o'zgartirib
+   bo'lmaydigan holat bo'lmasin). */
+let mapsKey = null;
 
 /* Tanlangan nuqta saqlanadi — B2B xaridor deyarli doim bitta nuqtadan oladi.
    Kalit Mini App'dagi bilan AYNAN bir xil va bu ATAYLAB: sayt ham, Mini App
@@ -2881,7 +3175,15 @@ let btsPoint = (() => {
    shuning uchun faqat yonidagi izoh qatori almashtiriladi. */
 function setBtsPoint(id) {
   btsPoint = btsById(id) ? id : null;
-  try { if (btsPoint) localStorage.setItem(BTS_KEY, btsPoint); } catch (e) { /* private mode */ }
+  try {
+    // ⚠️ Bo'shatilganda kalit O'CHIRILADI, shunchaki yozilmay qo'yilmaydi
+    // (2026-08-13). Ilgari `if (btsPoint)` sharti sababli eski qiymat
+    // brauzerda qolib ketardi va sahifa qayta yuklanganda tanlov
+    // TIRILARDI — ya'ni boshqa qurilmada o'chirilgan manzil bu yerda
+    // o'zicha qaytib kelardi va buni hech narsa ko'rsatmasdi.
+    if (btsPoint) localStorage.setItem(BTS_KEY, btsPoint);
+    else localStorage.removeItem(BTS_KEY);
+  } catch (e) { /* private mode */ }
   paintBtsInfo();
 }
 
@@ -3157,6 +3459,17 @@ function renderDrawer() {
     title.textContent = t('profile');
     body.innerHTML = profileHtml();
     foot.hidden = true;
+    return;
+  }
+
+  if (drawerView === 'address') {
+    title.textContent = t('myAddr');
+    body.innerHTML = addressPickerHtml();
+    foot.hidden = true;
+    // Karta HTML bilan birga kelmaydi — `#addr-map` tuguni DOM'ga
+    // tushgandan keyin chiziladi, ya'ni mount aynan shu yerda bo'lishi
+    // kerak (har qayta chizishda tugun YANGI bo'ladi).
+    mountAddrMap();
     return;
   }
 

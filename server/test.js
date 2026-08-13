@@ -1372,14 +1372,14 @@ function testAssetVersionsAreFresh() {
   // AYNI faylni `?v=36` bilan — ya'ni admin panel 15 versiya orqada
   // qotib qolgan keshni cheksiz ushlab turardi.
   const KUTILGAN = {
-    'style.css': { v: 45, hash: '22a12b415b6b' },
-    'script.js': { v: 35, hash: '22ced40c2c7e' },
+    'style.css': { v: 46, hash: '357818d4cfcd' },
+    'script.js': { v: 36, hash: 'b9bf20332fc3' },
     'pwa.js': { v: 2, hash: 'f46683d58662' },
     'panel.js': { v: 14, hash: '1c858b5d478f' },
     'admin/admin.css': { v: 17, hash: 'dbefeb6757ff' },
     'admin/admin.js': { v: 22, hash: '8a8310a94f5e' },
     'telegram-app/styles.css': { v: 23, hash: '9afebf7c81b7' },
-    'telegram-app/app.js': { v: 75, hash: '1934985f30c5' },
+    'telegram-app/app.js': { v: 76, hash: '3b4dd13769ca' },
     'telegram-app/pwa.js': { v: 6, hash: '798ab85e1cde' },
   };
 
@@ -2947,6 +2947,193 @@ function testTranslationKeys() {
 }
 
 // ============ TEST RUNNER ============
+// ============ TEST 22: OLISH NUQTASI ID SHAKLI (2026-08-13) ============
+// "Mening manzilim" xaridorning O'Z tanlovini bazaga yozadi. Qiymat
+// KLIENTDAN keladi, ya'ni u yerda nima bo'lishi mumkinligiga ishonib
+// bo'lmaydi: bo'sh satr, kilobaytlab matn, `../` yoki butunlay boshqa
+// shakl. Bu maydon bugun faqat ko'rsatish uchun ishlatiladi, lekin
+// ertaga u yo'l yoki kesh kalitiga qo'shilib qolishi mumkin — o'shanda
+// tekshiruvning YO'Qligi qimmatga tushardi.
+//
+// ⚠️ Ro'yxat EMAS, SHAKL tekshiriladi (`lib/maps.js` dagi izohga qara):
+// nuqtalar ro'yxatini serverga uchinchi nusxa qilib ko'chirish
+// `admin_actions_kind_check` tuzog'i bo'lardi (db/014).
+function testPickupPointIdShape() {
+  const { isPickupPointId } = require('./lib/maps');
+
+  const yaxshi = ['bts-112', 'bts-097', 'bts-000', 'bts-999'];
+  yaxshi.forEach((v) => assert.ok(isPickupPointId(v), `\`${v}\` qabul qilinishi kerak edi`));
+
+  const yomon = [
+    '', ' ', null, undefined, 0, 112, {}, [], true,
+    'bts-12',            // uch raqamdan kam
+    'bts-1123',          // uch raqamdan ko'p
+    'BTS-112',           // katta harf
+    ' bts-112',          // oldida probel
+    'bts-112 ',          // orqasida probel
+    'bts-112\n',         // qator ko'chirish — `$` ni aldashga urinish
+    'bts-112; DROP',     // qo'shimcha matn
+    '../../etc/passwd',  // yo'l
+    'bts-../112',
+    'x'.repeat(500),     // uzun axlat
+  ];
+  yomon.forEach((v) => assert.ok(!isPickupPointId(v),
+    `\`${String(v).slice(0, 30)}\` RAD ETILISHI kerak edi`));
+
+  // Endpoint tekshiruvni HAQIQATAN chaqirsin — funksiya bor-u,
+  // ishlatilmasa qorovul yolg'on tinchlik berardi.
+  const fs = require('fs');
+  const path = require('path');
+  const src = fs.readFileSync(path.join(__dirname, 'routes', 'profile.js'), 'utf8');
+  assert.ok(/isPickupPointId\(/.test(src),
+    'routes/profile.js `isPickupPointId()` ni chaqirsin — aks holda shakl tekshiruvi ishlamaydi');
+  assert.ok(/fail\(res, [^)]*400\)/.test(src),
+    'yaroqsiz id 400 bilan RAD ETILSIN — jimgina bazaga yozilmasin');
+
+  console.log(`✅ Test 22: Olish nuqtasi id shakli — PASS (${yaxshi.length} to'g'ri, ${yomon.length} rad etildi)`);
+}
+
+// ============ TEST 22b: KARTA SOZLAMASI SHAKLI (2026-08-13) ============
+// `ALERT_CHAT_ID` darsi bilan AYNI oila: qiymatning BO'SH EMASLIGI uni
+// haqiqiy qilmaydi. `.env` da `YANDEX_MAPS_KEY=<key>` namunasi qolib
+// ketsa, `||` uni haqiqiy kalit deb qabul qilardi va karta HAR SAFAR
+// yiqilib turardi — ustiga sabab ko'rinmasdi.
+//
+// ⚠️ Ikkinchi bandi muhimroq: kalit YO'Q bo'lganda `mapsKey` `null`
+// bo'lsin, bo'sh satr EMAS. Bo'sh satr "kalit bor, lekin bo'sh" degan
+// mavjud bo'lmagan holatni yaratardi va frontend uni haqiqiy deb qabul
+// qilib, kartani yuklashga urinardi (`NULL` reyting qoidasi).
+function testMapsConfigValidation() {
+  const { mapsKey } = require('./config');
+
+  const yomon = [
+    '<key>',                      // to'ldirilmagan namuna — ASOSIY holat
+    'YANDEX_MAPS_KEY',
+    'qisqa',                      // 20 belgidan kam
+    'kalit bilan probel bor xxx',
+    '',
+    null,
+    undefined,
+  ];
+  yomon.forEach((v) => assert.strictEqual(mapsKey(v), '',
+    `\`${String(v)}\` yaroqsiz deb rad etilishi kerak edi`));
+
+  const yaxshi = '8f9c1a2b-3d4e-5f60-7a8b-9c0d1e2f3a4b';
+  assert.strictEqual(mapsKey(yaxshi), yaxshi, 'haqiqiy shakldagi kalit qabul qilinsin');
+
+  // Karta o'chiq holatda klientga NIMA ketadi.
+  const fs = require('fs');
+  const path = require('path');
+  const src = fs.readFileSync(path.join(__dirname, 'lib', 'maps.js'), 'utf8');
+  assert.ok(/mapsKey:\s*MAPS_ENABLED\s*\?\s*YANDEX_MAPS_KEY\s*:\s*null/.test(src),
+    "karta o'chiq bo'lsa `mapsKey` `null` bo'lsin — bo'sh satr EMAS (jimgina yolg'on)");
+
+  // Ikkala kanal ham AYNI funksiyadan olsin: qo'lda yig'ilsa sozlama
+  // bitta kanalda qolib ketardi (aynan shu `aiClientConfig` bilan bo'lgan).
+  ['catalog.js', 'web-auth.js'].forEach((f) => {
+    const r = fs.readFileSync(path.join(__dirname, 'routes', f), 'utf8');
+    assert.ok(/\.\.\.mapsClientConfig\(\)/.test(r),
+      `routes/${f} \`mapsClientConfig()\` ni tarqatsin — aks holda karta faqat bitta kanalda ishlardi`);
+  });
+
+  // Kalitsiz ham funksiya O'LMASIN: `config.js` yiqilmaydi, faqat
+  // jurnalda qichqiradi (AI kaliti bilan bitta naqsh, `process.exit` YO'Q).
+  const cfg = fs.readFileSync(path.join(__dirname, 'config.js'), 'utf8');
+  const i = cfg.indexOf('const MAPS_ENABLED');
+  assert.ok(i > 0, 'config.js da `MAPS_ENABLED` bo\'lsin');
+  const atrof = cfg.slice(i, i + 400);
+  assert.ok(/console\.error\(/.test(atrof), 'karta o\'chganda jurnalda QICHQIRSIN');
+  assert.ok(!/process\.exit/.test(atrof),
+    'karta ixtiyoriy funksiya — kalitsiz server TO\'XTAMASIN (nuqta ro\'yxatdan tanlanadi)');
+
+  console.log(`✅ Test 22b: Karta sozlamasi shakli — PASS (${yomon.length} yaroqsiz rad etildi)`);
+}
+
+// ============ TEST 22c: BTS RO'YXATI IKKI YUZDA BIR XIL (2026-08-13) ============
+// `BTS_POINTS` sayt va Mini App'da ALOHIDA yashaydi — bu BILIB QILINGAN
+// vaqtinchalik qaror (BTS API ulanmagan, uchinchi manba yo'q). Lekin
+// "bilib qilingan" degani "xavfsiz" degani emas: ro'yxat ikki joyda
+// bo'lgani uchun bittasini yangilash unutiladi va o'shanda sayt bilan
+// Mini App buyurtmaga BOSHQA-BOSHQA nuqta nomini yozib yuborardi.
+//
+// Endi bunga koordinata ham qo'shildi, ya'ni farq KO'RINADIGAN bo'ldi:
+// bir yuzda belgi Chilonzorda, ikkinchisida Sergelida turishi mumkin edi.
+// Xuddi shu sabab bilan qo'llab-quvvatlash raqami (`SUPPORT`) ham
+// solishtiriladi — ikki yuzda ikki xil raqam turishi eng qimmat
+// nuqsonlardan bo'lardi.
+function testBtsListsStayInSync() {
+  const fs = require('fs');
+  const path = require('path');
+  const ildiz = path.join(__dirname, '..');
+
+  // Ro'yxat MANBADAN o'qiladi — qo'lda yozilmaydi (Test 16/17 bilan
+  // bitta naqsh): yangi nuqta qo'shilsa u avtomatik qamraladi.
+  function nuqtalar(fayl) {
+    const src = fs.readFileSync(path.join(ildiz, fayl), 'utf8');
+    const m = src.match(/const BTS_POINTS = \[([\s\S]*?)\n\];/);
+    assert.ok(m, `${fayl} da \`const BTS_POINTS = [...]\` topilmadi — nom o'zgargan bo'lsa bu qorovul jimgina o'ladi`);
+    const chiqdi = new Map();
+    for (const q of m[1].split('\n')) {
+      const id = q.match(/id:\s*'([a-z0-9-]+)'/);
+      if (!id) continue;
+      const lat = q.match(/lat:\s*(-?[\d.]+)/);
+      const lng = q.match(/lng:\s*(-?[\d.]+)/);
+      assert.ok(lat && lng,
+        `${fayl}: \`${id[1]}\` nuqtasida koordinata YO'Q — kartada u umuman ko'rinmasdi ` +
+        '(xato ham chiqmasdi, belgi shunchaki chizilmasdi)');
+      chiqdi.set(id[1], { lat: Number(lat[1]), lng: Number(lng[1]) });
+    }
+    assert.ok(chiqdi.size >= 5, `${fayl} da nuqta topilmadi (${chiqdi.size} ta) — tahlil buzilgan`);
+    return chiqdi;
+  }
+
+  const sayt = nuqtalar('script.js');
+  const mini = nuqtalar('telegram-app/app.js');
+
+  assert.deepStrictEqual([...sayt.keys()].sort(), [...mini.keys()].sort(),
+    "BTS nuqtalari ro'yxati sayt va Mini App'da BOSHQA — ikkalasi birga yangilansin, " +
+    'aks holda ikki yuz buyurtmaga boshqa-boshqa nuqta yozib yuborardi');
+
+  sayt.forEach((s, id) => {
+    const m = mini.get(id);
+    assert.strictEqual(s.lat, m.lat, `\`${id}\` kengligi ikki yuzda boshqa (${s.lat} / ${m.lat})`);
+    assert.strictEqual(s.lng, m.lng, `\`${id}\` uzunligi ikki yuzda boshqa (${s.lng} / ${m.lng})`);
+    // O'zbekiston chegarasi — taxminan. Maqsad aniqlik emas, ADASHGAN
+    // qiymatni ushlash: kenglik/uzunlik almashib qolsa (41/69 → 69/41)
+    // belgi butunlay boshqa qit'ada turardi va buni faqat ko'z bilan
+    // ochib ko'rgandagina sezardik.
+    assert.ok(s.lat > 37 && s.lat < 46, `\`${id}\` kengligi O'zbekistondan tashqarida: ${s.lat}`);
+    assert.ok(s.lng > 55 && s.lng < 74, `\`${id}\` uzunligi O'zbekistondan tashqarida: ${s.lng}`);
+  });
+
+  // Qo'llab-quvvatlash kontakti — AYNI mulohaza.
+  function support(fayl) {
+    const src = fs.readFileSync(path.join(ildiz, fayl), 'utf8');
+    const m = src.match(/const SUPPORT = \{([\s\S]*?)\n\};/);
+    assert.ok(m, `${fayl} da \`const SUPPORT = {...}\` topilmadi`);
+    const olish = (k) => {
+      const v = m[1].match(new RegExp(k + ":\\s*'([^']+)'"));
+      assert.ok(v, `${fayl} da SUPPORT.${k} topilmadi`);
+      return v[1];
+    };
+    return { tel: olish('tel'), telLabel: olish('telLabel'), tgUser: olish('tgUser'), tgUrl: olish('tgUrl') };
+  }
+  const sSayt = support('script.js');
+  const sMini = support('telegram-app/app.js');
+  assert.deepStrictEqual(sSayt, sMini,
+    "Bog'lanish ma'lumoti sayt va Mini App'da BOSHQA — ikkalasi birga yangilansin");
+
+  // `tel:` havolasi uchun raqam MOSHINA o'qiydigan shaklda bo'lsin:
+  // probel yoki qavs tushib qolsa havola telefonni ochmay qo'yardi.
+  assert.ok(/^\+\d{9,15}$/.test(sSayt.tel),
+    `SUPPORT.tel faqat \`+\` va raqamlardan iborat bo'lsin (hozir: ${sSayt.tel}) — ` +
+    '`tel:` havolasi aks holda ishlamasdi');
+  assert.ok(sSayt.tgUrl === `https://t.me/${sSayt.tgUser}`,
+    'SUPPORT.tgUrl `tgUser` bilan mos bo\'lsin — ikkisi ajralib ketsa havola boshqa odamga borardi');
+
+  console.log(`✅ Test 22c: BTS ro'yxati va kontakt ikki yuzda bir xil — PASS (${sayt.size} nuqta, ${Object.keys(sSayt).length} kontakt maydoni)`);
+}
+
 async function runTests() {
   console.log('\n🧪 LolaMarket Server Testlari\n');
 
@@ -3007,6 +3194,10 @@ async function runTests() {
     testBannerVersionGuard();
 
     await testMessageEffectFallback();
+
+    testPickupPointIdShape();
+    testMapsConfigValidation();
+    testBtsListsStayInSync();
 
     console.log('\n✅ Hammasi PASS — pul hisobi, imzo, route jadvali, xato alerti, buyurtma tarixi va AI rasmi joyida\n');
     process.exit(0);
