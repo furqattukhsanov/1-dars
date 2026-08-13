@@ -203,6 +203,24 @@ LolaMarket ni rasmiy ishga tushirish. Birinchi haqiqiy xaridorlar va ishlab chiq
 
 ## Qilingan ishlar
 
+- [2026-08-13] **C3 ning "OCHIQ QOLGANI" aslida ALLAQACHON YOPILGAN edi — va
+  buni faqat jonli o'lchov ko'rsatdi.** Quyidagi 2026-08-06 yozuvida "Cloudflare
+  paneldagi CSP qiymatini founder almashtiradi — yagona qolgan qadam" deb
+  turardi va hujjat shundan beri shu holatda edi. `curl -sI` esa CSP
+  **majburlash rejimida ishlayotganini** ko'rsatdi.
+  Farq zararsiz emasdi: hujjat "CSP hali yoqilmagan" deb turgani uchun
+  `api-maps.yandex.ru` **KELAJAKDAGI tuzoq** deb yozilgandi, aslida esa karta
+  production'da O'SHA PAYT bloklangan edi (batafsil `sprint-4.md`,
+  2026-08-13). Ya'ni «hujjatdagi raqam — tekshirilmagan da'vo» qoidasi bu
+  safar raqamda emas, **HOLAT**da tishladi: "bajarilmagan" degan yozuv
+  bajarilgan ishni yashirib turdi va uning yon ta'sirini ham yashirdi.
+  Kanonik CSP (`docs/xavfsizlik-sarlavhalari.md` → C4) endi o'lchovga
+  tayanadi va founder yangi qiymatni qo'llagandan keyin karta production'da
+  chizilishi ko'z bilan tasdiqlandi.
+  ⚠️ **Dars:** deploy yoki sozlama qadami "founder bajaradi" deb ochiq
+  qoldirilsa, uning BAJARILGANINI hujjat hech qachon o'zi bilmaydi —
+  holatni faqat jonli tekshiruv yopadi.
+
 - [2026-08-06] **`?v=` kesh qorovuli (Test 16) qo'shildi va `sayt-eski/` papkasi
   o'chirildi. C3 ning bevosita davomi.**
 
@@ -350,7 +368,10 @@ LolaMarket ni rasmiy ishga tushirish. Birinchi haqiqiy xaridorlar va ishlab chiq
   `style-src` dagi `'unsafe-inline'` ga TEGILMADI — bu boshqa va ancha katta
   qarz (kodda yuzlab inline `style="..."`).
 
-  **OCHIQ QOLGANI.** Cloudflare paneldagi CSP qiymatini **founder almashtiradi**
+  **OCHIQ QOLGANI.** ⚠️ **BU BAND YOPILDI — 2026-08-13 da jonli `curl -sI`
+  bilan o'lchandi: CSP majburlash rejimida ishlayapti** (yuqoridagi
+  2026-08-13 yozuviga qarang). Quyidagi matn TARIX uchun qoldirildi.
+  Cloudflare paneldagi CSP qiymatini **founder almashtiradi**
   — yagona qolgan qadam, tartibi hujjatda. **DEPLOY OLDIN, CSP KEYIN**: aks
   holda yangi fayllar yetib bormasdan oflayn sahifa va panel bir muddat
   ishlamay turadi. Founder tasdiqlagan lekin hali bajarilmagan: `?v=` bumb

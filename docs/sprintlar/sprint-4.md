@@ -101,6 +101,80 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
 
 ## Qilingan ishlar
 
+- [2026-08-13] **"Biz bilan bog'lanish" ochiladigan bo'lim bo'ldi, qo'ng'iroq
+  tugmasi TIRILDI, va C4 (karta CSP'si) jonli o'lchov bilan tuzatildi.**
+  To'rtta commit, bitta ip: **kod to'g'ri turgani uni ishlaydi qilmaydi.**
+  Uchala nuqson ham jimgina edi — konsolda xato yo'q, razmetka joyida,
+  foydalanuvchi uchun esa funksiya YO'Q.
+
+  **1. C4 — karta production'da BLOKLANGAN edi** (`3d77443`). C4 bo'limining
+  birinchi nusxasi "CSP hali qo'llanmagan, xavf KELAJAKDA" derdi va uning
+  manbai hujjatning O'ZI edi (C3 founder qadamini kutmoqda deb turardi).
+  Jonli `curl -sI` esa CSP **allaqachon majburlanayotganini** ko'rsatdi, ya'ni
+  karta kelajakda emas, HOZIR o'lik edi. Bu «hujjatdagi raqam — tekshirilmagan
+  da'vo» qoidasining HOLAT darajasidagi takrori: raqam emas, "qoida hali
+  yoqilmagan" degan gap yolg'on bo'lib chiqdi.
+  Kerakli mezbonlar endi TAXMIN emas, **O'LCHOV**: karta CSP'siz muhitda
+  ochildi va brauzerning `performance` resurs yozuvlaridan mezbon + resurs
+  TURI yig'ildi (tur direktivani belgilaydi). ⚠️ **O'lchov taxminni RAD ETDI** —
+  `connect-src` kerak emas ekan: Yandex 2.1 modullarni `<script>`, plitkalarni
+  `<img>` bilan oladi va XHR ishlatmaydi. Ya'ni taxmin bo'yicha yozilgan CSP
+  keraksiz kengroq bo'lardi. Yangi kanonik qiymatga `media-src` ham kiritildi
+  (mahsulot videosi uchun — alohida ish, lekin CSP bitta satr).
+  Founder CSP ni yangiladi va **karta production'da chizilishi ko'z bilan
+  tasdiqlandi.**
+
+  **2. Qo'ng'iroq tugmasi o'lik edi** (`98539ca`). Founder aytdi. Razmetka
+  to'g'ri (`tel:+998939993996`, hech narsa to'smagan) — nuqson `tel:` ning
+  O'ZIDA: kompyuter brauzerida telefon ilovasi ro'yxatdan o'tmagan bo'lsa
+  bosish JIMGINA hech narsa qilmaydi, Telegram WebView'i esa `http(s)` dan
+  boshqa sxemani ko'pincha umuman ochmaydi.
+  ⚠️ **Bu MENING tekshirilmagan da'vom edi:** kod izohida "`tel:` ni WebView
+  ham, brauzer ham o'zi to'g'ri boshqaradi" deb yozilgandi. Izoh ham tuzatildi.
+  Yechim muhitni ANIQLASHGA tayanmaydi — u yana bir taxmin bo'lardi: havola
+  `tel:` bo'lib QOLADI va `preventDefault` chaqirilmaydi (qayerda ishlasa,
+  o'sha yerda native qo'ng'iroq ochilaveradi), ustiga raqam **buferga
+  nusxalanadi** va toast chiqadi. Nusxalash ikki yo'ldan — `navigator.clipboard`,
+  u bo'lmasa `execCommand` (WebView'da birinchisi yo'q bo'lishi mumkin);
+  **ikkalasi ham yiqilsa foydalanuvchiga AYTILADI**, chunki jimgina
+  "nusxalandi" deyish yolg'on. Haqiqiy bosish bilan sinaldi.
+
+  **3. "Biz bilan bog'lanish" — ochiladigan bo'lim** (`9cd3b9d`, founder
+  qarori). Bitta bosiladigan qator (ikonka, sarlavha, "Qo'ng'iroq yoki
+  Telegram" izohi, aylanadigan strelka); ochilganda ikki karta: 📞 raqam +
+  "Qo'ng'iroq qilish" va ✈️ "Telegram orqali" + `@furqattukhsanov`. Yopiq
+  holat boshlang'ich — profil ekrani allaqachon uzun edi. **Faqat blokning
+  O'ZI qayta chiziladi, butun ekran EMAS:** `renderDrawer()` / `renderProfile()`
+  skrollni boshiga qaytarardi va foydalanuvchi bo'limni ochib, ekran tepaga
+  sakraganini ko'rardi.
+  🔴 **Yo'l-yo'lakay JIMGINA nuqson va u UCHINCHI marta takrorlangan naqsh:**
+  `.contact-block` flex ustunda **127px** ga siqilgan, ichidagi mazmun 210px
+  edi va `overflow: hidden` bilan **TELEGRAM QATORI butunlay kesilgan** —
+  DOM'da element bor, ekranda yo'q, konsolda xato yo'q. Faqat
+  `getBoundingClientRect()` bilan o'lchaganda ko'rindi. `flex: none` bilan
+  tuzatildi.
+
+  **4. Tuzoq qoidaga yozildi** (`649be56`). `<picture>` → `.addr-map` (63px) →
+  `.contact-block` (127px) — uchalasi bir xil sabab: flex bolasi standart
+  holda siqiladi (`flex-shrink: 1`), `overflow: hidden` esa nuqsonni jimgina
+  qiladi. CLAUDE.md ga qoida qo'shildi va unda **usul** ham yozildi: ko'z
+  bilan qarash yetarli emas, `el.getBoundingClientRect()` ni ichidagi element
+  bilan solishtirish kerak (bola pastki chegarasi otadan oshsa — kesilgan).
+  Bu «yozilgan qoida himoya emas» oilasidan, lekin bu yerda test yozib
+  bo'lmadi — shuning uchun u ODAT darajasida qoladi.
+
+  **PRODUCTION'DA TASDIQLANGAN:** CI success, `script.js?v=38`,
+  `style.css?v=47`, `mini-app/app.js?v=78` jonli ko'rildi; karta production'da
+  chizildi.
+  🔴 **OCHIQ QOLGANI, ataylab yoziladi:** (a) **Mini App ichidagi karta faqat
+  Telegram ichida ochilganda ko'rinadi** — buni founder tasdiqlashi kerak,
+  brauzerdan o'lchab bo'lmaydi; (b) **Yandex kaliti `lolamarket.uz` domeniga
+  cheklanganini konsolda tekshirish kerak** — u localhostdan ishladi, ya'ni
+  cheklov HOZIR yo'q bo'lishi mumkin va kalit boshqa saytda ishlatilishi
+  mumkin; (c) `panel.js` dagi "Yangilanish:" matni eskirgan — parallel ish
+  (video + media galereya) tugagach yopiladi, chunki `panel.js` tegilsa
+  `?v=` va Test 16 jadvali ham birga o'zgarishi kerak.
+
 - [2026-08-13] **Mahsulot VIDEOSI — qabul qilish, saqlash va moderatsiya
   (A+B+E bosqichlari).** Sotuvchi botga qisqa video yuboradi, u
   `cdn.lolamarket.uz` ga tushadi va admin panelda ko'riladi. Rasm yo'lining
@@ -248,6 +322,10 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
   `docs/xavfsizlik-sarlavhalari.md` ga **C4** — CSP yoqilganda
   `api-maps.yandex.ru` qo'shilmasa karta JIMGINA o'ladi (u yerdagi manba
   ro'yxati hujjatdan olingan, jonli o'lchovdan EMAS va shunday belgilangan).
+  ⚠️ **BU IKKI GAP ERTASI KUNI TUZATILDI** (yuqoridagi 2026-08-13 yozuviga
+  qarang): "CSP yoqilganda" NOTO'G'RI — u ALLAQACHON majburlanayotgan edi va
+  karta production'da o'sha kuni o'lik turgan; manba ro'yxati ham endi
+  o'lchovdan olingan va o'lchov `connect-src` ni RAD ETDI.
   🔴 **OCHIQ (founder qadamlari):** serverdagi `.env` ga `YANDEX_MAPS_KEY`
   qo'shilishi va `db/022` migratsiyasi ishga tushirilishi kerak. Ikkalasisiz
   ham sayt sinmaydi — karta chizilmaydi, manzil esa saqlanmaydi (endpoint
@@ -765,6 +843,27 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
 ---
 
 ## Qarorlar
+
+- [2026-08-13] Qaror: **`tel:` havolasi QOLADI, lekin uning YONIDA zaxira
+  turadi — muhit ANIQLANMAYDI.** "Kompyutermi yoki WebView'mi" deb tekshirish
+  yana bir TAXMIN bo'lardi va u yangi qurilmada jimgina noto'g'ri chiqardi.
+  Shuning uchun `preventDefault` chaqirilmaydi (native qo'ng'iroq qayerda
+  ishlasa, o'sha yerda ochilaveradi) va ustiga raqam buferga nusxalanadi.
+  Nusxalash ikki yo'ldan (`navigator.clipboard`, bo'lmasa `execCommand`),
+  ikkalasi ham yiqilsa foydalanuvchiga AYTILADI — jimgina "nusxalandi" deyish
+  `NULL` reyting va `ALERT_CHAT_ID` bilan bitta oiladagi yolg'on bo'lardi
+- [2026-08-13] Qaror: **CSP mezbon ro'yxati HUJJATDAN emas, O'LCHOVDAN
+  olinadi.** Karta CSP'siz muhitda ochilib brauzerning `performance` resurs
+  yozuvlaridan mezbon + resurs TURI yig'iladi (tur direktivani belgilaydi).
+  Sabab: taxmin bo'yicha yozilgan ro'yxat `connect-src` ni kiritgan bo'lardi
+  va o'lchov uni RAD ETDI. Ro'yxat keraksiz kengaysa CSP himoya sifatida
+  susayadi, tor bo'lsa — funksiya jimgina o'ladi; ikkala xato ham
+  KO'RINMAYDI, shuning uchun bu yerda o'lchov ixtiyoriy emas
+- [2026-08-13] Qaror (founder): **"Biz bilan bog'lanish" — ochiladigan bo'lim,
+  ikki yo'l ichida** (qo'ng'iroq va Telegram), yopiq holat boshlang'ich.
+  Ochilganda faqat blokning O'ZI qayta chiziladi — butun ekranni qayta chizish
+  skrollni boshiga qaytarardi va foydalanuvchi bo'limni ochib ekran tepaga
+  sakraganini ko'rardi
 
 - [2026-08-13] Qaror: **video uchun R2 MAJBURIY — rasmdagidan farqli o'laroq,
   va shu sababli TARTIB TESKARI: avval R2, keyin baza.** Rasmda R2 yiqilsa
