@@ -321,6 +321,21 @@
   to'g'ri chaqir). Haqiqatan `load` kerak bo'lsa — hodisa ALLAQACHON o'tgan
   bo'lishi mumkinligini hisobga ol: avval `document.readyState` tekshirilsin,
   aks holda listener hech qachon otilmaydi (`pwa.js` → `whenReady()` namunasi).
+- **Flex ustundagi YANGI blok — birinchi savol `flex: none` kerakmi**
+  (2026-08-13, UCHINCHI marta tishlagandan keyin yozildi). `display: flex;
+  flex-direction: column` konteynerining bolasi standart holda **siqiladi**
+  (`flex-shrink: 1`), ya'ni `height: 300px` yoki mazmun balandligi
+  KAFOLAT EMAS. Ustiga `overflow: hidden` qo'shilsa nuqson **jimgina**
+  bo'ladi: element DOM'da bor, o'lchamlari "to'g'ri" ko'rinadi, konsolda
+  xato yo'q — mazmun esa KESIB tashlanadi.
+  Uch marta bir xil sabab bilan: (1) `<picture>` blok balandligini nolga
+  tushirgan; (2) `.addr-map` 300px o'rniga 63px bo'lgan — karta chizilmagan;
+  (3) `.contact-block` 127px ga siqilib, ichidagi 210px edi va **Telegram
+  qatori butunlay ko'rinmay qolgan**.
+  🔴 **Ko'z bilan qarash YETARLI EMAS** — uchalasi ham "shunchaki yo'q"
+  bo'lib ko'ringan. Yagona ishonchli usul — o'lchash:
+  `el.getBoundingClientRect()` ni ICHIDAGI element bilan solishtirish
+  (bola pastki chegarasi ota pastki chegarasidan oshsa — kesilgan).
 - **Rasmni `<picture>` ga o'rasangiz, konteynerini CSS ro'yxatiga qo'shing**
   (2026-08-05). `<picture>` rasm bilan uni o'rab turgan quti ORASIGA kiradi va
   u odatda `display: inline`, balandligi `auto`. Shuning uchun `img { height:
