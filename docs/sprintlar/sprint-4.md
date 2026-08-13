@@ -1466,7 +1466,11 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
   qo'shilgan — ya'ni **fakt qo'lda edi, xulosa chiqarilmadi**, va founder
   buyrug'i «foydali» degan tekshiruvni almashtirib qo'ydi. Bu qoidani test
   bilan qulflab BO'LMAYDI (prompt qoidasi bilan bitta oilada), shuning
-  uchun u **odat** — va yozuv shu sababli o'chirilmaydi
+  uchun u **odat** — va yozuv shu sababli o'chirilmaydi.
+  ✅ [2026-08-13] Qoida endi `CLAUDE.md` → «Arxitektura qoidalari» da ham
+  turadi (prompt matni bandining ostida — ikkalasi ham test bilan qulflanmaydigan
+  ODAT). Sabab: sprint yozuvi bir marta o'qiladi, `CLAUDE.md` esa HAR SESSIYADA —
+  qoida qorovulsiz bo'lsa, u hech bo'lmasa ko'z tegadigan joyda turishi kerak
 - [2026-08-13] ~~Qaror: **Mini App'da «Buyurtmalarim» qatori qo'shiladi, lekin
   RO'YXAT PROFILGA KO'CHIRILMAYDI — ikkala yuz BIR XIL SHAKLDA bo'ladi,
   bir xil MEXANIZMDA emas.**~~ Founder: «mini appda ham shunday qilgin».
