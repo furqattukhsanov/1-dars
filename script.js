@@ -1225,13 +1225,38 @@ function statusLabel(status) {
 let avaUrl = null;
 let avaHolat = 'nomalum';        // nomalum | yuklanmoqda | bor | yoq
 
+/* 🔴 `URL.createObjectURL` ISHLATILMAYDI — u JIMGINA ishlamaydi.
+   Birinchi variant aynan shunday yozilgan edi va production'da avatar
+   o'rniga "singan rasm" belgisi chiqdi (founder telefonda ko'rsatdi).
+   Sabab konsolda emas, SARLAVHADA edi: saytning CSP siyosatida
+   `img-src 'self' data: https://cdn.lolamarket.uz` turadi va `blob:`
+   u yerda YO'Q, ya'ni brauzer rasmni bloklaydi.
+
+   `data:` esa ro'yxatda ALLAQACHON bor — shuning uchun tuzatish
+   nginx'ga tegmaydi (CSP'ni kengaytirish yangi ruxsat ochish bo'lardi,
+   holbuki mavjud ruxsat yetarli). Avatar kichik (≤160px), ya'ni base64
+   qilib inline qo'yish arzon.
+
+   ⚠️ Bu CLAUDE.md dagi karta bandi bilan BITTA OILA: «CSP qo'llanganda
+   `api-maps.yandex.ru` qo'shilmasa karta JIMGINA o'ladi». Naqsh bir xil —
+   yangi TASHQI SXEMA (blob:, https://…) ishlatilganda CSP ro'yxati
+   tekshirilsin. Qorovul: `server/test.js` → Test 25. */
+function blobToDataUrl(b) {
+  return new Promise((res, rej) => {
+    const fr = new FileReader();
+    fr.onload = () => res(fr.result);
+    fr.onerror = () => rej(new Error('rasm o\'qilmadi'));
+    fr.readAsDataURL(b);
+  });
+}
+
 async function mountAvatar() {
   if (avaHolat !== 'nomalum') return;
   avaHolat = 'yuklanmoqda';
   try {
     const r = await fetch('/api/me/photo', { credentials: 'same-origin' });
     if (!r.ok) { avaHolat = 'yoq'; return; }
-    avaUrl = URL.createObjectURL(await r.blob());
+    avaUrl = await blobToDataUrl(await r.blob());
     avaHolat = 'bor';
     const el = document.getElementById('profile-ava');
     if (el) el.innerHTML = `<img src="${esc(avaUrl)}" alt="">`;

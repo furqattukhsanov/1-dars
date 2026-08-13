@@ -125,6 +125,65 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
 
 ## Qilingan ishlar
 
+- [2026-08-13] 🔴 **NUQSON: profil avatari PRODUCTION'DA UMUMAN CHIZILMAGAN —
+  sabab kodda emas, CSP SARLAVHASIDA edi.** Founder telefonda ko'rsatdi:
+  profil kartochkasida avatar o'rniga "singan rasm" belgisi, refresh ham
+  yordam bermagan. Ya'ni `6cf4b12` bilan chiqqan avatar funksiyasi
+  **birinchi kunidan beri o'lik** turgan.
+
+  **Sabab O'LCHANDI, taxmin qilinmadi** — jonli javob sarlavhasi o'qildi:
+  `img-src 'self' data: https://cdn.lolamarket.uz https://*.maps.yandex.net …`
+  — ro'yxatda **`blob:` YO'Q**. Avatar esa `URL.createObjectURL()` bilan
+  qo'yilgandi, ya'ni aynan `blob:` havola yasalardi va brauzer uni bloklardi.
+  `esc()` gumon qilindi va OQLANDI: u faqat `&<>"'` ni qochiradi, blob
+  havolasiga tegmaydi.
+
+  🔴 **NUQSON TURI — LOYIHADA TANISH VA ENG YOMON XILI:** konsolda JS xatosi
+  YO'Q, `fetch` **200** qaytargan, kod "ishlagan" — faqat rasm chizilmagan.
+  Bu CLAUDE.md dagi karta bandi bilan **BITTA OILA**: «CSP qo'llanganda
+  `api-maps.yandex.ru` qo'shilmasa karta JIMGINA o'ladi». Naqsh AYNAN o'sha,
+  ya'ni qoida yozilgan bo'lsa ham ikkinchi marta tishladi — bu loyihaning
+  «yozilgan qoida himoya emas, uni tekshiradigan test himoya» darsining
+  navbatdagi tasdig'i.
+
+  **Tuzatish:** `blob:` o'rniga **`data:`** — u CSP ro'yxatida ALLAQACHON
+  bor, ya'ni **nginx'ga TEGILMADI**. Yangi `blobToDataUrl()` (`FileReader` →
+  `readAsDataURL`) ikkala yuzda ham.
+  ⚠️ **CSP ni kengaytirish varianti ATAYLAB rad etildi:** mavjud ruxsat
+  yetarli bo'lganda yangi ruxsat ochish noto'g'ri bo'lardi — har bir qo'shilgan
+  sxema CSP ning himoya qiymatini kamaytiradi va uni qaytarib olish qiyin.
+  Avatar kichik (≤160px), ya'ni base64 qilib inline qo'yish arzon.
+
+  **Yangi qorovul — Test 25** (`testImageSchemeAllowedByCsp`), uch bandi:
+  (1) `script.js` va `telegram-app/app.js` da `createObjectURL` UMUMAN
+  bo'lmasin (izohlar tahlildan oldin olib tashlanadi — 2026-08-12 dagi
+  «izohdagi so'z qorovulni aldadi» darsi); (2) hujjatdagi CSP `img-src` da
+  `data:` QOLSIN — avatar shunga tayanadi va kimdir CSP ni "qattiqlashtirsa"
+  avatar yana jimgina o'lardi; (3) ikkala frontend `readAsDataURL` ishlatsin.
+
+  ⚠️ **QOROVULNI SINASHDA O'LCHOV XATOSI CHIQDI VA U YOZIB QO'YILADI.**
+  Birinchi urinishda M1/M2 mutatsiyalarini **Test 16** (kesh versiyasi) tutdi,
+  Test 25 emas — chunki faylni tahrirlash `sha256` ni o'zgartiradi va Test 16
+  oldinroq yiqiladi. Ya'ni "mutatsiya ushlandi" degan xulosa **NOTO'G'RI
+  NARSANI** o'lchagan bo'lardi va Test 25 umuman ishlamasa ham xuddi shunday
+  ko'rinardi. Qayta sinaldi: mutatsiya bilan BIRGA jadvaldagi hash ham
+  yangilanib, Test 16 YASHIL qoldirildi — o'shanda uchala mutatsiya ham
+  AYNAN Test 25 tomonidan ushlandi. Bu `MEMORY.md` dagi «tekshirdim ≠ to'g'ri
+  narsani tekshirdim» darsining yana bir holati.
+
+  🔴 **HALOL CHEGARA — tuzatish brauzerda KO'Z BILAN KO'RILMADI.** Browser
+  paneli bu sessiyada siyosat bilan yopiq va founder sessiyasi bilan kirib
+  bo'lmaydi. Ya'ni «`data:` CSP dan o'tadi» degan gap **sarlavha o'qilishiga
+  asoslangan mantiqiy xulosa**, jonli o'lchov EMAS. ⚠️ Aynan shu turdagi
+  ishonch bu nuqsonni tug'dirgan edi — o'shanda ham kod to'g'ri ko'rinardi.
+  **Tasdiq faqat founder profilni ochib avatarni ko'rganda bo'ladi.**
+
+  **Kesh:** `script.js v43→44`, `telegram-app/app.js v85→86`.
+  `style.css` (v52) va `telegram-app/styles.css` (v29) **TEGILMADI** — ular
+  o'zgarmagan, ya'ni versiyasi ham oshirilmaydi. Test 16 jadvali yangilandi.
+  **Testlar 62 → 63, hammasi yashil.**
+  **Deploy:** faqat statik — servis restarti KERAK EMAS
+
 - [2026-08-13] **▶ belgisi (`.media-mark`) kartochkadan OLIB TASHLANDI —
   founder qarori.** Belgi bir necha soat oldin, AYNI kunda qo'shilgan edi va
   uni **founder so'ramagandi**: u 3 soniyalik hover funksiyasining yonida,
@@ -220,6 +279,11 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
   ZAXIRA bo'lib qoladi; frontend `fetch` + blob bilan oladi (`<img src>`
   sarlavha yubora olmaydi). `usableMime`/`mimeFromPath` `catalog.js` dan
   IMPORT qilindi, nusxa ko'chirilmadi (`db/014` darsi).
+  🔴 **BU BAND PRODUCTION'DA ISHLAMADI** — avatar o'rniga "singan rasm"
+  chiqdi. Sabab shu yozuvdagi «blob bilan oladi» qismining O'ZIDA edi:
+  `blob:` sxemasi CSP ro'yxatida yo'q. Tuzatildi — tepadagi alohida
+  yozuvga qara. Ya'ni bu bandni yozganda funksiya **sinalgan deb
+  hisoblangan**, holbuki u faqat lokalda (CSP'siz) sinalgandi.
 
   **Sotuvchi kabineti founder ro'yxatiga cheklandi** (`SELLER_TG_IDS`,
   `config.js`; zaxira zanjiri `ADMIN_TG_IDS` → `ADMIN_CHAT_ID`). Endi ikki

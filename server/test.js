@@ -1379,13 +1379,13 @@ function testAssetVersionsAreFresh() {
   // qotib qolgan keshni cheksiz ushlab turardi.
   const KUTILGAN = {
     'style.css': { v: 52, hash: '51cdfdfd50cf' },
-    'script.js': { v: 43, hash: 'e357d997ae2b' },
+    'script.js': { v: 44, hash: '2696270699b3' },
     'pwa.js': { v: 2, hash: 'f46683d58662' },
-    'panel.js': { v: 22, hash: '56035e3c5f6c' },
+    'panel.js': { v: 23, hash: '22099c1f49d4' },
     'admin/admin.css': { v: 18, hash: '15b0bc977b85' },
     'admin/admin.js': { v: 24, hash: '9f912b5b0788' },
     'telegram-app/styles.css': { v: 29, hash: '4b5a1fba7dc4' },
-    'telegram-app/app.js': { v: 85, hash: 'b4bcfbf8d577' },
+    'telegram-app/app.js': { v: 86, hash: '12b8d1ad6901' },
     'telegram-app/pwa.js': { v: 6, hash: '798ab85e1cde' },
   };
 
@@ -1948,6 +1948,60 @@ async function testSellerCabinetAllowlist() {
   assert.ok(/sellerAllowed\(/.test(tana), 'currentSeller sellerAllowed dan o\'tsin');
 
   console.log(`✅ Test 24: Sotuvchi kabineti founder ro'yxatida — PASS (${SELLER_TG_IDS.size} ID)`);
+}
+
+// ============ TEST 25: Rasm sxemasi CSP ga sig'sin (2026-08-13) ===========
+// Production'da avatar o'rniga "singan rasm" chiqdi va sabab KODDA emas,
+// SARLAVHADA edi: frontend `URL.createObjectURL` bilan `blob:` havola
+// yasardi, saytning CSP siyosatida esa
+// `img-src 'self' data: https://cdn.lolamarket.uz` turadi — `blob:` u yerda
+// YO'Q. Brauzer rasmni bloklaydi, konsolda esa faqat CSP ogohlantirishi
+// qoladi: JS xatosi yo'q, so'rov muvaffaqiyatli, rasm esa chizilmaydi.
+//
+// ⚠️ Bu CLAUDE.md dagi karta bandi bilan BITTA OILA («CSP qo'llanganda
+// `api-maps.yandex.ru` qo'shilmasa karta JIMGINA o'ladi»). Ikkalasida ham
+// nuqson KO'RINMAYDI — shuning uchun qorovul kerak.
+//
+// Uch mutatsiya bilan sinaldi, uchtasi ham ushlandi:
+//   1) `blobToDataUrl` o'rniga `URL.createObjectURL` qaytarildi;
+//   2) Mini App tomonida ayni almashtirish;
+//   3) hujjatdagi CSP dan `data:` olib tashlandi (avatar unga tayanadi).
+function testImageSchemeAllowedByCsp() {
+  const fs = require('fs');
+  const path = require('path');
+  const root = path.join(__dirname, '..');
+
+  // ---- 1. Frontendlar `blob:` yasamasin ----
+  // ⚠️ Tekshiruv `createObjectURL` ning O'ZIGA qaraydi, "img" so'ziga emas:
+  // havola qayerga borishini statik aniqlab bo'lmaydi, ya'ni yagona ishonchli
+  // qoida — bu sxemani UMUMAN ishlatmaslik. `media-src` da ham `blob:` yo'q,
+  // shuning uchun video uchun ham yaramaydi.
+  for (const rel of ['script.js', 'telegram-app/app.js']) {
+    const src = fs.readFileSync(path.join(root, rel), 'utf8')
+      .replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
+    assert.ok(!/createObjectURL/.test(src),
+      `\`${rel}\` da URL.createObjectURL ishlatilgan — u \`blob:\` havola yasaydi, ` +
+      'CSP dagi `img-src`/`media-src` esa `blob:` ni QAMRAMAYDI va rasm JIMGINA ' +
+      'chizilmaydi. `data:` ishlating (`blobToDataUrl`) yoki oddiy `/api/...` yo\'lini.');
+  }
+
+  // ---- 2. Hujjatdagi CSP `data:` ni saqlab qolsin ----
+  // Avatar aynan shunga tayanadi. Kimdir CSP ni "qattiqlashtirib" `data:` ni
+  // olib tashlasa, avatar yana jimgina o'lardi — endi test qizil bo'ladi.
+  const doc = fs.readFileSync(path.join(root, 'docs', 'xavfsizlik-sarlavhalari.md'), 'utf8');
+  const m = doc.match(/img-src ([^;|]+)/);
+  assert.ok(m, 'xavfsizlik hujjatida `img-src` bandi bo\'lsin');
+  assert.ok(/\bdata:/.test(m[1]),
+    `CSP \`img-src\` da \`data:\` bo'lsin — profil avatari shunga tayanadi (hozir: ${m[1].trim()})`);
+
+  // ---- 3. Avatar haqiqatan `data:` yo'lidan yursin ----
+  for (const rel of ['script.js', 'telegram-app/app.js']) {
+    const src = fs.readFileSync(path.join(root, rel), 'utf8');
+    assert.ok(/readAsDataURL/.test(src),
+      `\`${rel}\` avatarni \`data:\` ga o'girsin (readAsDataURL)`);
+  }
+
+  console.log('✅ Test 25: Rasm sxemasi CSP ga sig\'adi — PASS');
 }
 
 // ============ TEST 14g: Rasm so'rovining chegaralari matnnikidan boshqa ====
@@ -3408,6 +3462,7 @@ async function runTests() {
     testComboText();
 
     await testSellerCabinetAllowlist();
+    testImageSchemeAllowedByCsp();
 
     testAdminActionKinds();
 

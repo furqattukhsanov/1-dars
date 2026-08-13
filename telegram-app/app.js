@@ -3233,6 +3233,18 @@ function renderNotifications() {
 let _avaUrl = null;
 let _avaHolat = 'nomalum';        // nomalum | yuklanmoqda | bor | yoq
 
+/* 🔴 `URL.createObjectURL` ISHLATILMAYDI — saytdagi bilan AYNI sabab
+   (`script.js` → `blobToDataUrl` izohi): CSP dagi `img-src` ro'yxatida
+   `blob:` YO'Q va brauzer rasmni jimgina bloklaydi. `data:` bor. */
+function blobToDataUrl(b) {
+  return new Promise((res, rej) => {
+    const fr = new FileReader();
+    fr.onload = () => res(fr.result);
+    fr.onerror = () => rej(new Error('rasm o\'qilmadi'));
+    fr.readAsDataURL(b);
+  });
+}
+
 async function mountAvatar() {
   if (_avaHolat !== 'nomalum') return;
   if (!document.getElementById('tg-ava')) return;   // ekranda avatar joyi yo'q
@@ -3245,7 +3257,7 @@ async function mountAvatar() {
     });
     // 404 — surat YO'Q, bu xato emas: Telegram'da avatar qo'ymagan odam.
     if (!r.ok) { _avaHolat = 'yoq'; return; }
-    _avaUrl = URL.createObjectURL(await r.blob());
+    _avaUrl = await blobToDataUrl(await r.blob());
     _avaHolat = 'bor';
     // Faqat profil ekrani qayta chiziladi — butun `render()` chaqirilsa
     // ochiq sheet yoki skroll holati yo'qolardi.
