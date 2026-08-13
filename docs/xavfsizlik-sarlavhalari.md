@@ -373,40 +373,73 @@ ishlamay turadi.
 
 ---
 
-## C4 — Yandex karta CSP qoidasiga qo'shilishi kerak (2026-08-13)
+## C4 — Yandex karta CSP tomonidan BLOKLANMOQDA (2026-08-13)
 
-**Holat:** kod TAYYOR va production'da, CSP esa hali qo'llanmagan
-(yuqoridagi C3 founder qadamini kutmoqda). Ya'ni bugun karta ishlaydi.
-**Xavf KELAJAKDA:** C3 dagi kanonik qoida O'ZGARTIRILMASDAN qo'llansa,
-profildagi "Mening manzilim" kartasi **JIMGINA** o'ladi — sayt sinmaydi,
-xato faqat brauzer konsolida qoladi va uni hech kim ko'rmaydi.
+🔴 **Holat: NUQSON JONLI.** Kod production'da, karta esa CSP tomonidan
+bloklangan — profildagi "Mening manzilim" da karta o'rniga "Karta
+yuklanmadi" yozuvi turibdi (nuqta ro'yxatdan tanlanadi, ya'ni funksiya
+o'lmagan, lekin kartaning O'ZI ishlamayapti).
 
-Profildagi manzil tanlash Yandex Maps JS API 2.1 dan foydalanadi
-(`server/lib/maps.js`, `script.js` → `loadYmaps`). Skript **dinamik**
-yuklanadi, ya'ni u HTML'da ko'rinmaydi va supurishlarda topilmaydi.
+⚠️ **Bu bo'limning birinchi nusxasi XATO edi va uni saqlab qo'yish
+foydali:** unda "CSP hali qo'llanmagan, xavf KELAJAKDA" deb yozilgandi.
+Manba — shu HUJJATNING o'zi (C3 "founder qadamini kutmoqda" deb turardi).
+Jonli sarlavha o'lchanganda esa CSP ALLAQACHON majburlanayotgani chiqdi:
 
-### Kanonik qoidaga qo'shiladigan manbalar
+```bash
+curl -sI https://lolamarket.uz/ | grep -i content-security-policy
+```
 
-| Direktiva | Qo'shiladi | Nima uchun |
+Ya'ni bu CLAUDE.md dagi **"hujjatdagi raqam — tekshirilmagan da'vo"**
+qoidasining aynan o'zi, faqat raqam emas HOLAT darajasida: hujjat "hali
+yoqilmagan" derdi, brauzer esa bloklab turgandi. Xulosa: CSP holati
+hujjatdan emas, HAR DOIM jonli sarlavhadan o'qilsin.
+
+Karta Yandex Maps JS API 2.1 dan foydalanadi (`script.js` → `loadYmaps`,
+`telegram-app/app.js` → `mountBtsMap`). Skript **dinamik** yuklanadi, ya'ni
+HTML'da ko'rinmaydi va statik supurishlarda topilmaydi.
+
+### Kerakli manbalar — JONLI O'LCHANGAN (taxmin EMAS)
+
+Kalit bilan karta CSP'siz muhitda ochildi, masshtab o'zgartirildi va
+brauzerning `performance` resurs yozuvlaridan mezbon + resurs TURI yig'ildi
+(tur direktivani belgilaydi):
+
+| Mezbon | Turi | Direktiva |
 |---|---|---|
-| `script-src` | `https://api-maps.yandex.ru https://yastatic.net` | yuklovchi skript va uning modullari |
-| `connect-src` | `https://api-maps.yandex.ru https://*.maps.yandex.net` | modul va plitka metama'lumoti |
-| `img-src` | `https://*.maps.yandex.net https://yastatic.net` | karta plitkalari va belgilar |
+| `api-maps.yandex.ru` | script ×4 | `script-src` |
+| `yastatic.net` | script ×1, img ×4 | `script-src` + `img-src` |
+| `core-renderer-tiles.maps.yandex.net` | img ×21 | `img-src` |
+| `log.api-maps.yandex.ru` | img ×1 | `img-src` (telemetriya) |
 
-`style-src` ga TEGILMAYDI: unda `'unsafe-inline'` allaqachon bor va Yandex
-o'z uslublarini aynan shu yo'l bilan qo'yadi.
+🔴 **O'lchov hujjatdagi taxminni RAD ETDI:** dastlab `connect-src` ga ikkita
+mezbon qo'shish kerak deb yozilgandi — **kerak emas ekan.** 2.1 versiyasi
+modullarni `<script>` bilan, plitkalarni esa `<img>` bilan oladi, XHR
+ishlatmaydi. Taxmin bo'yicha yozilganda CSP keraksiz ravishda kengaytirilgan
+bo'lardi.
 
-### 🔴 Bu ro'yxat — TEKSHIRILMAGAN DA'VO
+⚠️ **O'lchov TO'LIQ emas:** u bitta seansni qamradi (Toshkent, masshtab
+o'zgarishi, 9 belgi). Boshqa oqim (geolokatsiya tugmasi, boshqa hudud)
+yangi mezbon so'rashi mumkin — qoida qo'llangandan keyin konsol BIR MARTA
+o'qilsin.
 
-U Yandex hujjatidan olingan, **jonli o'lchovdan emas** (yozilgan kunda CSP
-umuman qo'llanmagan va karta kaliti ham hali yo'q edi). CLAUDE.md qoidasi
-shuni talab qiladi: raqam yoki ro'yxat tekshirilmagan bo'lsa, u shunday
-DEB BELGILANSIN.
+### Yangi kanonik qiymat
 
-**Tekshirish yo'li — `Content-Security-Policy-Report-Only` bosqichi
-(yuqoridagi "Ishga tushirish tartibi"):** qoida `Report-Only` da turganda
-profil → "Mening manzilim" → "Kartadan tanlash" ochiladi va konsoldagi
-`Refused to load` xabarlari O'QILADI. Haqiqiy ro'yxat o'sha yerda ko'rinadi
-va shu jadval o'shanga qarab tuzatiladi. Bu qadam **o'tkazib yuborilmasin**:
-`static.cloudflareinsights.com` ni ham aynan kuzatuv rejimi topgan edi
-(repodagi kodda u umuman yo'q edi).
+```
+default-src 'self'; script-src 'self' https://telegram.org https://static.cloudflareinsights.com https://api-maps.yandex.ru https://yastatic.net; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://cdn.lolamarket.uz https://*.maps.yandex.net https://yastatic.net https://log.api-maps.yandex.ru; media-src 'self' https://cdn.lolamarket.uz; connect-src 'self'; frame-ancestors 'self' https://telegram.org https://*.telegram.org; base-uri 'self'; form-action 'self'; object-src 'none'
+```
+
+Eskisidan farqi uchta: `script-src` ga ikki mezbon, `img-src` ga uch mezbon,
+va `media-src` (u mahsulot VIDEOSI uchun — alohida ish, yuqoridagi bandga
+qara). `style-src` ga tegilmaydi: unda `'unsafe-inline'` bor va Yandex o'z
+uslublarini aynan shu yo'l bilan qo'yadi.
+
+`log.api-maps.yandex.ru` — Yandex telemetriyasi. Uni ATAYLAB tashlab
+ketish mumkin (karta usiz ham to'liq ishlaydi), lekin o'shanda konsolda
+HAR SAFAR CSP xatosi chiqib turadi — va "kutilgan xato" konsolni signalsiz
+shovqinga aylantiradi. Shuning uchun ro'yxatga kiritildi.
+
+### Qo'llash (founder)
+
+Cloudflare → `lolamarket.uz` → Rules → Overview → CSP qoidasi → qiymatni
+yuqoridagi bilan almashtirish. Keyin tekshiruv: profil → "Mening manzilim"
+→ karta CHIZILSIN va konsolda `Refused to load` BO'LMASIN.
