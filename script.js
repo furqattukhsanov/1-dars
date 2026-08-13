@@ -2614,6 +2614,14 @@ function sellerTabsHtml(active) {
    IXTIYORIY. Shuning uchun bu blok ogohlantirish (`warn`) emas — video yo'q
    bo'lishi nuqson emas. */
 function videoNoteHtml(p) {
+  // ⚠️ ESKI BACKEND — BLOK UMUMAN CHIZILMAYDI. CI faqat frontendni chiqaradi
+  // (`server/` qo'lda rsync qilinadi), ya'ni "yangi frontend + eski backend"
+  // oynasi HAR DOIM bo'ladi. O'shanda `awaitingVideo` `undefined` bo'lib
+  // tugma chizilardi, `request_video` esa eski backendda amal sifatida
+  // tanilmay tahrirlash yo'liga tushib 400 qaytarardi — ya'ni O'LIK TUGMA.
+  // `renderUsers`/`renderGrowth` bilan bitta qoida: maydon yo'q bo'lsa blok
+  // yo'q, nol yoki taxmin ko'rsatilmaydi.
+  if (p.awaitingVideo === undefined) return '';
   // Oyna OCHIQ — tugma yo'q: yo'l allaqachon bor, tugma uni ikkilantirardi.
   if (p.awaitingVideo) return `<div class="s-note info">🎬 ${t('sVidWaiting')}</div>`;
   // Video BOR — almashtirish yo'li ochiladi. Bu ham bo'shliq edi: video

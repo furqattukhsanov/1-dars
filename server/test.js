@@ -1373,13 +1373,13 @@ function testAssetVersionsAreFresh() {
   // qotib qolgan keshni cheksiz ushlab turardi.
   const KUTILGAN = {
     'style.css': { v: 52, hash: '084d78911caa' },
-    'script.js': { v: 43, hash: '16191ccc27c4' },
+    'script.js': { v: 44, hash: 'ad24aef86d14' },
     'pwa.js': { v: 2, hash: 'f46683d58662' },
     'panel.js': { v: 21, hash: '3001ca219f1d' },
     'admin/admin.css': { v: 18, hash: '15b0bc977b85' },
     'admin/admin.js': { v: 25, hash: '08fae1bb61dc' },
     'telegram-app/styles.css': { v: 26, hash: '1fc904168550' },
-    'telegram-app/app.js': { v: 82, hash: 'dd7959e95715' },
+    'telegram-app/app.js': { v: 83, hash: 'a3532c1f6bba' },
     'telegram-app/pwa.js': { v: 6, hash: '798ab85e1cde' },
   };
 

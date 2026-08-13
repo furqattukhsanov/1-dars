@@ -3915,6 +3915,11 @@ function emptyState(title, sub) {
 // qo'yadi) sotuvchida yangisini yuborish yo'li UMUMAN qolmasdi.
 function sellerVideoNote(p) {
   const T = STR[S.lang];
+  // ⚠️ ESKI BACKEND — BLOK UMUMAN CHIZILMAYDI (sayt tomonidagi
+  // `videoNoteHtml` bilan AYNI sabab): CI faqat frontendni chiqaradi, ya'ni
+  // "yangi frontend + eski backend" oynasi har doim bo'ladi va o'shanda
+  // tugma bosilsa `request_video` 400 qaytarardi — o'lik tugma.
+  if (p.awaitingVideo === undefined) return '';
   // Oyna OCHIQ — tugma yo'q: yo'l allaqachon bor, tugma uni ikkilantirardi.
   if (p.awaitingVideo) return `<div class="s-note info">🎬 ${T.sVidWaiting}</div>`;
   return `<div class="s-note info">
