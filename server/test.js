@@ -1381,11 +1381,11 @@ function testAssetVersionsAreFresh() {
     'style.css': { v: 52, hash: '51cdfdfd50cf' },
     'script.js': { v: 44, hash: '2696270699b3' },
     'pwa.js': { v: 2, hash: 'f46683d58662' },
-    'panel.js': { v: 23, hash: '22099c1f49d4' },
+    'panel.js': { v: 24, hash: 'd46027e63ce4' },
     'admin/admin.css': { v: 18, hash: '15b0bc977b85' },
     'admin/admin.js': { v: 24, hash: '9f912b5b0788' },
     'telegram-app/styles.css': { v: 29, hash: '4b5a1fba7dc4' },
-    'telegram-app/app.js': { v: 86, hash: '12b8d1ad6901' },
+    'telegram-app/app.js': { v: 87, hash: 'a2372275489c' },
     'telegram-app/pwa.js': { v: 6, hash: '798ab85e1cde' },
   };
 
@@ -2001,7 +2001,27 @@ function testImageSchemeAllowedByCsp() {
       `\`${rel}\` avatarni \`data:\` ga o'girsin (readAsDataURL)`);
   }
 
-  console.log('✅ Test 25: Rasm sxemasi CSP ga sig\'adi — PASS');
+  // ---- 4. Telegram CDN havolasi rasmga QO'YILMASIN ----
+  // 🔴 Bu band birinchi tuzatishdan KEYIN qo'shildi, chunki `blob:` ni
+  // `data:` ga o'girish YETARLI BO'LMADI: Mini App'da avatar hamon
+  // chiqmasdi, saytda esa ishlardi. Sabab ikkinchi manba edi —
+  // `initDataUnsafe.user.photo_url`, ya'ni TELEGRAM CDN havolasi.
+  // U CSP `img-src` ro'yxatida YO'Q (u yerda faqat `'self'`, `data:` va
+  // `cdn.lolamarket.uz`), ustiga u birinchi pog'ona bo'lgani uchun
+  // serverdan olish yo'li UMUMAN ochilmasdi.
+  //
+  // ⚠️ Nuqsonning shakli muhim: u BIR YUZDA ishlab, ikkinchisida
+  // ishlamasdi — saytda `initData` yo'q, ya'ni `photo_url` ham yo'q.
+  // Aynan shu turdagi nuqson CLAUDE.md da ikki marta qayd etilgan
+  // (`authUser()` naqshi).
+  const app = fs.readFileSync(path.join(root, 'telegram-app', 'app.js'), 'utf8')
+    .replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
+  assert.ok(!/photo_url/.test(app),
+    'telegram-app/app.js da `photo_url` ishlatilgan — u TELEGRAM CDN havolasi va ' +
+    'CSP `img-src` uni QAMRAMAYDI (rasm jimgina bloklanadi). Avatar faqat ' +
+    '`/api/me/photo` dan olinsin — u ikkala yuzda ham bir xil ishlaydi.');
+
+  console.log('✅ Test 25: Rasm sxemasi CSP ga sig\'adi — PASS (4 band)');
 }
 
 // ============ TEST 14g: Rasm so'rovining chegaralari matnnikidan boshqa ====
