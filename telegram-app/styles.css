@@ -766,3 +766,64 @@ button:active { opacity: .88; }
 @media (prefers-reduced-motion: reduce) {
   .konfetti { display: none; }
 }
+
+/* ─── Mahsulot mediasi: galereya (1-slayd rasm, 2-slayd video) ───
+   2026-08-13. Surish CSS `scroll-snap` bilan — barmoq harakati tizimning
+   O'ZINIKI bo'lib qolsin.
+   ⚠️ `scroll-behavior: smooth` ATAYLAB YO'Q: o'lchandi, silliq surish
+   bajarilmaydigan muhitda `scrollLeft` jimgina yutiladi va nuqta o'lik
+   tugmaga aylanadi. */
+.pd-slides {
+  position: absolute; inset: 0;
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.pd-slides::-webkit-scrollbar { display: none; }
+.pd-slide {
+  flex: 0 0 100%;
+  scroll-snap-align: center;
+  position: relative;
+  height: 100%;
+}
+.pd-vidwrap { background: #000; }
+.pd-vid { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+/* Markazdagi ijro tugmasi — native `controls` o'rniga (sabab: pastdagi
+   kartochka hero ustiga 22px chiqib turadi va boshqaruv paneli yarim
+   yopiq qolardi). */
+.pd-play {
+  position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 62px; height: 62px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+  border: 1px solid var(--glass-border);
+  background: var(--glass-fill-strong);
+  backdrop-filter: var(--blur-md); -webkit-backdrop-filter: var(--blur-md);
+  color: var(--pom-700);
+  box-shadow: var(--glass-highlight);
+  cursor: pointer;
+  padding: 0 0 0 4px; /* uchburchak optik markazga kelsin */
+}
+
+/* Nuqtalar hero ICHIDA, pastki chekkadan 30px — pastdagi kartochka 22px
+   chiqib turadi, ya'ni undan pastda qo'yilsa yopilib qolardi. */
+.pd-dots {
+  position: absolute; left: 0; right: 0; bottom: 30px;
+  display: flex; justify-content: center; gap: 6px;
+  pointer-events: none;
+}
+.pd-dot {
+  width: 7px; height: 7px; padding: 0;
+  border: 0; border-radius: 50%;
+  background: rgba(255, 255, 255, .55);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .35);
+  cursor: pointer;
+  pointer-events: auto;
+  transition: background .2s, transform .2s;
+}
+.pd-dot.is-on { background: #fff; transform: scale(1.3); }
+@media (prefers-reduced-motion: reduce) { .pd-dot { transition: none; } }

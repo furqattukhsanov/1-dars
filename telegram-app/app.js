@@ -72,6 +72,7 @@ const STR = {
     somU: "so'm", priceFrom: "dan yuqori", priceTo: "gacha", priceRemove: "Narx filtrini olib tashlash",
     day: "kun", addCart: "Savatga qo'shish", order: "Buyurtma berish", specs: "Tafsilotlar", width: "Eni", weight: "Zichlik",
     comp: "Tarkibi", leadTime: "Yetkazish muddati", minOrder: "Minimal buyurtma (MOQ)", supplierL: "Yetkazib beruvchi",
+    mediaPhoto: "Rasm", mediaVideo: "Video",
     verified: "Tasdiqlangan", reviews: "sharh", message: "Xabar yuborish", qty: "Miqdor", cart: "Savat", cartEmpty: "Savat bo'sh",
     // — AI kiyim RASMI (2026-08-07) —
     // ⚠️ `aiLimit` ("Bugungi N ta generatsiya tugadi. Ertaga 00:00 da
@@ -242,6 +243,7 @@ const STR = {
     somU: "сум", priceFrom: "и выше", priceTo: "и ниже", priceRemove: "Убрать фильтр по цене",
     day: "дн.", addCart: "В корзину", order: "Оформить заказ", specs: "Характеристики", width: "Ширина", weight: "Плотность",
     comp: "Состав", leadTime: "Срок поставки", minOrder: "Мин. заказ (MOQ)", supplierL: "Поставщик",
+    mediaPhoto: "Фото", mediaVideo: "Видео",
     verified: "Проверен", reviews: "отзыв.", message: "Написать", qty: "Количество", cart: "Корзина", cartEmpty: "Корзина пуста",
     // — Изображение одежды от AI (2026-08-07) —
     // ⚠️ Рисунок НЕ зависит от языка (в нём нет текста), поэтому кеш общий.
@@ -787,6 +789,11 @@ function vm(p) {
     bgStyle: p.img
       ? `background-image:url('${cssUrl(p.img)}');background-size:cover;background-position:center`
       : `background:${PATTERNS[p.pattern] || PATTERNS.plain};background-size:${pSize(p.pattern)}`,
+    // Video ham SHU chegarada tozalanadi — nom/sotuvchi bilan bir xil sabab:
+    // qiymat `src="..."` atributiga tushadi va chizish joyida `esc()` ni
+    // eslab qolishga tayanib bo'lmaydi.
+    video: p.video ? esc(p.video) : null,
+    videoPoster: p.videoPoster ? esc(p.videoPoster) : null,
     priceLabel: money(p.price),
     unitLabel: '/' + uShort(p.unit),
     perUnitLabel: STR[L].perUnit,
@@ -1302,6 +1309,97 @@ async function loadAiGallery() {
   if (S.screen === 'ai') render();
 }
 
+// ============ MAHSULOT MEDIASI — GALEREYA (1-slayd rasm, 2-slayd video) ============
+// Founder qarori (2026-08-13): "bitta mahsulot ichida 1 rasm, ikkinchi video".
+//
+// ⚠️ Video BO'LMASA hech narsa o'zgarmaydi — o'ram avvalgidek `bgStyle` bilan
+// chiziladi va bu funksiya bo'sh satr qaytaradi. Bitta slayd uchun skroll va
+// nuqta shovqindan boshqa narsa emas, ustiga mavjud ekranga regressiya
+// kiritish xavfi bekorga olinardi.
+//
+// ⚠️ NATIVE `controls` ISHLATILMAYDI. Pastdagi kartochka hero ustiga 22px
+// chiqib turadi (`margin-top:-22px`), ya'ni brauzerning boshqaruv paneli
+// aynan o'sha yerda YARIM YOPIQ qolardi — foydalanuvchi tugmani ko'radi-yu
+// bosa olmaydi. O'rniga markazda bitta katta tugma: bosilsa o'ynaydi,
+// yana bosilsa to'xtaydi. ≤30 s lik mahsulot klipida qidiruv chizig'i
+// kerak emas.
+function detailMedia(p, T) {
+  if (!p.video) return '';
+  const poster = p.videoPoster || '';
+  return `
+    <div class="pd-slides" id="pd-slides">
+      <div class="pd-slide" style="${p.bgStyle}"></div>
+      <div class="pd-slide pd-vidwrap">
+        <video id="pd-vid" class="pd-vid" src="${p.video}"${poster ? ` poster="${poster}"` : ''}
+               playsinline preload="none" aria-label="${T.mediaVideo}"></video>
+        <button class="pd-play" id="pd-play" data-action="pdPlay" aria-label="${T.mediaVideo}">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.2v13.6L19 12z"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="pd-dots" id="pd-dots">
+      <button class="pd-dot is-on" data-action="pdSlide" data-arg="0" aria-label="${T.mediaPhoto}"></button>
+      <button class="pd-dot" data-action="pdSlide" data-arg="1" aria-label="${T.mediaVideo}"></button>
+    </div>`;
+}
+
+/* Nuqta bosilishi va surish holatini BITTA funksiya belgilaydi.
+
+   ⚠️ Bu yerda `render()` CHAQIRILMAYDI — u butun ekranni qayta chizadi va
+   video boshidan boshlanib, surish joyi ham nolga tushardi. Galereya
+   holati DOM da yashaydi, `S` da emas: u ekran holatining bir qismi emas,
+   ko'rish lahzasining o'zi. */
+function pdSync(i) {
+  const dots = document.querySelectorAll('#pd-dots .pd-dot');
+  dots.forEach((d, k) => d.classList.toggle('is-on', k === i));
+  const v = document.getElementById('pd-vid');
+  // Video slayddan chiqilsa TO'XTAYDI: aks holda ko'rinmaydigan video
+  // ovoz chiqarib o'ynayverardi.
+  if (v && i !== 1 && !v.paused) { v.pause(); pdPlayIcon(); }
+}
+
+function pdSlide(i) {
+  const sl = document.getElementById('pd-slides');
+  if (!sl) return;
+  // ⚠️ `behavior: 'smooth'` ISHLATILMAYDI — 2026-08-13 da o'lchandi: silliq
+  // surish bajarilmaydigan muhitda so'rov jimgina yutiladi va nuqta BUTUNLAY
+  // o'lik tugmaga aylanadi. Barmoq bilan surishning silliqligi tizimdan
+  // keladi va bunga bog'liq emas.
+  sl.scrollLeft = sl.clientWidth * i;
+  // Holat hodisani KUTMAYDI — `scroll` otilmasa ham javob darrov ko'rinsin.
+  pdSync(i);
+}
+
+function pdPlayIcon() {
+  const b = document.getElementById('pd-play');
+  const v = document.getElementById('pd-vid');
+  if (b && v) b.style.display = v.paused ? 'flex' : 'none';
+}
+
+function pdPlay() {
+  const v = document.getElementById('pd-vid');
+  if (!v) return;
+  if (v.paused) { v.play().catch(() => {}); } else { v.pause(); }
+  pdPlayIcon();
+}
+
+// Galereya HTML bilan birga "jonlanmaydi" — surish hodisasi tugun DOM'ga
+// tushgandan keyin ulanadi (har qayta chizishda tugun YANGI bo'ladi).
+function mountDetailMedia() {
+  const sl = document.getElementById('pd-slides');
+  if (!sl) return;
+  sl.addEventListener('scroll', () => {
+    pdSync(Math.round(sl.scrollLeft / Math.max(1, sl.clientWidth)));
+  }, { passive: true });
+  const v = document.getElementById('pd-vid');
+  if (v) {
+    // Video o'zi tugasa yoki to'xtasa tugma qaytib chiqsin.
+    v.addEventListener('pause', pdPlayIcon);
+    v.addEventListener('play', pdPlayIcon);
+    v.addEventListener('ended', pdPlayIcon);
+  }
+}
+
 // ============ EKRAN: DETAIL ============
 function renderDetail() {
   const T = STR[S.lang];
@@ -1309,7 +1407,8 @@ function renderDetail() {
   if (!p) return '';
   return `
   <div style="display:flex;flex-direction:column">
-    <div style="position:relative;height:248px;${p.bgStyle}">
+    <div style="position:relative;height:248px;${p.video ? '' : p.bgStyle}">
+      ${detailMedia(p, T)}
       ${p.badgeShow ? `<span style="position:absolute;top:14px;left:16px;display:inline-flex;align-items:center;height:26px;padding:0 12px;border-radius:999px;font-size:12px;font-weight:600;background:${p.badgeBg};color:${p.badgeFg}">${p.badge}</span>` : ''}
       ${S.aiImageEnabled ? `<button class="ai-jump" data-action="scrollToAi">✦ ${T.aiJump}</button>` : ''}
       <button data-action="toggleLike" data-arg="${p.id}" style="position:absolute;top:12px;right:14px;width:38px;height:38px;border-radius:50%;border:1px solid var(--glass-border);background:var(--glass-fill-strong);backdrop-filter:var(--blur-md);-webkit-backdrop-filter:var(--blur-md);display:flex;align-items:center;justify-content:center;color:${p.heartStroke};box-shadow:var(--glass-highlight)">
@@ -3361,6 +3460,11 @@ function render() {
       </div>`;
     }
   }
+  // Galereya tugunlari HTML bilan kelmaydi — ular DOM'da bo'lgandan keyin
+  // ulanadi. `try` dan TASHQARIDA: chizish yiqilsa mount qiladigan narsa
+  // ham yo'q, lekin mount xatosi butun ekranni qulatmasligi kerak.
+  if (S.screen === 'detail') { try { mountDetailMedia(); } catch (e) { console.error('mountDetailMedia xatosi:', e.message); } }
+
   // Ekran almashsa ochiq sheet qolib ketmasin
   if (S.screen !== 'checkout') S.btsSheet = false;
   if (S.screen !== 'home') S.priceSheet = false;

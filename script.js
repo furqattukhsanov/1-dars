@@ -64,6 +64,7 @@ const STR = {
     unitPricePanel: '1 dona panel narxi',
     addToCart: "Savatga qo'shish",
     specWidth: 'Eni', specWeight: 'Zichlik', specComp: 'Tarkibi',
+    mediaPhoto: 'Rasm', mediaVideo: 'Video',
     specLead: 'Yetkazish muddati', specMoq: 'Minimal buyurtma',
     days: 'kun', pcs: 'dona',
     reviews: 'Sharhlar',
@@ -261,6 +262,7 @@ const STR = {
     unitPricePanel: 'Цена за панель',
     addToCart: 'В корзину',
     specWidth: 'Ширина', specWeight: 'Плотность', specComp: 'Состав',
+    mediaPhoto: 'Фото', mediaVideo: 'Видео',
     specLead: 'Срок поставки', specMoq: 'Минимальный заказ',
     days: 'дн.', pcs: 'шт.',
     reviews: 'Отзывы',
@@ -2794,6 +2796,84 @@ function sellerOrderArg(arg) {
     .catch((e) => showToast(e.message));
 }
 
+/* Media galereya — 1-slayd RASM, 2-slayd VIDEO (founder qarori, 2026-08-13:
+   "bitta mahsulot ichida 1 rasm, ikkinchi video bo'ladi").
+
+   ⚠️ Video bo'lmasa galereya UMUMAN chizilmaydi va `<img>` avvalgidek yolg'iz
+   qoladi: bitta slayd uchun nuqta va gorizontal skroll shovqindan boshqa narsa
+   emas. Bu `NULL` reyting qoidasi bilan bitta oila — yo'q narsa uchun bo'sh
+   idish ko'rsatilmaydi.
+
+   Slaydlar CSS `scroll-snap` bilan suriladi, JS bilan emas: barmoq harakati
+   brauzerning O'ZINIKI bo'lib qoladi (inersiya, chekka qarshiligi) va uni
+   qo'lda takrorlash har doim yomonroq chiqadi. JS faqat nuqtalarni holatga
+   moslashtiradi. */
+function mediaHtml(p, m) {
+  const video = m && m.video ? m.video : null;
+  if (!video) return `<img class="pd-img" src="${esc(p.img)}" alt="${esc(p.name)}" />`;
+  // Muqova yo'q bo'lsa mahsulot rasmiga tushamiz — qora to'rtburchak
+  // "video buzuq" degan taassurot berardi.
+  const poster = (m && m.videoPoster) || p.img;
+  return `
+    <div class="pd-media">
+      <div class="pd-slides" id="pd-slides">
+        <img class="pd-img" src="${esc(p.img)}" alt="${esc(p.name)}" />
+        <video class="pd-vid" src="${esc(video)}" poster="${esc(poster)}"
+               controls preload="none" playsinline
+               aria-label="${esc(t('mediaVideo'))}"></video>
+      </div>
+      <div class="pd-dots" id="pd-dots">
+        <button class="pd-dot is-on" data-slide="0" aria-label="${esc(t('mediaPhoto'))}"></button>
+        <button class="pd-dot" data-slide="1" aria-label="${esc(t('mediaVideo'))}"></button>
+      </div>
+    </div>`;
+}
+
+/* Galereya HTML bilan birga "jonlanmaydi" — tugunlar DOM'ga tushgandan keyin
+   ulanadi (`mountAddrMap` bilan bir xil naqsh: har qayta chizishda tugun
+   YANGI bo'ladi, shuning uchun listener ham qaytadan ulanadi). */
+function mountPdMedia() {
+  const slides = document.getElementById('pd-slides');
+  const dots = document.getElementById('pd-dots');
+  if (!slides || !dots) return;
+
+  const nuqtalar = [...dots.querySelectorAll('.pd-dot')];
+  const vid = slides.querySelector('.pd-vid');
+
+  /* Holatni BITTA funksiya belgilaydi va uni IKKI manba chaqiradi: nuqta
+     bosilishi va barmoq bilan surish (`scroll`).
+
+     ⚠️ Nuqta bosilganda `scroll` hodisasi KUTILMAYDI — 2026-08-13 da o'lchandi:
+     dasturiy `scrollLeft` berilganda hodisa otilmasligi mumkin va o'shanda
+     nuqta surilib turgan slaydni ko'rsatmay qolardi, video esa ko'rinmagan
+     holda ovoz chiqarib o'ynayverardi. Ya'ni ASOSIY javob hech qachon
+     hodisaga bog'lanmaydi; `scroll` faqat barmoq bilan surishni QO'SHIMCHA
+     ravishda qamraydi. */
+  function sync(i) {
+    nuqtalar.forEach((d, k) => d.classList.toggle('is-on', k === i));
+    // Video slayddan chiqilsa TO'XTAYDI: aks holda foydalanuvchi rasmga
+    // qaytganda ko'rinmaydigan video ovoz chiqarib o'ynayverardi.
+    if (vid && i !== 1 && !vid.paused) vid.pause();
+  }
+
+  slides.addEventListener('scroll', () => {
+    sync(Math.round(slides.scrollLeft / Math.max(1, slides.clientWidth)));
+  }, { passive: true });
+
+  dots.addEventListener('click', (e) => {
+    const b = e.target.closest('.pd-dot');
+    if (!b) return;
+    const i = Number(b.dataset.slide);
+    // ⚠️ `behavior: 'smooth'` ISHLATILMAYDI va bu O'LCHANGAN qaror
+    // (2026-08-13): silliq surish bajarilmaydigan muhitda so'rov jimgina
+    // yutiladi va nuqta BUTUNLAY o'lik tugmaga aylanadi. To'g'ridan-to'g'ri
+    // qiymat berish har joyda ishlaydi; barmoq bilan surishning silliqligi
+    // esa tizimning o'zidan keladi va bunga bog'liq emas.
+    slides.scrollLeft = slides.clientWidth * i;
+    sync(i);
+  });
+}
+
 function detailHtml(id) {
   const p = product(id);
   if (!p) return '';
@@ -2811,7 +2891,7 @@ function detailHtml(id) {
 
   return `
     <div class="pd">
-      <img class="pd-img" src="${esc(p.img)}" alt="${esc(p.name)}" />
+      ${mediaHtml(p, m)}
 
       <div class="pd-head">
         <h3 class="pd-name">${esc(p.name)}</h3>
@@ -3573,6 +3653,9 @@ function renderDrawer() {
     title.textContent = t('product');
     body.innerHTML = detailHtml(detailId);
     foot.hidden = true;
+    // Galereya nuqtalari HTML bilan kelmaydi — tugun DOM'da bo'lgandan
+    // keyin ulanadi (`mountAddrMap` bilan bir xil sabab).
+    mountPdMedia();
     return;
   }
 

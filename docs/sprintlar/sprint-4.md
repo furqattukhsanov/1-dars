@@ -101,6 +101,57 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
 
 ## Qilingan ishlar
 
+- [2026-08-13] **Mahsulot VIDEOSI — media galereya ikkala yuzda (D bosqichi):
+  1-slayd rasm, 2-slayd video, va xaridor videoni ENDI ko'radi.** Founder
+  qarori: "bitta mahsulot ichida 1 rasm, ikkinchi video bo'ladi". Video rasmni
+  ALMASHTIRMAYDI — yoniga qo'shiladi: mato tanlashda ikkalasi ham kerak, rasm
+  tarkibni, video tovlanish va to'qimani ko'rsatadi.
+  Surish CSS `scroll-snap` bilan, JS bilan EMAS — barmoq harakati (inersiya,
+  chekka qarshiligi) brauzerning O'ZINIKI bo'lib qolsin; JS faqat nuqtalarni
+  holatga moslashtiradi.
+  🔴 **Tekshiruvda IKKI nuqson topildi va ikkalasi ham "o'lik tugma"
+  oilasidan** — razmetka joyida, konsolda xato yo'q, tugma esa ishlamaydi:
+  (a) `scroll-behavior: smooth` — berilgan `scrollLeft` animatsiyaga
+  topshiriladi va silliq surish bajarilmaydigan muhitda so'rov JIMGINA
+  yutiladi; o'lchandi: 2 soniyadan keyin ham 0, ya'ni nuqta BUTUNLAY o'lik
+  edi. Olib tashlandi — surishning silliqligi baribir tizimdan keladi.
+  (b) Nuqta holati `scroll` HODISASIGA bog'langan edi: hodisa otilmasa nuqta
+  noto'g'ri slaydni ko'rsatardi va video KO'RINMAGAN holda ovoz chiqarib
+  o'ynayverardi. Endi holat bosishning O'ZIDA yangilanadi, `scroll` faqat
+  barmoq yo'lini QO'SHIMCHA qamraydi — asosiy javob hech qachon hodisaga
+  bog'lanmaydi.
+  **Mini App'da native `controls` ISHLATILMADI** va bu ham shu oiladan:
+  pastdagi kartochka hero ustiga 22px chiqib turadi (`margin-top:-22px`),
+  ya'ni boshqaruv paneli YARIM YOPIQ qolardi — foydalanuvchi tugmani
+  ko'radi-yu bosa olmaydi. O'rniga markazda ijro tugmasi (≤30 s lik klipda
+  qidiruv chizig'i kerak emas). Saytda bunday to'siq yo'q va u yerda
+  `controls` QOLDI — bir xil muammoga ikki xil yechim ATAYLAB.
+  **Videosiz mahsulot AVVALGIDEK chiziladi** — galereya faqat video bor
+  bo'lganda quriladi; regressiya sinovi bilan tasdiqlandi (hero 248px, fon
+  joyida, yurak tugmasi bor). Bitta slayd uchun nuqta va skroll shovqindan
+  boshqa narsa emas (`NULL` reyting qoidasi bilan bitta oila: yo'q narsa
+  uchun bo'sh idish ko'rsatilmaydi).
+  **`videoVM()` endi UCH joyga BITTA manbadan tarqaladi** (ommaviy katalog,
+  moderatsiya navbati, "Kelgan videolar") — `routes/admin.js` dagi nusxa
+  o'chirilib `routes/catalog.js` dan import qilinadi (`aiClientConfig`
+  naqshi). **Kartochkada (ro'yxatda) video YO'Q** — ataylab: CSS fon slayd
+  bo'la olmaydi va ro'yxatda avtoijro mobil trafikni yeb qo'yardi.
+  Mini App'da `video`/`videoPoster` `vm()` CHEGARASIDA tozalanadi — nom va
+  sotuvchi bilan bir xil sabab: qiymat `src` atributiga tushadi va chizish
+  joyida `esc()` ni eslab qolishga tayanib bo'lmaydi.
+  **SINALGANI:** 59 test yashil; ikkala yuz brauzerda JONLI sinaldi haqiqiy
+  video bilan — nuqta bosilishi, barmoq yo'li, slayddan chiqilganda video
+  to'xtashi, ijro tugmasi va videosiz regressiya.
+  Kesh: `script.js?v=39`, `style.css?v=48` (ikkala HTML birga),
+  `telegram-app/app.js?v=79`, `telegram-app/styles.css?v=24`, Test 16 birga.
+  🔴 **HALOL CHEGARA:** (a) **video O'CHIRISH amali hali YO'Q va endi bu
+  nazariy emas** — video shu commitdan keyin XARIDORGA ko'rinadi; amal uch
+  qismli: Telegram tasdig'i, `admin_actions_kind_check` migratsiyasi
+  (`db/014` tuzog'i) va Cloudflare purge (2026-08-09 o'lchovi: o'chirilgan
+  obyekt `cf-cache-status: HIT` bilan berilaveradi); (b) C (sotuvchi
+  kabineti) va F (qorovul testlar) OCHIQ — bu ish qo'shgan test soni yana
+  NOL; (c) **deploy qilinmagan** — ungacha xaridor uchun u mavjud emas.
+
 - [2026-08-13] **"Biz bilan bog'lanish" ochiladigan bo'lim bo'ldi, qo'ng'iroq
   tugmasi TIRILDI, va C4 (karta CSP'si) jonli o'lchov bilan tuzatildi.**
   To'rtta commit, bitta ip: **kod to'g'ri turgani uni ishlaydi qilmaydi.**
@@ -230,8 +281,12 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
   **CSP:** `docs/xavfsizlik-sarlavhalari.md` ga `media-src 'self'
   https://cdn.lolamarket.uz` qo'shildi. `img-src` buni QAMRAMAYDI — `<video>`
   uchun brauzer `media-src` ga qaraydi, u aytilmasa `default-src 'self'` ga
-  tushadi va R2 domeni rad etiladi. Qoida hozir majburlanmagani uchun video
-  ishlayveradi, ya'ni bu **kelajakdagi tuzoq**: CSP yoqilgan kuni otiladi.
+  tushadi va R2 domeni rad etiladi. ⚠️ **BU YERDA AVVAL NOTO'G'RI YOZILGAN
+  EDI:** "qoida hozir majburlanmagani uchun video ishlayveradi, bu kelajakdagi
+  tuzoq" deyilgandi. CSP 2026-08-02 dan beri MAJBURLASH rejimida, ya'ni tuzoq
+  kelajakda emas — O'SHA KUNI otilishi mumkin edi va faqat `media-src` o'z
+  vaqtida qo'shilgani uchun otilmadi. Jonli o'lchandi: `curl -sI` javobida
+  `media-src 'self' https://cdn.lolamarket.uz` BOR.
   **SINALGANI:** to'plam yashil — **59 test** (`server/test.js`). ⚠️ Raqam
   hisobot paytida TUZATILDI: ish davomida u **53** deb aytilgan edi, chunki
   `function test…` ta'riflari sanalgan — loyihada esa hisob RUNNER
@@ -904,6 +959,20 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
   ko'rsatila boshlagan zahoti uni to'xtatib bo'lmaydi; amal Telegram tasdig'i,
   `admin_actions_kind_check` migratsiyasi va Cloudflare purge bilan birga
   qilinadi (CDN keshi o'chirishni QAYTARMAYDI — 2026-08-09 da o'lchangan)
+
+- [2026-08-13] Qaror: **Mini App'da native `<video controls>` ISHLATILMAYDI,
+  saytda esa QOLADI.** Sabab: Mini App'da pastdagi kartochka hero ustiga 22px
+  chiqadi va boshqaruv paneli yarim yopiq qolardi — "ko'rinadigan, lekin bosib
+  bo'lmaydigan" tugma. Saytda bunday to'siq yo'q, shuning uchun bir xil
+  muammoga ATAYLAB ikki xil yechim
+
+- [2026-08-13] Qaror: **galereyada `scroll-behavior: smooth` ISHLATILMAYDI va
+  nuqta holati `scroll` hodisasini KUTMAYDI.** Sabab — O'LCHOV, taxmin emas:
+  silliq surish bajarilmaydigan muhitda `scrollLeft` jimgina yutiladi
+  (2 soniyadan keyin ham 0) va nuqta o'lik tugmaga aylanadi
+
+- [2026-08-13] Qaror: **ro'yxat kartochkasida video ko'rsatilmaydi** — CSS fon
+  slayd bo'la olmaydi va ro'yxatdagi avtoijro mobil trafikni yeb qo'yardi
 
 - [2026-08-13] Qaror: **doimiy olish nuqtasi BAZADA saqlanadi
   (`users.pickup_point_id`), `localStorage` esa ZAXIRA bo'lib qoladi.** Haqiqat

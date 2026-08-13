@@ -371,6 +371,30 @@ async function handleProductVideo(msg) {
   return true;
 }
 
+// Video blokining YAGONA yasovchisi. Uni UCH joy ishlatadi: ommaviy katalog
+// (`productRowToVM`), moderatsiya navbati va admin "Kelgan videolar"
+// (`routes/admin.js`). Qo'lda uch marta yig'ilsa, biri yangilanib qolganlari
+// ortda qolardi — `aiClientConfig` bilan aynan bir xil mulohaza.
+//
+// `video: null` — "video yo'q" degan ANIQ holat va chizuvchi tomon bunda
+// blokni umuman ko'rsatmaydi. Havola R2 domeni ulanmagan bo'lsa ham `null`:
+// taxminiy URL YASALMAYDI, chunki ishlamaydigan pleyer yo'q pleyerdan
+// yomonroq — foydalanuvchi "video buzuq" deb o'ylab, sababini ko'rmasdi.
+//
+// ⚠️ Telegram proksisiga ZAXIRA YO'Q va bu ATAYLAB: rasmda uch pog'ona bor,
+// videoda esa `handleProductPhoto` `Range` (206) bermagani uchun ikkinchi
+// pog'ona ishlamaydi (db/023 izohi).
+function videoVM(r) {
+  const url = r2PublicUrl(r.vid_r2_key);
+  if (!url) return { video: null };
+  return {
+    video: url,
+    videoPoster: r2PublicUrl(r.vid_poster_r2_key),
+    videoSeconds: r.vid_seconds == null ? null : Number(r.vid_seconds),
+    videoBytes: r.vid_bytes == null ? null : Number(r.vid_bytes),
+  };
+}
+
 // ============ /api/products — katalog (bazadan) ============
 function productRowToVM(r) {
   return {
@@ -399,6 +423,10 @@ function productRowToVM(r) {
     city: { uz: r.city_uz, ru: r.city_ru },
     comp: { uz: r.comp_uz, ru: r.comp_ru },
     badge: r.badge_uz ? { uz: r.badge_uz, ru: r.badge_ru } : null,
+    // Media galereya: 1-slayd rasm, 2-slayd video (founder qarori,
+    // 2026-08-13). `video: null` bo'lsa frontend galereya chizmaydi —
+    // bitta rasm uchun nuqta va slayder shovqindan boshqa narsa emas.
+    ...videoVM(r),
   };
 }
 
@@ -407,6 +435,7 @@ async function handleGetProducts(req, res, ip) {
   try {
     const { rows } = await pool.query(`
       SELECT p.id, p.cat_key, p.pattern, p.img, p.img_file_id, p.img_r2_key, p.price, p.unit, p.moq, p.lead_days,
+             p.vid_r2_key, p.vid_poster_r2_key, p.vid_seconds, p.vid_bytes,
              p.rating, p.reviews, p.stock_key, p.stock, p.badge_tone, p.width, p.weight,
              p.name_uz, p.name_ru, p.comp_uz, p.comp_ru, p.badge_uz, p.badge_ru,
              s.business_name_uz, s.business_name_ru, s.city_uz, s.city_ru, s.is_verified
@@ -557,5 +586,5 @@ module.exports = {
   // Sinov uchun ATAYLAB ochiq: chegara qorovulini (`videoRadSababi`) to'g'ridan-
   // to'g'ri sinab bo'lsin — loyiha darsi: yozilgan qoida himoya emas, uni
   // tekshiradigan test himoya (`lib/r2.js` → `tekshirKalit` bilan bir xil).
-  videoRadSababi, VIDEO_MAX_SECONDS,
+  videoRadSababi, VIDEO_MAX_SECONDS, videoVM,
 };

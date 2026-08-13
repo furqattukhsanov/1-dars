@@ -2032,6 +2032,57 @@ body { padding-bottom: calc(var(--dock-h) + env(safe-area-inset-bottom, 0px)); }
   border-radius: var(--radius-md);
   background: var(--ink-100);
 }
+
+/* ─── Media galereya: 1-slayd rasm, 2-slayd video (2026-08-13) ───
+   Surish CSS `scroll-snap` bilan — JS bilan emas, shunda barmoq harakati
+   brauzerning o'ziniki bo'lib qoladi. `scrollbar-width: none` — nuqtalar
+   allaqachon o'rinni ko'rsatib turibdi, ikkinchi ko'rsatkich shovqin. */
+.pd-media { position: relative; }
+/* ⚠️ `scroll-behavior: smooth` ATAYLAB QO'YILMAGAN — u 2026-08-13 da o'lchandi
+   va nuqtalarni BUTUNLAY o'lik qildi: qiymat berilgan `scrollLeft` animatsiyaga
+   topshiriladi, animatsiya esa bajarilmasa skroll joyida qolib ketadi (sinov
+   brauzerida 2 soniyadan keyin ham 0). Barmoq bilan surish baribir tizimning
+   O'ZI silliq qiladi, ya'ni yo'qotilgan narsa faqat nuqta bosilgandagi
+   animatsiya — o'lik tugma esa "kirish tugmasi o'lik edi" oilasidagi nuqson. */
+.pd-slides {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  border-radius: var(--radius-md);
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.pd-slides::-webkit-scrollbar { display: none; }
+/* `flex: 0 0 100%` — slayd konteyner kengligini AYNAN egallaydi; `width:100%`
+   ning o'zi flex ichida siqilib ketardi va snap nuqtalari surilib qolardi. */
+.pd-slides > * {
+  flex: 0 0 100%;
+  scroll-snap-align: center;
+  border-radius: var(--radius-md);
+}
+/* Video rasm bilan BIR XIL nisbatda — aks holda slaydga o'tganda blok
+   balandligi sakrab, ostidagi matn siljib ketardi. */
+.pd-vid {
+  width: 100%; aspect-ratio: 4 / 3;
+  object-fit: cover;
+  background: #000;
+  display: block;
+}
+.pd-dots {
+  display: flex; justify-content: center; gap: 6px;
+  margin-top: 8px;
+}
+.pd-dot {
+  width: 7px; height: 7px; padding: 0;
+  border: 0; border-radius: 50%;
+  background: var(--ink-300, #cfcbc6);
+  cursor: pointer;
+  transition: background .2s, transform .2s;
+}
+.pd-dot.is-on { background: var(--pom-600); transform: scale(1.25); }
+@media (prefers-reduced-motion: reduce) {
+  .pd-dot { transition: none; }
+}
 .pd-head {
   margin-top: 14px;
   display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;

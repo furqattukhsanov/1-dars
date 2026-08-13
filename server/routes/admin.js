@@ -6,29 +6,9 @@ const { validate, ClientError } = require('../lib/validate');
 const { rateLimited, readBody, ok, fail } = require('../lib/http');
 const { callTelegram, callbackAnswer, notify } = require('../lib/telegram-api');
 const { handleSellerApplicationReview } = require('./seller-application');
-const { productPhotoUrl } = require('./catalog');
-const { r2PublicUrl } = require('../lib/r2');
+const { productPhotoUrl, videoVM } = require('./catalog');
 const { findReviewForAdmin, hideReview } = require('./reviews');
 const { recordStatusChange } = require('../lib/order-history');
-
-// Video blokining YAGONA yasovchisi — moderatsiya navbati va videolar ro'yxati
-// AYNI shakldan foydalanadi. Ikki joyda qo'lda yig'ilsa, biri yangilanib
-// ikkinchisi ortda qolardi (`aiClientConfig` bilan bir xil mulohaza).
-//
-// `video: null` — "video yo'q" degan ANIQ holat va panel bunda blokni umuman
-// chizmaydi. Havola R2 domeni ulanmagan bo'lsa ham `null` bo'ladi: taxminiy
-// URL YASALMAYDI, chunki ishlamaydigan pleyer yo'q pleyerdan yomonroq —
-// moderator "video buzuq" deb o'ylab, sababini hech qachon ko'rmasdi.
-function videoVM(r) {
-  const url = r2PublicUrl(r.vid_r2_key);
-  if (!url) return { video: null };
-  return {
-    video: url,
-    videoPoster: r2PublicUrl(r.vid_poster_r2_key),
-    videoSeconds: r.vid_seconds == null ? null : Number(r.vid_seconds),
-    videoBytes: r.vid_bytes == null ? null : Number(r.vid_bytes),
-  };
-}
 
 // ============ ADMIN PANEL RUXSATI ============
 // admin/index.html (standalone sahifa) Telegram initData ishlab chiqara olmaydi,

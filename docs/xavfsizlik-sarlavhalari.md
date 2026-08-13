@@ -277,8 +277,19 @@ Mahsulot videosi (`db/023`) `cdn.lolamarket.uz` dan `<video>` bilan olinadi.
 `img-src` unga TEGISHLI EMAS: `<video>` uchun brauzer `media-src` ga qaraydi,
 u aytilmagan bo'lsa `default-src 'self'` ga tushadi va R2 domeni rad etiladi.
 Nuqson ko'rinmasdi — sahifa ochilardi, konsolda CSP xatosi qolardi, pleyer
-esa bo'sh turardi. Hozircha CSP majburlanmagani uchun video ishlaydi, ya'ni
-bu **kelajakdagi tuzoq**: qoida yoqilgan kuni otiladi.
+esa bo'sh turardi.
+
+⚠️ **BU YERDA AVVAL NOTO'G'RI YOZILGAN EDI va uni tuzatish darsning o'zi.**
+Dastlab shunday deyilgandi: "hozircha CSP majburlanmagani uchun video
+ishlaydi, bu **kelajakdagi** tuzoq". **YOLG'ON:** CSP 2026-08-02 dan beri
+MAJBURLASH rejimida (shu faylning birinchi qatori aynan shuni aytadi).
+Ya'ni tuzoq kelajakda emas, O'SHA KUNI otilishi mumkin edi va faqat
+`media-src` o'z vaqtida qo'shilgani uchun otilmadi. Da'vo hujjatning O'ZIDAN
+tekshirilmasdan yozilgan — bu **"hujjatdagi raqam — tekshirilmagan da'vo"**
+qoidasining aynan takrori, faqat raqam emas, HOLAT haqida.
+Tuzatilgan kuni jonli o'lchandi:
+`curl -sI https://lolamarket.uz/admin/ | grep -i content-security-policy` →
+`media-src 'self' https://cdn.lolamarket.uz` javobda BOR.
 
 - `https://static.cloudflareinsights.com` **SAQLANADI** — beacon `src` li tashqi
   skript, inline emas, ya'ni `'unsafe-inline'` ga umuman bog'liq emas edi.
