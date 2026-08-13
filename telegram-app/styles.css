@@ -732,8 +732,10 @@ button:active { opacity: .88; }
    ⚠️ Telefonda bu HECH QACHON ishlamaydi va bu KUTILGAN: mantiq
    `(hover: hover)` bilan qulflangan (`app.js` → `hoverMediaArm`).
    Foydasi Telegram DESKTOP'da — u yerda Mini App sichqonchali oynada
-   ochiladi. Sensorli ekranda videoning BORLIGINI `.media-mark`
-   ko'rsatadi, ya'ni funksiya u yerda ham izsiz qolmaydi. */
+   ochiladi. ⚠️ Telefonda funksiya IZSIZ qoladi — ilgari yonida ▶ belgisi
+   (`.media-mark`) turardi, u 2026-08-13 da founder qarori bilan olib
+   tashlandi. Ya'ni sensorli ekranda video borligi kartochkadan
+   bilinmaydi; u faqat mahsulot ekranidagi galereyada ko'rinadi. */
 .card-media { position: relative; overflow: hidden; }
 .media-hover {
   position: absolute;
@@ -746,19 +748,8 @@ button:active { opacity: .88; }
 }
 @keyframes mediaFade { to { opacity: 1; } }
 
-.media-mark {
-  position: absolute;
-  right: 9px; bottom: 9px;
-  width: 22px; height: 22px;
-  display: flex; align-items: center; justify-content: center;
-  border-radius: 50%;
-  background: rgba(26,10,8,.55);
-  color: #fff;
-  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
-  pointer-events: none;
-  transition: opacity var(--dur-fast) var(--ease-out);
-}
-.card-media.is-preview .media-mark { opacity: 0; }
+/* `is-preview` klassi ham ▶ belgisi bilan birga ketdi — u FAQAT o'sha
+   belgini yashirish uchun bor edi, belgisiz esa o'lik kod bo'lib qolardi. */
 
 @media (prefers-reduced-motion: reduce) {
   .media-hover { animation: none; opacity: 1; }

@@ -1911,7 +1911,6 @@ function apiCardHtml(p) {
     <article class="product-card fade-up" data-id="${esc(p.id)}" data-name="${esc(name)}" data-price="${esc(String(p.price))}" data-supplier="${esc(supplier)}" data-cat="${esc(p.catKey || '')}">
       <div class="product-media"${p.video ? ` data-video="${esc(p.video)}"${p.videoPoster ? ` data-poster="${esc(p.videoPoster)}"` : ''}` : ''}>
         ${img ? `<img src="${esc(img)}" alt="${esc(name)}" loading="lazy" />` : ''}
-        ${p.video ? '<span class="media-mark" aria-hidden="true"><svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.2v13.6L19 12z"/></svg></span>' : ''}
         ${badgeTxt ? `<span class="badge-pill ${badgeCls}">${esc(badgeTxt)}</span>` : ''}
         <button class="fav-btn" id="fav-${esc(p.id)}" data-action="toggleFav" data-arg="${esc(p.id)}" aria-label="Saralanganlarga qo'shish" aria-pressed="false">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 20.8s-6.9-4.3-9-8a5.2 5.2 0 0 1-.5-3.7A4.8 4.8 0 0 1 6.3 5.5c1.9 0 3.4 1 4.3 2.3.4.6 1 .6 1.4 0 .9-1.3 2.4-2.3 4.3-2.3a4.8 4.8 0 0 1 3.8 3.6 5.2 5.2 0 0 1-.5 3.7c-2.1 3.7-9 8-9 8z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
@@ -2971,7 +2970,6 @@ function hoverMediaArm() {
     if (!ochiq) return;
     const v = ochiq.querySelector('.media-hover');
     if (v) { v.pause(); v.removeAttribute('src'); v.load(); v.remove(); }
-    ochiq.classList.remove('is-preview');
     ochiq = null;
   }
 
@@ -2993,7 +2991,6 @@ function hoverMediaArm() {
       v.muted = true; v.loop = true; v.playsInline = true; v.preload = 'auto';
       v.setAttribute('aria-hidden', 'true');
       box.appendChild(v);
-      box.classList.add('is-preview');
       ochiq = box;
       // Ba'zi brauzerlar `play()` rad etadi (energiya tejash rejimi) —
       // o'shanda muqova ko'rinib turaveradi, xato tashlanmaydi.

@@ -799,23 +799,15 @@ body {
 }
 @keyframes mediaFade { to { opacity: 1; } }
 
-/* Video BORLIGI kartochkadan ko'rinsin — aks holda uni faqat 3 soniya
-   kutgan odam kashf etardi, sensorli ekranda esa HECH KIM ko'rmasdi
-   (u yerda hover yo'q). */
-.media-mark {
-  position: absolute;
-  right: 10px; bottom: 10px;
-  width: 22px; height: 22px;
-  display: flex; align-items: center; justify-content: center;
-  border-radius: 50%;
-  background: rgba(26,10,8,.55);
-  color: #fff;
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  pointer-events: none;
-  transition: opacity var(--dur-fast) var(--ease-out);
-}
-.product-media.is-preview .media-mark { opacity: 0; }
+/* ⚠️ Bu yerda ▶ belgisi (`.media-mark`) turardi va 2026-08-13 da founder
+   qarori bilan OLIB TASHLANDI. Yozib qo'yiladi, chunki sababi qaytib
+   kelishi mumkin: belgi videoning BORLIGINI sensorli ekranda ko'rsatish
+   uchun qo'yilgan edi (u yerda hover yo'q, ya'ni 3 soniyalik ko'rish
+   umuman ishlamaydi). Endi telefonda video kartochkadan bilinmaydi —
+   u faqat mahsulot ekranidagi galereyada ko'rinadi. Bu BILIB QILINGAN
+   tanlov: kartochkalar tozaligi muhimroq deb topildi.
+   `is-preview` klassi ham shu bilan birga ketdi — u FAQAT shu belgini
+   yashirish uchun bor edi va belgisiz o'lik kod bo'lib qolardi. */
 
 @media (prefers-reduced-motion: reduce) {
   .media-hover { animation: none; opacity: 1; }

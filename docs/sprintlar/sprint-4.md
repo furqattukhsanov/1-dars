@@ -125,6 +125,52 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
 
 ## Qilingan ishlar
 
+- [2026-08-13] **▶ belgisi (`.media-mark`) kartochkadan OLIB TASHLANDI —
+  founder qarori.** Belgi bir necha soat oldin, AYNI kunda qo'shilgan edi va
+  uni **founder so'ramagandi**: u 3 soniyalik hover funksiyasining yonida,
+  «sensorli ekranda ham izsiz qolmasin» degan mulohaza bilan o'zimcha
+  qo'shilgan. O'shanda buni ochiq aytgan edim, founder esa endi ortiqcha deb
+  topdi. ⚠️ Yozuvning qimmatli qismi shu: **kod noto'g'ri emas edi, o'rni
+  noto'g'ri edi** — bu `d680722` da CLAUDE.md ga yozilgan «mavjud funksiyaga
+  ikkinchi yo'l qo'shilsa avval so'ralsin» qoidasining amaldagi narxi.
+
+  **Olib tashlangani** (faqat frontend, `server/` TEGILMADI):
+  `script.js` → `apiCardHtml` dan belgi qatori; `telegram-app/app.js` da AYNI
+  narsa **IKKI** joydan (`productCard` va `homeCard` — ikkinchisi
+  `.media-mark-lo` variantida edi); `style.css` va `telegram-app/styles.css`
+  dan `.media-mark` qoidalari.
+  ⚠️ **`is-preview` klassi ATAYLAB birga o'chirildi.** U FAQAT hover paytida
+  ▶ belgisini yashirish uchun bor edi — belgi ketgach o'lik kodga aylanardi.
+  O'lik CSS klassi zararsizdek ko'rinadi, lekin keyingi odam uni ko'rib
+  «demak preview holati bor» deb o'ylardi va yo'q mexanizmga tayanardi.
+  Tekshirildi: `media-mark`, `media-mark-lo` va `is-preview` to'rtala faylda
+  **0 marta** uchraydi — faqat NEGA olib tashlangani yozilgan izohlarda nomi
+  qolgan (ataylab: sabab qaytib kelishi mumkin).
+
+  ⚠️ **3 soniyalik hover mexanizmiga (`.media-hover`) TEGILMADI.** Bu ikkitasi
+  bir-biriga yopishib turgani uchun alohida tekshirildi: ikkala funksiya
+  (`hoverMediaArm`, `bindHoverMedia`) tanasi qayta o'qildi, `.media-hover`
+  to'rtala faylda joyida, `node --check` ikkalasida o'tdi.
+
+  🔴 **HALOL CHEGARA — natija, nuqson emas:** endi **telefonda video borligi
+  kartochkadan UMUMAN bilinmaydi**. U faqat mahsulot ekranidagi galereyada
+  ko'rinadi, 3 soniyalik ko'rish esa faqat sichqonchali muhitda (Telegram
+  Desktop, sayt). Bu bilib qilingan tanlov — kartochka tozaligi muhimroq deb
+  topildi — lekin yozib qo'yilishi shart, chunki «kashf etilmaydigan funksiya»
+  keyinchalik «funksiya ishlamayapti» bo'lib qaytib kelishi mumkin.
+
+  ⚠️ **Brauzerda KO'Z BILAN ko'rilmadi** — Browser paneli bu sessiyada siyosat
+  bilan yopiq edi. Tekshiruv TUZILMA darajasida: qoldiq izlash, funksiya
+  tanasini o'qish, sintaksis tekshiruvi va 62 test. Bu ko'z bilan ko'rishning
+  o'rnini BOSMAYDI va shunday belgilanadi.
+
+  **Kesh:** `style.css v51→52`, `script.js v42→43`,
+  `telegram-app/styles.css v28→29`, `telegram-app/app.js v84→85`,
+  `panel.js v21→22`; `admin/index.html` dagi `style.css` ham **52** ga
+  ko'tarildi. Test 16 jadvali birga yangilandi. **62 test yashil.**
+  **Deploy:** faqat statik — `server/` tegilmagani uchun rsync va servis
+  restarti KERAK EMAS, push CI'ni ishga tushiradi
+
 - [2026-08-13] **Founderning o'n bandi bir sessiyada yopildi — to'qqiztasi shu
   sprintga tegishli (o'ninchisi AI rasmi, `sprint-10.md` da).** Bandlar
   alohida-alohida kichik, lekin ikkitasi ostidan **JIMGINA nuqson** chiqdi va
@@ -201,6 +247,11 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
   ayni tuzoq** (2026-08-13, saytga kirish o'lgan kun). Qo'lda bajariladigan
   qadam unutiladi, ishga tushishga bog'langani esa unutilmaydi. Serverni
   to'xtatmaydi, xato alertga chiqadi.
+  ✅ **JONLI TASDIQLANDI (2026-08-13, deploydan keyin):** founder tugmani bot
+  chatida O'Z KO'ZI bilan ko'rdi. Bu yozuvda ilgari «Telegram'da ko'z bilan
+  ko'rilmagan» degan halol chegara turgandi — u endi YOPILDI va aynan shuning
+  uchun tuzatildi: bu loyihada eskirgan da'vo qoldirish takrorlangan nuqson
+  (`sayt-eski/` papkasi, «shriftlar 250 KB», «32 test» — hammasi shu oiladan).
 
   **Kartochka ustida 3 soniya — ikkinchi media** (`hoverMediaArm()` saytda,
   `bindHoverMedia()` Mini App'da). ⚠️ FAQAT `(hover: hover)` da armlanadi:
@@ -208,8 +259,10 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
   kelmasligi mumkin — video ochiq qolib ketardi. Telegram DESKTOP'da ishlaydi.
   Video KECHIKIB yuklanadi, chiqishda `src` bo'shatilib tugun O'CHIRILADI
   (brauzerda o'lchandi: 3 s dan keyin `.media-hover` yaratildi, chiqishda
-  **0 ta** orphan qoldi). Sensorli ekranda video BORLIGINI `.media-mark` (▶)
-  ko'rsatadi.
+  **0 ta** orphan qoldi). ~~Sensorli ekranda video BORLIGINI `.media-mark` (▶)
+  ko'rsatadi.~~ 🔴 **▶ belgisi 2026-08-13 da founder qarori bilan OLIB
+  TASHLANDI** — pastdagi alohida yozuvga qara. Ya'ni bu bandning «funksiya
+  telefonda ham izsiz qolmaydi» degan qismi endi TO'G'RI EMAS.
 
   **Kategoriya chiplari qayta dizayn** (ikkala yuzda). Tanlangani anor
   gradientida — ilgari `--ink-900` to'q ko'k edi va butun ilovada **yolg'iz

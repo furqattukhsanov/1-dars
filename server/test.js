@@ -1378,14 +1378,14 @@ function testAssetVersionsAreFresh() {
   // AYNI faylni `?v=36` bilan — ya'ni admin panel 15 versiya orqada
   // qotib qolgan keshni cheksiz ushlab turardi.
   const KUTILGAN = {
-    'style.css': { v: 51, hash: '8e6a871cdf01' },
-    'script.js': { v: 42, hash: '0703ad23e497' },
+    'style.css': { v: 52, hash: '51cdfdfd50cf' },
+    'script.js': { v: 43, hash: 'e357d997ae2b' },
     'pwa.js': { v: 2, hash: 'f46683d58662' },
-    'panel.js': { v: 21, hash: '9bec9ef3d365' },
+    'panel.js': { v: 22, hash: '56035e3c5f6c' },
     'admin/admin.css': { v: 18, hash: '15b0bc977b85' },
     'admin/admin.js': { v: 24, hash: '9f912b5b0788' },
-    'telegram-app/styles.css': { v: 28, hash: '5e4c6f7e249d' },
-    'telegram-app/app.js': { v: 84, hash: 'f2b07ef7f745' },
+    'telegram-app/styles.css': { v: 29, hash: '4b5a1fba7dc4' },
+    'telegram-app/app.js': { v: 85, hash: 'b4bcfbf8d577' },
     'telegram-app/pwa.js': { v: 6, hash: '798ab85e1cde' },
   };
 

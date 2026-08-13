@@ -3562,7 +3562,6 @@ function productCard(p) {
   <div data-action="openProduct" data-arg="${p.id}" style="cursor:pointer;background:var(--glass-fill);backdrop-filter:var(--blur-lg);-webkit-backdrop-filter:var(--blur-lg);border:1px solid var(--glass-border-soft);border-radius:var(--radius-lg);box-shadow:0 6px 16px -12px rgba(81,1,0,.16),0 1px 2px rgba(23,26,48,.04);overflow:hidden;display:flex;flex-direction:column">
     <div class="card-media"${p.video ? ` data-video="${p.video}"${p.videoPoster ? ` data-poster="${p.videoPoster}"` : ''}` : ''} style="height:230px;${p.bgStyle}">
       ${p.badgeShow ? `<span style="position:absolute;top:8px;left:8px;display:inline-flex;align-items:center;height:21px;padding:0 8px;border-radius:999px;font-size:10.5px;font-weight:600;background:${p.badgeBg};color:${p.badgeFg}">${p.badge}</span>` : ''}
-      ${p.video ? '<span class="media-mark" aria-hidden="true"><svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.2v13.6L19 12z"/></svg></span>' : ''}
     </div>
     <div style="padding:10px 11px 11px;display:flex;flex-direction:column;gap:6px">
       <div style="font-family:var(--font-display);font-size:13.5px;font-weight:700;color:var(--text-strong);line-height:1.2;letter-spacing:-.01em">${p.name}</div>
@@ -3612,7 +3611,6 @@ function bindHoverMedia() {
     if (!ochiq) return;
     const v = ochiq.querySelector('.media-hover');
     if (v) { v.pause(); v.removeAttribute('src'); v.load(); v.remove(); }
-    ochiq.classList.remove('is-preview');
     ochiq = null;
   }
 
@@ -3634,7 +3632,6 @@ function bindHoverMedia() {
       v.muted = true; v.loop = true; v.playsInline = true; v.preload = 'auto';
       v.setAttribute('aria-hidden', 'true');
       box.appendChild(v);
-      box.classList.add('is-preview');
       ochiq = box;
       const pr = v.play();
       if (pr && pr.catch) pr.catch(() => {});
@@ -3698,7 +3695,6 @@ function homeCard(p) {
   <div data-action="openProduct" data-arg="${p.id}" style="cursor:pointer;background:var(--glass-fill);backdrop-filter:var(--blur-lg);-webkit-backdrop-filter:var(--blur-lg);border:1px solid var(--glass-border-soft);border-radius:var(--radius-lg);box-shadow:0 6px 16px -12px rgba(81,1,0,.16),0 1px 2px rgba(23,26,48,.04);overflow:hidden;display:flex;flex-direction:column">
     <div class="card-media"${p.video ? ` data-video="${p.video}"${p.videoPoster ? ` data-poster="${p.videoPoster}"` : ''}` : ''} style="height:230px;${p.bgStyle}">
       ${p.badgeShow ? `<span style="position:absolute;top:9px;left:9px;display:inline-flex;align-items:center;height:22px;padding:0 9px;border-radius:999px;font-size:11px;font-weight:600;background:${p.badgeBg};color:${p.badgeFg}">${p.badge}</span>` : ''}
-      ${p.video ? '<span class="media-mark media-mark-lo" aria-hidden="true"><svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.2v13.6L19 12z"/></svg></span>' : ''}
       <button data-action="toggleLike" data-arg="${p.id}" style="position:absolute;top:9px;right:9px;width:32px;height:32px;border-radius:50%;border:1px solid rgba(255,255,255,.6);background:rgba(255,255,255,.42);backdrop-filter:blur(10px) saturate(160%);-webkit-backdrop-filter:blur(10px) saturate(160%);display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px -2px rgba(23,26,48,.28),inset 0 1px 0 rgba(255,255,255,.8)">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="${p.heartFill}" style="color:${p.heartStroke}"><path d="M12 20.8s-6.9-4.3-9-8a5.2 5.2 0 0 1-.5-3.7A4.8 4.8 0 0 1 6.3 5.5c1.9 0 3.4 1 4.3 2.3.4.6 1 .6 1.4 0 .9-1.3 2.4-2.3 4.3-2.3a4.8 4.8 0 0 1 3.8 3.6 5.2 5.2 0 0 1-.5 3.7c-2.1 3.7-9 8-9 8z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
       </button>
