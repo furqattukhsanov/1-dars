@@ -1391,11 +1391,11 @@ function testAssetVersionsAreFresh() {
     // Birlashgan tarkib ikkalasidan ham farq qiladi, ya'ni raqam yana
     // YUQORIGA suriladi. Teng raqam qaytib kelgan foydalanuvchida keshdagi
     // bir tomonlama faylni qoldirardi.
-    'panel.js': { v: 31, hash: '0d4da0976286' },
+    'panel.js': { v: 32, hash: '726b2801ce75' },
     'admin/admin.css': { v: 18, hash: '15b0bc977b85' },
     'admin/admin.js': { v: 25, hash: '08fae1bb61dc' },
     'telegram-app/styles.css': { v: 34, hash: '03709d4225aa' },
-    'telegram-app/app.js': { v: 92, hash: 'a658d67a00ff' },
+    'telegram-app/app.js': { v: 93, hash: '38d2033e7a67' },
     'telegram-app/pwa.js': { v: 6, hash: '798ab85e1cde' },
   };
 
@@ -3898,6 +3898,123 @@ function testAdBannerWiring() {
     + `(${rasmlar.length} slayd × 2 til, chizish bitta nuqtadan, taymer tozalanadi)`);
 }
 
+// ====== TEST 33: SEVIMLILAR BAZADA VA YOLG'ON KO'RSATMAYDI (2026-08-14) ======
+// Founder: "sevimlilarni bazaga saqlaydigan qilamiz". Ilgari `S.liked` faqat
+// xotirada edi — ilova yopilsa ro'yxat yo'qolardi.
+//
+// Bu qorovul UCH xavfni qamraydi va uchalasi ham shu loyihada ALLAQACHON
+// bir marta ro'y bergan naqshlar:
+//   1. `authUser()` ga qaytish — kimlik bitta kanalni biladi (2 marta bo'lgan);
+//   2. optimistik UI YOLG'ON qolishi — server rad etsa ham ♡ to'la ko'rinishi;
+//   3. `localStorage` ikkinchi manba bo'lib tanlovni TIRILTIRISHI (`pickup_point`).
+function testFavoritesPersistAndDoNotLie() {
+  const fs = require('fs');
+  const path = require('path');
+  const root = path.join(__dirname, '..');
+
+  // ---- 1. MIGRATSIYA BOR VA SHAKLI TO'G'RI ----
+  const dbDir = path.join(root, 'db');
+  const mig = fs.readdirSync(dbDir).find((f) => /_favorites\.sql$/.test(f));
+  assert.ok(mig, '`db/*_favorites.sql` topilmadi — jadval migratsiyasiz qo\'shilmasin');
+  const sql = fs.readFileSync(path.join(dbDir, mig), 'utf8');
+  assert.ok(/CREATE TABLE IF NOT EXISTS\s+user_favorites/i.test(sql),
+    `${mig}: \`user_favorites\` yaratilmayapti`);
+  // Takroriy ♡ (ikki bosish, ikki qurilma) ikkita qator yasamasligi kerak.
+  assert.ok(/PRIMARY KEY\s*\(\s*tg_user_id\s*,\s*product_id\s*\)/i.test(sql),
+    `${mig}: (tg_user_id, product_id) PRIMARY KEY yo'q — bitta mato ikki marta saqlanib qolardi`);
+  assert.ok(/REFERENCES\s+products\s*\(\s*id\s*\)/i.test(sql),
+    `${mig}: \`products\` ga FK yo'q — mijoz o'ylab topgan id bazaga tushardi`);
+
+  // ---- 2. ENDPOINT KIMLIKNI IKKALA KANALDAN OLSIN ----
+  // ⚠️ Test 3f bu yerni QAMRAMAYDI: u faqat `script.js` chaqiradigan
+  // yo'llarni yig'adi, ♡ esa hozircha Mini App'da. Ya'ni bu tekshiruv
+  // bo'lmasa `authUser()` ga qaytish JIMGINA o'tib ketardi — aynan shu
+  // naqsh loyihada ikki marta takrorlangan.
+  const prof = kodSofi(fs.readFileSync(path.join(root, 'server', 'routes', 'profile.js'), 'utf8'));
+  ['handleGetFavorites', 'handleSaveFavorite'].forEach((nom) => {
+    const tana = funksiyaTanasi(prof, nom);
+    assert.ok(tana, `\`${nom}\` topilmadi`);
+    assert.ok(/requestUser\(/.test(tana),
+      `\`${nom}\` kimlikni \`requestUser()\` dan olsin — \`authUser()\` faqat Mini App'ni biladi `
+      + 'va sayt xaridori JIMGINA 401 olardi (loyihada 2 marta bo\'lgan).');
+    assert.ok(!/\bauthUser\(/.test(tana),
+      `\`${nom}\` da \`authUser(\` chaqiruvi bor — u bitta kanalni biladi.`);
+  });
+
+  // FK buzilishi mijoz xatosi: alertga chiqmasin (`ALERT_CHAT_ID` oilasi).
+  const saqla = funksiyaTanasi(prof, 'handleSaveFavorite');
+  assert.ok(/23503/.test(saqla),
+    '`handleSaveFavorite` FK buzilishini (`23503`) alohida ushlamayapti — '
+    + 'o\'ylab topilgan mahsulot id si `console.error` orqali Telegram alertiga '
+    + 'chiqib, bitta qiziquvchan mijoz alert tomini to\'ldirib yuborardi.');
+
+  // ---- 3. KLIENT: SERVER RAD ETSA ♡ ORQAGA QAYTSIN (BAJARIB TEKSHIRILADI) ----
+  const app = kodSofi(fs.readFileSync(path.join(root, 'telegram-app', 'app.js'), 'utf8'));
+  const tglSrc = funksiyaTanasi(app, 'toggleLike');
+  assert.ok(tglSrc, '`toggleLike` topilmadi');
+
+  const qur = (javob) => {
+    const S = { liked: {}, lang: 'uz' };
+    const chizildi = [];
+    const toastlar = [];
+    const fn = new Function('S', 'STR', 'showToast', 'render', 'tgInitData', 'fetch', 'console',
+      `${tglSrc}\nreturn toggleLike;`)(
+      S,
+      { uz: { liked: 'qo\'shildi', likeErr: 'saqlanmadi' } },
+      (t) => toastlar.push(t),
+      () => chizildi.push({ ...S.liked }),
+      () => 'soxta-initdata',
+      javob,
+      { error: () => {} }
+    );
+    return { fn, S, chizildi, toastlar };
+  };
+
+  // (a) Server QABUL qildi — ♡ to'la qolsin
+  return (async () => {
+    const ok1 = qur(async () => ({ ok: true, json: async () => ({ ok: true, data: {} }) }));
+    await ok1.fn('p-1');
+    assert.strictEqual(ok1.S.liked['p-1'], true,
+      'server qabul qilganda ♡ to\'la qolishi kerak');
+
+    // (b) Server RAD etdi — ♡ ORQAGA qaytsin
+    const rad = qur(async () => ({ ok: false, json: async () => ({ ok: false, error: 'xato' }) }));
+    await rad.fn('p-1');
+    assert.strictEqual(!!rad.S.liked['p-1'], false,
+      '🔴 Server RAD ETDI, ♡ esa to\'la qoldi — xaridor saqlanmagan matoni saqlangan deb '
+      + 'o\'ylab yurardi. Optimistik yangilanish MAJBURAN orqaga qaytarilsin '
+      + '(jimgina yolg\'on — CLAUDE.md).');
+    assert.ok(rad.toastlar.includes('saqlanmadi'),
+      'rad etilganda foydalanuvchiga AYTILSIN — jim qaytarish "tugma o\'zi o\'chdi" bo\'lib ko\'rinardi');
+
+    // (c) Tarmoq YIQILDI — ayni himoya ishlasin
+    const yiq = qur(async () => { throw new Error('tarmoq yo\'q'); });
+    await yiq.fn('p-2');
+    assert.strictEqual(!!yiq.S.liked['p-2'], false,
+      'tarmoq yiqilganda ham ♡ orqaga qaytsin');
+
+    // ---- 4. RO'YXAT BITTA MANBADAN — `localStorage` IKKINCHI BO'LMASIN ----
+    const yukla = funksiyaTanasi(app, 'loadFavorites');
+    assert.ok(yukla, '`loadFavorites` topilmadi — ro\'yxat bazadan o\'qilsin');
+    assert.ok(!/localStorage/.test(yukla),
+      '`loadFavorites` da `localStorage` bor — ikkita haqiqat manbai bo\'lsa, boshqa '
+      + 'qurilmada olib tashlangan sevimli bu yerda JIMGINA tiriladi (`pickup_point` darsi).');
+    // ⚠️ TA'RIF CHAQIRUV EMAS — bu sinovda topilgan teshik: dastlab shunchaki
+    // `loadFavorites()` qidirilardi va u funksiyaning O'Z SARLAVHASIGA mos
+    // kelardi, ya'ni chaqiruv butunlay olib tashlanganda ham test YASHIL
+    // qolardi (ro'yxat esa hech qachon yuklanmasdi). Sarlavha olib
+    // tashlanadi, keyin qidiriladi.
+    const chaqiruvlar = app.replace(/(?:async\s+)?function\s+loadFavorites\s*\(/g, 'TARIF(');
+    assert.ok(/loadFavorites\s*\(/.test(chaqiruvlar),
+      '`loadFavorites()` hech qayerdan CHAQIRILMAYAPTI — funksiya bor, lekin ishga '
+      + 'tushirish zanjirida yo\'q, ya\'ni sevimlilar ro\'yxati hech qachon yuklanmasdi '
+      + 'va xaridor har ochganda bo\'sh ekran ko\'rardi.');
+
+    console.log('✅ Test 33: Sevimlilar bazada va yolg\'on ko\'rsatmaydi — PASS '
+      + `(${mig}, 2 endpoint requestUser'da, rad etishda ♡ orqaga qaytadi)`);
+  })();
+}
+
 // ============ TEST RUNNER ============
 // ============ TEST 22: OLISH NUQTASI ID SHAKLI (2026-08-13) ============
 // "Mening manzilim" xaridorning O'Z tanlovini bazaga yozadi. Qiymat
@@ -4145,6 +4262,7 @@ async function runTests() {
     testSourceTag();
     testBrandColorTokens();
     testCardsHaveLikeButton();
+    await testFavoritesPersistAndDoNotLie();
     testOrderHistorySurvivesMissingProduct();
     testPhoneVerifiedSourceWins();
     testAdBannerWiring();

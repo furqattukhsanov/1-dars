@@ -56,6 +56,72 @@ async function handleSavePickupPoint(req, res, ip) {
   }
 }
 
+// ============ SEVIMLI MATOLAR — /api/favorites (2026-08-14) ============
+// Founder: "sevimlilarni bazaga saqlaydigan qilamiz". Ilgari `S.liked`
+// FAQAT brauzer xotirasida yashardi — ilova yopilsa ro'yxat yo'qolardi
+// (`db/026` dagi sabab).
+//
+// ⚠️ Kimlik `requestUser()` dan — `authUser()` dan EMAS. Bu qoida shu
+// loyihada IKKI marta buzilgan (bahs ochish, AI rasmi) va ikkalasida ham
+// sayt xaridori JIMGINA 401 olgan. ♡ hozircha faqat Mini App'da, lekin
+// endpoint boshidanoq ikkala kanalni biladi: saytga ♡ qo'shilganda bu
+// yerga qaytib kelish shart bo'lmasin.
+async function handleGetFavorites(req, res, ip) {
+  if (rateLimited(`favget:${ip}`, 120)) return fail(res, 'too many requests', 429);
+  const u = await requestUser(req);
+  if (!u || !u.id) return fail(res, 'unauthorized', 401);
+  try {
+    const { rows } = await pool.query(
+      `SELECT product_id FROM user_favorites
+        WHERE tg_user_id = $1 ORDER BY created_at DESC LIMIT 500`,
+      [String(u.id)]
+    );
+    ok(res, { ids: rows.map((r) => r.product_id) });
+  } catch (e) {
+    console.error('favorites o\'qishda xato:', e.message);
+    fail(res, 'server error', 500);
+  }
+}
+
+async function handleSaveFavorite(req, res, ip) {
+  if (rateLimited(`favset:${ip}`, 60)) return fail(res, 'too many requests', 429);
+  const u = await requestUser(req);
+  if (!u || !u.id) return fail(res, 'unauthorized', 401);
+  try {
+    const data = JSON.parse(await readBody(req, 2_000) || '{}');
+    const id = typeof data.productId === 'string' ? data.productId.trim() : '';
+    if (!id || id.length > 64) return fail(res, 'mahsulot id yaroqsiz', 400);
+
+    // `liked` ATAYLAB aniq bayroq, "teskarisiga o'zgartir" EMAS: ikki marta
+    // tez bosilsa yoki ikki qurilma bir vaqtda yozsa, toggle natijasi
+    // bosish TARTIBIGA bog'liq bo'lardi. Aniq holat bilan yozuv idempotent.
+    const liked = data.liked === true;
+
+    if (liked) {
+      await pool.query(
+        `INSERT INTO user_favorites (tg_user_id, product_id) VALUES ($1, $2)
+         ON CONFLICT (tg_user_id, product_id) DO NOTHING`,
+        [String(u.id), id]
+      );
+    } else {
+      await pool.query(
+        `DELETE FROM user_favorites WHERE tg_user_id = $1 AND product_id = $2`,
+        [String(u.id), id]
+      );
+    }
+    ok(res, { productId: id, liked });
+  } catch (e) {
+    // ⚠️ FK buzilishi (`23503`) — MIJOZ xatosi, server nosozligi EMAS:
+    // mavjud bo'lmagan mahsulot id si yuborilgan. `console.error` ga
+    // tushirilsa u Telegram alertiga chiqib, bitta qiziquvchan mijoz
+    // alert tomini to'ldirib yuborardi (`ALERT_CHAT_ID` bandi bilan bitta
+    // oila). Shuning uchun u ALOHIDA ushlanadi va jim 404 qaytaradi.
+    if (e && e.code === '23503') return fail(res, 'mahsulot topilmadi', 404);
+    console.error('favorites yozishda xato:', e.message);
+    fail(res, 'server error', 500);
+  }
+}
+
 // ============ PROFIL SURATI — /api/me/photo (2026-08-13) ============
 // Founder: "profil egasini rasm telegramdagi rasmdan olinsin". Ilgari
 // ikkala yuzda ham bosh harflar (FT) chizilardi.
@@ -151,4 +217,4 @@ async function handleMyPhoto(req, res, ip) {
   }
 }
 
-module.exports = { handleSavePickupPoint, handleMyPhoto };
+module.exports = { handleSavePickupPoint, handleMyPhoto, handleGetFavorites, handleSaveFavorite };

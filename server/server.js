@@ -23,7 +23,7 @@ const {
   handleMe, handleSellerProducts, handleSellerProductUpdate,
   handleSellerOrders, handleSellerOrderAction,
 } = require('./routes/seller');
-const { handleSavePickupPoint, handleMyPhoto } = require('./routes/profile');
+const { handleSavePickupPoint, handleMyPhoto, handleGetFavorites, handleSaveFavorite } = require('./routes/profile');
 const {
   handleCreateOrder, handleCreateWebOrder, handleGetOrders,
   handleOrderNotify, handleOrderStatus,
@@ -234,6 +234,18 @@ function routeRequest(req, res) {
     if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
     if (req.method !== 'POST') return fail(res, 'method not allowed', 405);
     return handleSavePickupPoint(req, res, ip);
+  }
+
+  // Sevimli matolar (♡). O'QISH `/api/me` ga QO'SHILMADI va bu ataylab:
+  // ro'yxat o'nlab id bo'lishi mumkin, `/api/me` esa har profil ochilishida
+  // chaqiriladi — ikkalasi bitta so'rovga solinsa profil ekrani sevimlilar
+  // uzunligiga bog'liq bo'lib qolardi (`db/026`).
+  if (path === '/api/favorites') {
+    cors(res, 'GET, POST, OPTIONS');
+    if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
+    if (req.method === 'GET') return handleGetFavorites(req, res, ip);
+    if (req.method === 'POST') return handleSaveFavorite(req, res, ip);
+    return fail(res, 'method not allowed', 405);
   }
 
   if (path === '/api/seller/products') {
