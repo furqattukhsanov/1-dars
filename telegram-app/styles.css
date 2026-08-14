@@ -775,6 +775,11 @@ button:active { opacity: .88; }
   margin: 0 -16px;
   padding: 3px 16px;
   scrollbar-width: none;
+  /* Barmoq bu qatorni ushlaganda FAQAT gorizontal suradi: `pan-x`
+     bo'lmasa brauzer vertikal skrollni ham qabul qiladi va qator
+     qiyshiq "qimirlab" yuradi (founder shikoyati, 2026-08-14). */
+  touch-action: pan-x;
+  overscroll-behavior-x: contain;
 }
 .cat-chips::-webkit-scrollbar { display: none; }
 

@@ -125,6 +125,24 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
 
 ## Qilingan ishlar
 
+- [2026-08-14] **Katalogdagi kategoriya chiplari qatori barmoq ostida
+  "qimirlab" yurishi tuzatildi — founder shikoyati.** Sabab: `.cat-chips`
+  gorizontal skroll qatori, lekin `touch-action` cheklanmagani uchun brauzer
+  undan VERTIKAL surishni ham qabul qilardi — barmoq sal qiyshiq yursa qator
+  tepa-pastga tebranib turardi. Tuzatish ikki qator CSS
+  (`telegram-app/styles.css`): `touch-action: pan-x` (bu elementda barmoq
+  faqat gorizontal suradi, vertikal harakat sahifaga beriladi) va
+  `overscroll-behavior-x: contain` (qator chetiga yetganda skroll ota
+  elementga "toshib" o'tmaydi). ⚠️ **Dizaynga ATAYLAB tegilmadi** — founder
+  referens berishini aytdi, dizayn ishi alohida bosqichda bo'ladi; bu faqat
+  xatti-harakat tuzatishi. Kesh qoidasi bo'yicha `styles.css` v30 → v31
+  (`telegram-app/index.html`) va Test 16 jadvali birga yangilandi.
+  Yo'l-yo'lakay: branch `origin/main` dan 4 commit orqada edi —
+  birlashtirildi, `server/test.js` dagi konfliktda upstream raqamlari
+  (admin.js v25, app.js v88) olindi, `styles.css` esa birlashgan tarkib
+  uchun v31 ga surildi. Brauzerda tekshirildi: `.cat-chips` da ikkala qoida
+  haqiqatan qo'llangan, `?v=31` yuklanadi. Barcha server testlari yashil.
+
 - [2026-08-13] **To'rt agent (PM, dizayner, marketolog, investor) loyihani
   baholadi, founder ulardan TO'RT bandni tanladi — va sessiyaning eng qimmatli
   natijasi kod emas, UCH MARTA TAKRORLANGAN BITTA NAQSH: «yozilgan qoida himoya
