@@ -135,6 +135,30 @@
   **Serverda tozalanmaydi:** baza xom matn saqlaydi, chunki Telegram yo'li
   o'zining `escapeHtml` ini qo'llaydi (`routes/orders.js`) — ikki marta
   qochirilsa foydalanuvchi `&lt;` ko'rib qolardi. Himoya CHIQISHDA turadi.
+- **YANGI RASM SXEMASI YOKI DOMENI — CSP RO'YXATI SHU ZAHOTI TEKSHIRILSIN**
+  (2026-08-13, avatar IKKI MARTA yarim tuzatilgandan keyin yozildi).
+  Rasm/video uchun yangi manba turi ishlatilganda — `blob:`, `data:`,
+  boshqa domen — birinchi qadam `img-src` / `media-src` ro'yxatini
+  O'QISH: `curl -sI https://lolamarket.uz/ | grep -i content-security`.
+  🔴 **CSP JIMGINA bloklaydi va bu uni xavfli qiladi:** konsolda JS xatosi
+  YO'Q, `fetch` 200 qaytaradi, kod "ishlaydi" — faqat rasm chizilmaydi.
+  Ya'ni nuqson faqat KO'Z bilan ko'rinadi, testda ham, jurnalda ham emas.
+  Ikki marta tishlagan: (1) `URL.createObjectURL` → `blob:`, ro'yxatda
+  yo'q; (2) `initDataUnsafe.user.photo_url` → Telegram CDN havolasi, u ham
+  yo'q. **Ro'yxatda `data:` BOR** — shuning uchun to'g'ri yechim
+  `readAsDataURL` bo'ldi va nginx'ga TEGILMADI: mavjud ruxsat yetganda
+  yangi ruxsat ochilmaydi.
+  ⚠️ Ikkinchisi SAYTDA ko'rinmasdi (u yerda `initData` yo'q, ya'ni
+  `photo_url` ham yo'q) — **bir yuzda ishlab ikkinchisida ishlamaydigan**
+  nuqson, `authUser()` naqshi bilan bitta oila.
+  ⚠️ **ILDIZI TEXNIK EMAS:** kodda «`photo_url` bizdagi kirish
+  nuqtalarida odatda YO'Q» degan izoh turardi va u HECH QACHON
+  tekshirilmagan edi — amalda u BOR edi. Tekshirilmagan da'vo faqat
+  noto'g'ri bo'lib qolmadi, u noto'g'ri qarorni **OQLAB ham turdi**.
+  Bu «hujjatdagi raqam — tekshirilmagan da'vo» qoidasining eng qimmat
+  ko'rinishi: bu safar raqam emas, MAVJUDLIK darajasida.
+  Qorovul: `server/test.js` → **Test 25** (4 band, mutatsiya bilan
+  sinaldi). Manba ro'yxati: `docs/xavfsizlik-sarlavhalari.md`.
 - **`console.error` ning BIRINCHI argumenti — alert guruhlash KALITI**
   (2026-08-03). Server xatosi Telegram'ga boradi (`server/lib/alert.js`) va
   bosish tomi aynan shu birinchi argument bo'yicha guruhlaydi. Unga
@@ -453,8 +477,15 @@ LolaMarket — O'zbekistonda to'qima materiallar uchun B2B web platforma.
 ├── admin/                             — admin panel; ILDIZDAGI style.css + admin.css
 ├── docs/
 │   ├── prd.md                         — Founder PRD
-│   ├── prd-lolamarket.md              — Texnik PRD
-│   └── sprintlar/sprint-0..9.md      — Sprint fayllar
+│   ├── texnik-topshiriq.md            — Texnik topshiriq (ilgari bu yerda
+│   │                                    "prd-lolamarket.md" deb yozilgandi —
+│   │                                    bunday fayl hech qachon yo'q edi)
+│   ├── dizayn-tizimi/                 — dizayn-tizim tokenlari va readme
+│   │                                    (2026-08-14 gacha telegram-app/_ds/ da
+│   │                                    turardi va deploy.yml `telegram-app/*`
+│   │                                    ni butunlay ko'chirgani uchun ish
+│   │                                    materiali production'ga chiqib yurardi)
+│   └── sprintlar/sprint-0..10.md     — Sprint fayllar
 ├── lolamarket-next/                   — Next.js loyihasi (alohida repo)
 │
 │   ⚠️ 2026-08-06 da `sayt-eski/` va `demo/` OLIB TASHLANDI. Bu yerda ilgari

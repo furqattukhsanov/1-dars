@@ -253,6 +253,71 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
   qayta yuborganda tasdiqlanadi. Deploy: `server/` rsync va servis
   restarti founder zimmasida (statik fayllar CI orqali).
 
+- [2026-08-14] **SAYT ham "ostki chiziq" chip dizayniga o'tdi — "ikkala yuz
+  bitta ko'rinish" qoidasi TIKLANDI (founder qarori).** Pastdagi yozuvda
+  "sayt ham o'tsinmi — alohida qaror kutilmoqda" deb turgan band shu kuniyoq
+  yopildi. `style.css` dagi `.chip` Mini App `.cat-chip` bilan AYNAN bir xil
+  retseptga o'tdi: `--text-muted` matn, `.active` da `--pom-700` + qalin +
+  ikat rombi (gradient), yangi `.chip-line` elementi (gradient chiziq,
+  `scaleX` 0→1). `.chips` qatoriga `touch-action: pan-x` +
+  `overscroll-behavior-x: contain` ham qo'shildi — Mini App'dagi "qimirlash"
+  tuzatishi saytda YO'Q edi, ayni nuqson bu yerda ham yashab turgan.
+  Izohda ikkala tuzoq hujjatlandi: chiziq `::after` emas (44×44 tap-maydon
+  qoidasi uni band qilgan) va saytda JS kerak emas (klass almashadi, markup
+  qayta chizilmaydi — Mini App'dagi `focusCatChip()` ehtiyoji bu yerda yo'q).
+  ⚠️ **`index.html` da 7 chip matni ichki `<span data-i18n>` ga ko'chirildi**
+  va sababi muhim: `applyLang()` `textContent` yozadi — atribut tashqi
+  tugmada tursa til almashtirilganda chiziq spani JIMGINA O'CHIB ketardi.
+  Brauzerda tekshirildi: ruschaga o'tilganda 7 chiziq ham omon. Kesh:
+  `style.css` v53 → v54 (`index.html` va `admin/index.html` da BIR XIL
+  raqam — 15 versiya orqada qolgan admin darsi), `telegram-app/styles.css`
+  v32 → v33 (izohdagi "sayt eski retseptda" bandi eskirgani uchun
+  yangilandi — eskirgan da'vo qoldirilmaydi), Test 16 jadvali birga.
+  Tekshirildi: 67 test yashil, mobil + desktop skrinshot, filtr ishlaydi,
+  ranglar tokendan (Test 26).
+
+- [2026-08-14] **Kategoriya chiplari yangi dizaynga o'tdi — founder 3 lokal
+  variantdan "ostki chiziq" (B) ni tanladi.** Variantlar lokal demo faylda
+  ko'rsatildi (`telegram-app/_ds/chips-variantlar.html` — ATAYLAB commit
+  qilinmaydi); founder avval A ("anor linza") ni tanlab, keyin fikrini
+  o'zgartirib B ni tanladi. Yangi ko'rinish: "quti" chiplar o'rniga qutisiz
+  tab'lar — matn `--text-muted`, tanlangani `--pom-700` + qalin + ikat rombi +
+  markazdan ochiladigan gradient chiziq (`.cat-line`), ranglar tokendan
+  (Test 26 yashil). ⚠️ **Chiziq `::after` EMAS, alohida element** — global
+  `button::after` (44×44 tap-maydon qoidasi) har tugmaning `::after` ini
+  allaqachon band qilgan, unga chizilgan narsa 44px blok bo'lib chiqardi
+  (lokal demoda o'lchab topildi). ⚠️ **"Saytdagi `.chip` bilan bir xil"
+  qoidasi (2026-08-13) shu yerda ATAYLAB buzildi** — founder Mini App uchun
+  alohida ko'rinishni tanladi, sayt eski retseptda qoldi; sayt ham o'tsinmi —
+  alohida qaror kutilmoqda. `touch-action: pan-x` (ertalabki tuzatish)
+  saqlangan. `app.js` da yangi `focusCatChip()`: tanlangan chipni qatorda
+  markazlaydi va chiziq animatsiyasini `innerHTML` almashgandan keyin qayta
+  o'ynatadi — `scrollIntoView` ATAYLAB ishlatilmadi, u `#screen-wrap` ni
+  vertikal surib yuborardi; `selectCat`, narx filtri renderlari va `render()`
+  home ilgagi shu funksiyani chaqiradi. Yo'l-yo'lakay nuqson tuzaldi:
+  katalogga qaytganda chiplar qatori boshiga qaytib qolardi — endi tanlangan
+  chip markazda qoladi. Kesh: `styles.css` v31 → v32, `app.js` v88 → v89,
+  Test 16 jadvali birga. Brauzerda tekshirildi (skrinshot bilan): tanlov,
+  animatsiya, markazlash va filtr ishlaydi. 67 test yashil.
+
+- [2026-08-14] **Katalogdagi kategoriya chiplari qatori barmoq ostida
+  "qimirlab" yurishi tuzatildi — founder shikoyati.** Sabab: `.cat-chips`
+  gorizontal skroll qatori, lekin `touch-action` cheklanmagani uchun brauzer
+  undan VERTIKAL surishni ham qabul qilardi — barmoq sal qiyshiq yursa qator
+  tepa-pastga tebranib turardi. Tuzatish ikki qator CSS
+  (`telegram-app/styles.css`): `touch-action: pan-x` (bu elementda barmoq
+  faqat gorizontal suradi, vertikal harakat sahifaga beriladi) va
+  `overscroll-behavior-x: contain` (qator chetiga yetganda skroll ota
+  elementga "toshib" o'tmaydi). ⚠️ **Dizaynga ATAYLAB tegilmadi** — founder
+  referens berishini aytdi, dizayn ishi alohida bosqichda bo'ladi; bu faqat
+  xatti-harakat tuzatishi. Kesh qoidasi bo'yicha `styles.css` v30 → v31
+  (`telegram-app/index.html`) va Test 16 jadvali birga yangilandi.
+  Yo'l-yo'lakay: branch `origin/main` dan 4 commit orqada edi —
+  birlashtirildi, `server/test.js` dagi konfliktda upstream raqamlari
+  (admin.js v25, app.js v88) olindi, `styles.css` esa birlashgan tarkib
+  uchun v31 ga surildi. Brauzerda tekshirildi: `.cat-chips` da ikkala qoida
+  haqiqatan qo'llangan, `?v=31` yuklanadi. Barcha server testlari yashil.
+
 - [2026-08-13] **To'rt agent (PM, dizayner, marketolog, investor) loyihani
   baholadi, founder ulardan TO'RT bandni tanladi — va sessiyaning eng qimmatli
   natijasi kod emas, UCH MARTA TAKRORLANGAN BITTA NAQSH: «yozilgan qoida himoya
@@ -2042,6 +2107,15 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
   markazlashtirish O'ZI testni qizil qilardi, ya'ni qorovul to'g'ri
   yechimni jazolab, nusxa ko'chirishga undardi. **Qorovul qaysi holatni
   to'g'ri deb bilishi qaror bilan BIRGA tanlanadi.**
+
+- [2026-08-14] Qaror: **"ostki chiziq" chip dizayni IKKALA yuzda ham —
+  "ikkala yuz bitta ko'rinish" qoidasi TIKLANDI.** Qaror ikki bosqichda
+  keldi va tarixi ataylab saqlanadi: avval founder 3 lokal variantdan
+  "ostki chiziq" (B) ni faqat Mini App uchun tanladi va sayt eski retseptda
+  qolib, "sayt ham o'tsinmi" alohida qarorga qoldirilgan edi; SHU KUNIYOQ
+  founder saytni ham o'tkazishga qaror qildi. Ya'ni 2026-08-13 dagi "ikkala
+  yuz bitta ko'rinishda" qoidasi bir necha soat buzilib turdi, xolos —
+  endi `.chip` (sayt) va `.cat-chip` (Mini App) ayni bitta retseptda.
 
 - [2026-08-13] Qaror: **Mini App'da `user-scalable=no` QOLADI — dizayn
   tavsiyasi O'LCHOV BILAN RAD ETILDI.** Tavsiya "matn zoomini oching" degandi

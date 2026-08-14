@@ -755,58 +755,50 @@ button:active { opacity: .88; }
   .media-hover { animation: none; opacity: 1; }
 }
 
-/* ===== KATEGORIYA CHIPLARI (2026-08-13 da qayta chizildi) =====
-   Founder: "hozirgisi sodda juda ham, defoltdek". Retsept SAYTDAGI
-   `.chip` bilan bir xil (`style.css`) — ikkala yuz bitta ko'rinishga
-   ega bo'lishi kerak, aks holda foydalanuvchi Mini App'dan saytga
-   o'tganda boshqa mahsulotga tushgandek bo'ladi.
+/* ===== KATEGORIYA CHIPLARI — "OSTKI CHIZIQ" (2026-08-14 da qayta chizildi) =====
+   Founder tanlovi (3 lokal variantdan): qutisiz, havodor tab'lar — matn +
+   tagida gradient chiziq, tanlanganda ikat rombi. Kontent ko'proq nafas
+   oladi, "quti ichida quti" hissi yo'qoladi.
 
-   Uch o'zgarish: (1) tanlangan chip ANOR gradientida — ilgari to'q ko'k
-   (`--ink-900`) edi va butun ilovada yolg'iz o'zi shu rangda turardi;
-   (2) tanlangan chipda IKAT ROMBI — sof CSS, hech qanday ro'yxat yoki
-   rasm qo'shilmaydi; (3) bosilganda javob (`:active`).
+   Sayt ham SHU retseptga o'tdi (`style.css` → `.chip`/`.chip-line`,
+   2026-08-14, founder qarori) — "ikkala yuz bitta ko'rinish" qoidasi
+   tiklandi: biri o'zgarsa ikkinchisi ham birga o'zgarsin.
 
-   ⚠️ Ilgari bu uslub `app.js` da SATR ICHIDA yozilgardi va saytdagi
-   nusxasi bilan qo'lda moslanardi — biri o'zgarganda ikkinchisi jimgina
-   eskirardi (db/014 naqshi). */
+   ⚠️ Chiziq ::after EMAS, alohida `.cat-line` elementida: styles.css
+   dagi global `button::after` (44×44 tap-maydon) har tugmaning ::after
+   ini band qilgan — unga chizilgan narsa 44px blok bo'lib chiqadi
+   (lokal demoda o'lchab topildi). */
 .cat-chips {
-  display: flex; gap: 8px;
+  display: flex; gap: 20px;
   overflow-x: auto;
   margin: 0 -16px;
-  padding: 3px 16px;
+  padding: 4px 16px 2px;
   scrollbar-width: none;
+  /* Barmoq bu qatorni ushlaganda FAQAT gorizontal suradi: `pan-x`
+     bo'lmasa brauzer vertikal skrollni ham qabul qiladi va qator
+     qiyshiq "qimirlab" yuradi (founder shikoyati, 2026-08-14). */
+  touch-action: pan-x;
+  overscroll-behavior-x: contain;
 }
 .cat-chips::-webkit-scrollbar { display: none; }
 
 .cat-chip {
   flex: none;
+  position: relative;
   display: inline-flex; align-items: center; gap: 7px;
   height: 36px;
-  padding: 0 16px;
-  border-radius: 999px;
-  border: 1px solid rgba(122,20,13,.14);
-  background: linear-gradient(180deg, #fff, #FCF8F6);
+  padding: 0 2px;
+  border: 0;
+  background: transparent;
   font-family: var(--font-sans);
-  font-size: 13px; font-weight: 600;
+  font-size: 14px; font-weight: 600;
   letter-spacing: -.005em;
-  color: var(--text-body);
+  color: var(--text-muted);
   white-space: nowrap; cursor: pointer;
-  box-shadow: 0 1px 2px rgba(23,26,48,.04), inset 0 1px 0 #fff;
   -webkit-tap-highlight-color: transparent;
-  transition: background var(--dur-fast) var(--ease-out),
-              color var(--dur-fast) var(--ease-out),
-              border-color var(--dur-fast) var(--ease-out),
-              box-shadow var(--dur-fast) var(--ease-out),
-              transform var(--dur-fast) var(--ease-out);
+  transition: color var(--dur-fast) var(--ease-out);
 }
-.cat-chip:active { transform: scale(.97); }
-
-.cat-chip.on {
-  background: linear-gradient(150deg, #8f1a10, #510100);
-  color: #fff;
-  border-color: transparent;
-  box-shadow: 0 10px 20px -12px rgba(81,1,0,.9), inset 0 1px 0 rgba(255,229,210,.28);
-}
+.cat-chip.on { color: var(--pom-700); font-weight: 700; }
 /* Ikat rombi — bo'sh qutidan yasalgan 45° kvadrat. Shrift belgisi yoki
    emoji EMAS: ular qurilmadan qurilmaga boshqacha chiziladi. */
 .cat-chip.on::before {
@@ -814,11 +806,20 @@ button:active { opacity: .88; }
   flex: none;
   width: 6px; height: 6px;
   transform: rotate(45deg);
-  background: #ffd9c2;
-  box-shadow: 0 0 0 1px rgba(255,217,194,.35);
+  background: linear-gradient(150deg, var(--pom-500), var(--pom-700));
 }
+/* Gradient chiziq — markazdan ochiladi (scaleX 0 → 1) */
+.cat-line {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  height: 3px; border-radius: 3px;
+  background: linear-gradient(90deg, var(--pom-600), var(--pom-500));
+  transform: scaleX(0); transform-origin: center;
+  transition: transform var(--dur-base) var(--ease-out);
+  pointer-events: none;
+}
+.cat-chip.on .cat-line { transform: scaleX(1); }
 @media (prefers-reduced-motion: reduce) {
-  .cat-chip, .cat-chip:active { transition: none; transform: none; }
+  .cat-chip, .cat-line { transition: none; }
 }
 
 /* "Kiyimda ko'rish" chipi — HEADER QATORIDA, ‹ va ♡ bilan yonma-yon
