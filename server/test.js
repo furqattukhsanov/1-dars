@@ -1395,7 +1395,7 @@ function testAssetVersionsAreFresh() {
     'admin/admin.css': { v: 18, hash: '15b0bc977b85' },
     'admin/admin.js': { v: 25, hash: '08fae1bb61dc' },
     'telegram-app/styles.css': { v: 30, hash: '5c7b42fa1add' },
-    'telegram-app/app.js': { v: 89, hash: 'e494ab0d114b' },
+    'telegram-app/app.js': { v: 90, hash: '4b76717e3ee8' },
     'telegram-app/pwa.js': { v: 6, hash: '798ab85e1cde' },
   };
 
@@ -3606,6 +3606,106 @@ function testCardsHaveLikeButton() {
     + `(${kartochkalar.length} ta kartochka funksiyasi: ${kartochkalar.map((k) => k.nom).join(', ')})`);
 }
 
+// ====== TEST 30: BUYURTMA TARIXI KATALOGGA BOG'LANMASIN (2026-08-14) ======
+// Founder shikoyati: "o'zimni telegramimdan kirsam buyurtmalar bo'limida hech
+// narsa yo'q, boshqa tg'dan kirsam hammasi joyida".
+//
+// Sabab topildi va QAYTA YARATILDI: `renderOrders()` qatorni BUGUNGI
+// katalogdan chizardi (`byId(it.id).name`), `/api/products` esa faqat
+// `status='published'` mahsulotlarni qaytaradi. Ya'ni buyurtmada e'londan
+// olingan mahsulot bo'lsa `byId()` `undefined` berib, butun ekran yiqilardi
+// (`TypeError: Cannot read properties of undefined`). Nuqson AYNAN shu
+// sababdan hisobga bog'liq edi — nimani buyurtma qilganingizga qarab.
+//
+// ⚠️ Bu test STATIK NAQSH bilan cheklanmaydi — `orderLine()` ning O'ZI
+// bajariladi. Sabab: nuqson "so'z bor/yo'q" darajasida emas, XULQ
+// darajasida edi, ya'ni naqsh tekshiruvi uni ishonchli ushlamasdi.
+function testOrderHistorySurvivesMissingProduct() {
+  const fs = require('fs');
+  const path = require('path');
+  const root = path.join(__dirname, '..');
+  const app = kodSofi(fs.readFileSync(path.join(root, 'telegram-app', 'app.js'), 'utf8'));
+
+  // ---- 1. SERVER: snapshot maydonlari so'ralsin ----
+  // Nom va narx `order_items` da buyurtma paytida saqlanadi. So'ralmasa
+  // klientda ular YO'Q bo'ladi va u yana katalogga qaytishga majbur bo'lardi.
+  const routes = kodSofi(fs.readFileSync(path.join(root, 'server', 'routes', 'orders.js'), 'utf8'));
+  const getOrders = funksiyaTanasi(routes, 'handleGetOrders');
+  assert.ok(getOrders, '`handleGetOrders` topilmadi');
+  const sel = getOrders.match(/SELECT[^`]*FROM order_items/i);
+  assert.ok(sel, '`handleGetOrders` da `order_items` so\'rovi topilmadi');
+  ['name', 'unit_price'].forEach((ustun) => {
+    assert.ok(new RegExp(`\\b${ustun}\\b`).test(sel[0]),
+      `\`order_items\` so'rovida \`${ustun}\` YO'Q. U buyurtma paytidagi snapshot — `
+      + 'so\'ralmasa klient nomni/narxni BUGUNGI katalogdan qidiradi va '
+      + '(1) katalogdan chiqqan mahsulotda ekran yiqiladi, '
+      + '(2) narx o\'zgarganda tarixda XATO summa ko\'rinadi.');
+  });
+
+  // ---- 2. KLIENT: `orderLine()` HAQIQATAN bajariladi ----
+  const fnSrc = funksiyaTanasi(app, 'orderLine');
+  assert.ok(fnSrc, '`orderLine()` topilmadi — buyurtma qatori bitta joyda yasalsin');
+  const yasa = new Function('byId', 'vm', 'STR', 'S', 'uShort', 'esc',
+    `${fnSrc}\nreturn orderLine;`);
+  const orderLine = yasa(
+    () => undefined,                    // katalogda YO'Q
+    () => null,                         // `vm(undefined)` → null
+    { uz: { itemGone: 'YO\'Q' } },
+    { lang: 'uz' },
+    () => '',
+    (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  );
+
+  // (a) Mahsulot katalogda yo'q, LEKIN snapshot bor — qator baribir chizilsin
+  const a = orderLine({ id: 'yoq', qty: 5, name: 'Atlas', unitPrice: 850000 });
+  assert.strictEqual(a.name, 'Atlas',
+    'katalogda yo\'q mahsulotda nom SNAPSHOTdan olinsin');
+  assert.strictEqual(a.total, 4250000,
+    'summa snapshot narxidan hisoblansin (bugungi katalog narxidan EMAS)');
+
+  // (b) Snapshotsiz eski yozuv (localStorage keshi) — YIQILMASIN
+  const b = orderLine({ id: 'yoq', qty: 2 });
+  assert.strictEqual(b.name, 'YO\'Q',
+    'snapshot ham, katalog ham yo\'q bo\'lsa — o\'ylab topilgan nom emas, YO\'QLIK ko\'rsatilsin');
+  assert.strictEqual(b.total, 0,
+    'narx noma\'lum bo\'lsa 0 — taxminiy summa YOZILMASIN');
+
+  // (c) XSS: snapshot nomi bazadan keladi va `vm()` dan O'TMAYDI
+  const c = orderLine({ id: 'yoq', qty: 1, name: '<img src=x onerror=alert(1)>', unitPrice: 1 });
+  assert.ok(!c.name.includes('<'),
+    '`order_items.name` bazadan keladi va `vm()` chegarasidan o\'tmaydi — '
+    + '`esc()` qo\'yilmasa xom matn `innerHTML` ga tushadi (CLAUDE.md, XSS bandi).');
+
+  // ---- 3. `renderOrders` eski HALOKATLI naqshga qaytmasin ----
+  const ro = funksiyaTanasi(app, 'renderOrders');
+  assert.ok(ro, '`renderOrders` topilmadi');
+  // ⚠️ Tekshiruv `byId(...)` NATIJASINI emas, `byId` NOMINI qidiradi va bu
+  // sinovda TOPILGAN teshik: dastlab `byId\(...\)\.` naqshi qidirilardi,
+  // asl nuqson esa natijani AVVAL o'zgaruvchiga oladi
+  // (`const p = byId(it.id); ... p.name`) — ya'ni naqsh unga tegmasdi va
+  // aynan tuzatilayotgan nuqson qorovuldan JIMGINA o'tib ketdi.
+  // Qoida sodda: buyurtma qatori katalogni UMUMAN bilmaydi.
+  assert.ok(!/\bbyId\b/.test(ro),
+    '`renderOrders` katalogga (`byId`) murojaat qilyapti. Buyurtma tarixi bugungi '
+    + 'katalogga BOG\'LANMASIN: katalogda yo\'q mahsulotda `byId()` `undefined` '
+    + 'qaytaradi va BUTUN ekran yiqiladi — aynan shu 2026-08-14 da founder '
+    + 'hisobida buyurtmalarni yo\'q qilgan.\n'
+    + '    → Qator `orderLine()` da yasalsin; u mahsulot yo\'qligini O\'ZI ko\'taradi '
+    + 'va shu test uni bajarib tekshiradi.');
+
+  // ---- 4. Nuqson SAVATGA ko'chmasin ----
+  // Savat butunlay katalogga tayanadi (`cartTotal()` → `byId(c.id).price`),
+  // ya'ni mavjud bo'lmagan id savatga qo'shilsa halokat o'sha yerda takrorlanardi.
+  const reo = funksiyaTanasi(app, 'reorderOrder');
+  assert.ok(reo, '`reorderOrder` topilmadi');
+  assert.ok(/byId\(/.test(reo) && /filter\(/.test(reo),
+    '`reorderOrder` katalogda YO\'Q mahsulotni savatga qo\'shmasin — '
+    + 'savat `byId()` siz ishlay olmaydi, ya\'ni "Qayta buyurtma" tugmasi savatni o\'ldirardi.');
+
+  console.log('✅ Test 30: Buyurtma tarixi katalogga bog\'lanmagan — PASS '
+    + '(server snapshot beradi, orderLine mahsulotsiz ham chizadi, esc() joyida, savat himoyalangan)');
+}
+
 // ============ TEST RUNNER ============
 // ============ TEST 22: OLISH NUQTASI ID SHAKLI (2026-08-13) ============
 // "Mening manzilim" xaridorning O'Z tanlovini bazaga yozadi. Qiymat
@@ -3853,6 +3953,7 @@ async function runTests() {
     testSourceTag();
     testBrandColorTokens();
     testCardsHaveLikeButton();
+    testOrderHistorySurvivesMissingProduct();
 
     testR2ConfigValidation();
     testR2KeyGuard();

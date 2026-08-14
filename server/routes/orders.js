@@ -429,14 +429,29 @@ async function handleGetOrders(req, res, ip) {
     );
     if (!orders.length) return sendJson(res, 200, []);
     const orderIds = orders.map((o) => o.id);
+    // ⚠️ `name` va `unit_price` HAM olinadi — ular buyurtma paytidagi SNAPSHOT
+    // (`db/001_schema.sql`: "buyurtma paytidagi nom"). Ilgari faqat
+    // `product_id` va `qty` qaytardi, ya'ni klient nomni va narxni BUGUNGI
+    // katalogdan qidirishga majbur edi. Bundan ikki zarar chiqqan:
+    //   1. Katalogda YO'Q mahsulot (published emas, o'chirilgan) butun
+    //      buyurtmalar ekranini qulatardi — `byId()` `undefined` qaytarardi.
+    //   2. Narx o'zgargan bo'lsa tarixda BUGUNGI narx ko'rinardi, ya'ni
+    //      xaridor to'lagan summa jimgina boshqacha ko'rsatilardi.
+    // Ikkinchisi birinchisidan xavfliroq: u xato bermaydi, shunchaki yolg'on
+    // gapiradi (CLAUDE.md — "jimgina yolg'on yo'qlikdan yomonroq").
     const { rows: itemRows } = await pool.query(
-      `SELECT order_id, product_id, qty FROM order_items WHERE order_id = ANY($1)`,
+      `SELECT order_id, product_id, name, qty, unit_price FROM order_items WHERE order_id = ANY($1)`,
       [orderIds]
     );
     const itemsByOrder = new Map();
     for (const it of itemRows) {
       if (!itemsByOrder.has(it.order_id)) itemsByOrder.set(it.order_id, []);
-      itemsByOrder.get(it.order_id).push({ id: it.product_id, qty: Number(it.qty) });
+      itemsByOrder.get(it.order_id).push({
+        id: it.product_id,
+        qty: Number(it.qty),
+        name: it.name || null,
+        unitPrice: it.unit_price === null ? null : Number(it.unit_price),
+      });
     }
     const out = orders.map((o) => ({
       id: o.id,

@@ -207,6 +207,9 @@ const STR = {
     // ekranga bog'langan, yorliq esa foydalanuvchi ko'radigan so'z.
     tabHome: "Katalog", tabAi: "AI",
     tabCart: "Savat", tabOrders: "Buyurtma", tabProfile: "Profil", added: "Savatga qo'shildi 🌷", liked: "Sevimlilarga qo'shildi",
+    // Buyurtmadagi mahsulot katalogdan chiqib ketgan (e'lon yopilgan/o'chirilgan).
+    // Tarix baribir ko'rsatiladi — xaridor NIMA buyurtma qilganini bilishi shart.
+    itemGone: "Mahsulot endi mavjud emas", reorderPartial: "Mavjud matolar savatga qo'shildi",
     // Yoqtirilgan matolar. Ilgari ♡ bosilardi-yu, ular QAYERGA tushgani
     // hech qayerda ko'rinmasdi — ya'ni tugma ishlagandek tuyulib, natijasi
     // yo'q edi (founder, 2026-08-13).
@@ -366,6 +369,7 @@ const STR = {
     logout: "Выйти", search: "Поиск", recent: "Недавние поиски", noResults: "Ничего не найдено",
     noResultsSub: "Попробуйте другой запрос", resultsN: "результатов", tabHome: "Каталог", tabAi: "AI",
     tabCart: "Корзина", tabOrders: "Заказы", tabProfile: "Профиль", added: "Добавлено в корзину 🌷", liked: "Добавлено в избранное",
+    itemGone: "Товар больше недоступен", reorderPartial: "Доступные ткани добавлены в корзину",
     savedT: "Сохранённые ткани", savedEmpty: "Пока ничего не сохранено",
     savedEmptySub: "Отметьте понравившуюся ткань ♡ — она появится здесь", savedGo: "В каталог",
     orderPlaced: "Заказ принят", orderPlacedSub: "Производитель подтвердит — мы сообщим вам",
@@ -3157,6 +3161,45 @@ function renderSuccess() {
 }
 
 // ============ EKRAN: BUYURTMALAR ============
+/* ══ BUYURTMA QATORI — KATALOGGA BOG'LANMAYDI (2026-08-14, founder shikoyati) ══
+   "o'zimni telegramimdan kirsam buyurtmalar bo'limida hech narsa yo'q,
+   boshqa tg'dan kirsam hammasi joyida".
+
+   Sabab: qator BUGUNGI katalogdan chizilardi —
+     `const p = byId(it.id); name: p.name[S.lang]`
+   `/api/products` esa faqat `status='published'` mahsulotlarni qaytaradi
+   (`routes/catalog.js`). Ya'ni buyurtmada e'londan olingan (yoki hali
+   tasdiqlanmagan) mahsulot bo'lsa `byId()` `undefined` qaytarib,
+   `renderOrders()` BUTUNLAY yiqilardi — ekranda bitta buyurtma ham
+   qolmasdi. Nuqson AYNAN shu sababdan hisobga bog'liq edi: nimani
+   buyurtma qilganingizga qarab bir hisobda chiqadi, boshqasida yo'q.
+
+   ⚠️ Endi nom va narx BUYURTMA YOZUVIDAN olinadi (`order_items.name`,
+   `unit_price` — buyurtma paytidagi snapshot). Katalog faqat RASM uchun
+   ishlatiladi, ya'ni mahsulot yo'qolsa qator baribir chiziladi.
+   Bu tuzatishning ikkinchi yuzi ham bor: narx o'zgarganda tarixda
+   BUGUNGI narx emas, xaridor TO'LAGAN narx turadi.
+
+   ⚠️ `vm()` va `reviewBlock()` bu darsni ALLAQACHON bilardi (`if (!p)`),
+   asosiy qator esa bilmasdi — qoida bir joyda o'rganilib, ikkinchisiga
+   tarqalmagan. Qorovul: `server/test.js` → Test 30. */
+function orderLine(it) {
+  const p = byId(it.id);
+  const v = vm(p); // `vm()` `null` ni O'ZI qabul qiladi
+  return {
+    // ⚠️ `esc()` SHART: `it.name` bazadan keladi (sotuvchi yozgan) va `vm()`
+    // chegarasidan O'TMAYDI, ya'ni bu yerda tozalanmasa xom matn `innerHTML`
+    // ga tushardi. `v.name` esa `vm()` da allaqachon tozalangan — ikki marta
+    // qochirilsa foydalanuvchi `&lt;` ko'rib qolardi.
+    name: it.name ? esc(it.name) : (v ? v.name : STR[S.lang].itemGone),
+    // Rasm faqat katalogda bo'lsa; bo'lmasa neytral fon (soxta rasm emas)
+    bgStyle: v ? v.bgStyle : 'background:var(--ink-100)',
+    qty: it.qty,
+    unit: p ? uShort(p.unit) : '',
+    total: (typeof it.unitPrice === 'number' ? it.unitPrice : (p ? p.price : 0)) * it.qty,
+  };
+}
+
 function renderOrders() {
   const T = STR[S.lang];
   // Yakunlangan holatlar "Tarix"ga tushadi (Sprint 7 da completed/refunded qo'shildi)
@@ -3177,8 +3220,12 @@ function renderOrders() {
       const tone = STATUS_TONE[o.statusKey] || 'neutral';
       const [sbg,sfg] = STATUS_COL[tone];
       const stTxt = (STATUS_TXT[o.statusKey] || STATUS_TXT.pending)[S.lang];
-      const lines = o.items.map(it => { const p = byId(it.id); return { name:p.name[S.lang], bgStyle:vm(p).bgStyle, qty:it.qty, unit:uShort(p.unit), total:p.price*it.qty }; });
-      const total = o.items.reduce((s,it) => s + byId(it.id).price * it.qty, 0);
+      const lines = o.items.map(it => orderLine(it));
+      // Summa SERVERDAN — u buyurtma paytida hisoblangan va o'zgarmaydi.
+      // Zaxira (eski keshdagi buyurtmalar) qatorlardan yig'iladi.
+      const total = typeof o.total === 'number'
+        ? o.total
+        : lines.reduce((s, l) => s + l.total, 0);
       return `
       <div style="padding:14px;border-radius:var(--radius-lg);background:rgba(255,255,255,.62);backdrop-filter:blur(16px) saturate(160%);-webkit-backdrop-filter:blur(16px) saturate(160%);border:1px solid rgba(255,255,255,.55);box-shadow:0 5px 16px -12px rgba(81,1,0,.12)">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:11px">
@@ -3804,12 +3851,19 @@ function toggleTrack(id) {
 function reorderOrder(id) {
   const o = ORDERS.find(x => x.id === id);
   if (!o) return;
-  o.items.forEach((it) => {
+  // ⚠️ Katalogda YO'Q mahsulot savatga QO'SHILMAYDI. Savat butunlay
+  // katalogga tayanadi (`cartTotal()` → `byId(c.id).price`), ya'ni mavjud
+  // bo'lmagan id qo'shilsa nuqson buyurtmalar ekranidan SAVATGA ko'chardi —
+  // "takrorlash" tugmasi savatni o'ldirardi. Buyurtma tarixi mahsulotsiz
+  // ham chizilaveradi, savat esa chizilmaydi: farq shundan.
+  const yoq = o.items.filter(it => !byId(it.id));
+  o.items.filter(it => byId(it.id)).forEach((it) => {
     const line = S.cart.find(x => x.id === it.id);
     if (line) line.qty += it.qty;
     else S.cart.push({ id: it.id, qty: it.qty });
   });
-  showToast(STR[S.lang].added);
+  if (yoq.length === o.items.length) { showToast(STR[S.lang].itemGone); return; }
+  showToast(yoq.length ? STR[S.lang].reorderPartial : STR[S.lang].added);
   tab('cart');
 }
 function onSearch(v) {
