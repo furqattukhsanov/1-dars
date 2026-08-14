@@ -125,6 +125,110 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
 
 ## Qilingan ishlar
 
+- [2026-08-14] **Mini App'ga REKLAMA BANNERI qo'shildi — uch slaydli karusel,
+  qidiruv qatoridan pastda, kategoriya chiplaridan tepada.** Bu ortiqcha yo'l
+  EMAS va bu ATAYLAB tekshirildi: CLAUDE.md dagi «mavjud funksiyaga ikkinchi
+  yo'l qo'shilmasin» qoidasi bo'yicha birinchi savol berildi — banner saytda
+  (`index.html` → `.ad-banner`, 3 slayd) ALLAQACHON bor edi, Mini App'da esa
+  UMUMAN yo'q, ya'ni bu haqiqiy bo'shliq, takror emas.
+
+  **Founder qarorlari (shu sessiyada olindi):**
+  (1) **Nisbat 16:9 dan 16:4.5 ga (= 32:9) tushirildi** — founder «juda baland,
+  kartochkalarga halaqit beradi» dedi. **O'lchandi, hisoblab yozilmadi:**
+  kartochka ko'rinishi **171px → 271px**, ya'ni endi to'liq bir qator kartochka
+  banner ostida ko'rinadi.
+  (2) **CTA tugmasi YO'Q — butun banner bosiladi** («cta tugmasini shart emas
+  bannerga bosganda ishlaydigan qilamiz»). Sabab o'lchovdan chiqdi: 101px
+  balandlikda 38px tugma bannerning ~70% ini yeb, sarlavhaga joy qoldirmasdi.
+  (3) Uch slayd, uch pastel ohang, fon rasmli, «yengil sokin» fon.
+
+  ⚠️ **MATN RASMDA EMAS, KODDA** (`AD_SLIDES`, `telegram-app/app.js`) — va bu
+  qaror texnik emas, MAHSULOT qarori: Mini App ikki tilli, sarlavha rasmga
+  chizilsa **rus xaridori o'zbekcha sarlavha ko'rardi** va uni tuzatish uchun
+  rasm qayta chizilishi kerak bo'lardi. Kodda esa til bepul almashadi, matn
+  tuzatish — bitta satr. Rasm faqat FON: chap yarmi ataylab tinch qoldirilgan.
+  ⚠️ Bu **`docs/dizayn-tizimi/reklama-banner-spec.md` dagi jadval bilan zid** —
+  u yerda hamon «Matn: sarlavha rasm ichida» deb turibdi. Spec ish materiali,
+  kod esa haqiqat manbai; qator kelgusi tahrirlashda to'g'rilansin.
+
+  **Slayd matnlari:** (1) AI xizmati — «Matolarni jonlantiring» (pushti-anor,
+  `tab('ai')` ga olib boradi); (2) «24/7 buyurtma berishingiz mumkin»
+  (za'faron-krem); (3) Ilk 3 ta buyurtma — «Bepul yetkazib berish» (feruza).
+  3-slayd dastlab «Birinchi 3 ta buyurtma» edi va 48px minimumda zonaga
+  sig'may ikki qatorga o'ralgani uchun «Ilk» ga qisqartirildi (ma'no o'sha).
+
+  🔴 **ENG MUHIM TEXNIK QAROR — `paintHome()` va u nuqson EMAS, oldini
+  OLISH:** `renderHome()` TO'RT joydan chaqirilardi (`render()`,
+  `applyPriceFilter`, `clearPriceFilter`, `selectCat`) va **uchtasi `render()`
+  dan O'TMASDI**. Bannerni ulash faqat `render()` ga qo'shilganda edi,
+  foydalanuvchi **kategoriya bosishi bilan banner JIMGINA muzlab qolardi**:
+  rasm turadi, nuqtalar o'lik, almashish yo'q — konsolda xato YO'Q. Ya'ni
+  bu aynan `authUser()` → `requestUser()` naqshining UCHINCHI marta
+  takrorlanishi bo'lardi. Hammasi bitta `paintHome()` ga o'tkazildi: bosh
+  sahifani chizadigan yagona nuqta, ichida `focusCatChip()` + `mountAdBanner()`.
+  Beshinchi chaqiruv qo'shilsa u ham avtomatik qamraladi.
+
+  **Taymer:** modul darajasida (`adTimer`), `adStart()` da `clearInterval`
+  `setInterval` dan OLDIN turadi va `mountAdBanner()` har chizishda tozalaydi —
+  aks holda har kategoriya bosilganda yangi `setInterval` qo'shilib, slaydlar
+  tobora tez «titraydigan» bo'lib qolardi (sekin-asta yomonlashadigan, ya'ni
+  birinchi qarashda ko'rinmaydigan nuqson). Bosh sahifadan chiqilganda
+  `mountAdBanner()` bannerni topmay taymerni O'CHIRADI. Fon tabda
+  (`document.hidden`) almashish to'xtaydi, `prefers-reduced-motion` da
+  avtomatik almashish umuman yoqilmaydi.
+
+  **Surish bosish deb hisoblanmaydi:** barmoq 45px dan ko'p surilsa `adSwiped`
+  yoqiladi va o'sha klik tashlab yuboriladi — aks holda har surishda banner
+  amali ishga tushardi. Nuqta bosilganda banner amali chaqirilmaydi:
+  delegatsiya `closest('[data-action]')` bilan eng ICHKARIDAGI elementni
+  topadi, ya'ni `stopPropagation` ham kerak emas.
+
+  **CSS (`styles.css`):** balandlik QO'LDA yozilmaydi — `aspect-ratio: 32/9`.
+  `flex: none` SHART: bosh sahifa `flex-direction: column` va bolasi standart
+  holda siqiladi, ya'ni `aspect-ratio` kafolat EMAS — bu naqsh loyihada UCH
+  marta tishlagan (`<picture>`, `.addr-map`, `.contact-block`).
+  `touch-action: pan-y` — gorizontalni JS boshqaradi, vertikal skroll
+  brauzerda qoladi (kategoriya chiplaridagi `pan-x` ning aynan TESKARISI;
+  `pan-x` yozilsa banner ustida sahifa umuman skroll qilmasdi). Nuqtalar
+  ko'rinadigan qismi 7px, tegish maydoni esa **44px** (2026-07-29 qarori).
+  Ranglar tokendan (`--pom-700` / `--saffron-700` / `--teal-700`) — Test 26
+  qamrovida. Global `button::after` (44×44) bannerda `content: none` bilan
+  o'chirildi: banner allaqachon 92–112px, ::after ichkarida ortiqcha qatlam
+  bo'lib turardi.
+
+  **Rasmlar:** `telegram-app/assets/ads/ad-1..3.jpg`, 1200×338, 31–35 KB.
+  Founder bergan Google API kaliti bilan `gemini-3-pro-image` orqali chizildi
+  (Imagen 4 yangi foydalanuvchilarga yopiq ekan). **Kalit repoga KIRMAGAN.**
+
+  **BRAUZERDA O'LCHANDI, taxmin qilinmadi:** 360px → 328×92 · 390px → 343×96 ·
+  430px → 398×112, nisbat hamma joyda 3.56. Nuqta bosilganda banner amali
+  ishlamadi (0 chaqiruv). Bannerga bosilganda `tab()` ishladi. 3 marta
+  kategoriya bosildi — taymer to'planmadi (netTimers 0). Bosh sahifadan
+  chiqilganda taymer o'chdi. Avtomatik almashish 0→1→2, roppa-rosa 5 soniyada.
+  Eng kichik telefonda matn zaxirasi 21px, ikkala tilda ham toshib chiqmadi.
+
+  **QOROVUL — Test 32** (`testAdBannerWiring`), 4 band: (1) `innerHTML =
+  renderHome()` faqat `paintHome()` ichida va `paintHome()` HAQIQATAN
+  `mountAdBanner()` ni chaqiradi (nomiga ishonish yetarli emas — Test 3f
+  darsi); (2) `adStart()` da `clearInterval` `setInterval` dan OLDIN; (3) slayd
+  rasmlari DISKDA bor + har slaydda uz va ru (rasm yo'qligi CSP darsining
+  aynan o'zi: brauzer JIMGINA bo'sh joy chizadi, JS xatosi yo'q); (4) CSS da
+  `flex: none`, `aspect-ratio: 32/9`, `touch-action: pan-y`. Izohlar tahlildan
+  OLDIN olib tashlanadi — Test 3f dagi teshik shu yerda takrorlanmasin.
+  **8 mutatsiya bilan sinaldi: 7 tasi ushlandi, 1 tasi (izohdagi soxta
+  chaqiruv) TO'G'RI e'tiborsiz qoldirildi.** Test manba kodini o'qiydi,
+  brauzerni emas — ya'ni u «banner ishlayapti» demaydi, «banner ishlamay
+  qoladigan TUZILISH qaytib kelmadi» deydi. Farqi ataylab yozib qo'yiladi.
+
+  **Yo'l-yo'lakay hujjatlar:** `docs/dizayn-tizimi/` ga `reklama-banner-spec.md`
+  (o'lchamlar, ekran byudjeti, qarorlar tarixi), `banner-olcham.html`,
+  `banner-dizaynlar.html`, `banner-rasmlar.html` + `banner-rasmlar/` va ikki
+  shrift (`bricolage.woff2`, `hanken.woff2`) — hammasi ISH MATERIALI va
+  ataylab `docs/` da, `telegram-app/` da EMAS: `deploy.yml` Mini App papkasini
+  butunlay serverga ko'chiradi (2026-08-14, `94c298e` darsi).
+
+  **Kesh:** `telegram-app/styles.css` v33 → v34, `app.js` v89 → v90,
+  Test 16 jadvali birga. **DEPLOY: faqat statik, servis restarti kerak emas.**
 - [2026-08-14] **Founderning uchta shikoyati o'lchandi va uchalasi ham ROST
   bo'lib chiqdi — uchtasining ham ildizi bitta naqsh: BIR NARSA IKKI JOYDA
   YASHAYDI va ular jimgina uzoqlashgan.** Shikoyatlar bir-biriga o'xshamasdi
@@ -2065,6 +2169,56 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
 
 ## Qarorlar
 
+- [2026-08-14] Qaror (founder): **reklama banneri nisbati 16:9 EMAS, 16:4.5
+  (= 32:9).** Dastlab 16:9 taklif qilingandi, founder «juda baland,
+  kartochkalarga halaqit beradi» dedi. Qaror TAXMIN bilan emas, O'LCHOV bilan
+  yopildi: kartochka ko'rinishi **171px → 271px**, ya'ni banner ostida to'liq
+  bir qator kartochka qoladi. Balandlik CSS'da qat'iy yozilmaydi —
+  `aspect-ratio` dan kelib chiqadi, shunda hamma qurilmada o'zi to'g'ri
+  chiqadi va bitta joyda o'zgaradi.
+
+- [2026-08-14] Qaror (founder): **CTA tugmasi YO'Q — butun banner bosiladi**
+  («cta tugmasini shart emas bannerga bosganda ishlaydigan qilamiz»). Sabab
+  yuqoridagi qarordan KELIB CHIQDI: 101px balandlikda 38px tugma bannerning
+  ~70% ini yeb, sarlavhaga joy qoldirmasdi. Ya'ni nisbatni pasaytirish
+  tugmani ham olib tashladi — bitta qaror ikkinchisini ergashtirdi va buni
+  yozib qo'yish kerak, aks holda kelajakda «CTA qo'shaylik» degan taklif
+  o'sha yopilgan bo'shliqqa qaytadi.
+
+- [2026-08-14] Qaror: **banner matni RASMDA emas, KODDA
+  (`AD_SLIDES` → `{ uz, ru }`).** Sabab mahsulotdan: Mini App ikki tilli va
+  sarlavha rasmga chizilsa **rus xaridori o'zbekcha sarlavha ko'rardi** —
+  uni tuzatish rasm qayta chizishni talab qilardi. Rasm faqat FON bo'lib
+  qoladi (chap yarmi ataylab tinch). Yon foyda: matn tuzatish = bitta satr,
+  yangi slayd = bitta obyekt, chizish kodiga tegilmaydi.
+  ⚠️ `docs/dizayn-tizimi/reklama-banner-spec.md` dagi jadvalda hamon «Matn:
+  sarlavha rasm ichida» deb turibdi — spec ISH MATERIALI, kod esa haqiqat
+  manbai.
+
+- [2026-08-14] Qaror: **bosh sahifa chizadigan YAGONA nuqta — `paintHome()`,
+  va bu nuqsonni tuzatish emas, TAKRORLANISHINI oldini olish.**
+  `renderHome()` to'rt joydan chaqirilardi va uchtasi `render()` dan
+  o'tmasdi; mount faqat `render()` ga ulansa banner kategoriya bosilganda
+  JIMGINA muzlab qolardi (rasm turadi, nuqtalar o'lik, konsol toza). Bu
+  `authUser()` → `requestUser()` naqshining aynan o'zi, ya'ni loyihada
+  IKKI marta takrorlangani isbotlangan naqsh — shuning uchun «eslab
+  qolaman» yechim sifatida qabul qilinmadi. Qorovul — **Test 32**:
+  yozilgan qoida himoya emas, uni tekshiradigan test himoya.
+
+- [2026-08-14] Qaror: **banner ustida `touch-action: pan-y`** — kategoriya
+  chiplaridagi `pan-x` ning ataylab TESKARISI. Chiplarda gorizontal skroll
+  brauzernikiga qoldiriladi, bannerda esa gorizontalni JS boshqaradi va
+  brauzerga vertikal qoladi. `pan-x` ko'chirib yozilganda banner ustida
+  sahifa umuman skroll qilmasdi — bir xil ko'ringan ikki holatga bir xil
+  qiymat qo'yish nuqson tug'diradi.
+
+- [2026-08-14] Qaror: **banner ish materiallari `docs/dizayn-tizimi/` da,
+  `telegram-app/` da EMAS** (spec, uchta HTML demo, xom rasmlar, ikki
+  shrift). Sabab bir kun oldin o'rganilgan: `deploy.yml` Mini App papkasini
+  `telegram-app/*` bilan BUTUNLAY serverga ko'chiradi, ya'ni `telegram-app/`
+  ichiga qo'yilgan ichki material `lolamarket.uz/mini-app/...` da hammaga
+  ochiq turardi (`94c298e`). Production'ga faqat `assets/ads/ad-1..3.jpg`
+  chiqadi.
 - [2026-08-14] Qaror: **buyurtma tarixi BUGUNGI KATALOGGA bog'lanmaydi —
   nom va narx BUYURTMA YOZUVIDAGI snapshotdan olinadi.** Katalog faqat
   RASM uchun ishlatiladi va u yo'q bo'lsa qator baribir chiziladi

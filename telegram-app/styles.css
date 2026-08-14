@@ -768,6 +768,112 @@ button:active { opacity: .88; }
    dagi global `button::after` (44×44 tap-maydon) har tugmaning ::after
    ini band qilgan — unga chizilgan narsa 44px blok bo'lib chiqadi
    (lokal demoda o'lchab topildi). */
+/* ===== REKLAMA BANNERI (2026-08-14, founder qarori) =====
+   Nisbat 16:4.5 — dastlab 16:9 edi va founder "juda baland, kartochkalarga
+   halaqit beradi" dedi. O'lchandi: kartochka ko'rinishi 171px → 271px, ya'ni
+   endi TO'LIQ bir qator kartochka ko'rinadi.
+
+   ⚠️ Balandlik QO'LDA yozilmaydi — `aspect-ratio` dan kelib chiqadi.
+   ⚠️ `flex: none` SHART: bosh sahifa `flex-direction: column` va bolasi
+   standart holda siqiladi, ya'ni `aspect-ratio` kafolat EMAS. Bu naqsh
+   loyihada UCH marta tishlagan (`<picture>`, `.addr-map`, `.contact-block`).
+   ⚠️ `touch-action: pan-y` — gorizontalni JS boshqaradi, vertikal skroll
+   brauzerda qoladi. `pan-x` yozilsa banner ustida sahifa umuman
+   skroll qilmasdi (kategoriya chiplaridagi masala, teskarisi). */
+.ad-banner {
+  flex: none;
+  position: relative;
+  width: 100%;
+  aspect-ratio: 32 / 9;
+  border: 0;
+  padding: 0;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: var(--pom-50);
+  cursor: pointer;
+  isolation: isolate;
+  touch-action: pan-y;
+  -webkit-tap-highlight-color: transparent;
+  box-shadow: 0 10px 26px -18px rgba(23,26,48,.45);
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+.ad-banner:active { transform: scale(.985); }
+/* Global `button::after` (44×44 tap-maydon) bannerga KERAK EMAS — u
+   allaqachon 92–112px balandlikda, ya'ni minimumdan katta. Qoldirilsa
+   ::after ichkarida ortiqcha qatlam bo'lib turardi. */
+.ad-banner::after { content: none; }
+
+.ad-slide {
+  position: absolute; inset: 0;
+  opacity: 0; visibility: hidden;
+  background-size: cover;
+  background-position: center;
+  transition: opacity var(--dur-slow) var(--ease-out), visibility var(--dur-slow);
+}
+.ad-slide.on { opacity: 1; visibility: visible; }
+
+/* Matn tuval birligida EMAS, ekran birligida: rasm sof fon, matn HTML.
+   Shu sabab uz/ru bepul almashadi va matn hech qachon xiralashmaydi. */
+.ad-copy {
+  position: absolute;
+  left: 14px; right: 34%; top: 0; bottom: 0;
+  display: flex; flex-direction: column; justify-content: center;
+  align-items: flex-start; gap: 3px;
+  z-index: 2;
+  text-align: left;
+}
+.ad-eyebrow {
+  font-family: var(--font-sans);
+  font-size: 9.5px; font-weight: 700;
+  letter-spacing: .14em; text-transform: uppercase;
+  line-height: 1;
+}
+.ad-title {
+  font-family: var(--font-display);
+  font-size: 17px; font-weight: 800;
+  line-height: 1.1; letter-spacing: -.02em;
+  color: var(--ink-900);
+  margin: 0;
+}
+/* Uch slaydning urg'u ranglari — dizayn tizimi tokenlaridan */
+.ad-slide[data-tone="rose"]    .ad-eyebrow { color: var(--pom-700); }
+.ad-slide[data-tone="saffron"] .ad-eyebrow { color: var(--saffron-700); }
+.ad-slide[data-tone="teal"]    .ad-eyebrow { color: var(--teal-700); }
+.ad-slide[data-tone="rose"]    .ad-chev { color: var(--pom-700); }
+.ad-slide[data-tone="saffron"] .ad-chev { color: var(--saffron-700); }
+.ad-slide[data-tone="teal"]    .ad-chev { color: var(--teal-700); }
+
+.ad-chev {
+  position: absolute; right: 15px; top: 50%;
+  transform: translateY(-50%);
+  z-index: 3; display: flex;
+}
+
+/* Nuqtalar: ko'rinadigan qism kichik, TEGISH MAYDONI 44px
+   (2026-07-29 qarori — o'zgarmaydi). */
+.ad-dots {
+  position: absolute; right: 3px; bottom: -6px;
+  z-index: 4; display: flex; align-items: center;
+}
+.ad-dot {
+  display: grid; place-items: center;
+  width: 26px; height: 44px;
+  padding: 0; border: 0; background: none; cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.ad-dot i {
+  display: block;
+  width: 7px; height: 7px; border-radius: 999px;
+  background: rgba(255,255,255,.95);
+  box-shadow: 0 1px 4px rgba(23,26,48,.45);
+  transition: width var(--dur-base) var(--ease-out), background var(--dur-base);
+}
+.ad-dot.on i { width: 18px; background: var(--pom-500); }
+
+@media (prefers-reduced-motion: reduce) {
+  .ad-banner, .ad-slide, .ad-dot i { transition: none; }
+}
+
 .cat-chips {
   display: flex; gap: 20px;
   overflow-x: auto;

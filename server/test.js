@@ -1391,11 +1391,11 @@ function testAssetVersionsAreFresh() {
     // Birlashgan tarkib ikkalasidan ham farq qiladi, ya'ni raqam yana
     // YUQORIGA suriladi. Teng raqam qaytib kelgan foydalanuvchida keshdagi
     // bir tomonlama faylni qoldirardi.
-    'panel.js': { v: 30, hash: 'a97c8a6eb361' },
+    'panel.js': { v: 31, hash: '0d4da0976286' },
     'admin/admin.css': { v: 18, hash: '15b0bc977b85' },
     'admin/admin.js': { v: 25, hash: '08fae1bb61dc' },
-    'telegram-app/styles.css': { v: 33, hash: '878aca09308f' },
-    'telegram-app/app.js': { v: 91, hash: 'b75a17736ab4' },
+    'telegram-app/styles.css': { v: 34, hash: '03709d4225aa' },
+    'telegram-app/app.js': { v: 92, hash: 'a658d67a00ff' },
     'telegram-app/pwa.js': { v: 6, hash: '798ab85e1cde' },
   };
 
@@ -3781,6 +3781,123 @@ function testPhoneVerifiedSourceWins() {
     + `(1 ustun manba, ${formalar.length} ta forma faqat bo'sh joyni to'ldiradi)`);
 }
 
+// ============ TEST 32: REKLAMA BANNERI QO'RIQCHISI (2026-08-14) ============
+// Banner `renderHome()` ichida chiziladi, lekin JONLANISHI uchun DOM'da
+// bo'lgandan keyin ulanishi kerak (`mountAdBanner`). Ikkita invariant bor va
+// IKKALASI HAM buzilganda JIMGINA buziladi — konsolda xato yo'q, ekranda
+// banner turadi, shunchaki ishlamaydi.
+//
+// 1) HAR BIR `renderHome()` chaqiruvi `paintHome()` dan o'tsin.
+//    Sabab: banner qo'shilgunga qadar `innerHTML = renderHome()` TO'RT joyda
+//    takrorlanardi va faqat bittasi `render()` dan o'tardi. Mount faqat
+//    `render()` ga ulansa, foydalanuvchi KATEGORIYA bosishi bilan banner
+//    muzlab qolardi: rasm turadi, nuqtalar o'lik, almashish yo'q.
+//    Bu naqsh loyihada ALLAQACHON ikki marta takrorlangan (`authUser()`
+//    → `requestUser()`), ya'ni "eslab qolaman" ishlamasligi isbotlangan.
+//
+// 2) `mountAdBanner()` eski taymerni TOZALASIN.
+//    Sabab: `paintHome()` har kategoriya bosilganda chaqiriladi. Tozalanmasa
+//    har chaqiruvda yangi `setInterval` qo'shilib, slaydlar tobora tez
+//    "titraydigan" bo'lib qolardi — va bu sekin-asta yomonlashadigan nuqson,
+//    ya'ni birinchi qarashda umuman ko'rinmaydi.
+//
+// ⚠️ Bu test MANBA KODINI o'qiydi, brauzerni emas: `test.js` da DOM yo'q.
+// Ya'ni u "banner ishlayapti" demaydi — u "banner ishlamay qoladigan
+// TUZILISH qaytib kelmadi" deydi. Farqi muhim va ataylab shunday.
+function testAdBannerWiring() {
+  const fs = require('fs');
+  const path = require('path');
+
+  const fayl = path.join(__dirname, '..', 'telegram-app', 'app.js');
+  const xom = fs.readFileSync(fayl, 'utf8');
+
+  // Izohlar OLIB TASHLANADI — aks holda izohdagi `innerHTML = renderHome()`
+  // so'zlari qorovulni aldardi. Aynan shu teshik Test 3f da topilgan va
+  // o'sha yerda ham shu yo'l bilan yopilgan.
+  const src = xom
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/(^|[^:])\/\/.*$/gm, '$1');
+
+  // ---- 1-band: to'g'ridan-to'g'ri chizish qolmagan ----
+  // `paintHome()` ning O'ZIDAGI yagona qonuniy chaqiruvni hisobga olamiz.
+  const paintHomeTana = src.match(/function\s+paintHome\s*\([^)]*\)\s*\{([\s\S]*?)\n\}/);
+  assert.ok(paintHomeTana, '`paintHome()` topilmadi — bosh sahifa chizishning yagona nuqtasi yo\'qolgan');
+
+  const barcha = [...src.matchAll(/innerHTML\s*=\s*renderHome\s*\(/g)];
+  const ichkarida = [...paintHomeTana[1].matchAll(/innerHTML\s*=\s*renderHome\s*\(/g)];
+  assert.strictEqual(ichkarida.length, 1,
+    '`paintHome()` ichida aynan bitta `innerHTML = renderHome()` bo\'lsin');
+  assert.strictEqual(barcha.length, 1,
+    `\`innerHTML = renderHome()\` ${barcha.length} joyda topildi, faqat \`paintHome()\` ichida bo'lishi kerak.\n`
+    + '    Bosh sahifa chizadigan yangi joy qo\'shsangiz — `paintHome()` ni chaqiring.\n'
+    + '    To\'g\'ridan-to\'g\'ri chizsangiz banner ulanmaydi va u JIMGINA muzlab qoladi\n'
+    + '    (kategoriya bosilganda: rasm turadi, nuqtalar o\'lik, almashish yo\'q).');
+
+  // `paintHome()` mount ni HAQIQATAN chaqirsin — nomiga ishonish yetarli emas
+  // (Test 3f darsi: o'ramning ichi ochib ko'riladi).
+  assert.ok(/mountAdBanner\s*\(/.test(paintHomeTana[1]),
+    '`paintHome()` ichida `mountAdBanner()` chaqirilmagan — banner o\'lik chiziladi');
+  assert.ok(/focusCatChip\s*\(/.test(paintHomeTana[1]),
+    '`paintHome()` ichida `focusCatChip()` chaqirilmagan — tanlangan kategoriya qatordan chiqib ketadi');
+
+  // ---- 2-band: mount taymerni tozalaydi ----
+  const mountTana = src.match(/function\s+mountAdBanner\s*\([^)]*\)\s*\{([\s\S]*?)\n\}/);
+  assert.ok(mountTana, '`mountAdBanner()` topilmadi');
+  assert.ok(/clearInterval\s*\(/.test(mountTana[1]) || /adStart\s*\(/.test(mountTana[1]),
+    '`mountAdBanner()` eski taymerni tozalamaydi — har chaqiruvda yangi `setInterval` qo\'shiladi');
+
+  const startTana = src.match(/function\s+adStart\s*\([^)]*\)\s*\{([\s\S]*?)\n\}/);
+  assert.ok(startTana, '`adStart()` topilmadi');
+  const tozalash = startTana[1].indexOf('clearInterval');
+  const yaratish = startTana[1].indexOf('setInterval');
+  assert.ok(tozalash !== -1, '`adStart()` da `clearInterval` yo\'q — taymerlar to\'planib qoladi');
+  assert.ok(yaratish !== -1, '`adStart()` da `setInterval` yo\'q — banner o\'zi almashmaydi');
+  assert.ok(tozalash < yaratish,
+    '`adStart()` da `clearInterval` `setInterval` dan OLDIN turishi shart — '
+    + 'aks holda yangi taymer yaratilib, keyin O\'ZI o\'chiriladi va banner umuman almashmaydi');
+
+  // ---- 3-band: slaydlar va rasm fayllari haqiqatan bor ----
+  // "Rasm bor" deb ishonish CSP darsining aynan o'zi: fayl yo'q bo'lsa
+  // brauzer JIMGINA bo'sh joy chizadi, konsolda JS xatosi bo'lmaydi.
+  const slaydBlok = src.match(/const\s+AD_SLIDES\s*=\s*\[([\s\S]*?)\n\];/);
+  assert.ok(slaydBlok, '`AD_SLIDES` topilmadi');
+  const rasmlar = [...slaydBlok[1].matchAll(/img:\s*'([^']+)'/g)].map((m) => m[1]);
+  assert.ok(rasmlar.length >= 2, `banner kamida 2 slayddan iborat bo'lsin (${rasmlar.length} topildi)`);
+  rasmlar.forEach((rel) => {
+    const p = path.join(__dirname, '..', 'telegram-app', rel);
+    assert.ok(fs.existsSync(p), `banner rasmi diskda yo'q: \`telegram-app/${rel}\``);
+  });
+
+  // Har slaydda IKKALA til ham bo'lsin — biri tushib qolsa o'sha tilda
+  // sarlavha `undefined` bo'lib chizilardi (Test 20 buni qamramaydi,
+  // chunki `AD_SLIDES` `STR` emas).
+  const sarlavhalar = [...slaydBlok[1].matchAll(/title:\s*\{([^}]*)\}/g)].map((m) => m[1]);
+  assert.strictEqual(sarlavhalar.length, rasmlar.length,
+    'har slaydda `title` bo\'lsin');
+  sarlavhalar.forEach((t, i) => {
+    assert.ok(/\buz\s*:/.test(t) && /\bru\s*:/.test(t),
+      `${i + 1}-slayd sarlavhasida ikkala til ham bo'lsin (uz va ru)`);
+  });
+
+  // ---- 4-band: CSS tomonidagi ikki qotil xususiyat ----
+  // Ikkalasi ham loyihada UCH martadan tishlagan va ikkalasi ham JIMGINA
+  // buzadi: element DOM'da turadi, konsol toza, mazmun esa yo'qoladi.
+  const css = fs.readFileSync(path.join(__dirname, '..', 'telegram-app', 'styles.css'), 'utf8');
+  const bannerCss = css.match(/\.ad-banner\s*\{([\s\S]*?)\}/);
+  assert.ok(bannerCss, '`.ad-banner` uslubi topilmadi');
+  assert.ok(/flex:\s*none/.test(bannerCss[1]),
+    '`.ad-banner` da `flex: none` yo\'q — bosh sahifa flex ustuni va bola SIQILADI, '
+    + 'ya\'ni `aspect-ratio` kafolat emas (loyihada 3 marta tishlagan naqsh)');
+  assert.ok(/aspect-ratio:\s*32\s*\/\s*9/.test(bannerCss[1]),
+    '`.ad-banner` da `aspect-ratio: 32 / 9` yo\'q — balandlik qo\'lda yozilmasin (founder qarori 16:4.5)');
+  assert.ok(/touch-action:\s*pan-y/.test(bannerCss[1]),
+    '`.ad-banner` da `touch-action: pan-y` yo\'q — `pan-x` yoki yo\'qligi banner ustida '
+    + 'sahifa vertikal skrollini o\'ldiradi');
+
+  console.log(`✅ Test 32: Reklama banneri qo'riqchisi — PASS `
+    + `(${rasmlar.length} slayd × 2 til, chizish bitta nuqtadan, taymer tozalanadi)`);
+}
+
 // ============ TEST RUNNER ============
 // ============ TEST 22: OLISH NUQTASI ID SHAKLI (2026-08-13) ============
 // "Mening manzilim" xaridorning O'Z tanlovini bazaga yozadi. Qiymat
@@ -4030,6 +4147,7 @@ async function runTests() {
     testCardsHaveLikeButton();
     testOrderHistorySurvivesMissingProduct();
     testPhoneVerifiedSourceWins();
+    testAdBannerWiring();
 
     testR2ConfigValidation();
     testR2KeyGuard();

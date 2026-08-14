@@ -1,0 +1,653 @@
+<meta charset="utf-8" />
+<title>Banner Dizayn Studiyasi</title>
+<style>
+  /* ============ SHRIFTLAR (lokal — CDN yo'q) ============ */
+  @font-face {
+    font-family: 'Bricolage Grotesque';
+    font-style: normal;
+    font-weight: 600 800;
+    font-display: swap;
+    src: url('fonts/bricolage.woff2') format('woff2');
+  }
+  @font-face {
+    font-family: 'Hanken Grotesk';
+    font-style: normal;
+    font-weight: 400 700;
+    font-display: swap;
+    src: url('fonts/hanken.woff2') format('woff2');
+  }
+
+  /* ============ SAHIFA TOKENLARI ============ */
+  :root {
+    --ground:      #FBF6EC;
+    --surface:     #FFFDFA;
+    --surface-2:   #F5EDE0;
+    --line:        #E3D6C4;
+    --line-strong: #C9B49A;
+    --ink:         #2A0701;
+    --ink-2:       #6B4A40;
+    --ink-3:       #99786C;
+    --pom:         #7a140d;
+    --pom-deep:    #510100;
+    --pom-soft:    #FFE9DB;
+    --safe:        #1F6F5C;
+    --safe-soft:   #DCEDE7;
+    --warn:        #A8560A;
+    --warn-soft:   #FBEBD6;
+    --shadow:      0 18px 44px -30px rgba(42, 7, 1, .55);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:      #170A06;
+      --surface:     #21100A;
+      --surface-2:   #2C1710;
+      --line:        #40241A;
+      --line-strong: #64392A;
+      --ink:         #F7ECE2;
+      --ink-2:       #C9AC9C;
+      --ink-3:       #9B8073;
+      --pom:         #F46A5F;
+      --pom-deep:    #E84B40;
+      --pom-soft:    #3A150E;
+      --safe:        #5FC3A6;
+      --safe-soft:   #14332B;
+      --warn:        #E0A15C;
+      --warn-soft:   #33220E;
+      --shadow:      0 18px 44px -30px rgba(0, 0, 0, .85);
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground:      #170A06;
+    --surface:     #21100A;
+    --surface-2:   #2C1710;
+    --line:        #40241A;
+    --line-strong: #64392A;
+    --ink:         #F7ECE2;
+    --ink-2:       #C9AC9C;
+    --ink-3:       #9B8073;
+    --pom:         #F46A5F;
+    --pom-deep:    #E84B40;
+    --pom-soft:    #3A150E;
+    --safe:        #5FC3A6;
+    --safe-soft:   #14332B;
+    --warn:        #E0A15C;
+    --warn-soft:   #33220E;
+    --shadow:      0 18px 44px -30px rgba(0, 0, 0, .85);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: 'Hanken Grotesk', system-ui, sans-serif;
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  .mono {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-variant-numeric: tabular-nums;
+  }
+  .wrap {
+    max-width: 1020px;
+    margin: 0 auto;
+    padding: 40px 24px 96px;
+    display: flex;
+    flex-direction: column;
+    gap: 60px;
+  }
+
+  /* ============ SARLAVHA ============ */
+  header { display: flex; flex-direction: column; gap: 16px; }
+  .eyebrow {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11.5px; letter-spacing: .16em; text-transform: uppercase;
+    color: var(--pom); font-weight: 600;
+  }
+  h1 {
+    margin: 0;
+    font-family: 'Bricolage Grotesque', system-ui, sans-serif;
+    font-size: clamp(30px, 5vw, 44px);
+    line-height: 1.04; letter-spacing: -.03em; font-weight: 800;
+    text-wrap: balance;
+  }
+  .lede { margin: 0; max-width: 62ch; color: var(--ink-2); font-size: 16px; }
+
+  /* Til almashtirgich */
+  .langbar { display: flex; align-items: center; gap: 10px; }
+  .langbar span { font-size: 12.5px; color: var(--ink-3); }
+  .lang-toggle {
+    display: inline-flex; border: 1px solid var(--line); border-radius: 999px;
+    overflow: hidden; background: var(--surface);
+  }
+  .lang-toggle button {
+    border: 0; background: none; cursor: pointer;
+    padding: 7px 18px; font-family: inherit; font-size: 13.5px; font-weight: 600;
+    color: var(--ink-3);
+  }
+  .lang-toggle button.on { background: var(--pom); color: var(--pom-soft); }
+  .lang-toggle button:focus-visible { outline: 2px solid var(--pom); outline-offset: -2px; }
+
+  /* ============ VARIANT BO'LIMI ============ */
+  section.variant { display: flex; flex-direction: column; gap: 18px; }
+  .vhead { display: flex; align-items: baseline; gap: 14px; border-bottom: 1px solid var(--line); padding-bottom: 12px; flex-wrap: wrap; }
+  .vnum {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12px; font-weight: 700; color: var(--pom); letter-spacing: .06em;
+  }
+  .vhead h2 {
+    margin: 0;
+    font-family: 'Bricolage Grotesque', system-ui, sans-serif;
+    font-size: 22px; letter-spacing: -.02em; font-weight: 700;
+  }
+  .vconcept { color: var(--ink-3); font-size: 13.5px; }
+  .vnote { margin: 0; color: var(--ink-2); max-width: 70ch; font-size: 14px; }
+
+  .vstage {
+    display: flex; flex-direction: column; gap: 26px; align-items: center;
+    padding: 30px 20px 24px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+  }
+
+  /* — telefon konteksti — */
+  .phone {
+    width: 390px; max-width: 100%;
+    border: 1px solid var(--line-strong); border-radius: 22px;
+    background: var(--surface); box-shadow: var(--shadow);
+    overflow: hidden; padding: 14px 16px 12px;
+    display: flex; flex-direction: column; gap: 13px;
+  }
+  .p-search {
+    flex: none; height: 48px; display: flex; align-items: center; gap: 10px;
+    padding: 0 16px; border: 1px solid var(--line); border-radius: 14px;
+    background: var(--surface-2); color: var(--ink-3); font-size: 14px;
+  }
+  .p-chips { display: flex; gap: 16px; font-size: 13px; color: var(--ink-3); }
+  .p-chips b { color: var(--pom); font-weight: 700; border-bottom: 2px solid var(--pom); padding-bottom: 2px; }
+  .p-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .p-card { height: 56px; border-radius: 14px 14px 0 0; background: var(--surface-2); border: 1px solid var(--line); border-bottom: 0; }
+
+  /* — bannerning klip qutisi (telefon o'lchami) — */
+  .clip {
+    position: relative; overflow: hidden; flex: none;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: transform 120ms ease;
+  }
+  .clip:active { transform: scale(.985); }
+  .clip:focus-visible { outline: 2px solid var(--pom); outline-offset: 2px; }
+  /* kenglik/balandlik JS'da scale bilan birga o'rnatiladi */
+
+  /* — SLAYD: hamma o'lchov TUVAL birligida (1200×338) — */
+  .slide {
+    position: absolute; top: 0; left: 0;
+    width: 1200px; height: 338px;
+    transform-origin: 0 0;
+    overflow: hidden;
+  }
+  .slide svg.bg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .copy {
+    position: absolute; left: 47px; top: 0; bottom: 0;
+    width: 733px;
+    display: flex; flex-direction: column; justify-content: center; gap: 14px;
+    /* flex-start SHART: stretch'da bola quti to'liq 733px bo'lib, sig'ish
+       tekshiruvi matnni emas qutini o'lchardi — yolg'on yashil. */
+    align-items: flex-start;
+    z-index: 2;
+  }
+  .s-eyebrow {
+    font-family: 'Hanken Grotesk', system-ui, sans-serif;
+    font-size: 48px; font-weight: 700;
+    letter-spacing: .17em; text-transform: uppercase;
+    line-height: 1;
+  }
+  .s-title {
+    font-family: 'Bricolage Grotesque', system-ui, sans-serif;
+    font-weight: 800;
+    line-height: 1.05; letter-spacing: -.025em;
+    margin: 0;
+  }
+  /* — HTML qatlam belgilari (production'da HTML bo'ladi, bu yerda tuval birligida) — */
+  .s-chev {
+    position: absolute; right: 52px; top: 50%; transform: translateY(-50%);
+    z-index: 3; display: flex;
+  }
+  .s-dots {
+    position: absolute; right: 48px; bottom: 30px; z-index: 3;
+    display: flex; gap: 20px; align-items: center;
+  }
+  .s-dots i { display: block; width: 23px; height: 23px; border-radius: 999px; background: rgba(255,255,255,.92); box-shadow: 0 3px 13px rgba(23,26,48,.55); }
+  .s-dots i.on { width: 60px; background: #E84B40; }
+
+  /* ============ VARIANT FONLARI ============ */
+  /* A — Anor ikat: to'q anor fon, yirik ikat romblari */
+  .v-a { background: linear-gradient(135deg, #7a140d 0%, #5e0a05 55%, #510100 100%); }
+  .v-a .s-eyebrow { color: #F6C04A; }
+  .v-a .s-title { color: #FFF6EE; font-size: 76px; }
+
+  /* B — Atlas oqimi: krem fon, pastda xon-atlas alanga yo'li */
+  .v-b { background: linear-gradient(180deg, #FFFDFA 0%, #FBF6EC 100%); }
+  .v-b .s-eyebrow { color: #7a140d; }
+  /* 72px — bir qator: pastdagi alanga yo'lagi (y 252+) matnga tegmasin */
+  .v-b .s-title { color: #2A0701; font-size: 72px; }
+
+  /* C — So'zana tuni: tungi fon, o'ngda so'zana medalyoni */
+  .v-c { background: radial-gradient(90% 140% at 82% 50%, #510100 0%, #35080373 45%, transparent 75%), #2A0701; }
+  .v-c .s-eyebrow { color: #54D7E1; }
+  .v-c .s-title { color: #FFF6EE; font-size: 88px; }
+  .v-c .s-title em { font-style: normal; color: #F6C04A; }
+
+  /* D — To'quv iplar: iliq fon, to'quv to'ri va chetki iplar */
+  .v-d {
+    background:
+      repeating-linear-gradient(90deg, rgba(122,20,13,.065) 0 2px, transparent 2px 26px),
+      repeating-linear-gradient(0deg, rgba(122,20,13,.045) 0 2px, transparent 2px 26px),
+      linear-gradient(160deg, #FFEFE2 0%, #FFE9DB 100%);
+  }
+  .v-d .s-eyebrow { color: #7a140d; }
+  .v-d .s-title { color: #2A0701; font-size: 84px; }
+
+  /* ============ SPEC CHIPLAR ============ */
+  .vmeta { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+  .vchip {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11px; padding: 5px 10px;
+    border: 1px solid var(--line); border-radius: 6px;
+    background: var(--surface); color: var(--ink-2);
+  }
+  .vchip b { color: var(--ink); font-weight: 700; }
+  .vchip.fit-ok { border-color: var(--safe); color: var(--safe); background: var(--safe-soft); }
+  .vchip.fit-bad { border-color: var(--warn); color: var(--warn); background: var(--warn-soft); font-weight: 700; }
+
+  /* ============ TANLOV JADVALI ============ */
+  .pick { display: flex; flex-direction: column; gap: 18px; }
+  .pick .shead { display: flex; align-items: baseline; gap: 12px; border-bottom: 1px solid var(--line); padding-bottom: 10px; }
+  .pick h2 { margin: 0; font-family: 'Bricolage Grotesque', system-ui, sans-serif; font-size: 21px; font-weight: 700; letter-spacing: -.02em; }
+  .tscroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 560px; }
+  th, td { padding: 11px 16px; text-align: left; border-bottom: 1px solid var(--line); }
+  th {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 10.5px; letter-spacing: .11em; text-transform: uppercase;
+    color: var(--ink-3); font-weight: 600; background: var(--surface-2);
+  }
+  tr:last-child td { border-bottom: 0; }
+  footer { color: var(--ink-3); font-size: 13px; border-top: 1px solid var(--line); padding-top: 20px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">LolaMarket · Mini App · dizayn taqdimoti · 2026-08-14</div>
+    <h1>Reklama banneri — 4 yo'nalish</h1>
+    <p class="lede">
+      Hammasi qulflangan o'lchamda: <span class="mono">1200 × 338</span> tuval,
+      sarlavha chapda, o'ng 35% tinch. Har variant telefonda haqiqiy
+      masshtabda ko'rsatilgan (358×101). Yoqqanini tanlang — o'sha yo'nalishda
+      3–4 slayd tayyorlanadi.
+    </p>
+    <div class="langbar">
+      <span>Sarlavha tili:</span>
+      <div class="lang-toggle" role="group" aria-label="Til">
+        <button type="button" data-lang="uz" class="on">O'zbekcha</button>
+        <button type="button" data-lang="ru">Русский</button>
+      </div>
+      <span>— matn kod bilan chizilgani uchun til bepul almashadi</span>
+    </div>
+  </header>
+
+  <!-- ============ A ============ -->
+  <section class="variant" data-v="a">
+    <div class="vhead">
+      <span class="vnum">A</span>
+      <h2>Anor maydoni</h2>
+      <span class="vconcept">to'q anor fon · yirik ikat romblari · eng «brend» variant</span>
+    </div>
+    <p class="vnote">
+      Fon — brendning o'z rangi, naqsh esa shivirlab turadi: ikat romblari
+      atigi 7% ko'rinishda. Katalogning oq kartochkalari orasida bu tasma
+      darhol ko'zga tashlanadi.
+    </p>
+    <div class="vstage">
+      <div class="phone">
+        <div class="p-search">🔍 Mato yoki naqsh qidiring</div>
+        <div class="clip" data-slot="a" role="button" tabindex="0" aria-label="Banner: Fabrikadan to'g'ridan-to'g'ri"></div>
+        <div class="p-chips"><b>Barchasi</b><span>Ipak</span><span>So'zana</span><span>Paxta</span></div>
+        <div class="p-cards"><div class="p-card"></div><div class="p-card"></div></div>
+      </div>
+      <div class="clip" data-slot="a" data-scale=".55" aria-hidden="true"></div>
+      <div class="vmeta">
+        <span class="vchip">fon <b>pom-700 → pom-800</b></span>
+        <span class="vchip">sarlavha <b>76px · krem</b></span>
+        <span class="vchip">eyebrow <b>saffron-300</b></span>
+        <span class="vchip">strelka/nuqta <b>oq</b></span>
+        <span class="vchip fit" data-fit="a">o'lchanmoqda…</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ B ============ -->
+  <section class="variant" data-v="b">
+    <div class="vhead">
+      <span class="vnum">B</span>
+      <h2>Atlas oqimi</h2>
+      <span class="vconcept">yorug' krem fon · pastda xon-atlas alangalari · eng yengil variant</span>
+    </div>
+    <p class="vnote">
+      Marg'ilon xon-atlasining alanga chiziqlari pastki yo'lakda oqadi va o'ng
+      tomonga so'nadi — tinch zona qoidasi buziladigan joyda rang o'zi yo'qoladi.
+      Sarlavha toza kremda, eng o'qiladigan variant.
+    </p>
+    <div class="vstage">
+      <div class="phone">
+        <div class="p-search">🔍 Mato yoki naqsh qidiring</div>
+        <div class="clip" data-slot="b" role="button" tabindex="0" aria-label="Banner: Xon-atlas kolleksiyasi"></div>
+        <div class="p-chips"><b>Barchasi</b><span>Ipak</span><span>So'zana</span><span>Paxta</span></div>
+        <div class="p-cards"><div class="p-card"></div><div class="p-card"></div></div>
+      </div>
+      <div class="clip" data-slot="b" data-scale=".55" aria-hidden="true"></div>
+      <div class="vmeta">
+        <span class="vchip">fon <b>oq-krem</b></span>
+        <span class="vchip">sarlavha <b>84px · ink-900</b></span>
+        <span class="vchip">alangalar <b>pom-500 · saffron · teal</b></span>
+        <span class="vchip">strelka <b>pom-700</b></span>
+        <span class="vchip fit" data-fit="b">o'lchanmoqda…</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ C ============ -->
+  <section class="variant" data-v="c">
+    <div class="vhead">
+      <span class="vnum">C</span>
+      <h2>So'zana tuni</h2>
+      <span class="vconcept">tungi fon · o'ngda so'zana medalyoni · AI bo'limi reklamasi</span>
+    </div>
+    <p class="vnote">
+      Eng chuqur fon — «premium tun». O'ngdagi so'zana medalyoni 14%
+      ko'rinishda kashta halqalarini chizadi, nuqta va strelka uning ustida
+      bemalol o'qiladi. Nusxa AI xizmatini reklama qiladi — bannerning haqiqiy
+      vazifalaridan biri.
+    </p>
+    <div class="vstage">
+      <div class="phone">
+        <div class="p-search">🔍 Mato yoki naqsh qidiring</div>
+        <div class="clip" data-slot="c" role="button" tabindex="0" aria-label="Banner: Mato libosda"></div>
+        <div class="p-chips"><b>Barchasi</b><span>Ipak</span><span>So'zana</span><span>Paxta</span></div>
+        <div class="p-cards"><div class="p-card"></div><div class="p-card"></div></div>
+      </div>
+      <div class="clip" data-slot="c" data-scale=".55" aria-hidden="true"></div>
+      <div class="vmeta">
+        <span class="vchip">fon <b>pom-900 + pom-800 nur</b></span>
+        <span class="vchip">sarlavha <b>88px · krem + saffron urg'u</b></span>
+        <span class="vchip">eyebrow <b>teal-300</b></span>
+        <span class="vchip">strelka/nuqta <b>oq</b></span>
+        <span class="vchip fit" data-fit="c">o'lchanmoqda…</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ D ============ -->
+  <section class="variant" data-v="d">
+    <div class="vhead">
+      <span class="vnum">D</span>
+      <h2>To'quv dastgohi</h2>
+      <span class="vconcept">iliq shaftoli fon · to'quv to'ri · chapda uch chetki ip</span>
+    </div>
+    <p class="vnote">
+      Fon — mayin to'quv to'ri (CSS chiziqlar, rasm ham shart emas). Chap
+      qirradagi uch ip — anor, za'faron, feruza: dizayn tizimining uch rangi
+      dastgohdagi tanda iplariday turadi.
+    </p>
+    <div class="vstage">
+      <div class="phone">
+        <div class="p-search">🔍 Mato yoki naqsh qidiring</div>
+        <div class="clip" data-slot="d" role="button" tabindex="0" aria-label="Banner: So'zana va adras"></div>
+        <div class="p-chips"><b>Barchasi</b><span>Ipak</span><span>So'zana</span><span>Paxta</span></div>
+        <div class="p-cards"><div class="p-card"></div><div class="p-card"></div></div>
+      </div>
+      <div class="clip" data-slot="d" data-scale=".55" aria-hidden="true"></div>
+      <div class="vmeta">
+        <span class="vchip">fon <b>pom-100 + to'r</b></span>
+        <span class="vchip">sarlavha <b>84px · ink-900</b></span>
+        <span class="vchip">chetki iplar <b>pom · saffron · teal</b></span>
+        <span class="vchip">strelka <b>pom-700</b></span>
+        <span class="vchip fit" data-fit="d">o'lchanmoqda…</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ TANLOV ============ -->
+  <section class="pick">
+    <div class="shead"><span class="vnum">→</span><h2>Qaysi birini tanlaysiz?</h2></div>
+    <div class="tscroll">
+      <table>
+        <thead>
+          <tr><th>Variant</th><th>Kayfiyat</th><th>Kuchli tomoni</th><th>Xavfi</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><b>A · Anor maydoni</b></td><td>Jasur, brend</td><td>Oq katalogda eng ko'zga tashlanadi</td><td>Ekranda ko'p to'q qizil bo'lib ketishi mumkin</td></tr>
+          <tr><td><b>B · Atlas oqimi</b></td><td>Yengil, bozor</td><td>Eng o'qiladigan; atlas darhol tanish</td><td>Oq fonda kartochkalarga qo'shilib ketishi</td></tr>
+          <tr><td><b>C · So'zana tuni</b></td><td>Premium, tungi</td><td>AI reklamasi uchun ideal sahna</td><td>Ilova yorug' — kontrast keskin</td></tr>
+          <tr><td><b>D · To'quv dastgohi</b></td><td>Iliq, hunarmand</td><td>Rasmsiz ham ishlaydi (sof CSS)</td><td>Eng «tinch» — reklama sifatida kuchsizroq</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="vnote">
+      Tanlangan yo'nalishda 3–4 slayd tayyorlanadi (har xil xabar, bitta
+      uslub). Aralashtirish ham mumkin — masalan asosiy slaydlar A'da, AI
+      slaydi C'da. Sarlavhalar kod bilan chizilgani uchun uz/ru avtomatik —
+      rasm faylining o'zi umuman kerak bo'lmasligi ham mumkin (D allaqachon
+      sof CSS).
+    </p>
+  </section>
+
+  <footer>
+    O'lchamlar: <span class="mono">docs/dizayn-tizimi/reklama-banner-spec.md</span> ·
+    Jonli o'lchov: har variant ostidagi yashil chip sarlavha zonaga
+    sig'ganini <span class="mono">getBoundingClientRect()</span> bilan tekshiradi.
+  </footer>
+</div>
+
+<!-- ============ SLAYD SHABLONLARI (tuval birligi 1200×338) ============ -->
+<template id="tpl-a">
+  <div class="slide v-a">
+    <svg class="bg" viewBox="0 0 1200 338" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+      <defs>
+        <pattern id="ikat-a" width="250" height="338" patternUnits="userSpaceOnUse">
+          <path d="M125 39 L230 169 L125 299 L20 169 Z" fill="none" stroke="#FFE9DB" stroke-opacity=".14" stroke-width="3" stroke-dasharray="14 9"/>
+          <path d="M125 99 L182 169 L125 239 L68 169 Z" fill="none" stroke="#F6C04A" stroke-opacity=".2" stroke-width="3"/>
+          <circle cx="125" cy="169" r="7" fill="#FFE9DB" fill-opacity=".22"/>
+        </pattern>
+      </defs>
+      <rect width="1200" height="338" fill="url(#ikat-a)"/>
+    </svg>
+    <div class="copy">
+      <div class="s-eyebrow" data-uz="Ulgurji bozor" data-ru="Оптовый рынок">Ulgurji bozor</div>
+      <h3 class="s-title" data-uz="Fabrikadan&#10;to'g'ridan-to'g'ri" data-ru="Напрямую&#10;с фабрики">Fabrikadan<br>to'g'ridan-to'g'ri</h3>
+    </div>
+    <div class="s-chev">
+      <svg width="50" height="50" viewBox="0 0 24 24" fill="none"><path d="M9 5l7 7-7 7" stroke="#FFE9DB" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <div class="s-dots"><i class="on"></i><i></i><i></i><i></i></div>
+  </div>
+</template>
+
+<template id="tpl-b">
+  <div class="slide v-b">
+    <svg class="bg" viewBox="0 0 1200 338" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+      <defs>
+        <pattern id="flame-b" width="132" height="98" patternUnits="userSpaceOnUse">
+          <path d="M22 0 L44 24 L22 49 L44 73 L22 98" fill="none" stroke="#C9362D" stroke-width="30" stroke-opacity=".85"/>
+          <path d="M66 0 L88 24 L66 49 L88 73 L66 98" fill="none" stroke="#EFA91F" stroke-width="26" stroke-opacity=".8"/>
+          <path d="M108 0 L130 24 L108 49 L130 73 L108 98" fill="none" stroke="#119DAB" stroke-width="22" stroke-opacity=".7"/>
+        </pattern>
+        <linearGradient id="fade-b" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stop-color="#fff" stop-opacity="1"/>
+          <stop offset=".55" stop-color="#fff" stop-opacity="1"/>
+          <stop offset=".95" stop-color="#fff" stop-opacity="0"/>
+        </linearGradient>
+        <mask id="mask-b"><rect width="1200" height="338" fill="url(#fade-b)"/></mask>
+      </defs>
+      <g mask="url(#mask-b)">
+        <rect y="252" width="1200" height="86" fill="url(#flame-b)"/>
+        <rect y="240" width="1200" height="6" fill="#7a140d" fill-opacity=".18"/>
+      </g>
+    </svg>
+    <div class="copy" style="bottom: 86px">
+      <div class="s-eyebrow" data-uz="Marg'ilon · Andijon" data-ru="Маргилан · Андижан">Marg'ilon · Andijon</div>
+      <h3 class="s-title" data-uz="Atlas kolleksiyasi" data-ru="Коллекция атласа">Atlas kolleksiyasi</h3>
+    </div>
+    <div class="s-chev">
+      <svg width="50" height="50" viewBox="0 0 24 24" fill="none"><path d="M9 5l7 7-7 7" stroke="#7a140d" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <div class="s-dots"><i class="on"></i><i></i><i></i><i></i></div>
+  </div>
+</template>
+
+<template id="tpl-c">
+  <div class="slide v-c">
+    <svg class="bg" viewBox="0 0 1200 338" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+      <g transform="translate(1035 169)" fill="none">
+        <circle r="205" stroke="#F6C04A" stroke-opacity=".13" stroke-width="3"/>
+        <circle r="168" stroke="#F46A5F" stroke-opacity=".15" stroke-width="10" stroke-dasharray="3 22"/>
+        <circle r="128" stroke="#F6C04A" stroke-opacity=".17" stroke-width="3"/>
+        <circle r="96" stroke="#F46A5F" stroke-opacity=".14" stroke-width="8" stroke-dasharray="2 17"/>
+        <circle r="58" stroke="#F6C04A" stroke-opacity=".2" stroke-width="2.5"/>
+        <circle r="24" fill="#F6C04A" fill-opacity=".14"/>
+      </g>
+      <g transform="translate(118 296)" fill="none">
+        <circle r="72" stroke="#F6C04A" stroke-opacity=".1" stroke-width="2.5"/>
+        <circle r="44" stroke="#F46A5F" stroke-opacity=".12" stroke-width="6" stroke-dasharray="2 14"/>
+      </g>
+    </svg>
+    <div class="copy">
+      <div class="s-eyebrow" data-uz="Yangi · AI xizmati" data-ru="Новое · AI-сервис">Yangi · AI xizmati</div>
+      <h3 class="s-title" data-uz="Mato — &lt;em&gt;libosda&lt;/em&gt;" data-ru="Ткань &lt;em&gt;в изделии&lt;/em&gt;">Mato — <em>libosda</em></h3>
+    </div>
+    <div class="s-chev">
+      <svg width="50" height="50" viewBox="0 0 24 24" fill="none"><path d="M9 5l7 7-7 7" stroke="#FFE9DB" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <div class="s-dots"><i class="on"></i><i></i><i></i><i></i></div>
+  </div>
+</template>
+
+<template id="tpl-d">
+  <div class="slide v-d">
+    <svg class="bg" viewBox="0 0 1200 338" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+      <rect x="0"  width="14" height="338" fill="#7a140d"/>
+      <rect x="20" width="9"  height="338" fill="#D98E0C"/>
+      <rect x="35" width="5"  height="338" fill="#119DAB"/>
+    </svg>
+    <div class="copy" style="left: 88px; width: 692px">
+      <div class="s-eyebrow" data-uz="Rulonda · ulgurji" data-ru="В рулонах · оптом">Rulonda · ulgurji</div>
+      <h3 class="s-title" data-uz="So'zana va adras" data-ru="Сюзане и адрас">So'zana va adras</h3>
+    </div>
+    <div class="s-chev">
+      <svg width="50" height="50" viewBox="0 0 24 24" fill="none"><path d="M9 5l7 7-7 7" stroke="#7a140d" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <div class="s-dots"><i class="on"></i><i></i><i></i><i></i></div>
+  </div>
+</template>
+
+<script>
+  // ============ Slaydlarni joylash ============
+  // Bitta shablon ikki joyga (telefon 0.29833x + katta 0.55x) klon qilinadi —
+  // dizayn BITTA manbada yashaydi, ikki nusxada emas.
+  var PHONE_SCALE = 358 / 1200;
+
+  document.querySelectorAll('.clip').forEach(function (clip) {
+    var v = clip.dataset.slot;
+    var node = document.getElementById('tpl-' + v).content.cloneNode(true);
+    clip.appendChild(node);
+  });
+
+  // Masshtab har chizishda qayta hisoblanadi: katta ko'rinish tor oynada
+  // QISQARMAYDI, kichrayadi — aks holda o'ng tomoni jimgina kesilib qolardi.
+  function layoutClips() {
+    document.querySelectorAll('.clip').forEach(function (clip) {
+      var want = clip.dataset.scale ? Number(clip.dataset.scale) : PHONE_SCALE;
+      var avail = clip.parentElement.clientWidth;
+      var scale = clip.dataset.scale
+        ? Math.min(want, (avail - 4) / 1200)
+        : want; /* telefon ichida qat'iy — u haqiqiy o'lcham */
+      clip.querySelector('.slide').style.transform = 'scale(' + scale + ')';
+      clip.style.width = Math.round(1200 * scale) + 'px';
+      clip.style.height = Math.round(338 * scale) + 'px';
+    });
+  }
+  layoutClips();
+
+  // ============ Til almashtirish ============
+  // data-uz / data-ru — \n => <br>, <em> ga ruxsat (faqat o'z matnimiz).
+  function setLang(lang) {
+    document.querySelectorAll('.lang-toggle button').forEach(function (b) {
+      b.classList.toggle('on', b.dataset.lang === lang);
+    });
+    document.querySelectorAll('[data-uz]').forEach(function (el) {
+      var t = el.dataset[lang] || el.dataset.uz;
+      el.innerHTML = t.replace(/\n/g, '<br>').replace(/&lt;(\/?em)&gt;/g, '<$1>');
+    });
+    requestIdle(fitCheck);
+  }
+  document.querySelectorAll('.lang-toggle button').forEach(function (b) {
+    b.addEventListener('click', function () { setLang(b.dataset.lang); });
+  });
+
+  // ============ Sig'ish tekshiruvi ============
+  // Sarlavha bloki zonaga (x 47→780, y 47→291) sig'dimi — YOZILGAN raqamga
+  // emas, chizilgan natijaga qarab. Har til almashganda qayta o'lchanadi.
+  var ZONE = { top: 47, bottom: 291, left: 47, right: 780 };
+
+  function fitCheck() {
+    ['a', 'b', 'c', 'd'].forEach(function (v) {
+      // katta (0.55) nusxada o'lchaymiz — aniqlik yuqoriroq
+      var clip = document.querySelector('.clip[data-scale][data-slot="' + v + '"]');
+      var slide = clip.querySelector('.slide');
+      var copy = clip.querySelector('.copy');
+      var s = slide.getBoundingClientRect();
+      var c = copy.getBoundingClientRect();
+      var scale = s.width / 1200;
+      // copy flex-markazlangan quti — ICHIDAGI matnning o'zini o'lchaymiz
+      var kids = copy.children, top = Infinity, bottom = -Infinity, right = -Infinity;
+      for (var i = 0; i < kids.length; i++) {
+        var k = kids[i].getBoundingClientRect();
+        if (k.top < top) top = k.top;
+        if (k.bottom > bottom) bottom = k.bottom;
+        if (k.right > right) right = k.right;
+      }
+      var cu = {
+        top: (top - s.top) / scale,
+        bottom: (bottom - s.top) / scale,
+        right: (right - s.left) / scale
+      };
+      var chip = document.querySelector('[data-fit="' + v + '"]');
+      var overV = Math.max(ZONE.top - cu.top, cu.bottom - ZONE.bottom);
+      var overH = cu.right - ZONE.right;
+      if (overV <= 1 && overH <= 1) {
+        chip.className = 'vchip fit fit-ok';
+        chip.textContent = '✓ zonada — y ' + Math.round(cu.top) + '→' + Math.round(cu.bottom) + ' · x→' + Math.round(cu.right);
+      } else {
+        chip.className = 'vchip fit fit-bad';
+        chip.textContent = '⚠ zonadan chiqdi: ' +
+          (overV > 1 ? 'bo‘y +' + Math.round(overV) + 'px ' : '') +
+          (overH > 1 ? 'en +' + Math.round(overH) + 'px' : '');
+      }
+    });
+  }
+
+  // rAF yashirin tabda otilmaydi (o'lchov varaqasi darsi) — sinxron + fallback
+  function requestIdle(fn) { setTimeout(fn, 0); }
+  function refresh() { layoutClips(); fitCheck(); }
+  refresh();
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(refresh);
+  window.addEventListener('resize', refresh);
+  document.addEventListener('visibilitychange', refresh);
+</script>

@@ -747,6 +747,33 @@ function cssUrl(u) {
 // (2026-08-02: `ik-9001` aynan shunday edi — u bazada umuman yo'q).
 const FEATURED_IDS = ['ik-1402','ad-0890','sz-3310','hb-7740'];
 
+// ============ REKLAMA BANNERI (2026-08-14, founder qarori) ============
+// Uch slayd, 5 soniyada almashadi. Fon rasmlari — `assets/ads/ad-N.jpg`
+// (1200×338, Imagen bilan chizilgan yumshoq ipak, past kontrast).
+//
+// ⚠️ MATN RASMDA EMAS, shu yerda. Sabab: Mini App ikki tilli va sarlavha
+// rasmga chizilsa rus xaridori o'zbekcha sarlavha ko'rardi. Bu yerda esa
+// til bepul almashadi va matn tuzatish = bitta satr, rasm qayta
+// chizilmaydi. Rasm faqat FON — chap yarmi ataylab tinch qoldirilgan.
+//
+// ⚠️ CTA tugmasi YO'Q — butun banner bosiladi (founder qarori). 101px
+// balandlikda 38px tugma bannerning ~70% ini yeb, sarlavhaga joy
+// qoldirmasdi.
+//
+// `go` — bosilganda chaqiriladigan amal. Yangi slayd qo'shilsa shu yerga
+// qo'shiladi, chizish kodiga tegilmaydi.
+const AD_SLIDES = [
+  { img: 'assets/ads/ad-1.jpg', tone: 'rose', go: () => tab('ai'),
+    eyebrow: { uz: 'AI xizmati',        ru: 'AI-сервис' },
+    title:   { uz: 'Matolarni<br>jonlantiring', ru: 'Оживите ткани' } },
+  { img: 'assets/ads/ad-2.jpg', tone: 'saffron', go: () => tab('home'),
+    eyebrow: null,
+    title:   { uz: '24/7 buyurtma<br>berishingiz mumkin', ru: 'Принимаем<br>заказы 24/7' } },
+  { img: 'assets/ads/ad-3.jpg', tone: 'teal', go: () => tab('home'),
+    eyebrow: { uz: 'Ilk 3 ta buyurtma', ru: 'Первые 3 заказа' },
+    title:   { uz: 'Bepul yetkazib berish', ru: 'Доставка — бесплатно' } },
+];
+
 const BADGE_COLORS = {
   primary: ['var(--color-primary)','#fff'],
   teal:    ['var(--teal-50)','var(--teal-700)'],
@@ -1095,6 +1122,109 @@ function updateNav() {
   }
 }
 
+// ============ REKLAMA BANNERI: chizish va karusel ============
+// Matn `esc()` dan O'TMAYDI va bu ATAYLAB: manba `AD_SLIDES` — bizning O'Z
+// konstantamiz, foydalanuvchi kiritgan matn emas, va ichida `<br>` bor.
+// Foydalanuvchi matni bu yerga hech qachon kelmaydi.
+function adBannerHtml() {
+  const L = S.lang;
+  return `
+  <button class="ad-banner" data-action="adTap" aria-label="${STR[L].brand}">
+    ${AD_SLIDES.map((s, i) => `
+      <span class="ad-slide${i === 0 ? ' on' : ''}" data-tone="${s.tone}"
+            style="background-image:url('${s.img}')">
+        <span class="ad-copy">
+          ${s.eyebrow ? `<span class="ad-eyebrow">${s.eyebrow[L]}</span>` : ''}
+          <span class="ad-title">${s.title[L]}</span>
+        </span>
+        <span class="ad-chev">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 5l7 7-7 7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>
+      </span>`).join('')}
+    <span class="ad-dots">
+      ${AD_SLIDES.map((_, i) => `<span class="ad-dot${i === 0 ? ' on' : ''}" data-action="adGo" data-arg="${i}" role="button" aria-label="${i + 1}-banner"><i></i></span>`).join('')}
+    </span>
+  </button>`;
+}
+
+// Taymer MODUL darajasida — `mountAdBanner()` uni har chizishda tozalaydi.
+// Tozalanmasa har kategoriya bosilganda yangi taymer qo'shilib, slaydlar
+// tez-tez "titraydigan" bo'lib qolardi.
+let adIdx = 0;
+let adTimer = null;
+
+function adPaint() {
+  const slides = document.querySelectorAll('.ad-banner .ad-slide');
+  const dots = document.querySelectorAll('.ad-banner .ad-dot');
+  slides.forEach((s, i) => s.classList.toggle('on', i === adIdx));
+  dots.forEach((d, i) => d.classList.toggle('on', i === adIdx));
+}
+
+function adGo(i) {
+  adIdx = (i + AD_SLIDES.length) % AD_SLIDES.length;
+  adPaint();
+  adStart();          // sanoq qaytadan boshlansin
+}
+
+function adStart() {
+  if (adTimer) clearInterval(adTimer);
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  adTimer = setInterval(() => {
+    if (document.hidden) return;          // fon tabda batareya yemasin
+    adIdx = (adIdx + 1) % AD_SLIDES.length;
+    adPaint();
+  }, 5000);
+}
+
+// Bannerga bosilganda. ⚠️ Nuqta bosilganda BU CHAQIRILMAYDI — delegatsiya
+// `closest('[data-action]')` bilan eng ICHKARIGI elementni topadi, ya'ni
+// nuqtaning `adGo` si bannerning `adTap` ini bosib ketadi (app.js boshidagi
+// izoh). Aynan shu sabab `stopPropagation` ham kerak emas.
+// ⚠️ SURISH bosish deb hisoblanmasin: barmoq 45px dan ko'p surilgan bo'lsa
+// `adSwiped` yoqiladi va bu klik tashlab yuboriladi — aks holda har
+// surishda banner amali ishga tushardi.
+let adSwiped = false;
+function adTap() {
+  if (adSwiped) { adSwiped = false; return; }
+  const s = AD_SLIDES[adIdx];
+  if (s && typeof s.go === 'function') s.go();
+}
+
+// DOM tayyor bo'lgandan keyin ulanadi (`mountDetailMedia` naqshi).
+// ⚠️ `renderHome()` TO'RT joydan chaqiriladi va uchtasi `render()` dan
+// o'tmaydi — shuning uchun hamma joy `paintHome()` orqali yuradi.
+function mountAdBanner() {
+  const el = document.querySelector('.ad-banner');
+  if (!el) { if (adTimer) { clearInterval(adTimer); adTimer = null; } return; }
+  adIdx = 0;
+  adPaint();
+  adStart();
+
+  let x0 = null;
+  el.addEventListener('touchstart', (e) => {
+    x0 = e.changedTouches[0].clientX;
+    adSwiped = false;
+  }, { passive: true });
+  el.addEventListener('touchend', (e) => {
+    if (x0 === null) return;
+    const dx = e.changedTouches[0].clientX - x0;
+    x0 = null;
+    if (Math.abs(dx) > 45) { adSwiped = true; adGo(adIdx + (dx < 0 ? 1 : -1)); }
+  }, { passive: true });
+}
+
+// Bosh sahifani chizadigan YAGONA joy. Ilgari `innerHTML = renderHome()`
+// to'rt joyda takrorlanardi va bannerni ulash uchun to'rttasini ham eslab
+// qolish kerak bo'lardi — `authUser()` naqshi aynan shunday ikki marta
+// takrorlangan. Beshinchi chaqiruv qo'shilsa u ham avtomatik qamraladi.
+function paintHome(animateChip = false) {
+  const w = document.getElementById('screen-wrap');
+  if (!w) return;
+  w.innerHTML = renderHome();
+  focusCatChip(animateChip);
+  mountAdBanner();
+}
+
 // ============ EKRAN: BOSH SAHIFA ============
 function renderHome() {
   const T = STR[S.lang];
@@ -1143,6 +1273,8 @@ function renderHome() {
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
       </button>
     </div>` : ''}
+
+    ${adBannerHtml()}
 
     <!-- Kategoriya chiplari — "ostki chiziq" (2026-08-14, founder tanlovi).
          Uslub styles.css dagi .cat-chip/.cat-line da. Chiziq ::after emas,
@@ -1278,8 +1410,7 @@ function applyPriceFilter() {
   S.priceMax = hi;
   S.priceSheet = false;
   paintSheet();
-  document.getElementById('screen-wrap').innerHTML = renderHome();
-  focusCatChip(false);
+  paintHome();
 }
 function clearPriceFilter() {
   S.priceMin = null;
@@ -1289,8 +1420,7 @@ function clearPriceFilter() {
   S.priceErr = '';
   S.priceSheet = false;
   paintSheet();
-  document.getElementById('screen-wrap').innerHTML = renderHome();
-  focusCatChip(false);
+  paintHome();
 }
 
 // ============ EKRAN: AI BO'LIMI (2026-08-07) ============
@@ -3844,8 +3974,7 @@ function toggleLike(id) {
 function selectCat(c) {
   const prev = S.cat;
   S.cat = c;
-  document.getElementById('screen-wrap').innerHTML = renderHome();
-  focusCatChip(prev !== c);
+  paintHome(prev !== c);
 }
 
 // Tanlangan kategoriya chipini qatorda MARKAZGA suradi va (tanlov
@@ -4078,7 +4207,11 @@ function render() {
   if (S.screen === 'detail') { try { mountDetailMedia(); } catch (e) { console.error('mountDetailMedia xatosi:', e.message); } }
   // Katalogga qaytilganda tanlangan kategoriya qatorda ko'rinib tursin —
   // innerHTML har safar skrollni boshiga qaytaradi.
+  // Banner ham shu yerda ulanadi: bosh sahifadan chiqilganda esa
+  // `mountAdBanner()` bannerni topmay taymerni O'CHIRADI — aks holda u
+  // boshqa ekranlarda ham ishlab, yo'q elementni chizishga urinardi.
   if (S.screen === 'home') { try { focusCatChip(false); } catch (e) { console.error('focusCatChip xatosi:', e.message); } }
+  try { mountAdBanner(); } catch (e) { console.error('mountAdBanner xatosi:', e.message); }
   // Profil surati — DOM tayyor bo'lgandan keyin (o'zi bir marta so'raydi).
   if (S.screen === 'profile') mountAvatar();
 

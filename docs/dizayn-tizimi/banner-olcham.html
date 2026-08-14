@@ -1,0 +1,666 @@
+<meta charset="utf-8" />
+<title>Banner O'lchov Varaqasi</title>
+<style>
+  /* ===== TOKENLAR — to'liq yorug' palitra bare :root da ===== */
+  :root {
+    --ground:      #FBF6EC;
+    --surface:     #FFFDFA;
+    --surface-2:   #F5EDE0;
+    --line:        #E3D6C4;
+    --line-strong: #C9B49A;
+    --ink:         #2A0701;
+    --ink-2:       #6B4A40;
+    --ink-3:       #99786C;
+    --pom:         #7a140d;
+    --pom-deep:    #510100;
+    --pom-soft:    #FFE9DB;
+    --safe:        #1F6F5C;
+    --safe-soft:   #DCEDE7;
+    --warn:        #A8560A;
+    --warn-soft:   #FBEBD6;
+    --grid:        rgba(122, 20, 13, .10);
+    --shadow:      0 18px 44px -30px rgba(42, 7, 1, .55);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:      #170A06;
+      --surface:     #21100A;
+      --surface-2:   #2C1710;
+      --line:        #40241A;
+      --line-strong: #64392A;
+      --ink:         #F7ECE2;
+      --ink-2:       #C9AC9C;
+      --ink-3:       #9B8073;
+      --pom:         #F46A5F;
+      --pom-deep:    #E84B40;
+      --pom-soft:    #3A150E;
+      --safe:        #5FC3A6;
+      --safe-soft:   #14332B;
+      --warn:        #E0A15C;
+      --warn-soft:   #33220E;
+      --grid:        rgba(244, 106, 95, .12);
+      --shadow:      0 18px 44px -30px rgba(0, 0, 0, .85);
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground:      #170A06;
+    --surface:     #21100A;
+    --surface-2:   #2C1710;
+    --line:        #40241A;
+    --line-strong: #64392A;
+    --ink:         #F7ECE2;
+    --ink-2:       #C9AC9C;
+    --ink-3:       #9B8073;
+    --pom:         #F46A5F;
+    --pom-deep:    #E84B40;
+    --pom-soft:    #3A150E;
+    --safe:        #5FC3A6;
+    --safe-soft:   #14332B;
+    --warn:        #E0A15C;
+    --warn-soft:   #33220E;
+    --grid:        rgba(244, 106, 95, .12);
+    --shadow:      0 18px 44px -30px rgba(0, 0, 0, .85);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .num {
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+  }
+
+  .wrap {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 40px 24px 96px;
+    display: flex;
+    flex-direction: column;
+    gap: 56px;
+  }
+
+  /* ===== SARLAVHA ===== */
+  header { display: flex; flex-direction: column; gap: 18px; }
+  .eyebrow {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11.5px;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--pom);
+    font-weight: 600;
+  }
+  h1 {
+    margin: 0;
+    font-size: clamp(30px, 5.2vw, 46px);
+    line-height: 1.04;
+    letter-spacing: -.035em;
+    font-weight: 800;
+    text-wrap: balance;
+  }
+  .lede {
+    margin: 0;
+    max-width: 60ch;
+    color: var(--ink-2);
+    font-size: 16px;
+  }
+  .decisions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+  .dchip {
+    display: inline-flex; align-items: baseline; gap: 7px;
+    padding: 6px 13px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--surface);
+    font-size: 13px;
+  }
+  .dchip b { color: var(--pom); font-weight: 700; }
+  .dchip span { color: var(--ink-3); font-size: 11.5px; text-transform: uppercase; letter-spacing: .07em; }
+
+  /* ===== BO'LIM ===== */
+  section { display: flex; flex-direction: column; gap: 20px; }
+  .shead { display: flex; align-items: baseline; gap: 12px; border-bottom: 1px solid var(--line); padding-bottom: 10px; }
+  .snum {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12px; font-weight: 700; color: var(--pom);
+    letter-spacing: .06em;
+  }
+  h2 { margin: 0; font-size: 20px; letter-spacing: -.02em; font-weight: 700; }
+  .snote { margin: 0; color: var(--ink-2); max-width: 68ch; font-size: 14.5px; }
+
+  /* ===== TELEFON RAMKASI ===== */
+  .stage {
+    display: flex; flex-wrap: wrap; gap: 32px; align-items: flex-start;
+    padding: 28px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+  .phone-col { display: flex; flex-direction: column; gap: 12px; overflow-x: auto; padding-bottom: 4px; }
+  .phone {
+    flex: none;
+    border: 1px solid var(--line-strong);
+    border-radius: 22px;
+    background: var(--surface);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    /* ⚠️ `transition: width` ATAYLAB YO'Q. U bo'lganda
+       getBoundingClientRect() maqsad kenglikni emas, animatsiya boshidagi
+       ESKI qiymatni qaytarardi — slayder surilsa ham ko'rsatkich 356x200
+       da qotib qolardi. Bezak o'lchovni jimgina yolg'onga aylantirgan. */
+  }
+  .p-hdr {
+    height: 58px; display: flex; align-items: center; padding: 0 14px;
+    border-bottom: 1px solid var(--line);
+    font-size: 13px; font-weight: 700; color: var(--ink-3);
+    letter-spacing: -.01em;
+  }
+  .p-body { display: flex; flex-direction: column; gap: 14px; padding: 10px 16px 16px; }
+  .p-greet { font-size: 19px; font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+  /* Manfiy margin YO'Q: o'rovchi div flex element emas, ya'ni bu yerda
+     gap ham yo'q — manfiy qiymat matnni sarlavha USTIGA chiqarib yuborardi. */
+  .p-greet + div { font-size: 12.5px; color: var(--ink-3); margin-top: 1px; }
+  .p-search {
+    flex: none; height: 48px; display: flex; align-items: center; gap: 10px;
+    padding: 0 16px; border: 1px solid var(--line); border-radius: 14px;
+    background: var(--surface-2); color: var(--ink-3); font-size: 14.5px;
+  }
+
+  /* Banner — sinovning O'ZI */
+  #banner {
+    flex: none;                 /* ⚠️ flex ustunda siqilib ketmasin */
+    position: relative;
+    width: 100%;
+    aspect-ratio: 32 / 9;       /* 16:4.5 — founder qarori 2026-08-14 */
+    border-radius: 20px;
+    overflow: hidden;
+    background:
+      repeating-linear-gradient(135deg, var(--pom-soft) 0 14px, transparent 14px 28px),
+      linear-gradient(140deg, var(--pom), var(--pom-deep));
+    border: 1px solid var(--line);
+    display: grid;
+    place-items: center;
+  }
+  /* Yorliq chiziqli fon ustida turadi — o'z podlogisiz o'qilmasdi */
+  #banner .bmark {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+    color: #FFE9DB; font-weight: 700;
+    padding: 5px 11px; border-radius: 999px;
+    background: rgba(42, 7, 1, .82);
+  }
+  .p-chips { display: flex; gap: 16px; font-size: 13.5px; color: var(--ink-3); }
+  .p-chips b { color: var(--pom); font-weight: 700; border-bottom: 2px solid var(--pom); padding-bottom: 3px; }
+  .p-secttl { font-size: 17px; font-weight: 700; letter-spacing: -.02em; }
+  .p-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .p-card { height: 168px; border-radius: 14px; background: var(--surface-2); border: 1px solid var(--line); }
+  .p-fold {
+    position: relative; margin-top: 2px;
+    border-top: 2px dashed var(--pom);
+  }
+  .p-fold span {
+    position: absolute; top: -9px; right: 0;
+    background: var(--surface); padding: 0 6px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 10px; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--pom); font-weight: 700;
+  }
+
+  /* ===== BOSHQARUV ===== */
+  .ctrl { display: flex; flex-direction: column; gap: 20px; min-width: 260px; flex: 1; }
+  .ctrl label {
+    display: block;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11px; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--ink-3); font-weight: 600; margin-bottom: 10px;
+  }
+  input[type=range] { width: 100%; accent-color: var(--pom); }
+  input[type=range]:focus-visible { outline: 2px solid var(--pom); outline-offset: 4px; }
+
+  .readout { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  .rcell { background: var(--surface); padding: 14px 16px; }
+  .rcell dt {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--ink-3); font-weight: 600; margin-bottom: 4px;
+  }
+  .rcell dd { margin: 0; font-size: 25px; font-weight: 700; letter-spacing: -.03em; }
+  .rcell dd em { font-style: normal; font-size: 13px; color: var(--ink-3); font-weight: 500; margin-left: 2px; }
+  .rcell.hero { background: var(--pom-soft); }
+  .rcell.hero dd { color: var(--pom); }
+
+  .verdict {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 13px 15px; border-radius: 12px;
+    font-size: 13.5px; line-height: 1.45;
+    background: var(--safe-soft); color: var(--safe);
+    border: 1px solid currentColor;
+  }
+  .verdict.bad { background: var(--warn-soft); color: var(--warn); }
+  .verdict b { font-weight: 700; }
+
+  /* ===== TUVAL SHABLONI ===== */
+  .canvas-outer { display: flex; flex-direction: column; gap: 14px; }
+  .canvas {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 32 / 9;
+    background: var(--surface-2);
+    border: 1px solid var(--line-strong);
+    border-radius: 10px;
+    overflow: hidden;
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size: 5% 17.75%;
+  }
+  .zone { position: absolute; }
+  /* Sarlavha CHAPDA, to'liq balandlikda — 338px tuvalda ustma-ust
+     joylashtirishga joy yo'q (tugma olib tashlanganining sababi shu). */
+  .zone-title {
+    left: 3.9%; top: 13.9%; width: 61%; height: 72.2%;
+    border: 2px solid var(--safe);
+    background: color-mix(in srgb, var(--safe) 10%, transparent);
+    border-radius: 4px;
+  }
+  .zone-html {
+    left: 65%; right: 0; top: 0; bottom: 0;
+    border-left: 2px dashed var(--warn);
+    background: color-mix(in srgb, var(--warn) 12%, transparent);
+  }
+  .zlabel {
+    position: absolute;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 10.5px; font-weight: 700; letter-spacing: .07em;
+    text-transform: uppercase;
+    padding: 3px 7px; border-radius: 4px;
+    white-space: nowrap;
+  }
+  .zone-title .zlabel { top: 6px; left: 6px; background: var(--safe); color: var(--ground); }
+  .zone-html  .zlabel { top: 6px; left: 8px; background: var(--warn); color: var(--ground); }
+
+  /* Chevron — CTA tugmasi O'RNIGA. Butun tasma bosiladi, shuning uchun
+     bosiladigan alohida element kerak emas, faqat belgi. */
+  .fake-chev {
+    position: absolute; right: 4%; top: 50%; transform: translateY(-50%);
+    font-size: clamp(14px, 2.4vw, 22px); color: var(--pom); font-weight: 700;
+  }
+  .fake-dots { position: absolute; right: 4%; bottom: 11%; display: flex; align-items: center; gap: 6px; }
+  .fake-dots i { display: block; width: 8px; height: 8px; border-radius: 999px; background: #fff; box-shadow: 0 1px 4px rgba(23,26,48,.55); }
+  .fake-dots i:first-child { width: 22px; background: var(--pom); }
+  .corner { position: absolute; width: 5.58%; height: 19.8%; border-color: var(--pom); border-style: solid; border-width: 0; }
+  .corner.tl { top: 0; left: 0; border-top-width: 2px; border-left-width: 2px; }
+  .corner.tr { top: 0; right: 0; border-top-width: 2px; border-right-width: 2px; }
+  .corner.bl { bottom: 0; left: 0; border-bottom-width: 2px; border-left-width: 2px; }
+  .corner.br { bottom: 0; right: 0; border-bottom-width: 2px; border-right-width: 2px; }
+
+  .dims { display: flex; flex-wrap: wrap; gap: 8px; }
+  .dim {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11.5px; padding: 5px 10px;
+    border: 1px solid var(--line); border-radius: 6px;
+    background: var(--surface); color: var(--ink-2);
+  }
+  .dim b { color: var(--ink); font-weight: 700; }
+
+  /* ===== JADVALLAR ===== */
+  .tscroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 460px; }
+  th, td { padding: 11px 16px; text-align: left; border-bottom: 1px solid var(--line); }
+  th {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 10.5px; letter-spacing: .11em; text-transform: uppercase;
+    color: var(--ink-3); font-weight: 600; background: var(--surface-2);
+  }
+  tr:last-child td { border-bottom: 0; }
+  td.n { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-variant-numeric: tabular-nums; }
+  tr.mark td { background: var(--pom-soft); font-weight: 700; }
+  tr.mark td.n { color: var(--pom); }
+  .floor td { color: var(--warn); font-weight: 700; }
+
+  /* ===== TUZOQLAR ===== */
+  .traps { display: grid; grid-template-columns: repeat(auto-fit, minmax(268px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  .trap { background: var(--surface); padding: 18px 20px; display: flex; flex-direction: column; gap: 6px; }
+  .trap h3 { margin: 0; font-size: 14.5px; font-weight: 700; letter-spacing: -.01em; }
+  .trap p { margin: 0; font-size: 13.5px; color: var(--ink-2); line-height: 1.5; }
+  .trap code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12.5px; background: var(--surface-2); padding: 1px 5px; border-radius: 4px; color: var(--pom);
+  }
+  .tcount {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--warn); font-weight: 700;
+  }
+
+  footer { color: var(--ink-3); font-size: 13px; border-top: 1px solid var(--line); padding-top: 20px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">LolaMarket · Mini App · 2026-08-14</div>
+    <h1>Reklama banneri — o'lchov varaqasi</h1>
+    <p class="lede">
+      Fable dizayn qilishdan oldin qulflangan raqamlar. Har biri kod'dan
+      o'lchangan; taxmin qilingan yagona raqam alohida belgilangan.
+      Sahifa o'z da'vosini o'zi tekshiradi — pastdagi ko'rsatkich jonli
+      <span class="num">getBoundingClientRect()</span> dan keladi.
+    </p>
+    <div class="decisions">
+      <div class="dchip"><span>nisbat</span><b>16:4.5</b></div>
+      <div class="dchip"><span>joy</span><b>qidiruv ostida</b></div>
+      <div class="dchip"><span>matn</span><b>sarlavha rasmda</b></div>
+      <div class="dchip"><span>quiz</span><b>yo'q</b></div>
+    </div>
+  </header>
+
+  <!-- ============ 1 ============ -->
+  <section>
+    <div class="shead">
+      <span class="snum">01</span>
+      <h2>Telefonda — haqiqiy o'lchamda</h2>
+    </div>
+    <p class="snote">
+      Ramkani suring: banner balandligi <b>hech qayerda yozilmagan</b> —
+      u <span class="num">aspect-ratio: 32/9</span> dan o'zi kelib chiqadi.
+      Punktir chiziq — ekranning pastki chegarasi. Undan tepada kartochka
+      qanchalik ko'rinsa, xaridor katalog borligini shunchalik biladi.
+    </p>
+
+    <div class="stage">
+      <div class="phone-col">
+        <div class="phone" id="phone" style="width:390px">
+          <div class="p-hdr">LolaMarket</div>
+          <div class="p-body">
+            <div>
+              <div class="p-greet">Salom, Maryam 🌷</div>
+              <div>Bugun qanday matolar kerak?</div>
+            </div>
+            <div class="p-search">🔍 Mato yoki naqsh qidiring</div>
+            <div id="banner"><span class="bmark">banner 32:9</span></div>
+            <div class="p-chips"><b>Barchasi</b><span>Ipak</span><span>So'zana</span><span>Paxta</span></div>
+            <div class="p-secttl">Tavsiya etiladi</div>
+            <div class="p-grid">
+              <div class="p-card"></div>
+              <div class="p-card"></div>
+            </div>
+            <div class="p-fold"><span>ekran chegarasi</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="ctrl">
+        <div>
+          <label for="vw">Ekran kengligi — <span class="num" id="vwlab">390 px</span></label>
+          <input type="range" id="vw" min="360" max="430" value="390" step="1" />
+        </div>
+
+        <dl class="readout">
+          <div class="rcell hero">
+            <dt>Banner balandligi</dt>
+            <dd class="num"><span id="bh">—</span><em>px</em></dd>
+          </div>
+          <div class="rcell">
+            <dt>Banner kengligi</dt>
+            <dd class="num"><span id="bw">—</span><em>px</em></dd>
+          </div>
+          <div class="rcell">
+            <dt>Kartochka ko'rinadi</dt>
+            <dd class="num"><span id="peek">—</span><em>px</em></dd>
+          </div>
+          <div class="rcell">
+            <dt>Manba masshtabi</dt>
+            <dd class="num"><span id="scale">—</span><em>%</em></dd>
+          </div>
+        </dl>
+
+        <div class="verdict" id="verdict">
+          <span>✓</span>
+          <div><b>O'lchov mos.</b> Nisbat 16:9 saqlanyapti va kartochka ko'rinib turibdi.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 2 ============ -->
+  <section>
+    <div class="shead">
+      <span class="snum">02</span>
+      <h2>Tuval shabloni — 1200 × 338</h2>
+    </div>
+    <p class="snote">
+      Fable shu tuvalga chizadi. Yashil zona — sarlavha uchun erkin maydon,
+      <b>chapda va to'liq balandlikda</b>. Sariq band rasmda tinch qolsin:
+      u yerda strelka va nuqtalar turadi. Burchak belgilari 20px radius
+      kesib o'tadigan joyni ko'rsatadi.
+    </p>
+    <p class="snote">
+      ⚠️ <b>CTA tugmasi OLIB TASHLANDI.</b> 101px balandlikda 38px tugma
+      bannerning 70% ini yeb, sarlavhaga joy qoldirmasdi. O'rniga
+      <b>butun tasma bosiladi</b> — ingichka banner uchun odatiy naqsh.
+      Strelka faqat belgi, alohida bosiladigan element emas.
+    </p>
+
+    <div class="canvas-outer">
+      <div class="canvas">
+        <div class="zone zone-title"><span class="zlabel">Sarlavha — erkin</span></div>
+        <div class="zone zone-html"><span class="zlabel">HTML bandi</span></div>
+        <div class="fake-chev">→</div>
+        <div class="fake-dots"><i></i><i></i><i></i><i></i></div>
+        <div class="corner tl"></div><div class="corner tr"></div>
+        <div class="corner bl"></div><div class="corner br"></div>
+      </div>
+
+      <div class="dims">
+        <span class="dim">Tuval <b>1200 × 338</b></span>
+        <span class="dim">Sarlavha <b>x 47→780 · y 47→291</b></span>
+        <span class="dim">HTML bandi <b>o'ng 35% (x 780→1200)</b></span>
+        <span class="dim">Burchak <b>67 px ichkari</b></span>
+        <span class="dim">Kichik nusxa <b>800 × 225</b></span>
+        <span class="dim">Format <b>WebP + JPEG</b></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 3 ============ -->
+  <section>
+    <div class="shead">
+      <span class="snum">03</span>
+      <h2>Masshtab qoidasi — eng muhim jadval</h2>
+    </div>
+    <p class="snote">
+      1200px tuval telefonda 326–396px da ko'rsatiladi, ya'ni hamma narsa
+      kichrayadi — lekin <b>qanchalik kichrayishi qurilmaga bog'liq</b>.
+      Hisob <b>eng kichik telefon</b> bo'yicha yuritiladi: u yerda o'qilgan
+      matn hamma joyda o'qiladi, teskarisi to'g'ri emas.
+      Quyidagi ustun jonli hisoblanadi — 01-bo'limdagi slayderni suring.
+    </p>
+    <div class="tscroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Ekranda kerak</th>
+            <th>Rasmda — eng kichik telefon <span class="num">(27.3%)</span></th>
+            <th>Jonli <span class="num" id="livepct">29.7%</span></th>
+            <th>Nima uchun</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="mark"><td class="n">24 px</td><td class="n">88 px</td><td class="n" data-css="24">—</td><td>Asosiy sarlavha — tavsiya</td></tr>
+          <tr><td class="n">20 px</td><td class="n">73 px</td><td class="n" data-css="20">—</td><td>O'rta sarlavha</td></tr>
+          <tr><td class="n">16 px</td><td class="n">59 px</td><td class="n" data-css="16">—</td><td>Qo'shimcha matn</td></tr>
+          <tr class="floor"><td class="n">13 px</td><td class="n">48 px</td><td class="n" data-css="13">—</td><td>MUTLAQ MINIMUM — pastida o'qilmaydi</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="snote">
+      ⚠️ Bu jadvalda avval <b>30%</b> va <b>44px</b> yozilgandi — u 390px
+      telefon bo'yicha hisoblangandi. Brauzerda o'lchanganda eng kichik
+      qurilmada masshtab <b>27.3%</b> ekani chiqdi, ya'ni 44px u yerda 12px ga
+      tushib o'qilmay qolardi. Raqamlar eng yomon holat bo'yicha qayta
+      hisoblandi.
+    </p>
+  </section>
+
+  <!-- ============ 4 ============ -->
+  <section>
+    <div class="shead">
+      <span class="snum">04</span>
+      <h2>Qurilmalar bo'yicha</h2>
+    </div>
+    <div class="tscroll">
+      <table>
+        <thead>
+          <tr><th>Qurilma</th><th>Ekran</th><th>Banner kengligi</th><th>Balandligi</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Kichik Android</td><td class="n">360</td><td class="n">328</td><td class="n">92</td></tr>
+          <tr><td>iPhone SE</td><td class="n">375</td><td class="n">343</td><td class="n">96</td></tr>
+          <tr class="mark"><td>iPhone 14 — etalon</td><td class="n">390</td><td class="n">358</td><td class="n">101</td></tr>
+          <tr><td>Pixel / o'rtacha Android</td><td class="n">393</td><td class="n">361</td><td class="n">102</td></tr>
+          <tr><td>Android katta</td><td class="n">412</td><td class="n">380</td><td class="n">107</td></tr>
+          <tr><td>iPhone Pro Max</td><td class="n">430</td><td class="n">398</td><td class="n">112</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="snote">
+      Kenglik = ekran − 32px (bosh sahifaning yon paddingi).
+      Header <span class="num">58px</span> va dock <span class="num">92px</span>
+      kod'dan o'lchandi. ⚠️ Telegram WebView balandligi <span class="num">~750px</span>
+      deb olindi — bu yagona <b>tekshirilmagan</b> raqam, qurilmada
+      <span class="num">viewportStableHeight</span> bilan tasdiqlanadi.
+    </p>
+  </section>
+
+  <!-- ============ 5 ============ -->
+  <section>
+    <div class="shead">
+      <span class="snum">05</span>
+      <h2>Kodga ulashdagi tuzoqlar</h2>
+    </div>
+    <p class="snote">
+      Bular dizaynga emas, kodga tegishli — lekin e'tibordan chetda qolsa
+      banner «ishlagandek ko'rinib» ishlamaydi. Uchtasi loyihada allaqachon
+      tishlagan.
+    </p>
+    <div class="traps">
+      <div class="trap">
+        <div class="tcount">4 chaqiruv joyi</div>
+        <h3>renderHome() to'rt joydan chaqiriladi</h3>
+        <p>Uchtasi <code>render()</code> dan o'tmaydi. Mount faqat <code>render()</code> ga ulansa, kategoriya bosilishi bilan banner muzlaydi — konsolda xato yo'q.</p>
+      </div>
+      <div class="trap">
+        <div class="tcount">3 marta tishlagan</div>
+        <h3>flex ustunda siqilish</h3>
+        <p>Bosh sahifa <code>flex-direction: column</code>. Bolasi standart holda siqiladi — <code>flex: none</code> yozilmasa <code>aspect-ratio</code> kafolat emas.</p>
+      </div>
+      <div class="trap">
+        <div class="tcount">3 marta tishlagan</div>
+        <h3>&lt;picture&gt; balandlikni nolga tushiradi</h3>
+        <p><code>picture</code> standart holda <code>inline</code>. CSS ro'yxatiga <code>.ad-slide picture</code> qo'shilmasa blok jimgina yopiladi.</p>
+      </div>
+      <div class="trap">
+        <div class="tcount">taymer</div>
+        <h3>Interval to'planib qoladi</h3>
+        <p>Mount boshida <code>clearInterval</code> bo'lmasa, har kategoriya bosilganda yangi taymer qo'shiladi va slaydlar titraydi.</p>
+      </div>
+      <div class="trap">
+        <div class="tcount">Test 16</div>
+        <h3>?v= raqami ko'tarilsin</h3>
+        <p><code>app.js?v=89 → 90</code>, <code>styles.css?v=33 → 34</code>. Aks holda qaytgan foydalanuvchida yangi HTML + eski JS.</p>
+      </div>
+      <div class="trap">
+        <div class="tcount">CSP ✓</div>
+        <h3>Nginx'ga tegilmaydi</h3>
+        <p>Jonli sarlavhada <code>img-src 'self'</code> bor — rasm <code>assets/ads/</code> da tursa qamraladi. Mavjud ruxsat yetganda yangisi ochilmaydi.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    To'liq topshiriq: <span class="num">docs/dizayn-tizimi/reklama-banner-spec.md</span> ·
+    Ochiq masala: sarlavha rasm ichida bo'lgani uchun rus tilida almashmaydi — uch yo'l topshiriqning 11-bandida.
+  </footer>
+</div>
+
+<script>
+  var vw     = document.getElementById('vw');
+  var phone  = document.getElementById('phone');
+  var banner = document.getElementById('banner');
+  var card   = document.querySelector('.p-card');
+
+  // Telegram WebView balandligi — TAXMIN (topshiriqda shunday belgilangan)
+  var VIEWPORT_H = 750, HEADER_H = 58, DOCK_H = 92;
+
+  // ⚠️ requestAnimationFrame ATAYLAB ISHLATILMAYDI. U yashirin tabda
+  // UMUMAN otilmaydi — sahifa fon tabda ochilsa ko'rsatkichlar «—» da
+  // qotib qolardi, ya'ni o'z da'vosini tekshiradigan sahifa hech narsani
+  // tekshirmasdi. getBoundingClientRect() o'zi layoutni majburlaydi,
+  // shuning uchun sinxron o'lchov yetarli va har doim ishlaydi.
+  function measure() {
+    var w = Number(vw.value);
+    phone.style.width = w + 'px';
+    document.getElementById('vwlab').textContent = w + ' px';
+
+    var b = banner.getBoundingClientRect();
+    var bw = Math.round(b.width), bh = Math.round(b.height);
+    if (!bw) return;                       // hali chizilmagan — keyin qaytamiz
+
+    document.getElementById('bw').textContent = bw;
+    document.getElementById('bh').textContent = bh;
+    document.getElementById('scale').textContent = (bw / 1200 * 100).toFixed(1);
+
+    // Ekran chegarasigacha kartochkadan qancha ko'rinadi
+    var used = 10 + 39 + 14 + 48 + 14 + bh + 14 + 40 + 14 + 22 + 14;
+    var peek = Math.round(VIEWPORT_H - HEADER_H - DOCK_H - used);
+    document.getElementById('peek').textContent = peek > 0 ? peek : 0;
+
+    // Masshtab jadvali — qotib qolgan raqam eskirmasin, jonli hisoblanadi
+    var pct = bw / 1200;
+    document.getElementById('livepct').textContent = (pct * 100).toFixed(1) + '%';
+    [].forEach.call(document.querySelectorAll('td[data-css]'), function (td) {
+      td.textContent = Math.ceil(Number(td.dataset.css) / pct) + ' px';
+    });
+
+    var ratio = bw / bh;
+    // Sarlavha uchun qoladigan bo'y: banner balandligi − ustki/ostki padding
+    var titleRoom = bh - 28;
+    var ok = Math.abs(ratio - 32 / 9) < 0.04 && peek >= 120 && titleRoom >= 60;
+    var v = document.getElementById('verdict');
+    v.classList.toggle('bad', !ok);
+    v.innerHTML = ok
+      ? '<span>✓</span><div><b>O\'lchov mos.</b> Nisbat ' + ratio.toFixed(2) +
+        ':1 — 16:4.5 saqlanyapti. Kartochkadan <b>' + peek +
+        'px</b> ko\'rinadi, sarlavhaga <b>' + titleRoom + 'px</b> qoladi.</div>'
+      : '<span>⚠</span><div><b>Diqqat.</b> ' + (titleRoom < 60
+          ? 'Sarlavhaga atigi ' + titleRoom + 'px qoladi — ikki qator sig\'maydi.'
+          : peek < 120
+            ? 'Kartochkadan atigi ' + peek + 'px ko\'rinadi.'
+            : 'Nisbat buzilgan: ' + ratio.toFixed(2) + ':1.') + '</div>';
+  }
+
+  vw.addEventListener('input', measure);
+  window.addEventListener('resize', measure);
+  // Fon tabda ochilgan bo'lsa — ko'rinishi bilan qayta o'lchaymiz
+  document.addEventListener('visibilitychange', measure);
+  measure();
+  // Shrift kechikib yuklansa o'lchov surilishi mumkin
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(measure);
+</script>
