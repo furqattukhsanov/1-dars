@@ -125,6 +125,134 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
 
 ## Qilingan ishlar
 
+- [2026-08-14] **Founderning uchta shikoyati o'lchandi va uchalasi ham ROST
+  bo'lib chiqdi — uchtasining ham ildizi bitta naqsh: BIR NARSA IKKI JOYDA
+  YASHAYDI va ular jimgina uzoqlashgan.** Shikoyatlar bir-biriga o'xshamasdi
+  (tugma, ekran, telefon raqami), ildizi esa bir xil edi: ikkita kartochka
+  funksiyasi, ikkita nom manbai (snapshot va katalog), uchta telefon
+  yozuvchisi. Har uchala holatda ham "ikkinchi nusxa" hech kim xato
+  qilgani uchun emas, shunchaki YANGI MAYDON FAQAT BITTASIGA qo'shilgani
+  uchun tug'ilgan.
+  ⚠️ **Uchala shikoyat ham TEKSHIRILDI, ishonib olinmadi** — "hujjatdagi
+  raqam tekshirilmagan da'vo" qoidasi shikoyatga ham tegishli ekan:
+  founder aytgani rost bo'lib chiqdi, lekin SABAB uchala holatda ham
+  taxmin qilinganidan boshqa joyda edi.
+
+  ---
+  **1. ♡ TUGMASI — "BA'ZI KARTOCHKALARDA YO'Q" (`telegram-app/app.js`)**
+  Founder: "yoqtirma tugmasi mahsulot kartochkalarida yo'qolib qolgan
+  ba'zilarida". **SANALDI, taxmin qilinmadi:** bosh ekranda 15 kartochkadan
+  **4 tasida** ♡ bor edi ("Tavsiya etiladi" — `homeCard`), **11 tasida
+  yo'q** ("Barcha matolar" — `productCard`). Ya'ni tugma AYNI EKRANDA,
+  ko'rinishi bir xil kartochkalarning bir qismida bor, bir qismida yo'q edi.
+  🔴 **Ikkinchi zarar o'zi ko'rinmaydigan joyda edi:** Saqlanganlar ekrani
+  ham `productCard` chizadi — ya'ni sevimlini o'sha ro'yxatning O'ZIDA
+  ro'yxatdan chiqarib bo'lmasdi, mahsulotni ochish kerak bo'lardi.
+  Tuzatish: ♡ `likeButton(p)` ga chiqarildi va ikkala kartochka shuni
+  chaqiradi — tugma IKKINCHI marta ko'chirib yozilmadi, chunki aynan
+  nusxa ko'chirish shu nuqsonni tug'dirgan. Natija 15/15.
+  Qorovul — **Test 29:** kartochka funksiyalarini O'ZI topadi
+  (`class="card-media"` + `data-action="openProduct"` ikkalasi ham bor
+  funksiya = mahsulot kartochkasi), ro'yxat qo'lda yozilmaydi, ya'ni
+  uchinchi kartochka turi qo'shilsa u avtomatik qamraladi.
+  ⚠️ **Testni sinashda uning O'ZIDA xato topildi va yozib qo'yiladi:**
+  dastlab qorovul kartochka tanasidan `toggleLike` so'zini qidirardi —
+  bu TUZATISHDAN KEYIN ham qizil qolardi, chunki markazlashtirilgan
+  kartochka `toggleLike` ni o'z ichida saqlamaydi (uni `likeButton()`
+  yozadi). Ya'ni qorovul TO'G'RI holatni nuqson deb ko'rsatib, tuzatishni
+  ORQAGA QAYTARISHGA undardi. Belgi nusxa emas, CHAQIRUV bo'lishi kerak.
+  **6 mutatsiya bilan sinaldi, 6 tasi ham ushlandi.**
+
+  ---
+  **2. BUYURTMALAR EKRANI BO'SH — VA U HISOBGA BOG'LIQ EDI
+  (`telegram-app/app.js`, `server/routes/orders.js`)**
+  Founder: "o'zimni telegramimdan kirsam buyurtmalar bo'limida hech narsa
+  yo'q, boshqa tg'dan kirsam hammasi joyida". Shikoyatning eng qimmatli
+  qismi — "boshqa tg'dan" bo'lagi: u nuqson AUTENTIFIKATSIYADA emasligini
+  darrov ko'rsatdi, chunki ikkinchi hisob ishlayotgan edi.
+  **Sabab QAYTA YARATILDI:** `renderOrders()` qatorni BUGUNGI katalogdan
+  chizardi (`const p = byId(it.id); ... p.name`), `/api/products` esa faqat
+  `status='published'` qaytaradi. Ya'ni buyurtmada katalogdan chiqqan
+  (yopilgan yoki o'chirilgan) mahsulot bo'lsa `byId()` `undefined` berib,
+  `renderOrders()` BUTUNLAY yiqilardi (`TypeError: Cannot read properties
+  of undefined`) — ekranda bitta ham buyurtma qolmasdi. **Nuqson AYNAN
+  shu sababdan hisobga bog'liq edi:** nimani buyurtma qilganingizga qarab
+  bir hisobda chiqadi, boshqasida yo'q.
+  Tuzatish: `order_items` dagi snapshot (`name`, `unit_price`) endi
+  serverdan qaytariladi va yangi `orderLine()` qatorni BUYURTMA
+  YOZUVIDAN chizadi; katalog faqat RASM uchun ishlatiladi.
+  ⚠️ **Ma'lumot BAZADA ALLAQACHON BOR EDI** — `order_items.name` va
+  `unit_price` buyurtma paytida yozilardi, shunchaki `handleGetOrders`
+  ularni SO'RAMASDI. Ya'ni tuzatish yangi ustun qo'shmadi, mavjud
+  snapshotni ishlatdi.
+  🔴 **Tuzatishning IKKINCHI YUTUG'I birinchisidan jimroq, lekin
+  xavfliroq narsani yopdi:** tarixda endi xaridor TO'LAGAN narx turadi.
+  Ilgari summa bugungi katalog narxidan qayta hisoblanardi, ya'ni narx
+  o'zgargan kuni **eski buyurtmalar jimgina boshqa summa ko'rsatardi** —
+  bu xato bermaydi, shunchaki yolg'on gapiradi (CLAUDE.md — "jimgina
+  yolg'on yo'qlikdan yomonroq").
+  ⚠️ Nuqson SAVATGA ko'chmasligi uchun `reorderOrder` katalogda yo'q
+  matoni savatga qo'shmaydi: savat butunlay katalogga tayanadi
+  (`cartTotal()` → `byId(c.id).price`), ya'ni "Qayta buyurtma" tugmasi
+  savatni o'ldirardi. Buyurtma tarixi mahsulotsiz ham chiziladi, savat
+  esa chizilmaydi — farq shundan.
+  ⚠️ `esc()` qo'shildi: snapshot nomi bazadan keladi (sotuvchi yozgan) va
+  `vm()` chegarasidan O'TMAYDI, ya'ni tozalanmasa xom matn `innerHTML` ga
+  tushardi.
+  Qorovul — **Test 30:** `orderLine()` ning O'ZINI bajaradi, statik naqsh
+  bilan cheklanmaydi (nuqson "so'z bor/yo'q" darajasida emas, XULQ
+  darajasida edi).
+  ⚠️ **Bu test ham sinovda teshik ko'rsatdi:** dastlab `renderOrders` da
+  `byId(...).` naqshi qidirilardi, asl nuqson esa natijani AVVAL
+  o'zgaruvchiga oladi (`const p = byId(it.id)`) — ya'ni naqsh unga tegmasdi
+  va **aynan tuzatilayotgan nuqson qorovuldan jimgina o'tib ketardi.**
+  Endi `byId` NOMINING o'zi qidiriladi: buyurtma qatori katalogni UMUMAN
+  bilmaydi. **7 mutatsiya bilan sinaldi, 7 tasi ham ushlandi.**
+
+  ---
+  **3. PROFILDA BOSHQA TELEFON RAQAMI (`server/routes/webhook.js`,
+  `server/routes/seller-application.js`)**
+  Founder: "webdagi profilimda boshqa raqam turibdi telegram orqali login
+  qilgan bo'lsam ham". **Sabab: `users.phone` ga UCH manba yozadi va
+  ustuvorlik TESKARI qo'yilgan edi** — Telegram TASDIQLAGAN kontakt va
+  checkout formasi `COALESCE` da turardi (ya'ni hech qachon yozmasdi),
+  sotuvchi arizasi esa USTIDAN yozardi. Eng ishonchsiz manba g'olib edi.
+  🔴 **Va bu YOPIQ TUZOQ edi:** formaga bir marta boshqa raqam tushsa
+  (sinov raqami, hamkasb, ofis raqami) profil o'shani ko'rsatib
+  turaverardi va uni **tuzatishning iloji yo'q** edi — bot raqamni faqat
+  `!user.phone` bo'lganda so'raydi, ya'ni qayta ham so'ramasdi.
+  Tuzatish: Telegram kontakti USTIDAN yozadi, ariza va checkout esa faqat
+  BO'SH joyni to'ldiradi. Ustidan yozish huquqi `msg.contact.user_id ===
+  msg.from.id` tekshiruviga tayanadi — u kontakt foydalanuvchining O'ZINIKI
+  ekanini kafolatlaydi, aks holda begona raqam yozilardi.
+  Bot javobi endi saqlangan raqamning O'ZINI ko'rsatadi va o'zgartirish
+  yo'lini aytadi: "saqlandi" deyish yetarli emas edi — xato raqamni
+  tuzatayotgan odam natijani ko'rmasdi.
+  ⚠️ **`users.src` (Test 27) bilan ADASHTIRILMADI va bu ataylab yoziladi:**
+  u yerda "birinchi teginish qulflanadi" TO'G'RI, chunki u analitika
+  FAKTI; telefon esa fakt emas, JORIY aloqa ma'lumoti va o'zgarishi
+  normal. Aynan bu o'xshashlik kelajakda "tartibga solish" vasvasasini
+  tug'diradi — shuning uchun Test 31 va bu band bor.
+  Qorovul — **Test 31:** `COALESCE` ning BORLIGI emas, TARTIBI ham
+  tekshiriladi (`COALESCE(EXCLUDED.phone, users.phone)` "COALESCE bor"
+  tekshiruvidan o'tib ketardi). **5 mutatsiya bilan sinaldi, 5 tasi ham
+  ushlandi.**
+
+  ---
+  **SINALGANI: 70 test yashil** (avval 67 edi — 3 yangi: 29, 30, 31),
+  raqam runner chiqishidagi satrlardan MUSTAQIL sanaldi, hisobotdan
+  ko'chirilmadi. **18 mutatsiya bilan sinaldi, 18 tasi ham ushlandi** —
+  yashil test isbot emas, buzib ko'rilgan test isbot.
+  🔴 **HALOL CHEGARA, ATAYLAB YOZILADI:** uchala tuzatish ham **brauzerda
+  yoki jonli Mini App'da KO'Z BILAN KO'RILMADI** — hammasi test va kod
+  o'qish darajasida tasdiqlangan. ♡ soni (4/15 → 15/15) manba kodidan
+  sanaldi, jonli ekrandan emas. Buyurtmalar ekrani nuqsoni pglite'da
+  emas, `orderLine()` ni bajarish orqali qayta yaratildi — ya'ni SERVER
+  so'rovi (`SELECT ... name, unit_price`) haqiqiy bazada ishga
+  TUSHIRILMAGAN. Telefon tuzatishi esa faqat founder botga kontaktini
+  qayta yuborganda tasdiqlanadi. Deploy: `server/` rsync va servis
+  restarti founder zimmasida (statik fayllar CI orqali).
+
 - [2026-08-13] **To'rt agent (PM, dizayner, marketolog, investor) loyihani
   baholadi, founder ulardan TO'RT bandni tanladi — va sessiyaning eng qimmatli
   natijasi kod emas, UCH MARTA TAKRORLANGAN BITTA NAQSH: «yozilgan qoida himoya
@@ -1871,6 +1999,49 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
 ---
 
 ## Qarorlar
+
+- [2026-08-14] Qaror: **buyurtma tarixi BUGUNGI KATALOGGA bog'lanmaydi —
+  nom va narx BUYURTMA YOZUVIDAGI snapshotdan olinadi.** Katalog faqat
+  RASM uchun ishlatiladi va u yo'q bo'lsa qator baribir chiziladi
+  (`orderLine()`). Sabab ikkita va ikkinchisi jimroq: (1) katalogdan
+  chiqqan mahsulot butun ekranni qulatardi, (2) narx o'zgargan kuni
+  tarixda xaridor to'lagan summa emas, BUGUNGI summa ko'rinardi.
+  ⚠️ **Qoida umumiy: tarix o'zi haqidagi ma'lumotni O'ZIDA saqlaydi.**
+  Buyurtma, sharh, bahs kabi "sodir bo'lgan narsa" yozuvi hech qachon
+  o'zgaruvchan jadvaldan qayta hisoblanmasin — bu `recordStatusChange()`
+  va `NULL` reyting qoidalari bilan bitta oilada.
+  ⚠️ Istisno ATAYLAB qoldirildi: **savat** katalogga bog'liq bo'lib
+  qolaveradi va katalogda yo'q mahsulot savatga qo'shilmaydi
+  (`reorderOrder`). Savat — kelajakdagi buyurtma, ya'ni mavjud narsadan
+  yig'ilishi SHART; tarix esa o'tmish va u mahsulotsiz ham haqiqiy.
+  Qorovul: `server/test.js` → Test 30.
+
+- [2026-08-14] Qaror: **`users.phone` da TASDIQLANGAN manba USTUN, forma
+  faqat BO'SH joyni to'ldiradi.** Telegram kontakti (`msg.contact`,
+  `user_id === from.id` bilan tasdiqlangan) `SET phone = $2` bilan ustidan
+  yozadi; checkout formasi va sotuvchi arizasi `COALESCE(users.phone,
+  EXCLUDED.phone)` da qoladi. Sabab: ustuvorlik teskari bo'lganda YOPIQ
+  TUZOQ hosil bo'lardi — formaga bir marta tushgan xato raqamni tuzatish
+  yo'li UMUMAN yo'q edi (bot raqamni faqat `!user.phone` bo'lganda
+  so'raydi).
+  ⚠️ **Bu `users.src` qoidasining TESKARISI va farq ataylab yozilmoqda:**
+  `src` da "birinchi teginish qulflanadi" to'g'ri, chunki u ANALITIKA
+  FAKTI va o'zgarishi yolg'on bo'lardi; telefon esa JORIY aloqa ma'lumoti
+  va o'zgarishi normal. Yangi maydon qo'shilganda birinchi savol: **bu
+  sodir bo'lgan HODISAmi (qulflansin) yoki joriy HOLATmi (yangilansin)?**
+  Qorovul: `server/test.js` → Test 31.
+
+- [2026-08-14] Qaror: **takrorlanadigan UI bo'lagi (♡ kabi) IKKINCHI marta
+  ko'chirib yozilmaydi — bitta funksiyaga chiqariladi va kartochkalar uni
+  CHAQIRADI.** Sabab: `homeCard` va `productCard` ikki nusxa edi va ♡
+  faqat bittasiga yozilgan — ya'ni nuqson "tugma yo'qoldi" emas, "yangi
+  maydon faqat bitta nusxaga qo'shildi" edi. Bu `videoVM` qarori bilan
+  bitta oila (ikkinchi nusxa yozilmasin, ikki joy jimgina uzoqlashmasin).
+  ⚠️ Qorovul BELGISI ham shu qarorga moslashtirildi: test kartochka
+  tanasida amal NOMINI emas, CHAQIRUVNI qidiradi — nom qidirilsa
+  markazlashtirish O'ZI testni qizil qilardi, ya'ni qorovul to'g'ri
+  yechimni jazolab, nusxa ko'chirishga undardi. **Qorovul qaysi holatni
+  to'g'ri deb bilishi qaror bilan BIRGA tanlanadi.**
 
 - [2026-08-13] Qaror: **Mini App'da `user-scalable=no` QOLADI — dizayn
   tavsiyasi O'LCHOV BILAN RAD ETILDI.** Tavsiya "matn zoomini oching" degandi
