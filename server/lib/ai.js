@@ -910,6 +910,27 @@ async function generateImage(product, source, choices, sinov = null) {
 
     try {
       const img = extractImage(json);
+      // ============ QAYTA URINISH KO'RINADIGAN BO'LDI (2026-08-14) ============
+      // Tsikl 2026-08-13 dan beri ishlaydi va Test 14q uni soxta javoblar
+      // bilan isbotlaydi. Isbotlanmagani JONLI holat edi — va u hech qachon
+      // isbotlana olmasdi, chunki tsikl BUTUNLAY JIM ishlardi: bo'sh javob
+      // kelib, keyin rasm chizilsa, foydalanuvchi ham, jurnal ham, alert ham
+      // hech narsa ko'rmasdi. Ya'ni "jonli tasdiqlanmagan" bandi kod
+      // tuzatilmaguncha MANGU ochiq qolardi.
+      //
+      // ⚠️ ATAYLAB `console.error`, garchi bu NUQSON BO'LMASA ham: alert —
+      // bizdagi yagona ko'radigan ko'z, `console.log` esa journalctl'da
+      // yotib qoladi va hech kim o'qimaydi (`alert.js` ning ochilish izohi
+      // aynan shu haqda). Alert sarlavhasi "Server xatosi" deb chiqadi va bu
+      // bu yerda noaniq — shuning uchun kalitning O'ZIDA "nuqson emas"
+      // yozilgan. Hodisa kamdan-kam bo'lishi kerak; tez-tez chiqsa bu ham
+      // signal — model sifati tushgan.
+      if (bosh > 0) {
+        console.error(
+          'AI rasm: qayta urinish yordam berdi (kuzatuv, nuqson emas):',
+          `${bosh + 1}-urinishda rasm keldi`
+        );
+      }
       return { ...img, model: `${AI_PROVIDER}:${AI_IMAGE_MODEL}` };
     } catch (e) {
       // Rad etish — qayta urinish FOYDASIZ (ayni prompt ayni javobni beradi).
@@ -918,6 +939,10 @@ async function generateImage(product, source, choices, sinov = null) {
       if (bosh >= BOSH_JAVOB_URINISH) throw e;
       // Budjet: keyingi urinish + kutish chegaradan chiqib ketmasin.
       if (Date.now() - boshlandi >= budjet) throw e;
+      // Tafsilot jurnalga — bu yerda alert YUBORILMAYDI: urinish hali
+      // tugamagan va natija noma'lum. Alert faqat natija ma'lum bo'lganda
+      // ketadi: yordam bersa yuqorida, bermasa chaqiruvchi xatoni yozadi.
+      console.log(`AI rasm: bo'sh javob (${e.message}) — ${bosh + 2}-urinish`);
       await uxla(jitter(BOSH_JAVOB_KUTISH_MS));
     }
   }

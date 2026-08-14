@@ -41,6 +41,37 @@ Founder sifatida platformani to'liq nazorat qilish: ishlab chiqaruvchilarni tasd
 
 ## Qilingan ishlar
 
+- [2026-08-14] **Manba belgisi endi JIMGINA rad etilmaydi — noto'g'ri havola
+  ALERTGA chiqadi** (`server/routes/webhook.js` → yangi `manbaAniqla()`).
+  🔴 **Band «`src` hech qachon yozilmagan — nuqson» deb ochilgandi va
+  TA'RIF NOTO'G'RI bo'lib chiqdi:** `sprint-4.md` da o'z qo'limiz bilan
+  «manba belgisining O'ZI jonli sinalmagan: haqiqiy `?start=guruh_ipak`
+  havolasi hali bosilmagan» deb yozilgan, ya'ni **23/23 bo'sh bo'lishi
+  KUTILGAN natija** edi. Buzilgan narsa yo'q, ishlatilmagan narsa bor.
+  Tekshirilmasdan boshlanganda ishlab turgan mexanizm «tuzatilardi».
+
+  **Tekshirish esa HAQIQIY nuqson topdi:** shakl qat'iy (`[a-z0-9_]{2,32}`),
+  Telegram esa deep-link'da katta harf va chiziqchaga RUXSAT beradi — ya'ni
+  `t.me/<bot>?start=Instagram` havolasi **ishlaydi**: odam kiradi, manba
+  yo'qoladi va o'sha kanal shu paneldagi «Qaysi kanaldan kelishdi» blokida
+  **«nol berdi»** bo'lib ko'rinadi. Bu blokning butun maqsadiga zid:
+  raqam yo'q emas, **YOLG'ON**, va reklama byudjeti aynan shunga qarab
+  taqsimlanardi (`NULL` reyting / `ALERT_CHAT_ID` oilasi).
+
+  Shakl QAT'IY qoldirildi (founder qarori — pastdagi qarorga qara), o'zgargani
+  JIMLIK. Ikkita hol ATAYLAB jim: payloadsiz `/start` (odatdagi kirish) va
+  `web_...` (saytga kirish kodi, manba emas) — aks holda har kirish alert
+  yuborib tomni to'ldirardi. Yo'l-yo'lakay `INSERT` parametri ham tuzatildi:
+  endi TOZALANGAN `manba` uzatiladi, hisoblab tashlab yuborilmaydi.
+  ⚠️ **Qorovul (Test 27) MATN emas XATTI-HARAKAT sinaydi va bu sababsiz
+  emas:** birinchi variant `console.error(...` satrini qidirardi va
+  mutatsiyada `if (false)` qo'yilganda YASHIL qoldi — Test 3f darsining
+  takrori. Hujjat: **`docs/manba-havolalari.md`** (havola shakli, kanal
+  ro'yxati jadvali, uchidan-uchigacha tekshirish buyruqlari).
+  🔴 **Ochiq qolgani:** blok hamon HAQIQIY havola bilan sinalmagan — bitta
+  `?start=guruh_ipak` bosilib `users.src` yozilishi o'lchansin; `db/025`
+  production'da qo'llanganini tasdiqlash ham shu bandning ichida.
+
 - [2026-08-13] **Statistika sahifasiga IKKI yangi blok — «Qaysi kanaldan
   kelishdi» va «AI kiyim rasmi».** Sabab jamoa muhokamasidan keldi va u
   yagona band bo'yicha UCHALA agent (PM, marketolog, investor) bir joyga
@@ -123,6 +154,18 @@ Founder sifatida platformani to'liq nazorat qilish: ishlab chiqaruvchilarni tasd
 - [2026-08-08] **`/start` bosgan odam endi bazaga yoziladi — va shu bilan birga panel raqami IKKIGA ajratildi (`db/020_user_engagement.sql`).** Bu yuqoridagi yozuvda ATAYLAB ochiq qoldirilgan bandning yopilishi: o'shanda panel "ilovani ochganlar" ni ko'rsatardi, haqiqiy bot auditoriyasi esa hech qayerda hisoblanmasdi. **Nega shunchaki qator qo'shish YETARLI EMAS edi:** `/start` qatorlarini mavjud `users` ga qo'shsak, panelda allaqachon turgan "ilovani ochganlar" raqami jimgina yolg'onga aylanardi — ichiga ilovani hech qachon ochmagan odamlar qo'shilib ketardi va buni HECH NARSA ko'rsatmasdi (raqam ko'paygani o'sish bo'lib ko'rinardi). Shuning uchun migratsiya bitta ustun qo'shadi: `users.engaged_at TIMESTAMPTZ` — `NULL` = faqat `/start` bosgan, `NOT NULL` = ilova / sayt / sotuvchi arizasi orqali BIRINCHI marta foydalangan vaqt; ustiga `users_engaged_at_idx` (panel har so'rovda `count(*) FILTER (WHERE engaged_at IS NULL)` hisoblaydi). **Backfill to'g'ri va uni ISBOTLASH mumkin:** migratsiyagacha `/start` hech qachon qator YARATMAGAN (`webhook.js` da `INSERT` umuman yo'q edi), ya'ni mavjud har bir qator albatta uchta foydalanish yo'lidan biri orqali kelgan — shuning uchun `UPDATE users SET engaged_at = created_at` taxmin emas, xulosadir. **Yozuv joyi** (`server/routes/webhook.js`): `/start` da `INSERT ... ON CONFLICT (tg_user_id) DO UPDATE`. Uch qaror shu yerda: (a) `DO NOTHING` emas, `DO UPDATE` — ism/username o'zgargan bo'lishi mumkin; (b) `role` TEGILMAYDI — aks holda sotuvchi `/start` bossa `buyer` ga tushib qolardi; (c) `engaged_at` na `INSERT` da, na `UPDATE` da qo'yiladi — bu qator "ilovani ochgan" degani EMAS. Telegram ID bu yerda ishonchli: uni klient emas, Telegram'ning O'ZI webhook orqali yuboradi va so'rov `WEBHOOK_SECRET` bilan tekshirilgan (CLAUDE.md — foydalanuvchi kimligi brauzerdan olinmaydi). Yozuv xatosi `/start` javobini yiqitmaydi (`.catch`), alert kaliti birinchi argumentda qat'iy — Test 10c qoidasi saqlandi. **Uchta foydalanish yo'li** (`catalog.js`, `web-auth.js`, `seller-application.js`) endi `engaged_at = COALESCE(users.engaged_at, now())` qo'yadi — `COALESCE` majburiy, aks holda maydon "birinchi foydalanish" o'rniga jimgina "oxirgi kirish" ga aylanardi va u boshqa ma'noli raqam bo'lardi. **Backend** (`server/routes/admin.js`): `users` so'roviga `engaged` va `start_only` sanoqlari, javobga `engaged` / `startOnly`. **Frontend** (`admin/admin.js`, `admin/index.html`, `admin.js?v=21` → `?v=22`): sarlavha "ilovani ochganlar" → "botga kirganlar", ostida ajratuvchi qator (`806 foydalangan (65%) · 437 faqat /start` ko'rinishida), faollik ustunlariga ikkita yangi qator. **Qorovul kengaytirildi va bu bekorga emas:** ilgari `users` maydonining O'ZI tekshirilardi, endi `engaged` ham — deploy oynasida frontend yangi, backend bir qadam orqada bo'lsa `engaged` `undefined` bo'lib ekranda "NaN%" chiqardi, ya'ni eski qorovulning ko'r nuqtasi aynan shu o'zgarish bilan ochildi. **Sinov:** `node server/test.js` — 42 test PASS (raqam sanaldi, taxmin emas); `npx eslint .` (`server/`) — 0 xato, 28 ogohlantirish; stendda haqiqiy `handleAdminSummary` orqali sinaldi — ajratuvchi qator va 5 qatorli faollik ustunlari chizildi, mobil 375px da gorizontal siljish yo'q, ikkala qorovul holati (backend butunlay eski / bir qadam orqada) blokni yashirdi. **Hali qilinmagan (deploy tartibi MUHIM):** `db/020` haqiqiy Postgres'da HALI ishlamagan (lokalda baza yo'q) va u backenddan OLDIN qo'llanishi SHART — teskari tartibda `engaged_at` ga murojaat qiladigan `/api/admin/summary` va uchala auth yo'li birdan yiqiladi, ya'ni bu 27-iyuldagi "migratsiya qo'llanmagan" insidentining aynan takroriga olib kelardi. Shuningdek `engaged_at = COALESCE(...)` qoidasini tekshiradigan TEST YO'Q: yangi foydalanish yo'li qo'shilib uni unutsa, odam abadiy "faqat /start bosgan" bo'lib qolardi va buni hech narsa ko'rsatmasdi — "yozilgan qoida himoya emas, uni tekshiradigan test himoya" qoidasi bu bandda hali bajarilmagan
 
 ## Qarorlar
+
+- [2026-08-14] Qaror (founder): **manba belgisining shakli QAT'IY qoladi —
+  kengaytirilmaydi, LEKIN rad etish endi QICHQIRADI.** Telegram katta harf
+  va chiziqchaga ruxsat bergani uchun ikki yo'l bor edi: (a) shaklni
+  kengaytirish, (b) rad etishni ko'rinadigan qilish. (a) rad etildi — `IG`
+  va `ig` panelda IKKI qatorga bo'linib, bitta kanal ikkita bo'lib
+  ko'rinardi, ya'ni o'lchovni boshqa tomondan buzardi. Tanlangan (b):
+  noto'g'ri havola bir kunda tuzatiladi, chunki alert o'sha kuni keladi —
+  «kanal nol berdi» degan oy oxiridagi yolg'on hisobot orqali emas.
+  ⚠️ Shu qarordan kelib chiqadigan MAJBURIYAT: yangi kanal ochilganda havola
+  `docs/manba-havolalari.md` jadvaliga **yozilsin**, aks holda paneldagi
+  `guruh_ipak` qatori olti oydan keyin nimani anglatishi noma'lum qoladi.
 
 - [2026-08-13] Qaror: manba belgisi (`users.src`) **BIRINCHI teginishda
   qulflanadi** — `COALESCE(users.src, EXCLUDED.src)`, keyin HECH QACHON

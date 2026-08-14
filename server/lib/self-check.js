@@ -1,5 +1,7 @@
 const fs = require('fs');
 const path = require('path');
+const { pool } = require('../db');
+const { sellerAllowed } = require('./auth');
 
 // ============ O'Z-O'ZINI TEKSHIRISH ============
 // Nima uchun bu bor (2026-08-05 da tishladi): `/opt/lolamarket-notify/` papkasi
@@ -52,11 +54,67 @@ function runCheck() {
   return false;
 }
 
+// ============ KO'RINMAYDIGAN SOTUVCHI (2026-08-14) ============
+// Nima uchun bu YUQORIDAGI qorovul bilan BITTA faylda: nuqsonning SHAKLI
+// aynan bir xil — holat jimgina noto'g'ri va uni faqat ATAYLAB qaragan
+// narsa ko'radi. Papka o'chganida sayt javob berardi; bu yerda ham
+// sotuvchi bazada bor, kabinet esa ochilmaydi va HECH QAYERDA xato yo'q:
+// `currentSeller` roli `buyer` ga tushiradi, endpoint 403 beradi, sotuvchi
+// esa "ilova buzilibdi" deb o'ylab jim qoladi. Ya'ni shikoyat kelmasa biz
+// hech qachon bilmaymiz (CLAUDE.md — sotuvchi kabineti FOUNDER RO'YXATI
+// bo'yicha, 🔴 bandi aynan shuni ogohlantiradi).
+//
+// ⚠️ TEKSHIRUV QAYTA YOZILMAYDI — `sellerAllowed` CHAQIRILADI. Ro'yxat
+// shartini bu yerga ko'chirish `authUser()` naqshining o'zi bo'lardi:
+// qoida ikki joyda yashaydi, biri o'zgarganda ikkinchisi jimgina eskiradi.
+// Bazadagi shart ham `requireSeller` bilan bir xil: `role = 'seller'` VA
+// `sellers` yozuvi (shuning uchun `JOIN`, `LEFT JOIN` emas).
+async function hiddenSellers(db = pool) {
+  const { rows } = await db.query(
+    `SELECT u.tg_user_id, COALESCE(s.business_name_uz, u.full_name) AS nom
+       FROM users u
+       JOIN sellers s ON s.user_id = u.id
+      WHERE u.role = 'seller'
+      ORDER BY u.id`
+  );
+  return rows.filter((r) => !sellerAllowed({ id: r.tg_user_id }));
+}
+
+async function runSellerCheck() {
+  let yashirin;
+  try {
+    yashirin = await hiddenSellers();
+  } catch (e) {
+    // Birinchi argument — barqaror kalit (Test 10c).
+    console.error('sotuvchi ro\'yxati qorovuli ishlamadi:', e.message);
+    return false;
+  }
+  if (!yashirin.length) return true;
+
+  console.error(
+    'JIDDIY: bazada sotuvchi bor, SELLER_TG_IDS da yo\'q — kabinet ko\'rinmaydi.',
+    yashirin.map((r) => `${r.tg_user_id}${r.nom ? ` (${r.nom})` : ''}`).join(', ')
+  );
+  return false;
+}
+
+// Birinchi tekshiruv KECHIKTIRILADI: fayl qorovulidan farqli o'laroq bu
+// bazaga boradi va ishga tushish onida pool hali tayyor bo'lmasligi mumkin.
+// Kechiktirilmasa har restartda "qorovul ishlamadi" alerti chiqib, haqiqiy
+// signal shovqin ostida qolardi.
+const SELLER_CHECK_DELAY_MS = 30_000;
+
 function install() {
   // Ishga tushganda darrov bir marta: deploy paytida buzilgan bo'lsa
   // bir soat kutmasin.
   runCheck();
   setInterval(runCheck, CHECK_MS).unref();
+
+  setTimeout(runSellerCheck, SELLER_CHECK_DELAY_MS).unref();
+  setInterval(runSellerCheck, CHECK_MS).unref();
 }
 
-module.exports = { install, runCheck, missingFiles, REQUIRED, CHECK_MS };
+module.exports = {
+  install, runCheck, missingFiles, REQUIRED, CHECK_MS,
+  hiddenSellers, runSellerCheck, SELLER_CHECK_DELAY_MS,
+};

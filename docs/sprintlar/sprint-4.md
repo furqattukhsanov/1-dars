@@ -125,6 +125,110 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
 
 ## Qilingan ishlar
 
+- [2026-08-14] **QOLDIQDAGI UCHTA OCHIQ BAND YOPILDI — VA UCHALASI HAM BITTA
+  OILADAN: «kod bor, lekin u JIM».** Founder yangi funksiya takliflarining
+  HAMMASINI rad etdi («hech qaysi — faqat uchta bandni yopamiz»), ya'ni bu
+  sessiyada bitta ham yangi ekran, tugma yoki maydon qo'shilmadi. Qo'shilgan
+  yagona narsa — KO'RINISH.
+
+  🔴 **ENG QIMMATLI NATIJA — IKKINCHI BANDNING TA'RIFI NOTO'G'RI BO'LIB
+  CHIQDI VA BU ISH BOSHLANISHIDA TUTILDI.** QOLDIQ xotirasida deep-link
+  manbasi «23/23 BO'SH — nuqson» deb turgandi. Tekshirilganda boshqacha
+  chiqdi: `sprint-4.md` ning O'ZIDA (yuqoridagi `db/025` yozuvi, (d) bandi)
+  o'z qo'limiz bilan «manba belgisining O'ZI jonli sinalmagan: haqiqiy
+  `t.me/<bot>?start=guruh_ipak` havolasi hali bosilmagan» deb yozilgan.
+  Ya'ni **bo'sh ustun KUTILGAN natija edi — havola hali yaratilmagan.**
+  Buzilgan narsa yo'q, ISHLATILMAGAN narsa bor edi. Tekshirilmasdan ish
+  boshlanganda mavjud va to'g'ri ishlaydigan mexanizm «tuzatilardi» — bu
+  «hujjatdagi raqam — tekshirilmagan da'vo» qoidasining aynan o'zi,
+  `photo_url` va «`/start` hisoblagichi yo'q» holatlari bilan bitta oila.
+
+  **1-BAND — KO'RINMAYDIGAN SOTUVCHI ENDI QICHQIRADI** (`lib/self-check.js`).
+  Bazada `role='seller'` + `sellers` yozuvi bor odam `SELLER_TG_IDS` da
+  bo'lmasa kabinet OCHILMAYDI va buni **hech narsa ko'rsatmasdi**:
+  `currentSeller` rolni jimgina `buyer` ga tushiradi, endpoint 403 beradi,
+  jurnalda xato yo'q — sotuvchi «ilova buzilibdi» deb o'ylab odatda umuman
+  yozmaydi. Bu holat 2026-08-13 da CLAUDE.md ga 🔴 belgisi bilan yozilgan
+  edi va **yozilgani uni ko'rinadigan qilmadi.** Yangi `hiddenSellers()` +
+  `runSellerCheck()`: soatiga bir marta bazani so'raydi va topilsa
+  `console.error` orqali Telegram alertiga **AYNAN qaysi ID yetishmayotganini**
+  yozadi (ID bo'lmasa founder uni qayerdan olishni bilmasdi).
+  ⚠️ **Tekshiruv QAYTA YOZILMADI — `sellerAllowed()` chaqiriladi.** Ro'yxat
+  shartini bu yerga ko'chirish `authUser()` naqshining o'zi bo'lardi: qoida
+  ikki joyda yashaydi, biri o'zgarganda ikkinchisi jimgina eskiradi.
+  ⚠️ Birinchi tekshiruv **30 soniya kechiktiriladi** — fayl qorovulidan
+  farqli o'laroq bu bazaga boradi va ishga tushish onida pool tayyor
+  bo'lmasligi mumkin; kechiktirilmasa har restartda «qorovul ishlamadi»
+  alerti chiqib, haqiqiy signal shovqin ostida qolardi.
+
+  **2-BAND — JIM RAD ETISH BUZILDI** (`routes/webhook.js`). Band noto'g'ri
+  ta'riflangan bo'lsa ham, tekshirish HAQIQIY nuqson topdi: shakl qat'iy
+  (`[a-z0-9_]{2,32}`), **Telegram esa deep-link'da katta harf va chiziqchaga
+  RUXSAT beradi.** Ya'ni `?start=Instagram` havolasi ISHLAYDI — odam botga
+  kiradi, manba jimgina yo'qoladi va o'sha kanal panelda «nol berdi» bo'lib
+  ko'rinadi. Raqam yo'q emas, **YOLG'ON** — reklama byudjeti aynan shunga
+  qarab taqsimlanardi. Yangi `manbaAniqla()` o'rami: tozalaydi va rad
+  etilganini alertga chiqaradi. Payloadsiz `/start` (odatdagi kirish) va
+  `web_...` (saytga kirish kodi) ATAYLAB jim — aks holda har kirish alert
+  yuborib tomni to'ldirardi.
+  ⚠️ **INSERT parametri ham tuzatildi:** ilgari `manbaBelgisi(startParam)`
+  chaqiruv joyida hisoblanardi; endi natija `manba` o'zgaruvchisiga olinadi
+  va Test 27 **tozalangan qiymat bazaga borishini alohida** tekshiradi —
+  chaqiruv borligi yetarli emas edi.
+
+  **3-BAND — AI QAYTA URINISHI KO'RINADIGAN BO'LDI** (`lib/ai.js`). Kod
+  2026-08-13 dan ishlaydi va Test 14q uni soxta javoblar bilan isbotlaydi;
+  isbotlanmagani JONLI holat edi. 🔴 **U hech qachon isbotlana OLMASDI,
+  chunki tsikl butunlay JIM ishlardi:** bo'sh javob kelib keyin rasm
+  chizilsa, foydalanuvchi ham, jurnal ham, alert ham hech narsa ko'rmasdi —
+  ya'ni band kod tuzatilmaguncha MANGU ochiq qolardi. Endi bo'sh javobdan
+  keyin rasm kelsa `console.error` («qayta urinish yordam berdi — kuzatuv,
+  nuqson emas»), urinishlar orasidagi tafsilot esa `console.log`.
+  ⚠️ `console.error` ATAYLAB, garchi bu nuqson bo'lmasa ham: alert — bizdagi
+  yagona ko'radigan ko'z, `console.log` esa journalctl'da o'qilmay yotadi.
+  Birinchi urinishdagi muvaffaqiyat esa JIM — har rasm alert yuborsa tom
+  to'lardi (`ALERT_CHAT_ID` oilasi teskari tomondan).
+
+  🔴 **SESSIYANING ENG MUHIM DARSI QOROVULNING O'ZIDA TOPILDI.** Deep-link
+  qorovulining BIRINCHI varianti manba kodidan MATN qidirardi
+  (`console.error('deep-link...` borligini). Mutatsiya sinovida chaqiruv
+  oldiga `if (false)` qo'yilganda **matn joyida qolgani uchun test YASHIL
+  qoldi** — ya'ni qorovul o'zi qo'riqlayotgan narsani qo'riqlamasdi. Shuning
+  uchun ogohlantirish alohida `if` dan **qiymat qaytaradigan O'RAM** ichiga
+  ko'chirildi va test MATNNI emas XATTI-HARAKATNI sinaydigan qilindi
+  (`manbaAniqla` ni haqiqatan bajaradi, `console.error` ni ushlaydi). Bu
+  Test 3f dagi «o'ramning NOMIGA ishonish yetarli emas, ichi ochib
+  ko'riladi» darsining takrori — ya'ni **hujjatlangan tuzoq yana tishladi.**
+
+  **SINALGANI: 74 test yashil** (73 → 74). **12 mutatsiya bilan sinaldi** —
+  birinchi urinishda 11/12, yuqoridagi teshik tuzatilgandan keyin **12/12**.
+  Qorovullar: **Test 35 YANGI** («Ko'rinmaydigan sotuvchi qichqiradi»,
+  6 band — topish, jim qolish, `JOIN` sharti `requireSeller` bilan bir xil,
+  `sellerAllowed` chaqirilishi, alert matnida ID, `install()` da rejaga
+  qo'yilishi); **Test 27 kuchaytirildi** (jim rad etish + INSERT ga
+  tozalangan qiymat); **Test 14q kuchaytirildi** (5-band: qayta urinish
+  ko'rinishi + birinchi urinishda jimlik). `npx eslint` — 0 xato.
+
+  **Frontend fayllariga TEGILMADI va bu TEKSHIRILDI, taxmin qilinmadi** —
+  `?v=` kesh raqamlari oshirilmadi, chunki oshiriladigan fayl o'zgarmagan
+  (Test 16 yashil). Yangi migratsiya YO'Q. Hujjat: **`docs/manba-havolalari.md`
+  YANGI** — havola shakli, kanal ro'yxati jadvali, birinchi teginish qoidasi
+  va uchidan-uchigacha tekshirish buyruqlari; jadval bo'sh emas, u
+  «qaysi kanalga qaysi havola berilgan» savolini hujjatsiz qoldirmaydi.
+
+  🔴 **HALOL CHEGARA — UCHALA BAND HAM FOUNDER QO'LIDA YOPILADI, KODDA
+  EMAS.** Bu ish nuqsonni KO'RINADIGAN qildi, SODIR BO'LGANINI emas:
+  (a) `db/025` production'da qo'llanganini tasdiqlash kerak
+  (`\d users | grep src`) — qo'llanmagan bo'lsa har `/start` da foydalanuvchi
+  bazaga UMUMAN yozilmayapti va manba ham, hisob ham to'xtagan;
+  (b) deploy'dan keyin server O'ZI yuboradigan alertdagi ID `.env` →
+  `SELLER_TG_IDS` ga ko'chirilsin + servis restarti — bazada 1 sotuvchi bor
+  va u kabinetni HOZIR ko'rmayapti;
+  (c) bitta haqiqiy deep-link havolasi bosilib `src` yozilishi o'lchansin.
+  ⚠️ `server/` CI orqali chiqmaydi — rsync va restart founder zimmasida
+  (deploy qoidasi), ya'ni push qilinishining o'zi hech narsani yoqmaydi.
+  Batafsil: manba bandi — `sprint-7.md`, AI bandi — `sprint-10.md`.
+
 - [2026-08-14] **SEVIMLI MATOLAR ENDI BAZADA — ♡ ilova yopilgandan keyin ham
   qoladi** (founder qarori: «sevimlilarni bazaga saqlaydigan qilamiz»).
   🔴 **Bu yozuvning eng muhim qismi funksiya emas, NUQSON QAYERDA
@@ -2277,6 +2381,45 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
 ---
 
 ## Qarorlar
+
+- [2026-08-14] Qaror (founder): **deep-link manba belgisining shakli QAT'IY
+  QOLADI, o'zgaradigan narsa — JIMLIK.** Telegram `?start=Instagram` va
+  `?start=guruh-ipak` ga ruxsat beradi, biz esa faqat `[a-z0-9_]{2,32}` ni
+  qabul qilamiz. Shaklni kengaytirish rad etildi: `IG` va `ig` panelda IKKI
+  qatorga bo'linib, bitta kanal ikkita kanal bo'lib ko'rinardi — ya'ni
+  «hammasini qabul qilamiz» yechimi o'lchovni tuzatmasdi, boshqa tomondan
+  buzardi. O'rniga rad etish **alertga chiqadi** (`manbaAniqla`): havola
+  noto'g'ri yozilgan bo'lsa biz buni o'sha kuni bilamiz, oy oxirida
+  «kanal nol berdi» degan yolg'on hisobot orqali emas.
+
+- [2026-08-14] Qaror: **`console.error` NUQSON BO'LMAGAN hodisa uchun ham
+  ishlatiladi, agar u BIZ KO'RISHIMIZ KERAK bo'lgan yagona hodisa bo'lsa.**
+  AI qayta urinishi yordam berganda alert ketadi, garchi bu muvaffaqiyat
+  bo'lsa ham. Sabab: `console.log` journalctl'da yotadi va hech kim
+  o'qimaydi — ya'ni «kod ishladi» degan fakt hech qachon ko'zga
+  ko'rinmasdi va band mangu ochiq qolardi. ⚠️ **Chegara ham qat'iy:**
+  odatdagi muvaffaqiyat (birinchi urinishda rasm) JIM qoladi — har hodisa
+  alert yuborsa tom to'lib, haqiqiy signal ko'milib ketardi. Qoida:
+  **alertga NODIR va MA'NOLI hodisa chiqadi, tez-tez bo'ladigani emas.**
+
+- [2026-08-14] Qaror: **jimgina noto'g'ri ishlaydigan sozlama uchun QOROVUL
+  YOZILADI, hujjatga ogohlantirish yozish YETARLI EMAS.** `SELLER_TG_IDS`
+  🔴 ogohlantirishi CLAUDE.md da 2026-08-13 dan beri turardi va shunga
+  qaramay ro'yxat `.env` da umuman to'ldirilmagan edi. Bu «yozilgan qoida
+  himoya emas — uni tekshiradigan test himoya» oilasining yangi a'zosi,
+  faqat bu safar tekshiruvchi test emas, **ishlab turgan serverning o'zi**:
+  holat kod emas, MA'LUMOT darajasida buziladi, ya'ni testda ko'rinmaydi.
+
+- [2026-08-14] Qaror: **qorovul manba kodidan MATN qidirmasin — XATTI-HARAKATNI
+  bajarib ko'rsin, agar bajarish imkoni bo'lsa.** Deep-link ogohlantirishining
+  birinchi qorovuli `console.error(...` satrini qidirardi va mutatsiyada
+  `if (false)` qo'yilganda YASHIL qoldi. Endi test funksiyani haqiqatan
+  chaqiradi va `console.error` ni ushlaydi. ⚠️ Buning ARXITEKTURAVIY narxi
+  bor va u ataylab to'landi: ogohlantirish `/start` ichidagi oddiy `if`
+  bo'lolmaydi — u **qiymat qaytaradigan o'ramga** ko'chirildi, aks holda
+  chaqirib sinab bo'lmasdi. Ya'ni **sinaladigan qilish uchun kod shakli
+  o'zgardi.** Matn skanerlash faqat bajarib bo'lmaydigan joyda qoladi
+  (CSS, HTML, migratsiya tartibi) va u yerda ham mutatsiya bilan sinaladi.
 
 - [2026-08-14] Qaror (founder): **sevimlilar BAZADA saqlanadi, brauzer
   xotirasida emas** («sevimlilarni bazaga saqlaydigan qilamiz»). Sabab

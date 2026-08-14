@@ -1398,7 +1398,7 @@ function testAssetVersionsAreFresh() {
     // YUQORIGA suriladi: teng raqam qaytib kelgan foydalanuvchida keshdagi
     // BIR TOMONLAMA faylni qoldirardi — sevimlilar yoki chiqish tuzatishining
     // faqat bittasi bo'lgan `app.js`.
-    'panel.js': { v: 34, hash: 'acceba8d70f7' },
+    'panel.js': { v: 35, hash: '2bdfc227084e' },
     'admin/admin.css': { v: 18, hash: '15b0bc977b85' },
     'admin/admin.js': { v: 25, hash: '08fae1bb61dc' },
     'telegram-app/styles.css': { v: 34, hash: '03709d4225aa' },
@@ -1848,16 +1848,31 @@ async function testEmptyImageResponseRetries() {
     return { post, kut: async () => {}, budjet, soni: () => soni };
   }
 
+  // Qayta urinish KO'RINISHINI o'lchash uchun `console.error` ushlanadi
+  // (5-bandga qara). Yo'l-yo'lakay test chiqishi ham toza qoladi.
+  async function tutib(fn) {
+    const realError = console.error;
+    const realLog = console.log;
+    const errs = [];
+    const logs = [];
+    console.error = (...a) => errs.push(a.map(String).join(' '));
+    console.log = (...a) => logs.push(a.map(String).join(' '));
+    try { return { natija: await fn(), errs, logs }; }
+    finally { console.error = realError; console.log = realLog; }
+  }
+
   // ---- 1. IMAGE_OTHER dan keyin RASM keladi — natija qaytsin ----
   let s = yurit([bosh('IMAGE_OTHER'), rasm]);
-  const n1 = await generateImage(mahsulot, manba, javoblar, s);
+  const t1 = await tutib(() => generateImage(mahsulot, manba, javoblar, s));
+  const n1 = t1.natija;
   assert.ok(Buffer.isBuffer(n1.buf) && n1.buf.length, 'ikkinchi urinishdagi rasm qaytsin');
   assert.strictEqual(s.soni(), 2, 'bo\'sh javobdan keyin AYNAN bir marta qayta urinilsin');
 
   // ---- 2. Har safar bo'sh — chegara BOR, cheksiz aylanmasin ----
   s = yurit([bosh('IMAGE_OTHER')]);
-  await assert.rejects(() => generateImage(mahsulot, manba, javoblar, s), /IMAGE_OTHER/,
-    'urinishlar tugagach xato SABABI bilan chiqsin');
+  // `tutib` — chiqish tozaligi uchun: har urinish jurnalga bir qator yozadi.
+  await tutib(() => assert.rejects(() => generateImage(mahsulot, manba, javoblar, s), /IMAGE_OTHER/,
+    'urinishlar tugagach xato SABABI bilan chiqsin'));
   assert.strictEqual(s.soni(), BOSH_JAVOB_URINISH + 1,
     `bo'sh javobda jami ${BOSH_JAVOB_URINISH + 1} urinish bo'lsin`);
 
@@ -1881,7 +1896,29 @@ async function testEmptyImageResponseRetries() {
   await assert.rejects(() => generateImage(mahsulot, manba, javoblar, s), /IMAGE_OTHER/);
   assert.strictEqual(s.soni(), 1, 'budjet tugagan bo\'lsa qayta urinilmasin');
 
-  // ---- 4. Production yo'li test teshigini UZATMASIN ----
+  // ---- 5. QAYTA URINISH KO'RINSIN — aks holda u MANGU "isbotlanmagan" ----
+  // ⚠️ Bu band boshqalaridan boshqa narsani qo'riqlaydi: qolganlari tsikl
+  // TO'G'RI ishlashini tekshiradi, bu esa tsikl ishlaganini BILIB
+  // bo'lishini. 2026-08-14 gacha tsikl butunlay jim edi va shuning uchun
+  // "kod bor, jonli isbotlanmagan" bandi yopilishi MUMKIN EMAS edi —
+  // hodisa sodir bo'lsa ham hech qayerda iz qolmasdi.
+  //
+  // `console.error` ATAYLAB (nuqson emasligiga qaramay): faqat u Telegram
+  // alertiga chiqadi, `console.log` esa journalctl'da o'qilmay yotadi.
+  assert.ok(t1.errs.some((s2) => /qayta urinish yordam berdi/i.test(s2)),
+    'bo\'sh javobdan keyin rasm kelsa bu ALERTGA chiqsin — aks holda qayta '
+    + 'urinish jonli ishlagani hech qachon ma\'lum bo\'lmaydi');
+  assert.ok(t1.logs.some((s2) => /bo'sh javob/i.test(s2)),
+    'urinishlar orasidagi tafsilot jurnalga yozilsin');
+
+  // Birinchi urinishda rasm kelsa — JIM. Aks holda har bir muvaffaqiyatli
+  // rasm alert yuborib, tomni to'ldirardi va haqiqiy signal ko'milib ketardi.
+  const t2 = await tutib(() => generateImage(mahsulot, manba, javoblar, yurit([rasm])));
+  assert.ok(Buffer.isBuffer(t2.natija.buf), 'birinchi urinishda rasm qaytsin');
+  assert.strictEqual(t2.errs.length, 0,
+    'qayta urinishsiz muvaffaqiyat JIM bo\'lsin — har rasm alert yuborsa tom to\'lardi');
+
+  // ---- 6. Production yo'li test teshigini UZATMASIN ----
   // Aks holda `sinov` sozlamaga aylanib, tarmoq chaqiruvi jimgina
   // almashtirilishi mumkin bo'lardi.
   const fs = require('fs');
@@ -1965,6 +2002,91 @@ async function testSellerCabinetAllowlist() {
   assert.ok(/sellerAllowed\(/.test(tana), 'currentSeller sellerAllowed dan o\'tsin');
 
   console.log(`✅ Test 24: Sotuvchi kabineti founder ro'yxatida — PASS (${SELLER_TG_IDS.size} ID)`);
+}
+
+// ============ TEST 35: Ko'rinmaydigan sotuvchi QICHQIRSIN (2026-08-14) =====
+// Test 24 ro'yxat QOIDASINI qo'riqlaydi. Bu esa qoidaning eng qimmat
+// YON TA'SIRINI: ro'yxatga yozish UNUTILSA nima bo'lishini.
+//
+// Holat 2026-08-14 da haqiqatan mavjud edi — bazada `role='seller'` odam
+// bor, `SELLER_TG_IDS` `.env` da UMUMAN yo'q, kabinet esa ochilmaydi. Va
+// bu holatni HECH NARSA ko'rsatmasdi: `currentSeller` rolni jimgina
+// `buyer` ga tushiradi, endpoint 403 beradi, jurnalda xato yo'q. Sotuvchi
+// "ilova buzilibdi" deb o'ylaydi va odatda umuman yozmaydi.
+//
+// ⚠️ Qorovul ro'yxat shartini QAYTA YOZMASIN — `sellerAllowed` ni
+// chaqirsin. Aks holda shart ikki joyda yashab, biri o'zgarganda ikkinchisi
+// jimgina eskirardi (`authUser()` naqshi, CLAUDE.md).
+async function testHiddenSellerIsLoud() {
+  const fs = require('fs');
+  const path = require('path');
+  const { hiddenSellers, runSellerCheck } = require('./lib/self-check');
+  const { ADMIN_CHAT_ID } = require('./config');
+
+  const soxtaDb = (rows) => ({ query: async () => ({ rows }) });
+
+  // ---- 1. Ro'yxatda YO'Q sotuvchi topilsin ----
+  const yashirin = await hiddenSellers(soxtaDb([
+    { tg_user_id: '999000111', nom: 'Ipak Tekstil' },
+  ]));
+  assert.strictEqual(yashirin.length, 1, 'ro\'yxatda yo\'q sotuvchi TOPILSIN');
+  assert.strictEqual(yashirin[0].tg_user_id, '999000111');
+
+  // ---- 2. Ro'yxatdagi sotuvchi shovqin qilmasin ----
+  const toza = await hiddenSellers(soxtaDb([
+    { tg_user_id: String(ADMIN_CHAT_ID), nom: 'Founder' },
+  ]));
+  assert.strictEqual(toza.length, 0,
+    'ro\'yxatdagi sotuvchi ogohlantirishga TUSHMASIN — aks holda alert har soatda '
+    + 'takrorlanib, haqiqiy signal ko\'milib ketardi');
+
+  // ---- 3. Baza shartlari `requireSeller` bilan BIR XIL bo'lsin ----
+  // `LEFT JOIN` bo'lsa `sellers` yozuvisiz odam ham "yashirin sotuvchi"
+  // bo'lib chiqardi — holbuki kabinet unga BARIBIR ochilmaydi va bu
+  // ogohlantirish yolg'on bo'lardi.
+  // ⚠️ IZOHLAR OLIB TASHLANADI (`kodSofi`) — bu loyihada aynan shu tuzoq
+  // bir marta qorovulni aldagan: izohdagi so'z HAQIQIY chaqiruv deb qabul
+  // qilingan va mutatsiya jimgina o'tib ketgan (Test 3f izohi).
+  const kod = kodSofi(fs.readFileSync(path.join(__dirname, 'lib', 'self-check.js'), 'utf8'));
+  assert.ok(/JOIN sellers s ON s\.user_id = u\.id/.test(kod) && !/LEFT JOIN sellers/.test(kod),
+    'shart `requireSeller` bilan bir xil bo\'lsin: `role = \'seller\'` VA `sellers` yozuvi');
+  assert.ok(/u\.role = 'seller'/.test(kod), 'rol sharti ham tekshirilsin');
+
+  // ---- 4. Tekshiruv QAYTA YOZILMASIN — `sellerAllowed` chaqirilsin ----
+  // ⚠️ Sozlama NOMI ogohlantirish MATNIDA bo'lishi SHART — founder qaysi
+  // kalitni to'ldirishni bilishi kerak. Taqiqlanadigan narsa boshqa:
+  // ro'yxatning O'ZINI bu yerga import qilib, shartni qayta yozish.
+  assert.ok(/sellerAllowed\(/.test(kod),
+    'ro\'yxat sharti `sellerAllowed` orqali olinsin');
+  assert.ok(!/\{[^}]*SELLER_TG_IDS[^}]*\}\s*=\s*require/.test(kod),
+    '`SELLER_TG_IDS` bu yerga import QILINMASIN — shart ikki joyda yashasa, '
+    + 'biri o\'zgarganda ikkinchisi jimgina eskirardi (`authUser()` naqshi)');
+
+  // ---- 5. Topilgan holat ALERTGA chiqsin ----
+  // Funksiya bor-u, chaqirilmasa yoki jim qaytsa — u yolg'on tinchlik.
+  const realError = console.error;
+  const errs = [];
+  console.error = (...a) => errs.push(a.map(String).join(' '));
+  let ok;
+  try {
+    const { pool } = require('./db');
+    const asl = pool.query;
+    pool.query = async () => ({ rows: [{ tg_user_id: '999000111', nom: 'Ipak Tekstil' }] });
+    try { ok = await runSellerCheck(); } finally { pool.query = asl; }
+  } finally { console.error = realError; }
+
+  assert.strictEqual(ok, false, 'yashirin sotuvchi bo\'lsa tekshiruv FALSE qaytarsin');
+  assert.ok(errs.some((s) => /SELLER_TG_IDS da yo'q/.test(s)),
+    'yashirin sotuvchi `console.error` orqali Telegram alertiga chiqsin');
+  assert.ok(errs.some((s) => /999000111/.test(s)),
+    'ogohlantirishda AYNAN qaysi ID yetishmayotgani yozilsin — aks holda '
+    + 'founder uni qayerdan olishni bilmasdi');
+
+  // ---- 6. Qorovul ishga tushirilsin ----
+  assert.ok(/setInterval\(runSellerCheck/.test(kod),
+    'tekshiruv `install()` da rejaga qo\'yilsin — sotuvchi keyin ham qo\'shiladi');
+
+  console.log('✅ Test 35: Ko\'rinmaydigan sotuvchi qichqiradi — PASS (6 band)');
 }
 
 // ============ TEST 25: Rasm sxemasi CSP ga sig'sin (2026-08-13) ===========
@@ -3435,8 +3557,70 @@ function testSourceTag() {
   const src = fs.readFileSync(path.join(__dirname, 'routes', 'webhook.js'), 'utf8');
 
   // Qorovul CHAQIRILSIN — funksiya bor-u, ishlatilmasa u yolg'on tinchlik.
-  assert.ok(/manbaBelgisi\(startParam\)/.test(src),
-    '`/start` yozuvi `manbaBelgisi(startParam)` dan o\'tsin — xom payload bazaga ketmasin');
+  // `/start` endi `manbaAniqla` ni chaqiradi (o'ram), u esa ichida
+  // `manbaBelgisi` ni — ikkala bo'g'in ham tekshiriladi.
+  assert.ok(/const manba = manbaBelgisi\(payload\)/.test(src),
+    '`manbaAniqla` tozalashni `manbaBelgisi` ga topshirsin — shakl qoidasi '
+    + 'ikkinchi nusxaga ko\'chirilmasin');
+
+  // ⚠️ Chaqiruv borligi YETARLI EMAS — natijasi `INSERT` ga BORISHI ham shart.
+  // `manbaBelgisi(startParam)` hisoblanib, so'ngra parametrga `startParam`
+  // uzatilsa test yashil qolib, xom payload bazaga tushardi.
+  assert.ok(/username \|\| null,\s*manba\]/.test(src),
+    'INSERT parametri TOZALANGAN `manba` bo\'lsin — `startParam` emas');
+
+  // ============ JIM RAD ETISH (2026-08-14) ============
+  // Shakl qat'iy qoldirildi (founder qarori), ya'ni Telegram RUXSAT
+  // beradigan `?start=Instagram` yoki `?start=guruh-ipak` havolasi rad
+  // etiladi. Rad etishning O'ZI to'g'ri; JIM rad etish esa nuqson: havola
+  // ishlaydi, odam kiradi, kanal esa panelda "nol berdi" bo'lib ko'rinadi —
+  // ya'ni raqam yo'q emas, YOLG'ON bo'ladi ([[tekshiruv-xatolari]] oilasi).
+  //
+  // ⚠️ MATN EMAS, XATTI-HARAKAT sinaladi. Birinchi variant manba kodidan
+  // `console.error('deep-link...` ni qidirardi va mutatsiya bilan sinalganda
+  // O'TIB KETDI: chaqiruv oldiga `if (false)` qo'yilsa matn joyida qoladi.
+  // Loyihada bu dars allaqachon yozilgan (Test 3f — "o'ramning NOMIGA
+  // ishonish yetarli emas, ichi ochib ko'riladi").
+  const { manbaAniqla } = require('./routes/webhook');
+  const ogohlantirish = (payload) => {
+    const realError = console.error;
+    const errs = [];
+    console.error = (...a) => errs.push(a.map(String).join(' '));
+    let natija;
+    try { natija = manbaAniqla(payload); } finally { console.error = realError; }
+    return { natija, errs };
+  };
+
+  for (const yomonHavola of ['Instagram', 'guruh-ipak', 'IG', 'insta.com']) {
+    const r = ogohlantirish(yomonHavola);
+    assert.strictEqual(r.natija, null, `\`${yomonHavola}\` baribir RAD etilsin`);
+    assert.ok(r.errs.some((s2) => /manba belgisi rad etildi/.test(s2)),
+      `\`${yomonHavola}\` ALERTGA chiqsin — Telegram bunday havolaga ruxsat beradi, `
+      + 'ya\'ni odam kiradi va manba jimgina yo\'qolardi');
+    assert.ok(r.errs.some((s2) => s2.includes(yomonHavola)),
+      'ogohlantirishda AYNAN qaysi payload rad etilgani ko\'rinsin');
+  }
+
+  // Ikkita hol ATAYLAB jim: payloadsiz `/start` (odatdagi kirish — har
+  // safar alert yuborardi) va `web_...` (saytga kirish kodi, manba emas).
+  for (const jimHol of ['', '   ', 'web_a1b2c3d4', 'web_ESKIRGAN']) {
+    const r = ogohlantirish(jimHol);
+    assert.strictEqual(r.errs.length, 0,
+      `\`${jimHol || '(bo\'sh)'}\` JIM qolsin — odatdagi /start va sayt kirish kodi `
+      + 'alertga aylansa tom to\'lib, haqiqiy signal ko\'milib ketardi');
+  }
+
+  // To'g'ri havola ham jim va qiymatni QAYTARSIN.
+  const yaxshiHavola = ogohlantirish('guruh_ipak');
+  assert.strictEqual(yaxshiHavola.natija, 'guruh_ipak');
+  assert.strictEqual(yaxshiHavola.errs.length, 0, 'to\'g\'ri havola ogohlantirmasin');
+
+  // O'ram CHETLAB O'TILMASIN: `/start` `manbaBelgisi` ga qaytarilsa
+  // ogohlantirish yo'qolardi va yuqoridagi xatti-harakat testi buni
+  // KO'RMASDI (funksiyaning o'zi hamon to'g'ri ishlayveradi).
+  assert.ok(/const manba = manbaAniqla\(startParam\)/.test(src),
+    '`/start` `manbaAniqla` dan o\'tsin — `manbaBelgisi` ga qaytarilsa '
+    + 'tozalash qoladi-yu, ogohlantirish jimgina yo\'qolardi');
 
   // BIRINCHI TEGINISH: `COALESCE(users.src, EXCLUDED.src)` — TARTIB muhim.
   assert.ok(/src\s*=\s*COALESCE\(users\.src,\s*EXCLUDED\.src\)/.test(src),
@@ -4363,6 +4547,7 @@ async function runTests() {
     testComboText();
 
     await testSellerCabinetAllowlist();
+    await testHiddenSellerIsLoud();
     testImageSchemeAllowedByCsp();
 
     testAdminActionKinds();

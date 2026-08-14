@@ -32,6 +32,44 @@ function manbaBelgisi(payload) {
   return v;
 }
 
+// ============ JIM RAD ETISH BUZILDI (2026-08-14) ============
+// Shakl ATAYLAB qat'iy (faqat `[a-z0-9_]`), Telegram esa deep-link'da katta
+// harf va chiziqchaga ham RUXSAT beradi. Ya'ni `?start=Instagram` yoki
+// `?start=guruh-ipak` havolasi ISHLAYDI — odam botga kiradi, biz esa
+// manbani jimgina tashlab yuboramiz va panelda o'sha kanal "nol berdi"
+// bo'lib ko'rinadi. Bu loyihaning eng qimmat xato turi: raqam yo'q emas,
+// YOLG'ON.
+//
+// Shakl QAT'IY QOLDIRILDI (founder qarori, 2026-08-14) — kengaytirilsa `IG`
+// va `ig` ikki xil kanal bo'lib panelda ikki qatorga bo'linardi. O'zgargani
+// JIMLIK: rad etilgan payload endi alertga chiqadi.
+//
+// ⚠️ NEGA O'RAM, nega `/start` ichida oddiy `if` EMAS: alohida chaqiruv
+// `if (false)` bilan o'chirilsa qorovul buni ko'rmasdi — mutatsiya bilan
+// SINALDI va o'tib ketdi. O'ram esa qiymatni QAYTARADI, ya'ni uni chetlab
+// o'tish uchun `/start` ni `manbaBelgisi` ga qaytarish kerak — buni Test 27
+// manba kodidan ushlaydi. Ogohlantirishning O'ZI esa xatti-harakat bilan
+// sinaladi, matn bilan emas.
+//
+// ⚠️ Ikkita hol ATAYLAB jim: (1) payload umuman yo'q — bu ODATDAGI `/start`
+// va u har kirishda alert yuborardi; (2) `web_...` — saytga kirish kodi, u
+// manba emas va shakli buzilgani ham normal (eskirgan havola).
+//
+// Alert kaliti BARQAROR (birinchi argument), payload ikkinchida — aks holda
+// har xil payload alohida guruh bo'lib tomni to'ldirardi. `alert.js` matnni
+// `escapeHtml` dan o'tkazadi, ya'ni ixtiyoriy matn xavfsiz.
+function manbaAniqla(payload) {
+  const manba = manbaBelgisi(payload);
+  const xom = String(payload || '').trim();
+  if (!manba && xom && !xom.startsWith('web_')) {
+    console.error(
+      'deep-link manba belgisi rad etildi — havola shakli noto\'g\'ri:',
+      xom.slice(0, 64)
+    );
+  }
+  return manba;
+}
+
 // ============ Telegram webhook ============
 async function handleTelegramWebhook(req, res) {
   if (WEBHOOK_SECRET) {
@@ -368,6 +406,9 @@ async function handleTelegramWebhook(req, res) {
       // Telegram'ning o'zi yuboradi va so'rov WEBHOOK_SECRET bilan
       // tekshirilgan (CLAUDE.md — foydalanuvchi kimligi brauzerdan olinmaydi).
       const startParam = text.slice('/start'.length).trim();
+      // ⚠️ `manbaAniqla`, `manbaBelgisi` EMAS: o'ram tozalash bilan birga
+      // rad etilgan havolani ALERTGA chiqaradi (izohi funksiya ustida).
+      const manba = manbaAniqla(startParam);
 
       if (msg.from && msg.from.id) {
         const startName =
@@ -383,8 +424,9 @@ async function handleTelegramWebhook(req, res) {
              SET full_name   = COALESCE(users.full_name, EXCLUDED.full_name),
                  tg_username = COALESCE(EXCLUDED.tg_username, users.tg_username),
                  src         = COALESCE(users.src, EXCLUDED.src)`,
-          [String(msg.from.id), startName, msg.from.username || null,
-            manbaBelgisi(startParam)]
+          // ⚠️ `manba` — TOZALANGAN qiymat, `startParam` EMAS. Xom payload
+          // bazaga tushsa panel `GROUP BY` ga ixtiyoriy matn kirardi.
+          [String(msg.from.id), startName, msg.from.username || null, manba]
         // Birinchi argument — alert guruhlash kaliti, o'zgaruvchan qism ikkinchida.
         ).catch((e) => console.error('/start foydalanuvchini yozishda xato:', e.message));
       }
@@ -413,4 +455,8 @@ module.exports = {
   // Sinov uchun ATAYLAB ochiq — `videoRadSababi` va `tekshirKalit` bilan
   // bitta qoida: qorovulni to'g'ridan-to'g'ri sinab bo'lsin.
   manbaBelgisi,
+  // `manbaAniqla` ham ochiq: uning ogohlantirishi MATN bilan emas,
+  // XATTI-HARAKAT bilan sinaladi (mutatsiya 5 aynan matn tekshiruvidan
+  // o'tib ketgan edi).
+  manbaAniqla,
 };

@@ -1973,13 +1973,49 @@ SAFAR rad etiladi, bo'sh javob esa keyingi urinishda rasm beradi.
   usiz test fayli import bosqichidayoq boshqa yo'lga tushardi. Testlar
   tarmoqqa CHIQMAYDI
 
+- [2026-08-14] **QAYTA URINISH ENDI KO'RINADI — va bu «yaxshi bo'lardi»
+  emas, bandning YOPILISH SHARTI edi.** Pastdagi 1-band («production'da
+  hali sinalmagan») **kod tuzatilmaguncha MANGU ochiq qolardi** va sabab
+  mantiqiy: tsikl butunlay JIM ishlardi. Bo'sh javob kelib, keyin rasm
+  chizilsa — foydalanuvchi normal rasm oladi, jurnalda hech narsa yo'q,
+  alert yo'q. Ya'ni hodisa sodir bo'lsa ham **uni ko'radigan odam yo'q edi**,
+  demak «jonli tasdiqlash» degan mezonni bajarish IMKONSIZ edi. Bu
+  mezonning o'zi tekshirilmagan da'vo bo'lib turgan: «kuzatamiz» deyilgan,
+  kuzatadigan asbob esa yaratilmagan.
+
+  Tuzatish (`lib/ai.js`): bo'sh javobdan keyin rasm kelsa `console.error`
+  — «AI rasm: qayta urinish yordam berdi (kuzatuv, nuqson emas)»; urinishlar
+  orasidagi tafsilot esa `console.log` (natija hali noma'lum, alert erta).
+  ⚠️ **`console.error` ATAYLAB, garchi bu NUQSON bo'lmasa ham:** alert —
+  bizdagi yagona ko'radigan ko'z, `console.log` journalctl'da o'qilmay
+  yotadi. Kalitning O'ZIDA «nuqson emas» yozilgan, chunki alert sarlavhasi
+  «Server xatosi» deb chiqadi va bu yerda chalg'itardi. Kalit BARQAROR,
+  urinish raqami ikkinchi argumentda (Test 10c qoidasi).
+  ⚠️ **Birinchi urinishdagi muvaffaqiyat JIM qoladi** — aks holda HAR bir
+  rasm alert yuborib tomni to'ldirardi va haqiqiy signal ko'milib ketardi
+  (`ALERT_CHAT_ID` darsining teskari tomoni: jimlik ham, shovqin ham
+  ko'rmaslikka olib keladi).
+
+  **Test 14q ga 5-band qo'shildi** va u qolgan bandlardan BOSHQA narsani
+  qo'riqlaydi: qolganlari tsikl TO'G'RI ishlashini, bu esa tsikl
+  ishlaganini **BILIB bo'lishini**. Ikki tomonli: bo'sh javobdan keyin
+  alert BO'LSIN, qayta urinishsiz muvaffaqiyatda alert BO'LMASIN.
+  Sinalgani: **74 test yashil** (73 → 74), mutatsiya bilan tekshirildi.
+
 ### Ochiq qolgani
 
 1. 🔴 **Tuzatish production'da HALI sinalmagan** — `server/` CI orqali
    chiqmaydi, qo'lda rsync va servis restarti kerak. Bu bandning
    yopilish mezoni: xato jurnalda qayta chiqmasligi EMAS (u tasodifiy
    keladi), balki **`aiImage xatosi: javobda rasm yo'q` alertidan keyin
-   ham foydalanuvchi rasm olgani** ko'rilishi
-2. Qayta urinish sarflangan vaqtni O'LCHAMAYDI — necha marta urinilgani
-   jurnalga yozilmaydi. Ya'ni "bo'sh javob qanchalik tez-tez bo'ladi"
-   degan savolga hozir javob yo'q; kerak bo'lsa alohida band
+   ham foydalanuvchi rasm olgani** ko'rilishi.
+   ⚠️ **2026-08-14: mezonni BAJARIB bo'ladigan holga keltirildi** — qayta
+   urinish endi alert yuboradi (yuqoridagi yozuv), ya'ni hodisa sodir
+   bo'lsa Telegram'da ko'rinadi. Band hamon OCHIQ: asbob tayyor, o'lchov
+   esa hali olinmagan va deploy ham qilinmagan
+2. ✅ **YOPILDI (2026-08-14)** — ilgari bu yerda «qayta urinish necha marta
+   bo'lganini jurnalga yozmaydi» deb turgandi. Endi yozadi: har urinish
+   `console.log` ga sabab bilan tushadi, yordam bergani esa alertga. Ya'ni
+   «bo'sh javob qanchalik tez-tez bo'ladi» degan savolga javob beradigan
+   ma'lumot to'plana boshlaydi. ⚠️ Sarflangan VAQT hamon o'lchanmaydi —
+   kerak bo'lsa alohida band, lekin hozircha ehtiyoj isbotlanmagan
