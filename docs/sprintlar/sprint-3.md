@@ -176,7 +176,7 @@ ma'lumotdan aniqlanadi. Har kim faqat o'z buyurtmalarini ko'radi.
   `POST /api/auth/web/logout` esa `web_sessions` dagi yozuvni O'CHIRADI.
   Umumiy kompyuterda hisobni yopish yo'li shu, ya'ni ikki yuz bir xil
   ko'rinishi SHART EMAS: **farq uslubda emas, KIMLIK MANBAIDA**
-- [2026-08-14] **Qorovul — `server/test.js` → Test 33**, ikki tomonga qaraydi:
+- [2026-08-14] **Qorovul — `server/test.js` → Test 34**, ikki tomonga qaraydi:
   (a) Mini App'ga chiqish tugmasi qaytmasin (4 ta taqiq namunasi — `logout`,
   `signOut`, "Hisobdan chiqish", "Выйти"); (b) saytdan yo'qolmasin
   (`data-action="logout"`, endpoint, `handleWebLogout` TANASIDA

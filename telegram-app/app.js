@@ -210,6 +210,7 @@ const STR = {
     // Buyurtmadagi mahsulot katalogdan chiqib ketgan (e'lon yopilgan/o'chirilgan).
     // Tarix baribir ko'rsatiladi — xaridor NIMA buyurtma qilganini bilishi shart.
     itemGone: "Mahsulot endi mavjud emas", reorderPartial: "Mavjud matolar savatga qo'shildi",
+    likeErr: "Saqlanmadi — internetni tekshiring",
     // Yoqtirilgan matolar. Ilgari ♡ bosilardi-yu, ular QAYERGA tushgani
     // hech qayerda ko'rinmasdi — ya'ni tugma ishlagandek tuyulib, natijasi
     // yo'q edi (founder, 2026-08-13).
@@ -370,6 +371,7 @@ const STR = {
     noResultsSub: "Попробуйте другой запрос", resultsN: "результатов", tabHome: "Каталог", tabAi: "AI",
     tabCart: "Корзина", tabOrders: "Заказы", tabProfile: "Профиль", added: "Добавлено в корзину 🌷", liked: "Добавлено в избранное",
     itemGone: "Товар больше недоступен", reorderPartial: "Доступные ткани добавлены в корзину",
+    likeErr: "Не сохранилось — проверьте интернет",
     savedT: "Сохранённые ткани", savedEmpty: "Пока ничего не сохранено",
     savedEmptySub: "Отметьте понравившуюся ткань ♡ — она появится здесь", savedGo: "В каталог",
     orderPlaced: "Заказ принят", orderPlacedSub: "Производитель подтвердит — мы сообщим вам",
@@ -3980,10 +3982,63 @@ function toggleNotif() {
   S.notif = !S.notif;
   document.getElementById('screen-wrap').innerHTML = renderProfile();
 }
-function toggleLike(id) {
-  S.liked[id] = !S.liked[id];
-  if (S.liked[id]) showToast(STR[S.lang].liked);
+/* ══ SEVIMLILAR BAZADA (2026-08-14, founder qarori) ══
+   Ilgari `S.liked` faqat XOTIRADA edi: ilova yopilsa saqlangan mato
+   yo'qolardi va boshqa qurilmada ro'yxat bo'sh chiqardi. Ya'ni ♡ tugmasi
+   shu kuni tuzatilgan bo'lsa ham (4/15 → 15/15), ortidagi va'da hamon
+   bajarilmasdi.
+
+   ⚠️ EKRAN DARROV o'zgaradi, server esa ORTIDAN yetib boradi (optimistik).
+   Sabab: ♡ — bir bosishlik ish va tarmoqni kutib turgan tugma "ishlamadi"
+   deb o'qiladi. LEKIN yolg'on ko'rsatilmaydi: server rad etsa holat
+   ORQAGA qaytariladi va xato aytiladi — aks holda xaridor saqlanmagan
+   matoni saqlangan deb o'ylab yurardi (jimgina yolg'on, CLAUDE.md).
+
+   ⚠️ Kimlik yo'q bo'lsa (Mini App sayt sifatida ochilgan — `initData` yo'q)
+   server CHAQIRILMAYDI va ♡ xotirada qolaveradi. Bu ataylab: 401 ni
+   xatoga aylantirish "tugma buzuq" degan taassurot berardi, holbuki
+   Telegram ichida hammasi joyida ishlaydi. */
+async function toggleLike(id) {
+  const oldingi = !!S.liked[id];
+  const yangi = !oldingi;
+  S.liked[id] = yangi;
+  if (yangi) showToast(STR[S.lang].liked);
   render();
+
+  if (!tgInitData()) return;          // kimlik yo'q — faqat xotirada
+  try {
+    const r = await fetch('/api/favorites', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Telegram-Init-Data': tgInitData() },
+      body: JSON.stringify({ productId: id, liked: yangi }),
+    });
+    const d = await r.json().catch(() => null);
+    if (!d || d.ok !== true) throw new Error((d && d.error) || 'saqlanmadi');
+  } catch (e) {
+    S.liked[id] = oldingi;            // server bilmagan narsa saqlangan emas
+    render();
+    // Birinchi argument — alert guruhlash kaliti (CLAUDE.md).
+    console.error('sevimli saqlanmadi:', e.message);
+    showToast(STR[S.lang].likeErr);
+  }
+}
+
+/* Ro'yxat BAZADAN olinadi — `localStorage` ATAYLAB ishlatilmaydi.
+   `pickup_point` darsi: ikkita manba bo'lsa, boshqa qurilmada olib
+   tashlangan tanlov bu yerda jimgina TIRILIB qolardi. Haqiqat manbai
+   bitta — baza. Server javob bermasa ro'yxat bo'sh qoladi (o'ylab
+   topilgan mazmun ko'rsatilmaydi). */
+async function loadFavorites() {
+  if (!tgInitData()) return;
+  try {
+    const r = await fetch('/api/favorites', { headers: { 'X-Telegram-Init-Data': tgInitData() } });
+    if (!r.ok) return;
+    const d = apiData(await r.json());
+    if (!d || !Array.isArray(d.ids)) return;
+    const yangi = {};
+    d.ids.forEach((x) => { yangi[x] = true; });
+    S.liked = yangi;
+  } catch (e) { /* jim — sevimlilar ilovaning ishlashiga to'sqinlik qilmaydi */ }
 }
 function selectCat(c) {
   const prev = S.cat;
@@ -4918,6 +4973,7 @@ render();
   await loadDisputes();           // o'z bahslari — buyurtma kartochkasida ko'rsatiladi
   await loadMyReviews();          // qaysi mahsulotni allaqachon baholagan
   await loadMe();                 // rol: xaridormi yoki sotuvchi (serverda aniqlanadi)
+  await loadFavorites();          // ♡ ro'yxati bazadan (db/026)
   render();
   if (S.role === 'seller') loadSellerData().then(render);
 })();

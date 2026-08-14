@@ -125,6 +125,115 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
 
 ## Qilingan ishlar
 
+- [2026-08-14] **SEVIMLI MATOLAR ENDI BAZADA — ♡ ilova yopilgandan keyin ham
+  qoladi** (founder qarori: «sevimlilarni bazaga saqlaydigan qilamiz»).
+  🔴 **Bu yozuvning eng muhim qismi funksiya emas, NUQSON QAYERDA
+  YASHIRINGANI:** ♡ tugmasi AYNI KUNI tuzatilgan edi (yuqoridagi yozuv,
+  4/15 → 15/15), ya'ni band «bajarildi» deb yopilgandek ko'rinardi. Lekin
+  tugma ortidagi VA'DA hamon bajarilmasdi: `S.liked` FAQAT brauzer
+  xotirasida yashardi — Mini App yopilishi bilan saqlangan mato yo'qolardi
+  va boshqa qurilmada «Saqlangan matolar» ekrani BO'SH chiqardi. Ya'ni
+  birinchi tuzatish nuqsonni yo'qotmadi, **bir qavat pastga surdi**:
+  founder shikoyat qilgan naqshning o'zi («tugma ishlagandek tuyulib,
+  natijasi yo'q») endi ko'rinmaydigan joyda davom etardi. Dars: **«tugma
+  bor» bilan «tugma va'dasini bajaradi» ikki xil band.**
+
+  **`db/026_favorites.sql`** — `user_favorites (tg_user_id, product_id,
+  created_at)`, `PRIMARY KEY (tg_user_id, product_id)` va `products` ga
+  `FK ... ON DELETE CASCADE` + `(tg_user_id, created_at DESC)` indeksi.
+  Migratsiya O'ZINI tekshiradi (`db/022` naqshi): takroriy ♡ bitta qator
+  berishi va soxta mahsulot id rad etilishi migratsiya ichida SINALADI.
+  ⚠️ **Kalit `tg_user_id`, `users.id` EMAS** (`db/016`, `db/019` bilan bir
+  xil tanlov): `users.id` ga FK qo'yilsa har yozuvdan oldin upsert kerak
+  bo'lardi — bitta atomik `INSERT ... ON CONFLICT` o'rniga ikkita yozuv va
+  yana bitta poyga oynasi. **`products` ga esa FK BOR va bu ziddiyat
+  emas:** mahsulot id si MIJOZDAN keladi va o'ylab topilgan bo'lishi
+  mumkin, ya'ni uni bazaning o'zi rad etsin — validatsiya ikki joyda
+  takrorlanmasin.
+  ⚠️ **E'lon yashirilganda (`status <> 'published'`) yozuv QOLADI** —
+  sotuvchi matoni vaqtincha yashirib qayta ochishi mumkin, xaridorning
+  tanlovi uning aybi bilan o'chmasin; ro'yxat chizilganda klient baribir
+  katalog bo'yicha filtrlaydi, ya'ni yashirilgan mato ko'rinmaydi, lekin
+  qaytganda o'z joyida turadi.
+
+  **`GET/POST /api/favorites`** (`server/routes/profile.js`). Kimlik
+  `requestUser()` dan — `authUser()` dan EMAS, garchi ♡ hozircha faqat Mini
+  App'da bo'lsa ham: bu naqsh loyihada IKKI marta buzilgan (bahs ochish, AI
+  rasmi) va ikkalasida ham sayt xaridori JIMGINA 401 olgan, ya'ni endpoint
+  boshidanoq ikkala kanalni bilsin — saytga ♡ qo'shilganda bu yerga qaytib
+  kelish shart bo'lmasin. **O'qish `/api/me` ga QO'SHILMADI** (ataylab):
+  ro'yxat o'nlab id bo'lishi mumkin, `/api/me` esa har profil ochilishida
+  chaqiriladi — birlashtirilsa profil ekrani sevimlilar uzunligiga bog'liq
+  bo'lib qolardi.
+  ⚠️ **`liked` — ANIQ bayroq, «teskarisiga o'zgartir» EMAS:** tez ikki
+  bosishda yoki ikki qurilma bir vaqtda yozganda toggle natijasi bosish
+  TARTIBIGA bog'liq bo'lardi; aniq holat bilan yozuv idempotent.
+  ⚠️ **FK buzilishi (`23503`) ALOHIDA ushlanadi va jim 404 qaytaradi** —
+  u MIJOZ xatosi, server nosozligi emas. `console.error` ga tushirilsa
+  Telegram alertiga chiqib, bitta qiziquvchan mijoz alert tomini
+  to'ldirib yuborardi (`ALERT_CHAT_ID` bandi bilan bitta oila).
+
+  **Klient (`telegram-app/app.js`):** ekran DARROV o'zgaradi, server
+  ORTIDAN yetadi — ♡ bir bosishlik ish va tarmoqni kutib turgan tugma
+  «ishlamadi» deb o'qiladi. 🔴 **Lekin YOLG'ON ko'rsatilmaydi:** server rad
+  etsa yoki tarmoq yiqilsa holat ORQAGA qaytariladi va xato AYTILADI —
+  aks holda xaridor saqlanmagan matoni saqlangan deb o'ylab yurardi
+  (jimgina yolg'on, CLAUDE.md). Kimlik yo'q bo'lsa server umuman
+  chaqirilmaydi va ♡ xotirada qolaveradi: 401 ni xatoga aylantirish
+  «tugma buzuq» taassurotini berardi.
+  ⚠️ **`localStorage` ATAYLAB ishlatilmadi** — `pickup_point` darsi: ikkita
+  haqiqat manbai bo'lsa, boshqa qurilmada olib tashlangan sevimli bu yerda
+  JIMGINA tirilardi. Manba bitta — baza; server javob bermasa ro'yxat bo'sh
+  qoladi (o'ylab topilgan mazmun ko'rsatilmaydi).
+
+  **Qorovul — Test 33**, uch xavfni qamraydi va uchalasi ham loyihada
+  ALLAQACHON ro'y bergan naqshlar: `authUser()` ga qaytish, optimistik UI
+  yolg'on qolishi, `localStorage` ning ikkinchi manba bo'lib tanlovni
+  tiriltirishi. Test klient funksiyasini BAJARADI (matn skanerlamaydi):
+  soxta server javoblari bilan uch holat — qabul, rad, tarmoq yiqilishi.
+  **9 mutatsiya bilan sinaldi, 9 tasi ham ushlandi.**
+  ⚠️ **QOROVULNING O'ZIDA TESHIK TOPILDI (bu sessiyada UCHINCHI marta —
+  Test 29 va Test 30 dan keyin):** `loadFavorites()` chaqiruvi qidirilganda
+  naqsh funksiyaning O'Z SARLAVHASIGA mos kelardi, ya'ni chaqiruv butunlay
+  olib tashlanganda ham test YASHIL qolardi va ro'yxat hech qachon
+  yuklanmasdi. Tuzatildi: sarlavha avval olib tashlanadi, keyin qidiriladi.
+  **Uch marta bitta naqsh: qorovul BELGISI noto'g'ri tanlansa, u tekshirmoqchi
+  bo'lgan narsani tekshirmaydi va buni faqat mutatsiya ko'rsatadi.**
+
+  **SINALGANI.** SQL **HAQIQATAN BAJARILDI** (pglite — xotiradagi
+  «`server/test.js` SQL'ni BAJARMAYDI» qoidasi bo'yicha): migratsiya,
+  idempotentlik (ikki marta yurdi), takroriy ♡ → 1 qator, o'chirish,
+  CASCADE, foydalanuvchilar ajratilishi. Brauzerda 5 holat: qabul / rad
+  (♡ qaytdi) / tarmoq yiqildi (qaytdi) / bazadan yuklash (2 ♡ tiklandi) /
+  kimlik yo'q (server chaqirilmadi). **72 test yashil** (71 → 72).
+  ✅ **HISOBOTCHI MUSTAQIL TEKSHIRDI, hisobotdan ko'chirmadi:** suite qayta
+  yurgizildi — **72 ta `✅ Test` satri, chiqish kodi 0**; ikki mutatsiya
+  QAYTA bajarildi (chaqiruvni olib tashlash, orqaga qaytarishni olib
+  tashlash) va ikkalasini ham AYNAN Test 33 ushladi.
+  ⚠️ **O'lchov tuzog'i IKKINCHI marta takrorlandi va yozib qo'yiladi:**
+  birinchi mutatsiyani **Test 16 (kesh hashi) tutdi, Test 33 EMAS** —
+  `app.js` tahriri `sha256` ni o'zgartiradi va Test 16 oldinroq yiqilib
+  runner'ni to'xtatadi, ya'ni «mutatsiya ushlandi» degan xulosa NOTO'G'RI
+  narsani o'lchagan bo'lardi va Test 33 umuman ishlamasa ham xuddi shunday
+  ko'rinardi. Qayta sinaldi: mutatsiya bilan BIRGA jadvaldagi hash ham
+  yangilanib, Test 16 YASHIL qoldirilgan holda — o'shanda ushlagani aynan
+  Test 33 bo'ldi. **Bu tuzoq 2026-08-13 da Test 25 da AYNAN shu shaklda
+  yozilgan edi** (panel yozuvida turibdi), ya'ni hujjatlangan tuzoq ham
+  ikkinchi marta tishlaydi — `app.js` ga tegadigan HAR QANDAY mutatsiya
+  sinovida hash birga yangilansin. Kesh: `telegram-app/app.js` v92 → v93,
+  Test 16 jadvali birga.
+
+  🔴 **HALOL CHEGARA — DEPLOY TARTIBI MUHIM VA U ODATDAGIDAN QAT'IYROQ:**
+  (a) migratsiya PRODUCTION bazasida ISHGA TUSHIRILMAGAN; (b) backend
+  deploy qilinmagan (rsync + restart founder zimmasida); (c) **frontend
+  `/api/favorites` ni chaqiradi, CI esa FAQAT frontendni chiqaradi** — ya'ni
+  `main` ga oldin push qilinsa eski backendda endpoint bo'lmaydi va har ♡
+  bosilganda to'lib, keyin orqaga qaytadi va xato chiqadi, bu esa
+  **HOZIRGI HOLATDAN YOMONROQ** (hozir ♡ hech bo'lmasa sessiya davomida
+  turadi). To'g'ri tartib: **(1) migratsiya → (2) backend rsync + restart →
+  (3) shundan keyin `main` ga push.** (d) Jonli Mini App'da (Telegram
+  ichida) KO'RILMAGAN — brauzerda soxta server javobi bilan sinaldi.
+
 - [2026-08-14] **Mini App'ga REKLAMA BANNERI qo'shildi — uch slaydli karusel,
   qidiruv qatoridan pastda, kategoriya chiplaridan tepada.** Bu ortiqcha yo'l
   EMAS va bu ATAYLAB tekshirildi: CLAUDE.md dagi «mavjud funksiyaga ikkinchi
@@ -2168,6 +2277,48 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
 ---
 
 ## Qarorlar
+
+- [2026-08-14] Qaror (founder): **sevimlilar BAZADA saqlanadi, brauzer
+  xotirasida emas** («sevimlilarni bazaga saqlaydigan qilamiz»). Sabab
+  mahsulotdan: B2B xaridor telefonda ham, kompyuterda ham kiradi, sevimli
+  ro'yxati esa «Saqlangan matolar» ekranining YAGONA mazmuni — qurilmaga
+  bog'liq bo'lsa ekran bir joyda to'la, boshqasida bo'sh ko'rinardi.
+  ⚠️ **`localStorage` zaxira sifatida ham QO'SHILMAYDI:** ikkita haqiqat
+  manbai bo'lsa, boshqa qurilmada olib tashlangan sevimli bu yerda jimgina
+  TIRILARDI — `pickup_point` (`db/022`) da aynan shu tuzatilgan edi.
+
+- [2026-08-14] Qaror: **optimistik yangilanish RUXSAT ETILADI, lekin u
+  MAJBURAN orqaga qaytariladigan bo'lsin.** ♡ bosilganda ekran darrov
+  o'zgaradi (tarmoqni kutib turgan tugma «ishlamadi» deb o'qiladi), server
+  rad etsa yoki tarmoq yiqilsa holat ORQAGA qaytariladi VA foydalanuvchiga
+  aytiladi. Sabab: qaytarilmasa xaridor saqlanmagan matoni saqlangan deb
+  o'ylab yurardi — bu `NULL` reyting va `ALERT_CHAT_ID` bilan bitta oila
+  (**jimgina yolg'on yo'qlikdan yomonroq**). Jim qaytarish ham yaramaydi:
+  u «tugma o'zi o'chdi» bo'lib ko'rinardi. **Yangi optimistik UI qo'shilsa
+  shu uchlik shart: darrov chiz → rad etilsa qaytar → ayt.**
+
+- [2026-08-14] Qaror: **holat yozadigan endpoint «teskarisiga o'zgartir»
+  emas, ANIQ QIYMAT qabul qiladi** (`{ liked: true|false }`). Sabab: toggle
+  natijasi bosish TARTIBIGA bog'liq — tez ikki bosishda yoki ikki qurilma
+  bir vaqtda yozganda holat oldindan aytib bo'lmaydigan bo'lardi; aniq
+  qiymat esa yozuvni idempotent qiladi va qayta urinish xavfsiz bo'ladi.
+
+- [2026-08-14] Qaror: **MIJOZ xatosini bildiruvchi baza kodi (`23503` — FK)
+  `console.error` ga TUSHIRILMAYDI.** U alert guruhlash kaliti orqali
+  Telegram'ga chiqadi, ya'ni o'ylab topilgan mahsulot id yuborgan bitta
+  qiziquvchan mijoz alert tomini to'ldirib yuborardi va tom haqiqiy
+  nosozlikni ko'rsatmay qolardi. Bunday xato jim `404` bilan qaytariladi.
+  **Yangi endpoint qo'shilganda birinchi savol: bu xato SERVER nosozligimi
+  (alertga chiqsin) yoki MIJOZ yuborgan noto'g'ri ma'lumotmi (chiqmasin)?**
+
+- [2026-08-14] Qaror: **`app.js` ga tegadigan mutatsiya sinovida Test 16
+  jadvalidagi hash MUTATSIYA BILAN BIRGA yangilanadi.** Aks holda kesh
+  qorovuli oldinroq yiqilib runner'ni to'xtatadi va «mutatsiya ushlandi»
+  degan xulosa NOTO'G'RI qorovulni o'lchagan bo'ladi — tekshirilayotgan
+  test umuman ishlamasa ham natija bir xil ko'rinadi. Bu qoida 2026-08-13
+  da Test 25 sinovida topilgan edi va **2026-08-14 da ikkinchi marta
+  takrorlandi**, ya'ni u tasodif emas, `app.js` ga tegadigan har qanday
+  sinovning doimiy tuzog'i («tekshirdim ≠ to'g'ri narsani tekshirdim»).
 
 - [2026-08-14] Qaror (founder): **reklama banneri nisbati 16:9 EMAS, 16:4.5
   (= 32:9).** Dastlab 16:9 taklif qilingandi, founder «juda baland,
