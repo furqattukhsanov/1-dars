@@ -351,6 +351,12 @@
     <div id="faoliyat-list">
       <div class="faoliyat-item">
         <span class="faoliyat-sana">2026-08-14</span>
+        <span class="faoliyat-text">KATEGORIYA CHIPLARI YANGI DIZAYNGA O'TDI — FOUNDER 3 LOKAL VARIANTDAN &laquo;OSTKI CHIZIQ&raquo; (B) NI TANLADI. Variantlar lokal demo faylda ko'rsatildi (<code>telegram-app/_ds/chips-variantlar.html</code> — ataylab commit qilinmaydi); founder avval A (&laquo;anor linza&raquo;) ni tanlab, keyin fikrini o'zgartirib B ni tanladi. Yangi ko'rinish: &laquo;quti&raquo; chiplar o'rniga qutisiz tab'lar — matn <code>--text-muted</code>, tanlangani <code>--pom-700</code> + qalin + ikat rombi + markazdan ochiladigan gradient chiziq (<code>.cat-line</code>), ranglar tokendan (Test 26 yashil). ⚠️ <b>Chiziq <code>::after</code> EMAS, alohida element</b> — global <code>button::after</code> (44×44 tap-maydon qoidasi) har tugmaning <code>::after</code> ini allaqachon band qilgan, unga chizilgan narsa 44px blok bo'lib chiqardi (lokal demoda o'lchab topildi). ⚠️ <b>&laquo;Saytdagi <code>.chip</code> bilan bir xil&raquo; qoidasi (2026-08-13) shu yerda ATAYLAB buzildi</b> — founder Mini App uchun alohida ko'rinishni tanladi, sayt eski retseptda qoldi; sayt ham o'tsinmi — alohida qaror kutilmoqda. <code>touch-action: pan-x</code> (ertalabki tuzatish) saqlangan. <code>app.js</code> da yangi <code>focusCatChip()</code>: tanlangan chipni qatorda markazlaydi va chiziq animatsiyasini <code>innerHTML</code> almashgandan keyin qayta o'ynatadi — <code>scrollIntoView</code> ATAYLAB ishlatilmadi, u <code>#screen-wrap</code> ni vertikal surib yuborardi. Yo'l-yo'lakay nuqson tuzaldi: katalogga qaytganda chiplar qatori boshiga qaytib qolardi — endi tanlangan chip markazda qoladi. Kesh: <code>styles.css</code> v31 → v32, <code>app.js</code> v88 → v89, <code>panel.js</code> v26 → v27, Test 16 jadvali birga. Brauzerda tekshirildi (skrinshot bilan): tanlov, animatsiya, markazlash va filtr ishlaydi. 67 TEST YASHIL. DEPLOY: faqat statik, servis restarti kerak emas.</span>
+        <span class="faoliyat-sprint">Sprint 4</span>
+      </div>
+
+      <div class="faoliyat-item">
+        <span class="faoliyat-sana">2026-08-14</span>
         <span class="faoliyat-text">KATALOGDAGI KATEGORIYA CHIPLARI QATORI BARMOQ OSTIDA &laquo;QIMIRLAB&raquo; YURISHI TUZATILDI — founder shikoyati. Sabab: <code>.cat-chips</code> gorizontal skroll qatori, lekin <code>touch-action</code> cheklanmagani uchun brauzer undan VERTIKAL surishni ham qabul qilardi — barmoq sal qiyshiq yursa qator tepa-pastga tebranib turardi. Tuzatish IKKI QATOR CSS (<code>telegram-app/styles.css</code>): <code>touch-action: pan-x</code> (bu elementda barmoq faqat gorizontal suradi, vertikal harakat sahifaga beriladi) va <code>overscroll-behavior-x: contain</code> (qator chetiga yetganda skroll ota elementga toshib o'tmaydi). ⚠️ <b>DIZAYNGA ATAYLAB TEGILMADI</b> — founder referens berishini aytdi, dizayn ishi alohida bosqichda; bu faqat xatti-harakat tuzatishi. Brauzerda tekshirildi: <code>.cat-chips</code> da ikkala qoida haqiqatan qo'llangan, <code>?v=31</code> yuklanadi. YO'L-YO'LAKAY: branch <code>origin/main</code> dan 4 commit orqada edi — birlashtirildi, <code>server/test.js</code> konfliktida upstream raqamlari (<code>admin.js</code> v25, <code>app.js</code> v88) olindi, <code>styles.css</code> birlashgan tarkib uchun v31 ga surildi. Kesh: <code>telegram-app/styles.css</code> v30 → v31, <code>panel.js</code> v25 → v26, Test 16 jadvali birga. Barcha server testlari yashil. DEPLOY: faqat statik, servis restarti kerak emas. Avvalgi sessiyadan qolgan hujjat ham shu push bilan kiradi: CLAUDE.md dagi CSP qoidasi (&laquo;YANGI RASM SXEMASI YOKI DOMENI — ro'yxat shu zahoti tekshirilsin&raquo;, Test 25 qorovuli) va yangi <code>hr</code> agenti (<code>.claude/agents/hr.md</code>) — kodi allaqachon main da, hujjati qolib ketgan edi.</span>
         <span class="faoliyat-sprint">Sprint 4</span>
       </div>
@@ -972,6 +978,6 @@
 
 </div>
 
-<script src="panel.js?v=26" defer></script>
+<script src="panel.js?v=27" defer></script>
 </body>
 </html>

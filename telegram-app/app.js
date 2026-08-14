@@ -1140,12 +1140,12 @@ function renderHome() {
       </button>
     </div>` : ''}
 
-    <!-- Kategoriya chiplari — uslub styles.css dagi .cat-chip da
-         (2026-08-13). Ilgari u shu yerda satr ichida yozilgardi va SAYTdagi
-         nusxasi bilan qo'lda moslanardi: bittasi o'zgarganda ikkinchisi
-         jimgina eskirardi. Endi ikkala yuz ham AYNI retseptni yozadi. -->
+    <!-- Kategoriya chiplari — "ostki chiziq" (2026-08-14, founder tanlovi).
+         Uslub styles.css dagi .cat-chip/.cat-line da. Chiziq ::after emas,
+         alohida span: global button::after tap-maydon qoidasi ::after ni
+         band qilgan. Tanlovdan keyin focusCatChip() qatorni markazlaydi. -->
     <div class="cat-chips">
-      ${CATS.map(c => `<button class="cat-chip${c.key === S.cat ? ' on' : ''}" data-action="selectCat" data-arg="${c.key}">${c.label[S.lang]}</button>`).join('')}
+      ${CATS.map(c => `<button class="cat-chip${c.key === S.cat ? ' on' : ''}" data-action="selectCat" data-arg="${c.key}">${c.label[S.lang]}<span class="cat-line"></span></button>`).join('')}
     </div>
 
     ${sof ? `
@@ -1275,6 +1275,7 @@ function applyPriceFilter() {
   S.priceSheet = false;
   paintSheet();
   document.getElementById('screen-wrap').innerHTML = renderHome();
+  focusCatChip(false);
 }
 function clearPriceFilter() {
   S.priceMin = null;
@@ -1285,6 +1286,7 @@ function clearPriceFilter() {
   S.priceSheet = false;
   paintSheet();
   document.getElementById('screen-wrap').innerHTML = renderHome();
+  focusCatChip(false);
 }
 
 // ============ EKRAN: AI BO'LIMI (2026-08-07) ============
@@ -3770,7 +3772,36 @@ function toggleLike(id) {
   if (S.liked[id]) showToast(STR[S.lang].liked);
   render();
 }
-function selectCat(c) { S.cat = c; document.getElementById('screen-wrap').innerHTML = renderHome(); }
+function selectCat(c) {
+  const prev = S.cat;
+  S.cat = c;
+  document.getElementById('screen-wrap').innerHTML = renderHome();
+  focusCatChip(prev !== c);
+}
+
+// Tanlangan kategoriya chipini qatorda MARKAZGA suradi va (tanlov
+// almashganda) ostki chiziq animatsiyasini qayta o'ynatadi — innerHTML
+// almashganda element .on bilan tug'iladi, ya'ni o'tish o'z-o'zidan
+// chiqmaydi: boshlang'ich holat qo'lda tiklanadi.
+// ⚠️ scrollIntoView ISHLATILMAYDI — u #screen-wrap ni vertikal ham
+// surishi mumkin; faqat qatorning o'z gorizontal skrolli boshqariladi.
+function focusCatChip(animate) {
+  const row = document.querySelector('.cat-chips');
+  const on = row && row.querySelector('.cat-chip.on');
+  if (!on) return;
+  if (animate) {
+    const line = on.querySelector('.cat-line');
+    if (line) {
+      line.style.transition = 'none';
+      line.style.transform = 'scaleX(0)';
+      void line.offsetWidth; // reflow — keyingi qiymat o'tish bilan borsin
+      line.style.transition = '';
+      line.style.transform = '';
+    }
+  }
+  const left = on.offsetLeft - (row.clientWidth - on.offsetWidth) / 2;
+  row.scrollTo({ left, behavior: animate ? 'smooth' : 'auto' });
+}
 function setPay(p) { S.pay = p; document.getElementById('screen-wrap').innerHTML = renderCheckout(); }
 function setOrdersTab(t) { S.ordersTab = t; document.getElementById('screen-wrap').innerHTML = renderOrders(); }
 
@@ -3969,6 +4000,9 @@ function render() {
   // ulanadi. `try` dan TASHQARIDA: chizish yiqilsa mount qiladigan narsa
   // ham yo'q, lekin mount xatosi butun ekranni qulatmasligi kerak.
   if (S.screen === 'detail') { try { mountDetailMedia(); } catch (e) { console.error('mountDetailMedia xatosi:', e.message); } }
+  // Katalogga qaytilganda tanlangan kategoriya qatorda ko'rinib tursin —
+  // innerHTML har safar skrollni boshiga qaytaradi.
+  if (S.screen === 'home') { try { focusCatChip(false); } catch (e) { console.error('focusCatChip xatosi:', e.message); } }
   // Profil surati — DOM tayyor bo'lgandan keyin (o'zi bir marta so'raydi).
   if (S.screen === 'profile') mountAvatar();
 

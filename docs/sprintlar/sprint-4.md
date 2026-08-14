@@ -125,6 +125,30 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
 
 ## Qilingan ishlar
 
+- [2026-08-14] **Kategoriya chiplari yangi dizaynga o'tdi — founder 3 lokal
+  variantdan "ostki chiziq" (B) ni tanladi.** Variantlar lokal demo faylda
+  ko'rsatildi (`telegram-app/_ds/chips-variantlar.html` — ATAYLAB commit
+  qilinmaydi); founder avval A ("anor linza") ni tanlab, keyin fikrini
+  o'zgartirib B ni tanladi. Yangi ko'rinish: "quti" chiplar o'rniga qutisiz
+  tab'lar — matn `--text-muted`, tanlangani `--pom-700` + qalin + ikat rombi +
+  markazdan ochiladigan gradient chiziq (`.cat-line`), ranglar tokendan
+  (Test 26 yashil). ⚠️ **Chiziq `::after` EMAS, alohida element** — global
+  `button::after` (44×44 tap-maydon qoidasi) har tugmaning `::after` ini
+  allaqachon band qilgan, unga chizilgan narsa 44px blok bo'lib chiqardi
+  (lokal demoda o'lchab topildi). ⚠️ **"Saytdagi `.chip` bilan bir xil"
+  qoidasi (2026-08-13) shu yerda ATAYLAB buzildi** — founder Mini App uchun
+  alohida ko'rinishni tanladi, sayt eski retseptda qoldi; sayt ham o'tsinmi —
+  alohida qaror kutilmoqda. `touch-action: pan-x` (ertalabki tuzatish)
+  saqlangan. `app.js` da yangi `focusCatChip()`: tanlangan chipni qatorda
+  markazlaydi va chiziq animatsiyasini `innerHTML` almashgandan keyin qayta
+  o'ynatadi — `scrollIntoView` ATAYLAB ishlatilmadi, u `#screen-wrap` ni
+  vertikal surib yuborardi; `selectCat`, narx filtri renderlari va `render()`
+  home ilgagi shu funksiyani chaqiradi. Yo'l-yo'lakay nuqson tuzaldi:
+  katalogga qaytganda chiplar qatori boshiga qaytib qolardi — endi tanlangan
+  chip markazda qoladi. Kesh: `styles.css` v31 → v32, `app.js` v88 → v89,
+  Test 16 jadvali birga. Brauzerda tekshirildi (skrinshot bilan): tanlov,
+  animatsiya, markazlash va filtr ishlaydi. 67 test yashil.
+
 - [2026-08-14] **Katalogdagi kategoriya chiplari qatori barmoq ostida
   "qimirlab" yurishi tuzatildi — founder shikoyati.** Sabab: `.cat-chips`
   gorizontal skroll qatori, lekin `touch-action` cheklanmagani uchun brauzer
@@ -1889,6 +1913,13 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
 ---
 
 ## Qarorlar
+
+- [2026-08-14] Qaror: **Mini App kategoriya chiplari saytdagi `.chip` dan
+  ATAYLAB ajraldi — founder tanlovi.** 2026-08-13 dagi "ikkala yuz bitta
+  ko'rinishda" qoidasi shu joyda bekor qilindi: founder 3 lokal variantdan
+  "ostki chiziq" (B) ni Mini App uchun tanladi, sayt eski retseptda qoldi.
+  Sayt ham shu ko'rinishga o'tsinmi — alohida qaror kutilmoqda; ungacha bu
+  farq BILIB qilingan holat, nuqson emas.
 
 - [2026-08-13] Qaror: **Mini App'da `user-scalable=no` QOLADI — dizayn
   tavsiyasi O'LCHOV BILAN RAD ETILDI.** Tavsiya "matn zoomini oching" degandi
