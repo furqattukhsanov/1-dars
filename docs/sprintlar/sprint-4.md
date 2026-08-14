@@ -125,6 +125,29 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
 
 ## Qilingan ishlar
 
+- [2026-08-14] **SAYT ham "ostki chiziq" chip dizayniga o'tdi — "ikkala yuz
+  bitta ko'rinish" qoidasi TIKLANDI (founder qarori).** Pastdagi yozuvda
+  "sayt ham o'tsinmi — alohida qaror kutilmoqda" deb turgan band shu kuniyoq
+  yopildi. `style.css` dagi `.chip` Mini App `.cat-chip` bilan AYNAN bir xil
+  retseptga o'tdi: `--text-muted` matn, `.active` da `--pom-700` + qalin +
+  ikat rombi (gradient), yangi `.chip-line` elementi (gradient chiziq,
+  `scaleX` 0→1). `.chips` qatoriga `touch-action: pan-x` +
+  `overscroll-behavior-x: contain` ham qo'shildi — Mini App'dagi "qimirlash"
+  tuzatishi saytda YO'Q edi, ayni nuqson bu yerda ham yashab turgan.
+  Izohda ikkala tuzoq hujjatlandi: chiziq `::after` emas (44×44 tap-maydon
+  qoidasi uni band qilgan) va saytda JS kerak emas (klass almashadi, markup
+  qayta chizilmaydi — Mini App'dagi `focusCatChip()` ehtiyoji bu yerda yo'q).
+  ⚠️ **`index.html` da 7 chip matni ichki `<span data-i18n>` ga ko'chirildi**
+  va sababi muhim: `applyLang()` `textContent` yozadi — atribut tashqi
+  tugmada tursa til almashtirilganda chiziq spani JIMGINA O'CHIB ketardi.
+  Brauzerda tekshirildi: ruschaga o'tilganda 7 chiziq ham omon. Kesh:
+  `style.css` v53 → v54 (`index.html` va `admin/index.html` da BIR XIL
+  raqam — 15 versiya orqada qolgan admin darsi), `telegram-app/styles.css`
+  v32 → v33 (izohdagi "sayt eski retseptda" bandi eskirgani uchun
+  yangilandi — eskirgan da'vo qoldirilmaydi), Test 16 jadvali birga.
+  Tekshirildi: 67 test yashil, mobil + desktop skrinshot, filtr ishlaydi,
+  ranglar tokendan (Test 26).
+
 - [2026-08-14] **Kategoriya chiplari yangi dizaynga o'tdi — founder 3 lokal
   variantdan "ostki chiziq" (B) ni tanladi.** Variantlar lokal demo faylda
   ko'rsatildi (`telegram-app/_ds/chips-variantlar.html` — ATAYLAB commit
@@ -1914,12 +1937,14 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
 
 ## Qarorlar
 
-- [2026-08-14] Qaror: **Mini App kategoriya chiplari saytdagi `.chip` dan
-  ATAYLAB ajraldi — founder tanlovi.** 2026-08-13 dagi "ikkala yuz bitta
-  ko'rinishda" qoidasi shu joyda bekor qilindi: founder 3 lokal variantdan
-  "ostki chiziq" (B) ni Mini App uchun tanladi, sayt eski retseptda qoldi.
-  Sayt ham shu ko'rinishga o'tsinmi — alohida qaror kutilmoqda; ungacha bu
-  farq BILIB qilingan holat, nuqson emas.
+- [2026-08-14] Qaror: **"ostki chiziq" chip dizayni IKKALA yuzda ham —
+  "ikkala yuz bitta ko'rinish" qoidasi TIKLANDI.** Qaror ikki bosqichda
+  keldi va tarixi ataylab saqlanadi: avval founder 3 lokal variantdan
+  "ostki chiziq" (B) ni faqat Mini App uchun tanladi va sayt eski retseptda
+  qolib, "sayt ham o'tsinmi" alohida qarorga qoldirilgan edi; SHU KUNIYOQ
+  founder saytni ham o'tkazishga qaror qildi. Ya'ni 2026-08-13 dagi "ikkala
+  yuz bitta ko'rinishda" qoidasi bir necha soat buzilib turdi, xolos —
+  endi `.chip` (sayt) va `.cat-chip` (Mini App) ayni bitta retseptda.
 
 - [2026-08-13] Qaror: **Mini App'da `user-scalable=no` QOLADI — dizayn
   tavsiyasi O'LCHOV BILAN RAD ETILDI.** Tavsiya "matn zoomini oching" degandi

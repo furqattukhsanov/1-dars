@@ -1383,7 +1383,7 @@ function testAssetVersionsAreFresh() {
     // Shuning uchun versiya ikkala tomonnikidan ham YUQORI olinadi — teng
     // yoki past raqam qaytib kelgan foydalanuvchida keshdagi YARIM
     // (bir tomonlama) faylni qoldirardi.
-    'style.css': { v: 53, hash: 'e76bb9922639' },
+    'style.css': { v: 54, hash: '06c273d3a068' },
     'script.js': { v: 45, hash: '90235cdc8b91' },
     'pwa.js': { v: 2, hash: 'f46683d58662' },
     // ⚠️ IKKINCHI BIRLASHTIRISH (2026-08-14): ikkala tomon panel.js ni 24,
@@ -1391,10 +1391,10 @@ function testAssetVersionsAreFresh() {
     // Birlashgan tarkib ikkalasidan ham farq qiladi, ya'ni raqam yana
     // YUQORIGA suriladi. Teng raqam qaytib kelgan foydalanuvchida keshdagi
     // bir tomonlama faylni qoldirardi.
-    'panel.js': { v: 27, hash: '43eff12fc5d8' },
+    'panel.js': { v: 28, hash: '7b36bbabf94a' },
     'admin/admin.css': { v: 18, hash: '15b0bc977b85' },
     'admin/admin.js': { v: 25, hash: '08fae1bb61dc' },
-    'telegram-app/styles.css': { v: 32, hash: 'b959d3a6778b' },
+    'telegram-app/styles.css': { v: 33, hash: '878aca09308f' },
     'telegram-app/app.js': { v: 89, hash: '737f6bdea7fb' },
     'telegram-app/pwa.js': { v: 6, hash: '798ab85e1cde' },
   };

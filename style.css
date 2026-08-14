@@ -237,39 +237,33 @@ body {
    3) Tanlanmagan chip — qog'ozsimon iliq gradient va ichki yorug'lik;
       ustiga borilganda qirra anor rangiga kiradi va chip 1px ko'tariladi.
       Ilgari hover HECH QANDAY javob bermasdi. */
+/* "OSTKI CHIZIQ" (2026-08-14) — Mini App'dagi `.cat-chip` bilan BITTA
+   retsept (founder tanlovi, 3 lokal variantdan): qutisiz tab'lar — matn +
+   tagida gradient chiziq, tanlanganda ikat rombi. Mini App avval o'tdi,
+   sayt shu commit bilan tenglashdi — "ikkala yuz bitta ko'rinish" qoidasi
+   qayta tiklandi.
+   ⚠️ Chiziq ::after EMAS, alohida `.chip-line` elementida: pastdagi
+   tap-maydon bo'limi `.chip::after` ni 44px qoplama uchun band qilgan —
+   unga chizilgan narsa 44px blok bo'lib chiqadi (Mini App'da o'lchab
+   topilgan, xuddi shu tuzoq). */
 .chip {
   flex: none;
+  position: relative;
   display: inline-flex; align-items: center; gap: 7px;
   height: 36px;
-  padding: 0 16px;
-  border-radius: 999px;
-  border: 1px solid rgba(122,20,13,.14);
-  background: linear-gradient(180deg, #fff, #FCF8F6);
+  padding: 0 2px;
+  border: 0;
+  background: transparent;
   font-family: var(--font-sans);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   letter-spacing: -.005em;
-  color: var(--text-body);
+  color: var(--text-muted);
   white-space: nowrap;
-  box-shadow: 0 1px 2px rgba(23,26,48,.04), inset 0 1px 0 #fff;
-  transition: background var(--dur-fast), color var(--dur-fast),
-              border-color var(--dur-fast), box-shadow var(--dur-fast),
-              transform var(--dur-fast);
+  transition: color var(--dur-fast);
 }
-.chip:hover:not(.active) {
-  border-color: rgba(122,20,13,.34);
-  color: var(--text-strong);
-  transform: translateY(-1px);
-  box-shadow: 0 6px 14px -8px rgba(81,1,0,.35), inset 0 1px 0 #fff;
-}
-.chip:active { transform: translateY(0) scale(.98); }
-
-.chip.active {
-  background: linear-gradient(150deg, #8f1a10, #510100);
-  color: #fff;
-  border-color: transparent;
-  box-shadow: 0 10px 20px -12px rgba(81,1,0,.9), inset 0 1px 0 rgba(255,229,210,.28);
-}
+.chip:hover:not(.active) { color: var(--text-strong); }
+.chip.active { color: var(--pom-700); font-weight: 700; }
 /* Ikat rombi — FAQAT tanlangan chipda. `::before` bo'sh qutidan yasaladi
    (45° burilgan kvadrat), ya'ni belgi shrift yoki emoji EMAS: u hamma
    qurilmada bir xil chiziladi. */
@@ -278,11 +272,22 @@ body {
   flex: none;
   width: 6px; height: 6px;
   transform: rotate(45deg);
-  background: #ffd9c2;
-  box-shadow: 0 0 0 1px rgba(255,217,194,.35);
+  background: linear-gradient(150deg, var(--pom-500), var(--pom-700));
 }
+/* Gradient chiziq — markazdan ochiladi (scaleX 0 → 1). Sayt chiplari
+   qayta chizilmaydi (faqat klass almashadi), shuning uchun animatsiya
+   sof CSS'da o'zi ishlaydi — Mini App'dagi kabi JS yordami kerak emas. */
+.chip-line {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  height: 3px; border-radius: 3px;
+  background: linear-gradient(90deg, var(--pom-600), var(--pom-500));
+  transform: scaleX(0); transform-origin: center;
+  transition: transform var(--dur-base) var(--ease-out);
+  pointer-events: none;
+}
+.chip.active .chip-line { transform: scaleX(1); }
 @media (prefers-reduced-motion: reduce) {
-  .chip, .chip:hover:not(.active), .chip:active { transition: none; transform: none; }
+  .chip, .chip-line { transition: none; }
 }
 
 /* Badge pill — mahsulot kartasi (BADGE_COLORS) */
@@ -607,11 +612,15 @@ body {
 /* ===== KATEGORIYA CHIPLARI ===== */
 .chips {
   display: flex;
-  gap: 8px;
+  gap: 20px;
   overflow-x: auto;
   scrollbar-width: none;
   margin: 0 calc(-1 * var(--container-pad));
   padding: 2px var(--container-pad) 6px;
+  /* Barmoq bu qatorni ushlaganda FAQAT gorizontal suradi — Mini App'dagi
+     `.cat-chips` bilan bitta qoida (2026-08-14). */
+  touch-action: pan-x;
+  overscroll-behavior-x: contain;
 }
 .chips::-webkit-scrollbar { display: none; }
 

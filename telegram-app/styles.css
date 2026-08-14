@@ -760,9 +760,9 @@ button:active { opacity: .88; }
    tagida gradient chiziq, tanlanganda ikat rombi. Kontent ko'proq nafas
    oladi, "quti ichida quti" hissi yo'qoladi.
 
-   ⚠️ 2026-08-13 dagi "saytdagi .chip bilan bir xil" qoidasi shu yerda
-   ATAYLAB buzildi — founder Mini App uchun alohida ko'rinishni tanladi.
-   Sayt hozircha eski retseptda; u ham o'tsinmi — alohida qaror.
+   Sayt ham SHU retseptga o'tdi (`style.css` → `.chip`/`.chip-line`,
+   2026-08-14, founder qarori) — "ikkala yuz bitta ko'rinish" qoidasi
+   tiklandi: biri o'zgarsa ikkinchisi ham birga o'zgarsin.
 
    ⚠️ Chiziq ::after EMAS, alohida `.cat-line` elementida: styles.css
    dagi global `button::after` (44×44 tap-maydon) har tugmaning ::after

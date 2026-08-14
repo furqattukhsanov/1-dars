@@ -351,6 +351,12 @@
     <div id="faoliyat-list">
       <div class="faoliyat-item">
         <span class="faoliyat-sana">2026-08-14</span>
+        <span class="faoliyat-text">SAYT HAM &laquo;OSTKI CHIZIQ&raquo; CHIP DIZAYNIGA O'TDI — &laquo;IKKALA YUZ BITTA KO'RINISH&raquo; QOIDASI TIKLANDI (founder qarori, pastdagi yozuvdagi &laquo;alohida qaror kutilmoqda&raquo; bandi SHU KUNIYOQ yopildi). <code>style.css</code> dagi <code>.chip</code> Mini App <code>.cat-chip</code> bilan AYNAN bir xil retseptda: <code>--text-muted</code> matn, <code>.active</code> da <code>--pom-700</code> + qalin + ikat rombi, yangi <code>.chip-line</code> elementi (gradient chiziq, <code>scaleX</code> 0→1). <code>.chips</code> ga <code>touch-action: pan-x</code> + <code>overscroll-behavior-x: contain</code> ham qo'shildi — Mini App'dagi &laquo;qimirlash&raquo; tuzatishi saytda YO'Q edi, ayni nuqson bu yerda ham yashab turgan. Izohda ikkala tuzoq hujjatlandi: chiziq <code>::after</code> emas (44×44 tap-maydon qoidasi band qilgan), saytda JS kerak emas (klass almashadi, markup qayta chizilmaydi). ⚠️ <b><code>index.html</code> da 7 chip matni ichki <code>&lt;span data-i18n&gt;</code> ga ko'chirildi</b> va sababi muhim: <code>applyLang()</code> <code>textContent</code> yozadi — atribut tashqi tugmada tursa til almashtirilganda chiziq spani JIMGINA O'CHIB ketardi; brauzerda tekshirildi, ruschada 7 chiziq ham omon. Kesh: <code>style.css</code> v53 → v54 (<code>index.html</code> va <code>admin/index.html</code> da BIR XIL raqam), <code>telegram-app/styles.css</code> v32 → v33 (izohdagi &laquo;sayt eski retseptda&raquo; bandi eskirgani uchun yangilandi), <code>panel.js</code> v27 → v28, Test 16 jadvali birga. Tekshirildi: 67 TEST YASHIL, mobil + desktop skrinshot, filtr ishlaydi, ranglar tokendan (Test 26). DEPLOY: faqat statik, servis restarti kerak emas.</span>
+        <span class="faoliyat-sprint">Sprint 4</span>
+      </div>
+
+      <div class="faoliyat-item">
+        <span class="faoliyat-sana">2026-08-14</span>
         <span class="faoliyat-text">KATEGORIYA CHIPLARI YANGI DIZAYNGA O'TDI — FOUNDER 3 LOKAL VARIANTDAN &laquo;OSTKI CHIZIQ&raquo; (B) NI TANLADI. Variantlar lokal demo faylda ko'rsatildi (<code>telegram-app/_ds/chips-variantlar.html</code> — ataylab commit qilinmaydi); founder avval A (&laquo;anor linza&raquo;) ni tanlab, keyin fikrini o'zgartirib B ni tanladi. Yangi ko'rinish: &laquo;quti&raquo; chiplar o'rniga qutisiz tab'lar — matn <code>--text-muted</code>, tanlangani <code>--pom-700</code> + qalin + ikat rombi + markazdan ochiladigan gradient chiziq (<code>.cat-line</code>), ranglar tokendan (Test 26 yashil). ⚠️ <b>Chiziq <code>::after</code> EMAS, alohida element</b> — global <code>button::after</code> (44×44 tap-maydon qoidasi) har tugmaning <code>::after</code> ini allaqachon band qilgan, unga chizilgan narsa 44px blok bo'lib chiqardi (lokal demoda o'lchab topildi). ⚠️ <b>&laquo;Saytdagi <code>.chip</code> bilan bir xil&raquo; qoidasi (2026-08-13) shu yerda ATAYLAB buzildi</b> — founder Mini App uchun alohida ko'rinishni tanladi, sayt eski retseptda qoldi; sayt ham o'tsinmi — alohida qaror kutilmoqda. <code>touch-action: pan-x</code> (ertalabki tuzatish) saqlangan. <code>app.js</code> da yangi <code>focusCatChip()</code>: tanlangan chipni qatorda markazlaydi va chiziq animatsiyasini <code>innerHTML</code> almashgandan keyin qayta o'ynatadi — <code>scrollIntoView</code> ATAYLAB ishlatilmadi, u <code>#screen-wrap</code> ni vertikal surib yuborardi. Yo'l-yo'lakay nuqson tuzaldi: katalogga qaytganda chiplar qatori boshiga qaytib qolardi — endi tanlangan chip markazda qoladi. Kesh: <code>styles.css</code> v31 → v32, <code>app.js</code> v88 → v89, <code>panel.js</code> v26 → v27, Test 16 jadvali birga. Brauzerda tekshirildi (skrinshot bilan): tanlov, animatsiya, markazlash va filtr ishlaydi. 67 TEST YASHIL. DEPLOY: faqat statik, servis restarti kerak emas.</span>
         <span class="faoliyat-sprint">Sprint 4</span>
       </div>
@@ -978,6 +984,6 @@
 
 </div>
 
-<script src="panel.js?v=27" defer></script>
+<script src="panel.js?v=28" defer></script>
 </body>
 </html>
