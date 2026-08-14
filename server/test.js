@@ -1395,7 +1395,7 @@ function testAssetVersionsAreFresh() {
     'admin/admin.css': { v: 18, hash: '15b0bc977b85' },
     'admin/admin.js': { v: 25, hash: '08fae1bb61dc' },
     'telegram-app/styles.css': { v: 30, hash: '5c7b42fa1add' },
-    'telegram-app/app.js': { v: 88, hash: 'f2a8802751e4' },
+    'telegram-app/app.js': { v: 89, hash: 'e494ab0d114b' },
     'telegram-app/pwa.js': { v: 6, hash: '798ab85e1cde' },
   };
 
@@ -3531,6 +3531,81 @@ function testBrandColorTokens() {
     + `${istisnoSoni} ta ataylab istisno)`);
 }
 
+// ============ TEST 29: HAR BIR MAHSULOT KARTOCHKASIDA ♡ BO'LSIN (2026-08-14) ==
+// Founder shikoyati: "yoqtirma tugmasi mahsulot kartochkalarida yo'qolib
+// qolgan ba'zilarida". O'LCHANDI va rost bo'lib chiqdi — bosh ekranda 15
+// kartochkadan 4 tasida ♡ bor edi (`homeCard` — "Tavsiya etiladi"), 11
+// tasida yo'q (`productCard` — "Barcha matolar"). Ya'ni tugma AYNI EKRANDA,
+// ko'rinishi bir xil kartochkalarning bir qismida bor, bir qismida yo'q edi.
+//
+// Sabab tugmaning "yo'qolishi" EMAS: ♡ hech qachon `productCard` ga
+// yozilmagan — ikkita kartochka funksiyasi bor va yangi maydon faqat
+// bittasiga qo'shilgan. Xuddi shu naqsh saqlanganlar ekranida ikkinchi
+// zarar berardi: u ham `productCard` chizadi, ya'ni sevimlini o'sha
+// ro'yxatning O'ZIDA olib tashlab bo'lmasdi.
+//
+// ⚠️ Ro'yxat QO'LDA yozilmaydi — test kartochka funksiyalarini O'ZI topadi:
+// `class="card-media"` VA `data-action="openProduct"` ikkalasi ham bor
+// funksiya = mahsulot kartochkasi. Uchinchi kartochka turi qo'shilsa u
+// avtomatik qamraladi, aynan shu nuqson esa ikkita funksiya qo'lda
+// moslanmagani uchun tug'ilgan (Test 3f va Test 16 bilan bitta naqsh).
+function testCardsHaveLikeButton() {
+  const fs = require('fs');
+  const path = require('path');
+
+  const fayl = path.join(__dirname, '..', 'telegram-app', 'app.js');
+  const src = kodSofi(fs.readFileSync(fayl, 'utf8'));
+
+  const kartochkalar = [];
+  for (const m of src.matchAll(/function\s+([A-Za-z0-9_]+)\s*\(/g)) {
+    const tana = funksiyaTanasi(src, m[1]);
+    if (!tana) continue;
+    if (tana.includes('class="card-media"') && tana.includes('data-action="openProduct"')) {
+      kartochkalar.push({ nom: m[1], tana });
+    }
+  }
+
+  assert.ok(kartochkalar.length >= 2,
+    `mahsulot kartochkasi chizadigan funksiya topilmadi (${kartochkalar.length} ta) — `
+    + 'kartochka belgisi (`card-media` + `openProduct`) o\'zgargan bo\'lsa test ham yangilansin, '
+    + 'aks holda bu qorovul JIMGINA hech narsani tekshirmay qoladi.');
+
+  // ♡ ning O'ZI bitta manbadan chizilsin: kartochka tanasida `likeButton(`
+  // chaqiruvi turadi, tugmaning tarkibi esa faqat o'sha funksiyada.
+  //
+  // ⚠️ Tekshiruv ATAYLAB `toggleLike` ni kartochka tanasidan QIDIRMAYDI —
+  // bu sinov paytida topilgan xato: tuzatishdan KEYIN ham test qizil
+  // qolardi, chunki markazlashtirilgan kartochka `toggleLike` so'zini
+  // o'z ichida SAQLAMAYDI (uni `likeButton()` yozadi). Ya'ni qorovul
+  // to'g'ri holatni nuqson deb ko'rsatib, tuzatishni orqaga qaytarishga
+  // undardi. Belgi — nusxa emas, CHAQIRUV bo'lishi kerak.
+  const like = funksiyaTanasi(src, 'likeButton');
+  assert.ok(like,
+    '`likeButton()` topilmadi — ♡ bitta joyda chizilsin, aks holda keyingi '
+    + 'o\'zgarish (rang, o\'lcham, `aria-label`) kartochkalarning faqat birida qoladi.');
+  assert.ok(like.includes('toggleLike'),
+    '`likeButton()` da `toggleLike` amali yo\'q — tugma bosilganda hech narsa qilmaydi.');
+
+  kartochkalar.forEach(({ nom, tana }) => {
+    assert.ok(tana.includes('likeButton('),
+      `\`${nom}\` mahsulot kartochkasi chizadi, lekin ichida ♡ (\`likeButton()\`) YO'Q.\n`
+      + '    Foydalanuvchi buni "tugma ba\'zi kartochkalarda yo\'qolib qolgan" deb ko\'radi: '
+      + 'kartochkalar bir xil ko\'rinadi, xulqi esa har xil — 2026-08-14 da aynan shu bo\'lgan '
+      + '(bosh ekranda 15 kartochkadan 11 tasida ♡ yo\'q edi).\n'
+      + '    → `likeButton(p)` ni chaqiring; tugmani IKKINCHI marta ko\'chirib YOZMANG — '
+      + 'aynan nusxa ko\'chirish shu nuqsonni tug\'dirgan.');
+  });
+
+  // Tugmaning holati `vm()` dan kelsin: `liked` bayrog'i bo'lmasa ♡ bosilgandan
+  // keyin ham BO'SH ko'rinardi va foydalanuvchi uni "ishlamadi" deb o'qirdi.
+  assert.ok(/heartFill|heartStroke/.test(like),
+    '`likeButton()` ♡ ning to\'ldirilgan/bo\'sh holatini ko\'rsatmayapti '
+    + '(`heartFill`/`heartStroke` yo\'q) — bosilgani ko\'rinmasa tugma o\'lik tuyuladi.');
+
+  console.log('✅ Test 29: Har bir mahsulot kartochkasida ♡ bor — PASS '
+    + `(${kartochkalar.length} ta kartochka funksiyasi: ${kartochkalar.map((k) => k.nom).join(', ')})`);
+}
+
 // ============ TEST RUNNER ============
 // ============ TEST 22: OLISH NUQTASI ID SHAKLI (2026-08-13) ============
 // "Mening manzilim" xaridorning O'Z tanlovini bazaga yozadi. Qiymat
@@ -3777,6 +3852,7 @@ async function runTests() {
     testVideoVMNeedsR2();
     testSourceTag();
     testBrandColorTokens();
+    testCardsHaveLikeButton();
 
     testR2ConfigValidation();
     testR2KeyGuard();
