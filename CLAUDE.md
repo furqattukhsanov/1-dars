@@ -52,6 +52,31 @@
   olib tashlanadi; (2) o'ram funksiyaning NOMIGA ishonish yetarli emas —
   `reviewAuthor` ning cookie yo'li o'chirilganda ham test yashil qolardi,
   endi o'ramning ichi ochib ko'riladi.
+- **"Hisobdan chiqish" — SAYTDA bor, MINI APP'da YO'Q** (2026-08-14, founder
+  shikoyati "mini appda hisobdan chiqish ishlamayapti" dan keyin). Shikoyat
+  rost edi — tugmada `data-action` UMUMAN yo'q edi, ya'ni u tug'ilganidan beri
+  o'lik edi. **Lekin tuzatish uni ishlaydigan qilish EMAS, OLIB TASHLASH
+  bo'ldi:** Mini App'da chiqiladigan sessiyaning O'ZI yo'q — kimlik har
+  ochilishda Telegram imzolagan `initData` dan olinadi va u har so'rov bilan
+  ketadi (token ham, cookie ham yo'q). "Chiqdingiz" ekrani server sizni AYNAN
+  o'sha odam deb tanib turganda ko'rsatilardi, keyingi ochilishda esa kirish
+  o'zi tiklanardi — ya'ni tugma FAQAT KO'RINISH bo'lardi. Bu **jimgina
+  yolg'on** (`NULL` reyting, `ALERT_CHAT_ID`, tarix qoidalari bilan bitta
+  oila): yo'q tugma savol tug'diradi, soxta tugma esa ishonch uyg'otadi.
+  ⚠️ **Saytda esa tugma QOLADI va u yerda HAQIQIY:** kimlik HttpOnly cookie
+  sessiyada yuradi, `POST /api/auth/web/logout` bazadagi yozuvni O'CHIRADI
+  (`clearSessionCookie` ning o'zi yetarli emas — cookie brauzerdan ketib,
+  yozuv bazada tirik qolardi). **Ikki yuz bir xil ko'rinishi SHART EMAS:
+  farq uslubda emas, KIMLIK MANBAIDA** — "ikkinchi yuzda ham shunday qil"
+  degan o'qish 2026-08-13 da ortiqcha qator tug'dirgan edi.
+  Qurilmadagi keshni tozalash kerak bo'lsa — u ALOHIDA amal va nomi ham
+  boshqacha bo'lsin, "chiqish" deb atalmasin.
+  Qorovul: `server/test.js` → **Test 33** (ikki tomonga qaraydi: Mini App'ga
+  qaytmasin, saytdan yo'qolmasin). 10 mutatsiya bilan sinaldi, 10 tasi ham
+  ushlandi — sinov qorovulning O'ZIDA ikkita teshik ochdi: (1) `Вы(?:йти)\b`
+  hech qachon mos kelmasdi (JS da `\b` — ASCII chegara, kirill harfidan keyin
+  u YO'Q); (2) server tomonida NOMNI qidirish yetarli emas edi — e'lon qayta
+  nomlanganda `module.exports` dagi so'z qorovulni yashil ushlab turardi.
 - **Sotuvchi kabineti — FOUNDER RO'YXATI bo'yicha** (2026-08-13, founder
   qarori: "sotuvchi kabineti faqat men bergan Telegram ID orqali kirganlarda
   chiqsin, istalgan odam saytga kirganda chiqishi kerak emas"). Kabinet IKKI

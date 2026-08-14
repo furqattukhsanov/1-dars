@@ -152,6 +152,48 @@ ma'lumotdan aniqlanadi. Har kim faqat o'z buyurtmalarini ko'radi.
 > o'lchov va tiklash tartibi: `sprint-9.md` (2026-08-13) va `CLAUDE.md` →
 > "Server va Deploy".
 
+### Chiqish tugmasi (sprint yopilgandan keyin, 2026-08-14)
+
+- [2026-08-14] **Mini App'dan "Hisobdan chiqish" tugmasi OLIB TASHLANDI** —
+  founder shikoyati: "mini appda hisobdan chiqish ishlamayapti shuni ishlaydigan
+  qil, va boshqattan kirganda to'liq kirsin, yokida ... olib tashlash kerakmi
+  mantiqan?". Shikoyat **o'lchandi va rost bo'lib chiqdi**: `telegram-app/app.js`
+  dagi tugmada `data-action` UMUMAN yo'q edi, hodisa delegatsiyasi esa faqat
+  `[data-action]` ni ushlaydi — ya'ni tugma tug'ilganidan beri o'lik edi.
+  **Lekin tuzatish uni "ishlaydigan qilish" emas, olib tashlash bo'ldi**
+  (founder ikki variantdan "Olib tashlansin" ni tanladi). Sabab shu sprintning
+  o'z arxitekturasida: Mini App'da chiqiladigan **sessiyaning O'ZI yo'q** —
+  kimlik har ochilishda Telegram imzolagan `initData` dan olinadi va u har
+  so'rov bilan ketadi (token ham, cookie ham yo'q). Ya'ni o'chiradigan narsa
+  mavjud emas: "Chiqdingiz" ekrani server sizni AYNAN o'sha odam deb tanib
+  turganda ko'rsatilardi va keyingi ochilishda kirish o'zi tiklanardi —
+  tugma FAQAT KO'RINISH bo'lardi. Founderning ikkinchi talabi ("boshqattan
+  kirganda to'liq kirsin") esa **allaqachon shunday ishlayapti** — tuzatadigan
+  narsa yo'q edi. `logout` tarjima kaliti ikkala tildan (uz/ru) o'chirildi,
+  `renderProfile` ustidagi izoh blokiga sabab yozildi
+- [2026-08-14] **Saytda tugma QOLADI va u yerda HAQIQIY** — lolamarket.uz da
+  kimlik HttpOnly cookie sessiyada yuradi (yuqoridagi 2026-07-29 oqimi),
+  `POST /api/auth/web/logout` esa `web_sessions` dagi yozuvni O'CHIRADI.
+  Umumiy kompyuterda hisobni yopish yo'li shu, ya'ni ikki yuz bir xil
+  ko'rinishi SHART EMAS: **farq uslubda emas, KIMLIK MANBAIDA**
+- [2026-08-14] **Qorovul — `server/test.js` → Test 33**, ikki tomonga qaraydi:
+  (a) Mini App'ga chiqish tugmasi qaytmasin (4 ta taqiq namunasi — `logout`,
+  `signOut`, "Hisobdan chiqish", "Выйти"); (b) saytdan yo'qolmasin
+  (`data-action="logout"`, endpoint, `handleWebLogout` TANASIDA
+  `DELETE FROM web_sessions` + `clearSessionCookie`, `server.js` marshruti).
+  **10 mutatsiya bilan sinaldi, 10 tasi ham ushlandi.** Sinov qorovulning
+  O'ZIDA ikkita teshik ochdi va ikkalasi ham tuzatildi: (1) `Вы(?:йти)\b`
+  hech qachon mos kelmasdi — JS da `\b` ASCII chegara, kirill harfidan keyin
+  u YO'Q; (2) server tomonida NOMNI qidirish yetarli emas edi — e'lon qayta
+  nomlanganda `module.exports` dagi so'z qorovulni yashil ushlab turardi,
+  endi funksiya TANASI ochib ko'riladi
+- [2026-08-14] Kesh-bust: `telegram-app/app.js?v=92 → ?v=93`, Test 16 dagi
+  KUTILGAN jadval yangilandi (`a658d67a00ff` → `ffc41bc7c089`) — **buni
+  Test 16 ning O'ZI ushladi**. `node server/test.js` — hammasi PASS.
+  Profil ekrani brauzerda 375×812 da ko'z bilan emas, `getBoundingClientRect`
+  bilan O'LCHANDI: kesilgan blok yo'q, chiqish matni yo'q, oxirgi ikki blok —
+  "Ijtimoiy tarmoqlar" va brend izi
+
 ---
 
 ## Qarorlar
@@ -199,3 +241,14 @@ ma'lumotdan aniqlanadi. Har kim faqat o'z buyurtmalarini ko'radi.
   cookie'da yuradi va bazada faqat `sha256` shaklida saqlanadi. Sabab: bu qaror bitta sprint
   ichidagi tafsilot emas, keyingi barcha endpointlarga tegishli — sprint faylida qolsa
   unutiladi
+- [2026-08-14] Qaror: **"Hisobdan chiqish" — saytda BOR, Mini App'da YO'Q.**
+  Ishlamayotgan tugma "tuzatilmadi", olib tashlandi: Mini App'da chiqiladigan
+  sessiya mavjud emas (kimlik har ochilishda `initData` dan olinadi), ya'ni
+  har qanday "ishlaydigan" variant ham faqat KO'RINISH bo'lardi — server sizni
+  tanib turgan holda "chiqdingiz" deyish **jimgina yolg'on**, u loyihada
+  yo'qlikdan yomonroq deb hisoblanadi (`NULL` reyting, `ALERT_CHAT_ID`, tarix
+  qoidalari bilan bitta oila). Ikki yuz bir xil ko'rinishi shart emas — farq
+  uslubda emas, kimlik manbaida. Qurilmadagi keshni tozalash kerak bo'lsa, u
+  ALOHIDA amal va nomi ham boshqacha bo'lsin, "chiqish" deb atalmasin.
+  Qoida `CLAUDE.md` ning arxitektura bo'limiga ham yozildi — chunki u bitta
+  tugma haqida emas, ikki yuzning kimlik farqi haqida

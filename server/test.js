@@ -1391,11 +1391,11 @@ function testAssetVersionsAreFresh() {
     // Birlashgan tarkib ikkalasidan ham farq qiladi, ya'ni raqam yana
     // YUQORIGA suriladi. Teng raqam qaytib kelgan foydalanuvchida keshdagi
     // bir tomonlama faylni qoldirardi.
-    'panel.js': { v: 31, hash: '0d4da0976286' },
+    'panel.js': { v: 32, hash: '210f4e6bd095' },
     'admin/admin.css': { v: 18, hash: '15b0bc977b85' },
     'admin/admin.js': { v: 25, hash: '08fae1bb61dc' },
     'telegram-app/styles.css': { v: 34, hash: '03709d4225aa' },
-    'telegram-app/app.js': { v: 92, hash: 'a658d67a00ff' },
+    'telegram-app/app.js': { v: 93, hash: 'ffc41bc7c089' },
     'telegram-app/pwa.js': { v: 6, hash: '798ab85e1cde' },
   };
 
@@ -3898,6 +3898,108 @@ function testAdBannerWiring() {
     + `(${rasmlar.length} slayd × 2 til, chizish bitta nuqtadan, taymer tozalanadi)`);
 }
 
+// ============ TEST 33: "CHIQISH" — SAYTDA BOR, MINI APP'DA YO'Q (2026-08-14) ==
+// Founder shikoyati: "mini appda hisobdan chiqish ishlamayapti". O'LCHANDI va
+// rost bo'lib chiqdi — tugmada `data-action` UMUMAN yo'q edi, delegatsiya esa
+// faqat `[data-action]` ni ushlaydi, ya'ni tugma tug'ilganidan beri o'lik edi.
+//
+// ⚠️ Lekin tuzatish uni "ishlaydigan qilish" EMAS, chunki nuqson tugmada
+// emas — MA'NODA edi: Mini App'da chiqiladigan sessiya MAVJUD EMAS. Kimlik
+// har ochilishda Telegram imzolagan `initData` dan olinadi va u har bir
+// so'rov bilan birga ketadi; token ham, cookie ham yo'q. Ya'ni "chiqdingiz"
+// degan ekran server sizni AYNAN o'sha odam deb tanib turganda ko'rsatilardi
+// va keyingi ochilishda kirish o'zi tiklanardi — bu **jimgina yolg'on**,
+// loyihada u yo'qlikdan yomonroq deb hisoblanadi (`NULL` reyting,
+// `ALERT_CHAT_ID`, tarix qoidalari bilan bitta oila).
+//
+// Test IKKI TOMONGA qaraydi va ikkinchi band birinchisidan muhimroq:
+//   (1) Mini App'ga chiqish tugmasi QAYTIB kelmasin;
+//   (2) SAYTDA u YO'QOLMASIN — u yerda chiqish HAQIQIY (HttpOnly cookie
+//       sessiya `POST /api/auth/web/logout` bilan o'ladi). Ikki yuz bir xil
+//       ko'rinishi SHART EMAS: farq uslubda emas, KIMLIK MANBAIDA. Aynan
+//       "ikkinchi yuzda ham shunday qil" degan o'qish 2026-08-13 da
+//       ortiqcha qator tug'dirgan va u bir kunda olib tashlangan.
+function testMiniAppHasNoLogout() {
+  const fs = require('fs');
+  const path = require('path');
+  const root = path.join(__dirname, '..');
+  const oq = (rel) => fs.readFileSync(path.join(root, rel), 'utf8');
+
+  // Izohlar OLIB TASHLANADI — aks holda yuqoridagi tushuntirish izohining
+  // O'ZI qorovulni qizil qilardi. Bu tuzoq Test 3f da allaqachon tishlagan.
+  const mini = kodSofi(oq('telegram-app/app.js'));
+
+  // Nom bo'yicha ham, KO'RINADIGAN so'z bo'yicha ham qaraladi: kalitni
+  // `signOut` deb atash yoki matnni to'g'ridan-to'g'ri yozish qorovuldan
+  // o'tib ketmasin.
+  const TAQIQ = [
+    { re: /\blogout\b/i, nom: '`logout`' },
+    { re: /\bsign[_-]?out\b/i, nom: '`signOut`' },
+    { re: /Hisobdan\s+chiqish/i, nom: '"Hisobdan chiqish"' },
+    // ⚠️ `\b` ATAYLAB YO'Q: JS da `\b` — ASCII chegara, ya'ni `"Выйти"` dagi
+    // `и` bilan tirnoq ORASIDA u umuman yo'q va namuna hech qachon mos
+    // kelmasdi. Mutatsiya sinovi buni ushladi (qorovulning O'ZIDAGI teshik —
+    // Test 3f dagi bilan bitta oila). "Вы можете" kabi satrlar xavfsiz:
+    // namuna to'liq "Выйти"/"Выход" so'zini talab qiladi.
+    { re: /Вы(?:йти|ход)/i, nom: '"Выйти"' },
+  ];
+  for (const { re, nom } of TAQIQ) {
+    const qator = mini.split('\n').findIndex((q) => re.test(q));
+    assert.strictEqual(qator, -1,
+      `\`telegram-app/app.js\` (${qator + 1}-qator) da ${nom} paydo bo'ldi — `
+      + 'Mini App\'da hisobdan chiqish tugmasi BO\'LMASLIGI kerak.\n'
+      + '    Sabab: u yerda chiqiladigan sessiya YO\'Q — kimlik har ochilishda '
+      + 'Telegram imzolagan `initData` dan olinadi va u har so\'rov bilan ketadi. '
+      + '"Chiqdingiz" ekrani server sizni tanib turganda ko\'rsatilardi, keyingi '
+      + 'ochilishda esa kirish o\'zi tiklanardi — ya\'ni tugma FAQAT KO\'RINISH '
+      + 'bo\'lardi (jimgina yolg\'on).\n'
+      + '    Agar qurilmadagi keshni tozalash kerak bo\'lsa, u ALOHIDA amal va '
+      + 'nomi ham boshqacha bo\'lsin — "chiqish" deb atalmasin.');
+  }
+
+  // (2) Saytda esa chiqish TURSIN — u yerda o'chiradigan narsa BOR.
+  const sayt = kodSofi(oq('script.js'));
+  assert.ok(/data-action="logout"/.test(sayt),
+    '`script.js` da chiqish tugmasi (`data-action="logout"`) yo\'qolgan. '
+    + 'Saytda kimlik HttpOnly cookie sessiyada yuradi, ya\'ni chiqish HAQIQIY '
+    + 'amal: usiz foydalanuvchi umumiy kompyuterda hisobini yopa olmasdi.\n'
+    + '    Mini App\'da yo\'qligi shunga sabab BO\'LMAYDI — farq uslubda emas, '
+    + 'KIMLIK MANBAIDA.');
+  assert.ok(/\/api\/auth\/web\/logout/.test(sayt),
+    '`script.js` dagi chiqish serverga bormayapti (`/api/auth/web/logout` yo\'q) — '
+    + 'ekranda chiqqandek ko\'rinib, cookie sessiya bazada TIRIK qolardi.');
+
+  // ⚠️ Bu yerda NOMNI qidirish YETARLI EMAS — mutatsiya sinovi shuni
+  // ko'rsatdi: e'lon qayta nomlanganda ham `module.exports` dagi so'z qolib,
+  // qorovul yashil turardi. Shuning uchun uchta narsa alohida tekshiriladi:
+  // funksiya E'LON qilinganmi, marshrut unga BORADIMI va tanasi haqiqatan
+  // sessiyani O'CHIRADIMI. Uchinchisi eng muhim: `clearSessionCookie` ning
+  // O'ZI brauzerdagi nusxani olib tashlaydi, bazadagi yozuv esa TIRIK
+  // qolardi — o'g'irlangan token bilan qaytib kirish mumkin bo'lardi, ya'ni
+  // chiqish faqat KO'RINISHDA sodir bo'lardi (Mini App'dan olib tashlangan
+  // tugmaning aynan o'zi, lekin bu safar xavfsizlik narxi bilan).
+  const server = kodSofi(oq('server/routes/web-auth.js'));
+  const tana = funksiyaTanasi(server, 'handleWebLogout');
+  assert.ok(tana,
+    '`server/routes/web-auth.js` da `handleWebLogout` E\'LON qilinmagan — '
+    + 'saytdagi chiqish tugmasi mavjud bo\'lmagan endpointga urardi.');
+  assert.ok(/DELETE\s+FROM\s+web_sessions/i.test(tana),
+    '`handleWebLogout` bazadagi sessiyani o\'chirmayapti (`DELETE FROM web_sessions` yo\'q). '
+    + 'Cookie brauzerdan ketadi-yu, yozuv bazada TIRIK qoladi: o\'sha token bilan '
+    + 'qaytib kirish mumkin bo\'lardi, ya\'ni chiqish faqat KO\'RINISHDA sodir bo\'lardi.');
+  assert.ok(/clearSessionCookie/.test(tana),
+    '`handleWebLogout` cookie ni tozalamayapti (`clearSessionCookie` yo\'q) — '
+    + 'brauzer keyingi so\'rovda o\'lik tokenni yuboraverardi.');
+
+  const marshrut = kodSofi(oq('server/server.js'));
+  assert.ok(/'\/api\/auth\/web\/logout'[\s\S]{0,400}?handleWebLogout/.test(marshrut),
+    '`server/server.js` da `/api/auth/web/logout` yo\'li `handleWebLogout` ga '
+    + 'ulanmagan — endpoint kodda bor, lekin unga hech kim yeta olmaydi.');
+
+  console.log('✅ Test 33: Chiqish — saytda bor, Mini App\'da yo\'q — PASS '
+    + `(${TAQIQ.length} ta taqiq namunasi, sayt yo'li uch bo'g'inda tekshirildi)`);
+}
+
 // ============ TEST RUNNER ============
 // ============ TEST 22: OLISH NUQTASI ID SHAKLI (2026-08-13) ============
 // "Mening manzilim" xaridorning O'Z tanlovini bazaga yozadi. Qiymat
@@ -4148,6 +4250,7 @@ async function runTests() {
     testOrderHistorySurvivesMissingProduct();
     testPhoneVerifiedSourceWins();
     testAdBannerWiring();
+    testMiniAppHasNoLogout();
 
     testR2ConfigValidation();
     testR2KeyGuard();

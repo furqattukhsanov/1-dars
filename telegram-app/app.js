@@ -201,7 +201,7 @@ const STR = {
     contactSub: "Qo'ng'iroq yoki Telegram", contactTgWay: "Telegram orqali",
     phoneCopied: "Raqam nusxalandi — qo'ng'iroq ochilmasa, qo'lda tering",
     phoneCopyErr: "Raqamni nusxalab bo'lmadi — uni qo'lda ko'chiring",
-    logout: "Chiqish", search: "Qidiruv", recent: "So'nggi qidiruvlar", noResults: "Hech narsa topilmadi",
+    search: "Qidiruv", recent: "So'nggi qidiruvlar", noResults: "Hech narsa topilmadi",
     noResultsSub: "Boshqa so'z bilan urinib ko'ring", resultsN: "natija topildi", // ⚠️ `tabHome` — `home` EKRANINING yorlig'i, u endi "Katalog" deb
     // o'qiladi: bosh sahifa katalogga birlashdi (2026-08-07). Kalit nomi
     // ekranga bog'langan, yorliq esa foydalanuvchi ko'radigan so'z.
@@ -366,7 +366,7 @@ const STR = {
     contactSub: "Звонок или Telegram", contactTgWay: "Через Telegram",
     phoneCopied: "Номер скопирован — если звонок не открылся, наберите вручную",
     phoneCopyErr: "Не удалось скопировать номер — скопируйте вручную",
-    logout: "Выйти", search: "Поиск", recent: "Недавние поиски", noResults: "Ничего не найдено",
+    search: "Поиск", recent: "Недавние поиски", noResults: "Ничего не найдено",
     noResultsSub: "Попробуйте другой запрос", resultsN: "результатов", tabHome: "Каталог", tabAi: "AI",
     tabCart: "Корзина", tabOrders: "Заказы", tabProfile: "Профиль", added: "Добавлено в корзину 🌷", liked: "Добавлено в избранное",
     itemGone: "Товар больше недоступен", reorderPartial: "Доступные ткани добавлены в корзину",
@@ -3677,10 +3677,26 @@ function closeContactSheet() {
 //                     ICHIDA: telefon va pochta korxonaning o'z ma'lumoti,
 //                     alohida karta bo'lib turishi shart emas edi);
 //   2) BO'LIMLAR    — bir xil balandlikdagi alohida qatorlar (`profileRow`);
-//   3) AMAL + IZ    — bitta to'ldirilgan tugma (sotuvchi kabineti), keyin
-//                     chiqish va eng pastda brend izi.
+//   3) AMAL + IZ    — bitta to'ldirilgan tugma (sotuvchi kabineti) va eng
+//                     pastda brend izi.
 // "Sozlamalar" sarlavhasi OLIB TASHLANDI: qatorlarning o'zi nima ekanini
 // aytadi, sarlavha esa ro'yxatni ikkiga bo'lib ko'rsatardi.
+//
+// ⚠️ BU YERDA "HISOBDAN CHIQISH" TUGMASI YO'Q va u ATAYLAB yo'q
+// (2026-08-14, founder shikoyati "chiqish ishlamayapti" dan keyin).
+// O'LCHANDI: tugma HAQIQATAN ham o'lik edi — unda `data-action` umuman
+// yo'q edi, delegatsiya esa faqat `[data-action]` ni ushlaydi. Lekin
+// tuzatish uni "ishlaydigan qilish" EMAS: Mini App'da chiqiladigan
+// sessiya MAVJUD EMAS. Kimlik har ochilishda Telegram imzolagan
+// `initData` dan olinadi (`loginTelegram()`), token ham, cookie ham
+// yo'q — ya'ni o'chiradigan narsaning O'ZI yo'q va keyingi HAR BIR
+// so'rov baribir `initData` bilan ketadi. "Chiqdingiz" degan ekran
+// server sizni AYNAN o'sha odam deb tanib turganda ko'rsatilardi —
+// bu **jimgina yolg'on**, ya'ni yo'qlikdan yomonroq.
+// Saytda esa tugma QOLADI va u yerda HAQIQIY: `POST /api/auth/web/logout`
+// HttpOnly cookie sessiyani o'ldiradi (`script.js` → `logout()`).
+// Farq uslubda emas, KIMLIK MANBAIDA — ikki yuz bir xil ko'rinishi
+// shart emas. Qorovul: `server/test.js` → Test 33.
 //
 // ⚠️ Bu yerda VERSIYA RAQAMI yo'q (namunada bor). Klientda haqiqiy versiya
 // satri mavjud emas, o'ylab topilgani esa "panelda o'ylab topilgan raqam
@@ -3764,8 +3780,6 @@ function renderProfile() {
       </span>
       <svg width="19" height="19" viewBox="0 0 24 24" fill="none" style="flex:none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </button>` : ''}
-
-    <button style="flex:none;height:46px;border-radius:var(--radius-md);border:1px solid var(--danger-100);background:transparent;color:var(--danger-500);cursor:pointer;font-size:14px;font-weight:600;margin-top:2px">${T.logout}</button>
 
     <div style="flex:none;display:flex;flex-direction:column;align-items:center;gap:7px;margin-top:14px">
       <img src="assets/lola-mark.png" width="40" height="40" alt="" style="border-radius:12px;opacity:.92">
