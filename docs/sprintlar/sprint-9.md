@@ -203,6 +203,29 @@ LolaMarket ni rasmiy ishga tushirish. Birinchi haqiqiy xaridorlar va ishlab chiq
 
 ## Qilingan ishlar
 
+- [2026-08-14] **Repo tartiblash: dizayn-tizim ish materiallari PRODUCTION'DAN
+  OLINDI.** Papka auditi o'tkazildi va uchta ish qilindi:
+  (1) `telegram-app/_ds/lolamarket-design-system-.../` (8 fayl: readme,
+  tokenlar, shriftlar, ~40K) `docs/dizayn-tizimi/` ga ko'chirildi (`git mv`).
+  Sabab: `deploy.yml` Mini App'ni `telegram-app/*` bilan BUTUNLAY serverga
+  ko'chiradi, ya'ni ichki ish materiallari `lolamarket.uz/mini-app/_ds/...`
+  da hammaga ochiq turardi. Hech narsa unga havola qilmasdi — ko'chirish
+  xavfsiz, sayt kodi tegilmadi.
+  ⚠️ **Serverdagi eski `/var/www/lolamarket/mini-app/_ds/` rsync bilan
+  O'CHMAYDI** — rsync faqat qo'shadi/yangilaydi. Qo'lda olib tashlash kerak
+  (`sayt-eski/` darsi bilan bir xil: repodan o'chirilgan narsa serverda
+  yashab yuraveradi).
+  (2) `telegram-app/_ds/chips-variantlar.html` (untracked demo) o'chirildi —
+  chip dizayni allaqachon tanlanib production'da (`16479d8`), faylning o'z
+  izohida ham "repoga kirmaydi" deb yozilgan edi.
+  (3) CLAUDE.md "Fayl tuzilmasi" tuzatildi: `docs/prd-lolamarket.md` qatori
+  olib tashlandi — **bunday fayl hech qachon mavjud bo'lmagan** (haqiqiysi
+  `texnik-topshiriq.md`, tekshirildi: `ls docs/`), ya'ni "hujjatdagi raqam —
+  tekshirilmagan da'vo" qoidasining yana bir ko'rinishi, bu safar fayl nomi
+  darajasida. `docs/dizayn-tizimi/` qo'shildi, sprintlar `0..9` → `0..10`.
+  Photo/ dagi 9 ishlatilmaydigan rasmga founder ko'rsatmasi bilan ATAYLAB
+  tegilmadi ("rasmlarga teginma"). 67 test yashil.
+
 - [2026-08-13] 🔴 **PRODUCTION NOSOZLIGI: saytga kirish BUTUNLAY o'lgan edi —
   sabab kodda emas, TOKEN ALMASHTIRISHNING TUSHIB QOLGAN UCHINCHI QADAMIDA.**
   ⚠️ Bu band yangi funksiya EMAS va bu sprintga hech qanday `[x]` qo'shmaydi —

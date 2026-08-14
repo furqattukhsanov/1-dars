@@ -351,6 +351,12 @@
     <div id="faoliyat-list">
       <div class="faoliyat-item">
         <span class="faoliyat-sana">2026-08-14</span>
+        <span class="faoliyat-text">REPO TARTIBLASH — DIZAYN-TIZIM ISH MATERIALLARI PRODUCTION'DAN OLINDI. Papka auditi natijasi: <code>telegram-app/_ds/lolamarket-design-system-.../</code> (8 fayl: readme, tokenlar, shriftlar, ~40K) <code>docs/dizayn-tizimi/</code> ga ko'chirildi (<code>git mv</code>). Sabab: <code>deploy.yml</code> Mini App'ni <code>telegram-app/*</code> bilan BUTUNLAY serverga ko'chiradi, ya'ni ichki ish materiallari <code>lolamarket.uz/mini-app/_ds/...</code> da hammaga ochiq turardi; hech narsa unga havola qilmasdi — ko'chirish xavfsiz, sayt kodi tegilmadi. ⚠️ <b>Serverdagi eski <code>/var/www/lolamarket/mini-app/_ds/</code> rsync bilan O'CHMAYDI</b> — qo'lda olib tashlash kerak (<code>sayt-eski/</code> darsi: repodan o'chirilgan narsa serverda yashab yuraveradi). Yo'l-yo'lakay: <code>chips-variantlar.html</code> lokal demo o'chirildi (dizayn tanlangan, production'da — <code>16479d8</code>); CLAUDE.md &laquo;Fayl tuzilmasi&raquo; tuzatildi — <code>prd-lolamarket.md</code> qatori olib tashlandi (BUNDAY FAYL HECH QACHON MAVJUD BO'LMAGAN, haqiqiysi <code>texnik-topshiriq.md</code> — &laquo;hujjatdagi raqam — tekshirilmagan da'vo&raquo; qoidasi fayl nomi darajasida), <code>docs/dizayn-tizimi/</code> qo'shildi, sprintlar 0..10 deb to'g'rilandi. Photo/ dagi 9 ishlatilmaydigan rasmga founder ko'rsatmasi bilan ATAYLAB tegilmadi. 67 TEST YASHIL. DEPLOY: statik, servis restarti kerak emas.</span>
+        <span class="faoliyat-sprint">Sprint 9</span>
+      </div>
+
+      <div class="faoliyat-item">
+        <span class="faoliyat-sana">2026-08-14</span>
         <span class="faoliyat-text">SAYT HAM &laquo;OSTKI CHIZIQ&raquo; CHIP DIZAYNIGA O'TDI — &laquo;IKKALA YUZ BITTA KO'RINISH&raquo; QOIDASI TIKLANDI (founder qarori, pastdagi yozuvdagi &laquo;alohida qaror kutilmoqda&raquo; bandi SHU KUNIYOQ yopildi). <code>style.css</code> dagi <code>.chip</code> Mini App <code>.cat-chip</code> bilan AYNAN bir xil retseptda: <code>--text-muted</code> matn, <code>.active</code> da <code>--pom-700</code> + qalin + ikat rombi, yangi <code>.chip-line</code> elementi (gradient chiziq, <code>scaleX</code> 0→1). <code>.chips</code> ga <code>touch-action: pan-x</code> + <code>overscroll-behavior-x: contain</code> ham qo'shildi — Mini App'dagi &laquo;qimirlash&raquo; tuzatishi saytda YO'Q edi, ayni nuqson bu yerda ham yashab turgan. Izohda ikkala tuzoq hujjatlandi: chiziq <code>::after</code> emas (44×44 tap-maydon qoidasi band qilgan), saytda JS kerak emas (klass almashadi, markup qayta chizilmaydi). ⚠️ <b><code>index.html</code> da 7 chip matni ichki <code>&lt;span data-i18n&gt;</code> ga ko'chirildi</b> va sababi muhim: <code>applyLang()</code> <code>textContent</code> yozadi — atribut tashqi tugmada tursa til almashtirilganda chiziq spani JIMGINA O'CHIB ketardi; brauzerda tekshirildi, ruschada 7 chiziq ham omon. Kesh: <code>style.css</code> v53 → v54 (<code>index.html</code> va <code>admin/index.html</code> da BIR XIL raqam), <code>telegram-app/styles.css</code> v32 → v33 (izohdagi &laquo;sayt eski retseptda&raquo; bandi eskirgani uchun yangilandi), <code>panel.js</code> v27 → v28, Test 16 jadvali birga. Tekshirildi: 67 TEST YASHIL, mobil + desktop skrinshot, filtr ishlaydi, ranglar tokendan (Test 26). DEPLOY: faqat statik, servis restarti kerak emas.</span>
         <span class="faoliyat-sprint">Sprint 4</span>
       </div>
@@ -984,6 +990,6 @@
 
 </div>
 
-<script src="panel.js?v=28" defer></script>
+<script src="panel.js?v=29" defer></script>
 </body>
 </html>

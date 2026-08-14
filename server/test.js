@@ -1391,7 +1391,7 @@ function testAssetVersionsAreFresh() {
     // Birlashgan tarkib ikkalasidan ham farq qiladi, ya'ni raqam yana
     // YUQORIGA suriladi. Teng raqam qaytib kelgan foydalanuvchida keshdagi
     // bir tomonlama faylni qoldirardi.
-    'panel.js': { v: 28, hash: '7b36bbabf94a' },
+    'panel.js': { v: 29, hash: 'a9d19565cb86' },
     'admin/admin.css': { v: 18, hash: '15b0bc977b85' },
     'admin/admin.js': { v: 25, hash: '08fae1bb61dc' },
     'telegram-app/styles.css': { v: 33, hash: '878aca09308f' },

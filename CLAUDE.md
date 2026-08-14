@@ -477,8 +477,15 @@ LolaMarket — O'zbekistonda to'qima materiallar uchun B2B web platforma.
 ├── admin/                             — admin panel; ILDIZDAGI style.css + admin.css
 ├── docs/
 │   ├── prd.md                         — Founder PRD
-│   ├── prd-lolamarket.md              — Texnik PRD
-│   └── sprintlar/sprint-0..9.md      — Sprint fayllar
+│   ├── texnik-topshiriq.md            — Texnik topshiriq (ilgari bu yerda
+│   │                                    "prd-lolamarket.md" deb yozilgandi —
+│   │                                    bunday fayl hech qachon yo'q edi)
+│   ├── dizayn-tizimi/                 — dizayn-tizim tokenlari va readme
+│   │                                    (2026-08-14 gacha telegram-app/_ds/ da
+│   │                                    turardi va deploy.yml `telegram-app/*`
+│   │                                    ni butunlay ko'chirgani uchun ish
+│   │                                    materiali production'ga chiqib yurardi)
+│   └── sprintlar/sprint-0..10.md     — Sprint fayllar
 ├── lolamarket-next/                   — Next.js loyihasi (alohida repo)
 │
 │   ⚠️ 2026-08-06 da `sayt-eski/` va `demo/` OLIB TASHLANDI. Bu yerda ilgari
