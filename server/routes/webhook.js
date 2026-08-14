@@ -82,10 +82,31 @@ async function handleTelegramWebhook(req, res) {
     if (msg.contact) {
       if (msg.contact.user_id && msg.from && msg.contact.user_id === msg.from.id) {
         saveContact(msg.contact.user_id, msg.contact.phone_number);
-        // Telefon `users` ga ham yoziladi — saytdagi profil va checkout formasi
-        // uni shu yerdan oladi (contacts.json faqat Mini App uchun edi).
+        /* Telefon `users` ga ham yoziladi — saytdagi profil va checkout formasi
+           uni shu yerdan oladi (contacts.json faqat Mini App uchun edi).
+
+           ⚠️ USTIDAN YOZADI va bu ATAYLAB (2026-08-14, founder shikoyati:
+           "webdagi profilimda boshqa raqam turibdi telegram orqali login
+           qilgan bo'lsam ham"). Ilgari bu yerda ham `COALESCE(phone, $2)`
+           turardi, ya'ni BIRINCHI yozilgan raqam abadiy qotib qolardi.
+           Natijada tuzoq hosil bo'lardi: checkout formasiga yoki sotuvchi
+           arizasiga bir marta boshqa raqam tushsa (sinov raqami, hamkasb,
+           ofis raqami), profil o'shani ko'rsatib turaverardi va uni
+           TUZATISHNING ILOJI YO'Q edi — bot esa raqamni faqat `!user.phone`
+           bo'lganda so'raydi, ya'ni qayta ham so'ramasdi.
+
+           Nega aynan SHU manba g'olib: raqamni Telegram'ning O'ZI tasdiqlagan
+           (yuqoridagi `msg.contact.user_id === msg.from.id` sharti uni
+           foydalanuvchining SHAXSIY kontakti ekanini kafolatlaydi), qolgan
+           ikki manba esa qo'lda yoziladi va boshqa odamniki bo'lishi mumkin.
+           Shuning uchun qoida: TASDIQLANGAN kontakt > forma. Forma yozuvlari
+           `COALESCE` da qoladi — ular faqat BO'SH joyni to'ldiradi.
+
+           ⚠️ `users.src` bilan ADASHTIRMASLIK kerak: u yerda "birinchi
+           teginish qulflanadi" TO'G'RI, chunki u analitika FAKTI. Telefon
+           esa fakt emas, JORIY aloqa ma'lumoti — u o'zgarishi normal. */
         await pool.query(
-          `UPDATE users SET phone = COALESCE(phone, $2) WHERE tg_user_id = $1`,
+          `UPDATE users SET phone = $2 WHERE tg_user_id = $1`,
           [String(msg.from.id), msg.contact.phone_number]
         ).catch((e) => console.error('users.phone yozishda xato:', e.message));
         const usedByApplication = await handleSellerApplicationContact(msg)
@@ -94,7 +115,13 @@ async function handleTelegramWebhook(req, res) {
         if (!usedByApplication) {
           await callTelegram('sendMessage', {
             chat_id: msg.chat.id,
-            text: "✅ Rahmat! Raqamingiz saqlandi — saytda buyurtma bersangiz forma o'zi to'ladi.",
+            // Raqamning O'ZI ko'rsatiladi: bu yagona joy, undan foydalanuvchi
+            // profildagi raqam ALMASHGANIGA ishonch hosil qiladi. "Saqlandi"
+            // deyish yetarli emas edi — xato raqamni tuzatayotgan odam
+            // natijani ko'rmasdi va tuzalgan-tuzalmaganini bilmasdi.
+            text: `✅ Rahmat! Raqamingiz saqlandi: ${msg.contact.phone_number}\n\n`
+              + "Saytdagi profilingizda va buyurtma formasida endi shu raqam turadi. "
+              + "O'zgartirish kerak bo'lsa — yangi kontaktingizni shu yerga qayta yuboring.",
             reply_markup: { remove_keyboard: true },
           }).catch(() => {});
         }

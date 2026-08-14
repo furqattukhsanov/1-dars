@@ -164,11 +164,20 @@ async function handleSellerApplicationReview(chatId, action, appId, reason) {
       // uni shu yerdan oladi (ilgari faqat arizada qolib ketardi).
       // `engaged_at` — haqiqiy foydalanish belgisi (db/020). Sotuvchi arizasini
       // to'ldirish `/start` bosishdan ancha uzoqroq qadam.
+      //
+      // ⚠️ TELEFON TARTIBI: `COALESCE(users.phone, EXCLUDED.phone)` — MAVJUD
+      // raqam ustun, ariza raqami faqat BO'SH joyni to'ldiradi (2026-08-14).
+      // Ilgari tartib TESKARI edi va ariza tasdiqlanganda u Telegram
+      // TASDIQLAGAN shaxsiy raqamni jimgina bosib ketardi: sotuvchi
+      // profilida ofis/ariza raqami paydo bo'lardi va uni qaytarib
+      // bo'lmasdi (bot raqamni faqat `!user.phone` bo'lganda so'raydi).
+      // Ariza raqami YO'QOLMAYDI — u `seller_applications.phone` da qoladi.
+      // Qorovul: `server/test.js` → Test 31.
       `INSERT INTO users (tg_user_id, full_name, phone, role, engaged_at)
          VALUES ($1, $2, $3, 'seller', now())
          ON CONFLICT (tg_user_id) DO UPDATE
            SET role = 'seller',
-               phone = COALESCE(EXCLUDED.phone, users.phone),
+               phone = COALESCE(users.phone, EXCLUDED.phone),
                engaged_at = COALESCE(users.engaged_at, now())
          RETURNING id`,
       [String(app.tg_user_id), app.business_name || app.tg_username || null, app.phone || null]

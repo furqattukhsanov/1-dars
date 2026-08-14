@@ -3706,6 +3706,81 @@ function testOrderHistorySurvivesMissingProduct() {
     + '(server snapshot beradi, orderLine mahsulotsiz ham chizadi, esc() joyida, savat himoyalangan)');
 }
 
+// ====== TEST 31: TELEFON — TASDIQLANGAN MANBA USTUN (2026-08-14) ======
+// Founder shikoyati: "webdagi profilimda boshqa raqam turibdi telegram orqali
+// login qilgan bo'lsam ham".
+//
+// Sabab: `users.phone` ga UCH manba yozadi va ustuvorlik TESKARI qo'yilgan edi —
+//   * Telegram kontakti (Telegram TASDIQLAGAN)  → `COALESCE` = hech qachon yozmasdi
+//   * checkout formasi (qo'lda yozilgan)        → `COALESCE` = hech qachon yozmasdi
+//   * sotuvchi arizasi (forma)                  → USTIDAN yozardi
+// Ya'ni eng ishonchsiz manba g'olib edi. Natija — YOPIQ TUZOQ: formaga bir
+// marta boshqa raqam tushsa (sinov, hamkasb, ofis raqami) profil o'shani
+// ko'rsatib turaverardi, bot esa raqamni faqat `!user.phone` bo'lganda
+// so'raydi — ya'ni qayta so'ramasdi va tuzatib bo'lmasdi.
+//
+// Qoida: TASDIQLANGAN kontakt USTIDAN yozadi, forma esa faqat BO'SH joyni
+// to'ldiradi. ⚠️ `users.src` bilan adashtirmaslik kerak — u yerda "birinchi
+// teginish qulflanadi" TO'G'RI, chunki u analitika FAKTI (Test 27). Telefon
+// esa JORIY aloqa ma'lumoti va o'zgarishi normal. Aynan shu o'xshashlik bu
+// yerni "tartibga solish" vasvasasini tug'diradi — shuning uchun test bor.
+function testPhoneVerifiedSourceWins() {
+  const fs = require('fs');
+  const path = require('path');
+  const R = path.join(__dirname, 'routes');
+  const oq = (f) => kodSofi(fs.readFileSync(path.join(R, f), 'utf8'));
+
+  // ---- 1. Telegram kontakti — USTIDAN yozsin ----
+  const webhook = oq('webhook.js');
+  const yozuv = webhook.match(/UPDATE users SET phone[^;]*?WHERE tg_user_id[^;]*?;/s);
+  assert.ok(yozuv, '`webhook.js` da `users.phone` yozuvi topilmadi');
+  assert.ok(!/COALESCE/i.test(yozuv[0]),
+    'Telegram kontakti `COALESCE` bilan yozilyapti — ya\'ni MAVJUD raqam ustidan '
+    + 'yozmaydi va xato raqamni TUZATIB BO\'LMAYDI (bot uni faqat `!user.phone` '
+    + 'bo\'lganda so\'raydi).\n'
+    + '    Raqamni Telegram TASDIQLAGAN (`msg.contact.user_id === msg.from.id`), '
+    + 'ya\'ni bu eng ishonchli manba — u ustun bo\'lsin: `SET phone = $2`.\n'
+    + '    ⚠️ `users.src` dagi "birinchi teginish" qoidasi bu yerga KO\'CHIRILMASIN: '
+    + 'u analitika fakti, telefon esa joriy aloqa ma\'lumoti.');
+
+  // Tasdiqlangan kontakt ekani TEKSHIRILSIN — busiz begona raqam yozilardi
+  assert.ok(/msg\.contact\.user_id\s*===\s*msg\.from\.id/.test(webhook),
+    '`msg.contact` egasi tekshirilmayapti — foydalanuvchi BOSHQA odamning '
+    + 'kontaktini yuborsa u o\'z raqami sifatida yozilardi. Ustidan yozish '
+    + 'huquqi aynan shu tekshiruvga tayanadi.');
+
+  // ---- 2. Formalar — faqat BO'SH joyni to'ldirsin ----
+  // Ular qo'lda yoziladi va boshqa odamniki bo'lishi mumkin (xaridor
+  // hamkasbining raqamini yozishi, ariza ofis raqamini ko'rsatishi).
+  const formalar = [
+    ['orders.js', /UPDATE users SET phone[^;]*?;/s, 'checkout formasi'],
+    ['seller-application.js', /phone\s*=\s*COALESCE\([^)]*\)/, 'sotuvchi arizasi'],
+  ];
+  formalar.forEach(([fayl, re, nom]) => {
+    const src = oq(fayl);
+    const m = src.match(re);
+    assert.ok(m, `\`${fayl}\` da telefon yozuvi topilmadi (${nom})`);
+    assert.ok(/COALESCE/i.test(m[0]),
+      `${nom} (\`${fayl}\`) telefonni \`COALESCE\`siz yozyapti — u qo'lda `
+      + 'kiritilgan va boshqa odamniki bo\'lishi mumkin, ya\'ni TASDIQLANGAN '
+      + 'raqamni bosib ketmasin.');
+  });
+
+  // ⚠️ `COALESCE` ning O'ZI yetarli emas — TARTIB muhim. Ariza yo'lida
+  // `COALESCE(EXCLUDED.phone, users.phone)` MAVJUD raqamni bosib ketardi:
+  // "COALESCE bor" degan tekshiruv uni o'tkazib yuborardi.
+  const app = oq('seller-application.js');
+  assert.ok(/COALESCE\(\s*users\.phone\s*,\s*EXCLUDED\.phone\s*\)/.test(app),
+    '`seller-application.js` da tartib TESKARI: `COALESCE(EXCLUDED.phone, users.phone)` '
+    + 'ariza raqamini BIRINCHI qo\'yadi, ya\'ni ariza tasdiqlanganda Telegram '
+    + 'tasdiqlagan shaxsiy raqam jimgina bosib ketiladi.\n'
+    + '    To\'g\'ri shakl: `COALESCE(users.phone, EXCLUDED.phone)` — mavjud raqam ustun. '
+    + 'Ariza raqami yo\'qolmaydi, u `seller_applications.phone` da qoladi.');
+
+  console.log('✅ Test 31: Telefon — tasdiqlangan manba ustun — PASS '
+    + `(1 ustun manba, ${formalar.length} ta forma faqat bo'sh joyni to'ldiradi)`);
+}
+
 // ============ TEST RUNNER ============
 // ============ TEST 22: OLISH NUQTASI ID SHAKLI (2026-08-13) ============
 // "Mening manzilim" xaridorning O'Z tanlovini bazaga yozadi. Qiymat
@@ -3954,6 +4029,7 @@ async function runTests() {
     testBrandColorTokens();
     testCardsHaveLikeButton();
     testOrderHistorySurvivesMissingProduct();
+    testPhoneVerifiedSourceWins();
 
     testR2ConfigValidation();
     testR2KeyGuard();
