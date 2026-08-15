@@ -467,11 +467,14 @@ body {
    founder uni IKKI qadamda sozladi: avval 20% pasaytirildi (220→176,
    26vw→20.8vw, 400→320, telefonda 250→200), keyin o'shanga 10% qo'shildi.
    Ya'ni hozirgisi eskisining 0.8 × 1.1 = 0.88 i.
-   ⚠️ Rasm 1200×338 (32:9) qilib chizilgan — brief bo'yicha chap 65% i
-   matn uchun ochiq, o'ng 35% ida mato burmasi. Sayt slaydi undan BALANDROQ,
-   ya'ni `object-fit: cover` rasmni yon tomondan kesadi va tor ekranda
-   kompozitsiya markazga siljiydi. Shu sabab telefonda `object-position`
-   CHAPGA suriladi: matn zonasi kadrda qolsin. */
+   ⚠️ Rasm endi SAYT o'lchamiga kesilgan (2026-08-16, founder: "rasm sifati
+   xira"). Ilgari bu yerda Mini App'ning 1200×338 fayli turardi va brauzer
+   uni cho'zardi — telefonda 1.30x, retina monitorda 2.08x (o'lchandi).
+   Yangi kadrlar 4800×2000 masterdan kesiladi va IKKI shaklda beriladi:
+   telefonga 2:1, keng ekranga 3.18:1 (`index.html` → ikkita `<source>`).
+   Ikki shakl kerak, chunki slayd nisbati telefonda 1.3–2.7, keng ekranda
+   3.1–4.1 — bitta kadr ikkalasiga to'g'ri kelmaydi.
+   TZ va o'lchovlar: `docs/dizayn-tizimi/banner-rasm-tz.md`. */
 .ad-banner {
   /* Qo'shni slaydning ko'rinadigan cheti = `--ad-bleed` − `--ad-gap`:
      telefonda 16 − 10 = 6px (Mini App bilan AYNAN bir xil — founder
@@ -572,7 +575,13 @@ body {
 .ad-title {
   margin: 0;
   font-family: var(--font-display);
-  font-size: clamp(19px, 2.9vw, 34px);
+  /* 2026-08-16, founder: "shriftlar kichkina". 19→24px (telefon), 34→42px
+     (keng ekran). Yuqori chegara O'LCHOV bilan tanlandi: sarlavha IKKI
+     qatorda qolishi shart, ya'ni eng uzun matn ("24/7 buyurtma /
+     berishingiz mumkin") uchinchi qatorga tushmasligi kerak. Telefonda
+     24px shu chegara — 26px da o'sha slayd sindi; keng ekranda 44px
+     gacha joy bor, 42px nafas uchun qoldirildi. */
+  font-size: clamp(24px, 3.2vw, 42px);
   font-weight: 800;
   letter-spacing: -.03em;
   line-height: 1.14;
@@ -591,10 +600,11 @@ body {
   display: inline-block;
   vertical-align: middle;
   margin-left: .4em;
-  padding: clamp(4px, .45vw, 6px) clamp(7px, .8vw, 11px);
+  padding: clamp(5px, .5vw, 7px) clamp(9px, .9vw, 13px);
   border-radius: 999px;
   font-family: var(--font-sans);
-  font-size: clamp(9px, .82vw, 11.5px);
+  /* 9→12px (telefon), 11.5→14px (keng ekran) — sarlavha bilan birga o'sdi */
+  font-size: clamp(12px, 1.05vw, 14px);
   font-weight: 700;
   letter-spacing: .1em;
   text-transform: uppercase;
@@ -634,16 +644,19 @@ body {
 
 @media (max-width: 640px) {
   .ad-slide { height: 220px; }     /* 250 → 200 (−20%) → 220 (+10%) */
-  /* ⚠️ Tor ekranda slayd 32:9 rasmdan ancha BALAND, ya'ni `cover` rasmning
-     yon tomonlarini kesadi va enining atigi ~44% i ko'rinadi (o'lchandi,
-     375px da). Standart `center` da kadrga rasmning 28–72% i tushadi —
-     o'ng 35% dagi mato burmasi (rasmning butun xarakteri) KESILIB qoladi
-     va banner tekis bej quti bo'lib ko'rinadi. Chapga surish ham yordam
-     bermadi: u yanada bo'shroq kadr berdi.
-     62% da oyna 34.8–78.7% ga tushadi: chapda matn uchun ochiq zona
-     qoladi, o'ngdan esa mato o'z rangi bilan kiradi — uchala slaydda ham
-     ko'z bilan tekshirildi (anor ipak, oltin adras, feruza ikat). */
-  .ad-slide img { object-position: 62% center; }
+  /* ⚠️ Bu yerda `object-position: 62% center` turardi va u 2026-08-16 da
+     OLIB TASHLANDI. U 32:9 Mini App rasmi uchun VAQTINCHALIK chora edi:
+     o'sha kadrdan telefonda enining atigi ~44% i ko'rinardi va markazda
+     qoldirilsa mato butunlay kesilib, banner tekis bej quti bo'lardi.
+     Endi telefon uchun ALOHIDA 2:1 kesim bor (`index.html` →
+     `<source media="(max-width: 640px)">`), ya'ni kadr allaqachon shu
+     shakl uchun tanlangan — surish endi foyda emas, ZARAR berardi.
+     Buni Test 32 qo'riqlaydi: qaytib kelsa test qizil bo'ladi. */
+  /* Kattalashgan sarlavha 65% ga sig'maydi — 24px da eng uzun matn uchinchi
+     qatorga tushardi (o'lchandi). Telefonda matn zonasi 65% → 72%, ya'ni
+     matoga 28% qoladi. ⚠️ Rasm TZ si ham SHU raqamdan kelib chiqadi:
+     `docs/dizayn-tizimi/banner-rasm-tz.md`. */
+  .ad-copy { right: 28%; }
 }
 
 @media (prefers-reduced-motion: reduce) {

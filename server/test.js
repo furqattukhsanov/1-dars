@@ -1383,7 +1383,7 @@ function testAssetVersionsAreFresh() {
     // Shuning uchun versiya ikkala tomonnikidan ham YUQORI olinadi — teng
     // yoki past raqam qaytib kelgan foydalanuvchida keshdagi YARIM
     // (bir tomonlama) faylni qoldirardi.
-    'style.css': { v: 56, hash: '9eb0ef13c990' },
+    'style.css': { v: 58, hash: 'd127d2ecd8f2' },
     'script.js': { v: 47, hash: 'bbad6bd6acfb' },
     'pwa.js': { v: 2, hash: 'f46683d58662' },
     // ⚠️ IKKINCHI BIRLASHTIRISH (2026-08-14): ikkala tomon panel.js ni 24,
@@ -1398,7 +1398,7 @@ function testAssetVersionsAreFresh() {
     // YUQORIGA suriladi: teng raqam qaytib kelgan foydalanuvchida keshdagi
     // BIR TOMONLAMA faylni qoldirardi — sevimlilar yoki chiqish tuzatishining
     // faqat bittasi bo'lgan `app.js`.
-    'panel.js': { v: 38, hash: 'd05582a68651' },
+    'panel.js': { v: 39, hash: '32bb43459ea0' },
     'admin/admin.css': { v: 18, hash: '15b0bc977b85' },
     'admin/admin.js': { v: 25, hash: '08fae1bb61dc' },
     'telegram-app/styles.css': { v: 36, hash: '570a2450c3a4' },
@@ -4122,46 +4122,63 @@ function testAdBannerWiring() {
   assert.ok(/data-action="adTap"\s+data-arg="\$\{i\}"/.test(bannerHtmlTana2[1]),
     'har `.ad-slide` `data-action="adTap" data-arg="${i}"` bilan chizilsin — bosilganda qaysi slayd ekani shundan');
 
-  // ---- 5-band: SAYT nusxasi Mini App bilan bir xil qolsin (2026-08-16) ----
-  // Sayt banneri Mini App'niki bilan bir xil qilindi va shu bilan birga
-  // rasmlar `assets/ads/` ga NUSXALANDI. Nusxa MAJBURIY: landing HTML'i
-  // `telegram-app/...` yo'liga ishora qila olmaydi (serverda o'sha papka
-  // `mini-app/` deb ataladi, havola 404 bo'lardi), CI esa ikkalasini
-  // ALOHIDA qadam bilan chiqaradi.
+  // ---- 5-band: SAYT slaydining rasm to'plami to'liq bo'lsin (2026-08-16) ----
+  // ⚠️ Bu band 2026-08-16 da QAYTA YOZILDI va sababi ochiq yozilishi kerak.
+  // Ertalab u sayt va Mini App rasmlari BAYT-MA-BAYT bir xil ekanini
+  // tekshirardi. Kechqurun founder «rasm sifati xira» dedi va sabab
+  // o'lchandi: Mini App fayli 1200×338 — u SAYT uchun kichik va brauzer
+  // uni cho'zardi (telefonda 1.30x, retina monitorda 2.08x). Shuning uchun
+  // sayt endi O'Z kesimlariga o'tdi (2:1 telefonga, 3.18:1 keng ekranga,
+  // har biri ikki o'lchamda) va «bayt-ma-bayt bir xil» sharti YOLG'ON
+  // bo'lib qoldi — uni o'sha holicha qoldirish testni qizil ushlab turardi,
+  // o'chirib yuborish esa qorovulni JIMGINA yo'qotardi.
   //
-  // Xavf esa `BTS_POINTS` bilan bitta oila: ikki nusxa jimgina AJRALIB
-  // KETADI — Mini App'da rasm yangilanadi, saytda esa eskisi qolib
-  // ketaveradi va buni hech narsa ko'rsatmaydi (ikkala sahifa ham ochiladi,
-  // konsol toza, faqat ikki yuzda IKKI XIL banner turadi). Shuning uchun
-  // bu yerda `sha256` solishtiriladi.
+  // 🔴 SHUNING UCHUN OCHIQ YOZILADI: ikki yuz endi BOSHQA-BOSHQA rasmdan
+  // oziqlanadi. Sayt — yangi 4800×2000 masterlardan, Mini App — 2026-08-15
+  // dagi eski generatsiyadan. Bu VAQTINCHALIK holat va founder qarori
+  // kutilyapti: Mini App'ning 1200×338 lari ham shu masterlardan qayta
+  // kesilsinmi (tavsiya) yoki eskisida qolsinmi. Qaror qabul qilinmaguncha
+  // «ikki yuz bir xil» degan da'vo HECH QAYERDA yozilmasin.
   //
-  // Ro'yxat QO'LDA yozilmaydi: `AD_SLIDES` dagi `img` asoslaridan olinadi,
-  // ya'ni to'rtinchi slayd qo'shilsa u ham avtomatik qamraladi.
-  const crypto = require('crypto');
+  // Hozir tekshiriladigan narsa — sayt to'plamining TO'LIQLIGI: har slayd
+  // uchun ikki kesim × ikki o'lcham WebP va bitta JPEG zaxira diskda
+  // bo'lsin va `index.html` ularga ishora qilsin. Fayl yetishmasa slayd
+  // JIMGINA bo'sh chiqardi — konsolda xato yo'q, `fetch` ham yo'q.
+  // Ro'yxat QO'LDA yozilmaydi: `AD_SLIDES` dagi `img` asoslaridan olinadi.
   const webRoot = path.join(__dirname, '..');
-  let nusxaSoni = 0;
+  const indexHtml = fs.readFileSync(path.join(webRoot, 'index.html'), 'utf8');
+  const KESIMLAR = ['w-1400.webp', 'w-2240.webp', 'm-900.webp', 'm-1800.webp', 'w-1400.jpg'];
+  let faylSoni = 0;
   for (const rel of rasmlar) {
-    const nom = path.posix.basename(rel);         // `assets/ads/ad-1` → `ad-1`
-    for (const ext of ['.webp', '.jpg']) {
-      const mini = path.join(webRoot, 'telegram-app', rel + ext);
-      const sayt = path.join(webRoot, 'assets', 'ads', nom + ext);
-      assert.ok(fs.existsSync(sayt),
-        `Mini App banneri \`${nom}${ext}\` saytda YO'Q: \`assets/ads/${nom}${ext}\`. ` +
-        'Sayt banneri shu papkadan o\'qiydi (`index.html`) — fayl yetmasa slayd bo\'sh chiqadi.');
-      const h = (p) => crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex').slice(0, 12);
-      assert.strictEqual(h(sayt), h(mini),
-        `\`${nom}${ext}\` ikki joyda HAR XIL: \`telegram-app/${rel}${ext}\` va ` +
-        `\`assets/ads/${nom}${ext}\`. Mini App rasmi yangilanib, saytdagi nusxa ` +
-        'eskisicha qolgan bo\'lsa — ikki yuzda ikki xil banner turadi va buni ' +
-        'hech narsa ko\'rsatmaydi. Nusxani yangilang: `cp telegram-app/' + rel + ext +
-        ' assets/ads/' + nom + ext + '`');
-      nusxaSoni++;
+    const nom = path.posix.basename(rel);          // `assets/ads/ad-1` → `ad-1`
+    // Mini App tomoni o'z faylida qolishi SHART — u yerda 32:9 to'g'ri.
+    assert.ok(fs.existsSync(path.join(webRoot, 'telegram-app', rel + '.webp')),
+      `Mini App banneri diskda yo'q: \`telegram-app/${rel}.webp\``);
+    for (const kesim of KESIMLAR) {
+      const yol = `assets/ads/${nom}-${kesim}`;
+      assert.ok(fs.existsSync(path.join(webRoot, yol)),
+        `Sayt banneri uchun \`${yol}\` YO'Q. Har slaydda ikki kesim ` +
+        '(telefon `m-`, keng `w-`) × ikki o\'lcham + JPEG zaxira bo\'lsin — ' +
+        'fayl yetishmasa slayd JIMGINA bo\'sh chiqadi.');
+      assert.ok(indexHtml.includes(yol),
+        `\`${yol}\` diskda bor, lekin \`index.html\` unga ishora qilmaydi — ` +
+        'ishlatilmaydigan fayl deploy\'ga chiqib, keraklisi tushib qolgan bo\'lishi mumkin.');
+      faylSoni++;
     }
   }
+  // 🔴 Vaqtinchalik chora QAYTIB KELMASIN: telefon uchun alohida kesim
+  // paydo bo'lgach `object-position` surish faqat zarar beradi.
+  const saytCss = fs.readFileSync(path.join(webRoot, 'style.css'), 'utf8');
+  const mobilBlok = saytCss.match(/@media \(max-width: 640px\)\s*\{([\s\S]*?)\n\}/);
+  assert.ok(mobilBlok, 'style.css da telefon media bloki topilmadi');
+  assert.ok(!/\.ad-slide img\s*\{[^}]*object-position/.test(mobilBlok[1]),
+    'telefon blokida `.ad-slide img { object-position: ... }` qaytib kelgan. ' +
+    'U 32:9 rasm uchun vaqtinchalik chora edi; endi telefon uchun ALOHIDA ' +
+    '2:1 kesim bor, ya\'ni kadr allaqachon shu shakl uchun tanlangan.');
 
   console.log(`✅ Test 32: Reklama banneri qo'riqchisi — PASS `
     + `(${rasmlar.length} slayd × 2 til, chizish bitta nuqtadan, taymer tozalanadi, `
-    + `${nusxaSoni} ta rasm ikki yuzda bir xil)`);
+    + `saytda ${faylSoni} ta rasm fayli joyida)`);
 }
 
 // ====== TEST 33: SEVIMLILAR BAZADA VA YOLG'ON KO'RSATMAYDI (2026-08-14) ======

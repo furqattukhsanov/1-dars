@@ -125,6 +125,157 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
 
 ## Qilingan ishlar
 
+- [2026-08-16] **BANNER RASMI VA SHRIFTI TUZATILDI — VA ENG QIMMAT DARS TZ
+  NING O'ZIDA CHIQDI.** Founder: «Zo'r faqat rasm sifati xira hamda
+  shiriftlar kichkina shularni fix qil. Dizayn uchun tz bersang olib kelman
+  kerakli fayllarni» — keyin dizayn paketini keltirdi: «Shularni dizaynga
+  ishlat, iloji boricha sifatlisini ishlat». Bu **bugungi IKKINCHI commit**;
+  birinchisi (`6d8b56d`) allaqachon deploy bo'lgan.
+
+  **1) SHRIFT.** Sarlavha `clamp(19px, 2.9vw, 34px)` → **`clamp(24px, 3.2vw,
+  42px)`**, chip `9→12px` / `11.5→14px`. 🔴 **Yuqori chegara TANLANMADI,
+  O'LCHANDI:** founder qarori bo'yicha sarlavha HAR DOIM ikki qatorda
+  turishi shart (2026-08-15 bandi) — 26px da eng uzun matn («24/7 buyurtma /
+  berishingiz mumkin») UCHINCHI qatorga tushdi, ya'ni 24px chegaraning
+  o'zi. Keng ekranda 44px gacha joy bor edi, 42px nafas uchun qoldirildi.
+  Kattalashgan sarlavha eski matn zonasiga sig'magani uchun telefonda
+  `.ad-copy { right: 35% }` → **`28%`** (matn zonasi 65% → 72%).
+  ⚠️ Bu raqam KOSMETIK emas — **rasm TZ si aynan shundan kelib chiqadi**
+  (mato endi kadrning o'ng 28% ida boshlanishi kerak), ya'ni CSS va rasm
+  brifi bir-biriga bog'langan va biri o'zgarsa ikkinchisi qayta hisoblansin.
+
+  **2) RASM XIRALIGI — SABAB O'LCHANDI, TAXMIN QILINMADI.** Nuqson rasmda
+  emas edi: `assets/ads/ad-*.{webp,jpg}` **1200 × 338** — ular **Mini App**
+  uchun chizilgan va u yerda ortig'i bilan yetadi (slayd ~358×101 CSS px).
+  Sayt slaydi esa ancha katta, ya'ni brauzer o'sha faylni CHO'ZARDI:
+  telefonda **1.30x**, retina monitorda **2.08x**. Founder Gemini bilan
+  **4800 × 2000** masterlar keltirdi (`design_handoff_sayt_banners`).
+  Masterlardan kesish, kichraytirish va WebP'ga o'girish QO'LDA bajarildi
+  (`sips` + `cwebp`) — paketdagi TAYYOR kesimlar ishlatilmadi, chunki o'z
+  kesimlarimiz yaxshiroq chiqdi (ad-3: 80 KB → 25 KB).
+  Natija (brauzerda o'lchandi): cho'zilish **1.30x → 0.98x** telefonda,
+  **2.08x → 1.00x** desktopda.
+
+  **TZ da yo'q edi, ish paytida qo'shildi:** har kesim IKKI o'lchamda
+  (keng 1400/2240, telefon 900/1800) + `srcset` + `sizes`. Sababi
+  o'lchovdan: bitta o'lcham bo'lsa DPR1 noutbuk ham eng katta faylni
+  tortardi. Siqilish darajasi ham TANLANMADI, o'lchandi — `q62` dan `q86`
+  gacha EKRANDAGI farq 255 dan atigi 1.4–2.2 (1% dan kam), ya'ni yuqori
+  sifat faqat baytga tushadi va ko'zga tegmaydi; `q72` olindi.
+
+  ⚠️ **OG'IRLIK RAQAMLARI HISOBOTCHI TOMONIDAN QAYTA O'LCHANDI VA
+  TUZATILDI — IKKINCHI COMMIT KETMA-KET.** Sessiyada «DPR2 telefon 46 KB,
+  DPR1 noutbuk 78 KB, bitta o'lchamda ~272 KB» deb yozilgan edi. Diskdagi
+  baytdan qayta hisoblanganda: **DPR2 telefon 51 KB** (46 emas), DPR1
+  noutbuk **79 KB**, va «~272 KB» hozirgi fayllardan UMUMAN chiqmaydi.
+  Sabab aniq: birinchi ikki raqam telefon kesimi **o'ngga surilishidan
+  OLDIN** o'lchangan — surilgan kadrga ko'proq mato tushdi va fayl
+  og'irlashdi, ya'ni raqam noto'g'ri emas, **ESKIRGAN** edi.
+  🔴 **Undan muhimi — o'lchanmagan yo'l topildi: DPR3 telefon 231 KB**
+  (`ad-2` ning O'ZI 159 KB, paxta to'quv teksturasi boshqa ikkalasidan
+  ~4x qimmat). DPR3 — iPhone Pro va ko'p Android flagmani, ya'ni bu
+  nazariy yo'l emas. Hech qayerda yozilmagandi. To'liq jadval (o'nlik KB):
+  DPR2 telefon 51 · DPR3 telefon **231** · DPR1 noutbuk 79 · DPR2 monitor
+  201. `srcset` foydasi shu jadvaldan qayta hisoblandi: kichik o'lchamlar
+  bo'lmasa DPR2 telefon 4.5x, DPR1 noutbuk 2.5x ortiq tortardi.
+  Raqamlar `index.html` izohida va TZ da TUZATILDI. Bu «hujjatdagi raqam —
+  tekshirilmagan da'vo» bandining aynan takrori va u bugun **ketma-ket
+  ikkinchi commitda** otildi (kecha «186 KB → 56 KB» yo'l nomi
+  yozilmagani uchun chala edi).
+
+  🔴 **3) ENG MUHIM DARS — TZ NING O'ZIDA XATO BOR EDI.** Birinchi urinishda
+  telefonda banner **deyarli bo'sh bej quti** bo'lib chiqdi. Sabab TZ da
+  yozilgan «telefon kesimi masterning O'RTASIDAN» jumlasi edi va u YOLG'ON:
+  kesim ekranga `object-fit: cover` bilan chiziladi, telefon slaydi esa 2:1
+  dan TORROQ (375px da 1.56) — ya'ni brauzer kesimning yon tomonlaridan
+  YANA ~22% ini oladi. **Ikki kesish ustma-ust tushdi** va mato butunlay
+  kadrdan chiqib ketdi. Tuzatish TAXMIN bilan emas: har masterda mato
+  qayerdan boshlanishi ustunlarning RANGDORLIGI bilan o'lchandi (ad-1
+  77.9%, ad-2 68.0%, ad-3 70.9%) va kesim `S = matoBoshi − 2686` formulasi
+  bilan o'ngga surildi (800 / 578 / 717 px). **TZ TUZATILDI** — formula,
+  jadval va dizaynerga eslatma yozildi (mato masterning **68–72%** idan
+  boshlansin; 78% KECH — ad-1 da maksimal surishda ham mato 28% o'rniga
+  ~20% chiqdi). Tuzatilmasa keyingi partiyada AYNAN shu takrorlanardi.
+  ⚠️ Dars: **TZ — kod emas, MATN, ya'ni u ham tekshirilmagan da'volar
+  saqlaydi.** «Prompt — kod emas, MATN: uni chop etib o'qish kerak»
+  bandi bilan bitta oila, faqat bu safar zarar ko'rinadigan bo'lgani
+  uchun tez topildi.
+
+  **4) VAQTINCHALIK CHORA OLIB TASHLANDI.** Telefondagi
+  `object-position: 62%` — kechagi commitning o'z tuzatishi — O'CHIRILDI:
+  u 32:9 rasm uchun yozilgan edi (o'sha kadrdan telefonda enining ~44% i
+  ko'rinardi), 2:1 telefon kesimida esa ~78% i ko'rinadi va surish endi
+  foyda emas, ZARAR berardi. Kechagi qaror sprint faylida **BEKOR
+  QILINGAN** deb belgilandi, o'chirilmadi.
+
+  🔴 **5) FAYL NOMLARI ATAYLAB YANGI** (`ad-1-w-1400.webp`, `ad-1-m-900.webp`
+  …), eskisining ustiga yozilmadi. Sabab: `sw.js` rasmlarni `cacheFirst`
+  bilan beradi — eski nom ustiga yozilsa qaytib kelgan foydalanuvchi ESKI
+  XIRA rasmni ko'rib turardi va yangisi faqat KEYINGI tashrifda kelardi.
+  Eski 6 fayl o'chirildi, 15 yangi fayl qo'shildi; havola qolmagani
+  tekshirildi. `assets/` deploy `source` ro'yxatida allaqachon bor.
+  ⚠️ Serverda eski fayllar QOLADI (deploy nusxalaydi, o'chirmaydi) — ular
+  endi hech qayerdan chaqirilmaydi, ya'ni zararsiz, lekin bilib qo'yilsin.
+
+  **QOROVUL — Test 32 ning 5-bandi QAYTA YOZILDI.** Ertalab u sayt va Mini
+  App rasmlari **bayt-ma-bayt bir xil** ekanini tekshirardi; sayt o'z
+  kesimlariga o'tgach bu shart YOLG'ON bo'lib qoldi. Uni o'sha holicha
+  qoldirish testni qizil ushlab turardi, **o'chirib yuborish esa qorovulni
+  JIMGINA yo'qotardi** — shuning uchun band almashtirildi: endi sayt
+  to'plamining TO'LIQLIGI (3 slayd × 5 fayl = 15), `index.html` dagi
+  havolalar va `object-position` vaqtinchalik chorasining QAYTMASLIGI
+  tekshiriladi. Ro'yxat qo'lda yozilmaydi — `AD_SLIDES` dan olinadi.
+  **UCH mutatsiya bilan sinaldi, uchtasi ham ushlandi.**
+  ⚠️ Yo'l-yo'lakay bilib olindi: `style.css` ga tegadigan mutatsiyada
+  **Test 16 OLDINROQ otiladi**, ya'ni Test 32 ni sinash uchun hash ham
+  birga yangilanishi kerak — bu 2026-08-14 dagi «`app.js` mutatsiyasida
+  Test 16 birinchi qulaydi» qarorining `style.css` uchun takrori.
+
+  🔴 **MENING XATOM — OCHIQ YOZILADI.** Mutatsiya sinovidan keyin tozalash
+  uchun `git checkout style.css index.html` yozildi va o'sha paytdagi
+  **hali commit qilinmagan ish o'chib ketdi** (shrift o'zgarishlari +
+  yangi `<picture>` markupi). Hammasi qaytadan yozildi, ya'ni yo'qotish
+  yo'q — lekin bu CLAUDE.md dagi **«almashtirishni QO'LGA KIRITMASDAN
+  eskisini o'chirma»** qoidasining aynan buzilishi. Qoida `rm -rf` haqida
+  yozilgan, `git checkout` esa **o'sha oilaning KO'RINMAYDIGAN a'zosi**:
+  u «o'chirish» so'zini ishlatmaydi, «tozalash» dek tuyuladi va zarari
+  bir xil. Keyingi mutatsiyalar zaxira nusxa bilan qilindi.
+
+  ⚠️ **OCHIQ QOLGAN QAROR — IKKI YUZDA IKKI XIL MATO.** Sayt endi yangi
+  masterlardan, Mini App esa 2026-08-15 dagi eski generatsiyadan oziqlanadi.
+  **Kechagi commitning butun maqsadi aynan ularni tenglashtirish edi.**
+  Founder'ga ikki marta savol berildi — (a) Mini App ham shu masterlardan
+  qayta kesilsinmi (TAVSIYA), (b) eskisida qolsinmi — javob KELMADI, u
+  «commit qil, deploy qil» dedi. **Mini App'ga ATAYLAB tegilmadi:** bu
+  boshqa yuz va founder tasdiqlamagan (2026-08-13 dagi «mavjud funksiya
+  ustiga ikkinchi yo'l qo'shilsa — avval so'raladi» bandining ruhi).
+  Savol OCHIQ qoladi va Test 32 ning izohida ham yozilgan.
+
+  🔴 **HISOBOTCHI TOPGAN IKKINCHI BO'SHLIQ — MASTERLAR REPODA YO'Q.**
+  TZ ning O'ZIDA «masterlar `docs/dizayn-tizimi/masters/` ga» deb yozilgan,
+  amalda esa ular faqat `~/Downloads/design_handoff_sayt_banners/masters/`
+  da (3 PNG, **47 MB**). Ya'ni o'sha papka o'chsa yoki kompyuter almashsa
+  **kesimlarni qayta yasab bo'lmaydi** va TZ dagi `S = matoBoshi − 2686`
+  formulasi shu partiya uchun ishlatib bo'lmas holga keladi — hujjat
+  qoladi, manba yo'qoladi. ⚠️ Bu **`sayt-eski/` darsining teskarisi**: u
+  yerda papka yolg'on sabab bilan SAQLANIB turgandi, bu yerda esa haqiqiy
+  manba hech qayerda saqlanmayapti. 47 MB ni git'ga qo'yish arzon emas,
+  shuning uchun qaror founder'ga qoldirildi (varianlar: repoga qo'yish /
+  R2 ga yuklash / ataylab saqlamaslik va buni TZ da yozib qo'yish).
+  **Bu commitda masterlar QO'SHILMADI** — founder mulki va joyi
+  tasdiqlanmagan.
+
+  **SINALGANI: 74 test yashil** (hisobotchi mustaqil qayta yurgizdi —
+  `✅ Test` satrlari sanaldi). Brauzerda O'LCHANDI: cho'zilish 0.98x /
+  1.00x, tanlangan fayllar to'g'ri (DPR2 telefon → `900w`, DPR2 desktop →
+  `2240w`), uchala slayd ko'z bilan ko'rildi (telefon va desktop).
+  Konsolda faqat `/api/` 404 lari (lokalda backend yo'q) — regressiya emas.
+  ⚠️ **TEKSHIRILMAGANI:** avtomatik almashish (5 s) va silliq surish
+  **jonli ko'rilmagan** — brauzer panelida tab `hidden` turadi va u yerda
+  `scroll` hodisasi umuman otilmaydi (kechagi yozuvning aynan takrori).
+  Kesh: `style.css` 56→**58**, `panel.js` 38→**39**; `script.js` 47 da
+  QOLDI — unga tegilmadi.
+
 - [2026-08-16] **SAYTDAGI BANNER MINI APP'NIKI BILAN TENGLASHTIRILDI — VA
   BIRINCHI URINISH YETARLI EMAS EDI.** Founder: «Mini appdagi banner
   dizaynindek webdagini ham o'zgartir, faqat o'lchamlarini mini appdikidek
@@ -2605,6 +2756,117 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
 
 ## Qarorlar
 
+- [2026-08-16] Qaror (founder): **rasm sifati SAYT o'lchoviga bog'lanadi —
+  Mini App fayli qayta ishlatilmaydi.** Founder «rasm sifati xira» dedi va
+  sabab o'lchandi: `1200 × 338` fayl Mini App uchun chizilgan, sayt uchun
+  esa KICHIK (cho'zilish telefonda 1.30x, retina monitorda 2.08x). Founder
+  `4800 × 2000` masterlar keltirdi va kesish BIZ tomonda bajarildi —
+  paketdagi tayyor kesimlar ISHLATILMADI, chunki o'z kesimimiz yaxshiroq
+  chiqdi (ad-3: 80 → 25 KB). ⚠️ Ya'ni «bir xil rasm» va «bir xil SIFAT»
+  BOSHQA narsa: ikki yuz bir xil ko'rinishi kerak, bir xil FAYLdan
+  oziqlanishi esa shart emas — kadr har yuzning O'Z o'lchoviga kesiladi.
+
+- [2026-08-16] Qaror: **har kesim IKKI o'lchamda beriladi (`srcset` +
+  `sizes`), bitta emas.** TZ da bu yo'q edi, o'lchov qo'shtirdi: bitta
+  o'lcham bo'lsa DPR1 noutbuk ham eng katta faylni tortardi. Diskdan qayta
+  o'lchandi (o'nlik KB): DPR2 telefon **51**, DPR3 telefon **231**, DPR1
+  noutbuk **79**, DPR2 monitor **201**. Kichik o'lchamlarsiz DPR2 telefon
+  4.5x, DPR1 noutbuk 2.5x ortiq tortardi. 🔴 **DPR3 telefon yo'li (231 KB)
+  sessiyada UMUMAN o'lchanmagan edi va u eng og'iri** — `ad-2` ning o'zi
+  159 KB; kelasi partiyada birinchi qaraladigan raqam shu.
+  ⚠️ Siqilish darajasi ham TANLANMADI, o'lchandi: `q62`–`q86` orasida
+  ekrandagi farq 255 dan 1.4–2.2 (1% dan kam), ya'ni yuqori sifat faqat
+  baytga tushadi — `q72` olindi. Bu «hujjatdagi raqam — tekshirilmagan
+  da'vo» qoidasining IJOBIY ko'rinishi: o'lchov qarorni arzonlashtirdi.
+
+- [2026-08-16] Qaror: **TZ ham tekshirilmagan da'vo saqlaydi — u yozilgach
+  NATIJASI bilan solishtirilsin.** TZ da «telefon kesimi masterning
+  O'RTASIDAN» deb yozilgan edi va bu XATO bo'lib chiqdi: kesim ekranga
+  `object-fit: cover` bilan chiziladi, telefon slaydi 2:1 dan torroq
+  (375px da 1.56), ya'ni brauzer yon tomonlardan YANA ~22% ini oladi —
+  ikki kesish ustma-ust tushib mato butunlay kadrdan chiqdi va banner bo'sh
+  bej quti bo'lib ko'rindi. Tuzatish taxmin bilan emas: mato boshlanishi
+  ustunlar RANGDORLIGI bilan o'lchandi va kesim `S = matoBoshi − 2686`
+  formulasi bilan surildi. **TZ tuzatildi** — formula, jadval va dizaynerga
+  eslatma (mato masterning **68–72%** idan boshlansin; 78% kech). ⚠️ Eng
+  muhimi: TZ tuzatilmasa xato KEYINGI PARTIYADA aynan takrorlanardi, ya'ni
+  hujjatdagi yolg'on bir marta emas, HAR SAFAR zarar keltirardi.
+  «Prompt — kod emas, MATN» bandi bilan bitta oila.
+
+- [2026-08-16] Qaror: **yangi rasm — YANGI NOM, eskisining ustiga
+  yozilmaydi.** `sw.js` rasmlarni `cacheFirst` bilan beradi: eski nom
+  ustiga yozilsa qaytib kelgan foydalanuvchi ESKI XIRA rasmni ko'rardi va
+  yangisi faqat keyingi tashrifda kelardi — ya'ni tuzatish o'zi
+  tuzatayotgan odamga yetib bormasdi. Bu `?v=` va R2 kaliti qoidalari
+  bilan bitta oila (kesh kaliti — TO'LIQ URL). ⚠️ Serverda eski fayllar
+  QOLADI: deploy nusxalaydi, o'chirmaydi — ular chaqirilmaydi, ya'ni
+  zararsiz, lekin «deploy eski faylni tozalaydi» deb o'ylanmasin.
+
+- [2026-08-16] Qaror: **da'vosi yolg'onga aylangan qorovul O'CHIRILMAYDI,
+  ALMASHTIRILADI.** Test 32 ning 5-bandi sayt va Mini App rasmlarini
+  bayt-ma-bayt solishtirardi; sayt o'z kesimlariga o'tgach shart yolg'on
+  bo'ldi. Uch yo'ldan ikkitasi noto'g'ri edi — o'sha holicha qoldirish
+  testni doim qizil ushlab turardi (va qizil test o'qilmay qoladi),
+  o'chirib yuborish esa qorovulni JIMGINA yo'qotardi. Uchinchisi
+  tanlandi: band **almashtirildi** — endi sayt to'plamining to'liqligi
+  (15 fayl), `index.html` havolalari va vaqtinchalik choraning
+  qaytmasligi tekshiriladi, ro'yxat `AD_SLIDES` dan olinadi. **3 mutatsiya
+  bilan sinaldi, uchtasi ham ushlandi.** ⚠️ Yo'l-yo'lakay: `style.css`
+  mutatsiyasida **Test 16 OLDINROQ otiladi**, ya'ni Test 32 ni sinash
+  uchun hash birga yangilansin (2026-08-14 dagi `app.js` bandining
+  `style.css` uchun takrori).
+
+- 🔴 [2026-08-16] **OCHIQ QAROR — javob kutilmoqda: Mini App banneri ham
+  yangi masterlardan qayta kesilsinmi?** Bugundan boshlab sayt yangi
+  `4800 × 2000` masterlardan, Mini App esa 2026-08-15 dagi eski
+  generatsiyadan oziqlanadi — ya'ni **ikki yuzda ikki xil mato**, va
+  kechagi commitning butun maqsadi aynan ularni tenglashtirish edi.
+  Founder'ga ikki marta savol berildi: **(a)** Mini App'ning `1200 × 338`
+  lari ham shu masterlardan qayta kesilsin (**tavsiya** — aks holda «ikki
+  yuz bir xil» qarori jimgina yo'qoladi), **(b)** eskisida qolsin.
+  **Javob kelmadi** — founder «commit qil, deploy qil» dedi, shuning
+  uchun Mini App'ga **ATAYLAB tegilmadi**: bu boshqa yuz va o'zgartirish
+  tasdiqlanmagan (2026-08-13 dagi «mavjud narsa ustiga ikkinchi yo'l
+  qo'shilsa — avval so'raladi» bandining ruhi). Savol Test 32 izohida ham
+  yozilgan, ya'ni u hujjatda ham, kodda ham ko'rinadi.
+
+- [2026-08-16] Qaror: **shrift chegarasi founder qoidasidan HISOBLANADI,
+  didan tanlanmaydi.** Sarlavha `19→24px` (telefon), `34→42px` (keng
+  ekran). 24px — TAXMIN emas, CHEGARA: founderning «sarlavha har doim ikki
+  qator» qoidasi (2026-08-15) 26px da buzildi — eng uzun matn uchinchi
+  qatorga tushdi. ⚠️ Kattalashgan sarlavha eski matn zonasiga sig'magani
+  uchun telefonda `.ad-copy` 65% → **72%** ga kengaydi va **rasm TZ si ham
+  shu raqamdan kelib chiqadi** (mato o'ng 28% da boshlansin): ya'ni
+  tipografiya va rasm brifi BOG'LANGAN — biri o'zgarsa ikkinchisi qayta
+  hisoblansin.
+
+- [2026-08-16] Qaror: **`git checkout <fayl>` — «almashtirishni qo'lga
+  kiritmasdan eskisini o'chirma» qoidasining KO'RINMAYDIGAN a'zosi.**
+  Mutatsiya sinovidan keyin tozalash uchun `git checkout style.css
+  index.html` yozildi va commit qilinmagan ish o'chib ketdi (qaytadan
+  yozildi, yo'qotish yo'q). Qoida `rm -rf` naqshi haqida yozilgan edi,
+  lekin `git checkout` aynan shu narsani qiladi: u «o'chirish» so'zini
+  ishlatmaydi, «tozalash» dek tuyuladi va zarari bir xil —
+  **almashtiriladigan narsa qo'lda YO'Q holda eskisi yo'q qilinadi.**
+  Amaliy shakl: mutatsiya sinovidan OLDIN zaxira nusxa olinadi
+  (`cp fayl fayl.bak`) va tiklash `git checkout` dan emas, o'sha nusxadan
+  bo'ladi. Sinov davomida shunday qilindi.
+
+- [2026-08-16] ~~Qaror: **telefonda `object-position: 62%`**~~ —
+  🔴 **BEKOR QILINDI O'SHA KUNI KECHQURUN** (yuqoridagi «rasm sifati sayt
+  o'lchoviga bog'lanadi» qarori). Asl matn: rasm 32:9, sayt slaydi undan
+  baland, 375px da `cover` rasm enining atigi ~44% ini ko'rsatadi va
+  `center` da mato butunlay kesilardi — shuning uchun kadr 62% ga surildi.
+  **Nima uchun bekor bo'ldi:** qaror NOTO'G'RI emas edi — u tayangan
+  MANBA o'zgardi. Telefon uchun ALOHIDA 2:1 kesim paydo bo'lgach kadrning
+  ~78% i ko'rinadi, ya'ni `center` to'g'ri ishlaydi va surish endi foyda
+  emas, ZARAR berardi. ⚠️ Bu naqsh bir hafta ichida IKKINCHI marta
+  (`touch-action: pan-y`, 2026-08-14): **vaqtinchalik chora asosiy nuqson
+  tuzatilganda o'z-o'zidan yo'qolmaydi — uni ATAYLAB olib tashlash
+  kerak**, shuning uchun qaytmasligi Test 32 bilan qulflandi. Yozuv
+  o'chirilmadi: bekor qilingan qarorni o'chirish uni kelajakda qaytadan
+  «kashf qilinadigan» qiladi.
+
 - [2026-08-16] Qaror (founder): **saytdagi banner Mini App'niki bilan
   TO'LIQ tenglashadi — dizayn, rasm va MATN — faqat BALANDLIK saytniki.**
   Founder o'lchamni ikki qadamda berdi: avval «20% ga qisqartir», keyin
@@ -2639,14 +2901,19 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
   («Hisobdan chiqish» bandi bilan bitta mulohaza: farq uslubda emas,
   ortidagi mavjudlikda).
 
-- [2026-08-16] Qaror: **telefonda `object-position: 62%`** —
-  `center` EMAS. Rasm 32:9, sayt slaydi undan baland, ya'ni 375px da
+- [2026-08-16] ~~Qaror: **telefonda `object-position: 62%`** —
+  `center` EMAS.~~ 🔴 **BEKOR QILINDI O'SHA KUNI KECHQURUN** — to'liq
+  izohi yuqorida (Qarorlar ro'yxatining boshida). Asl matn: rasm 32:9,
+  sayt slaydi undan baland, ya'ni 375px da
   `cover` rasm enining atigi ~44% ini ko'rsatadi va standart markazda
   o'ngdagi mato burmasi butunlay kesilib, banner tekis bej quti bo'lib
   qolardi. Raqam TAXMIN emas, o'lchovdan: 62% da oyna 34.8–78.7% ga
   tushadi — chapda matn zonasi ochiq, o'ngda mato ko'rinadi. ⚠️ Nuqson
   faqat **KO'Z** bilan ko'rindi (screenshot) — testda ham, konsolda ham
   izi yo'q edi: CSP va flex bandlaridagi «jimgina nuqson» oilasidan.
+  ⚠️ **Nima uchun bekor bo'ldi:** telefon uchun ALOHIDA 2:1 kesim paydo
+  bo'lgach kadr allaqachon shu shakl uchun tanlangan — surish foyda emas,
+  ZARAR berardi. Qaror noto'g'ri emasdi, u tayangan RASM o'zgardi.
 
 - [2026-08-15] Qaror (founder): **banner KARUSEL — qo'shni slaydning cheti
   ko'rinib tursin, nuqta va strelka esa YO'Q.** Ikkalasi bitta qarorning
@@ -2835,6 +3102,12 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
   chiqadi. ⚠️ **2026-08-15 dan yoniga `ad-1..3.webp` ham qo'shildi** —
   qoida o'zgarmadi, ro'yxat kengaydi (`<picture>` zaxirasi); yangi brief
   (`banner-dizayn-brief.md`) esa o'sha ish materiali papkasida qoladi.
+  ⚠️ **2026-08-16 dan sayt ro'yxati YANA o'zgardi va endi u qo'lda
+  sanalmaydi:** eski 6 fayl o'chdi, o'rniga 15 ta kesim keldi
+  (`ad-N-{w,m}-<en>.{webp,jpg}`) — ro'yxatni **Test 32** `AD_SLIDES` dan
+  hosil qiladi. Qoidaning O'ZI o'zgarmadi: masterlar va TZ
+  (`banner-rasm-tz.md`) ish materiali sifatida `docs/dizayn-tizimi/` da
+  qoladi, production'ga faqat kesimlar chiqadi.
 - [2026-08-14] Qaror: **buyurtma tarixi BUGUNGI KATALOGGA bog'lanmaydi —
   nom va narx BUYURTMA YOZUVIDAGI snapshotdan olinadi.** Katalog faqat
   RASM uchun ishlatiladi va u yo'q bo'lsa qator baribir chiziladi

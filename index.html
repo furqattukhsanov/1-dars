@@ -31,7 +31,7 @@
        ko'p uchraydigan xatosi shu. -->
   <link rel="preconnect" href="https://telegram.org">
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@24,600..800&family=Hanken+Grotesk:wght@400..700&family=Geist+Mono:wght@600..700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=56" />
+  <link rel="stylesheet" href="style.css?v=58" />
   <!-- DIQQAT: uchala skript ham `defer` — TARTIB shu sababli saqlanadi
        (telegram → script.js → pwa.js). Bittasidan `defer` olib tashlansa,
        u tananing ichida parse paytida ishlaydi va DEFER'liklardan OLDIN
@@ -140,11 +140,40 @@
       <!-- Sarlavhadagi qator uzilishi `\n` bilan beriladi va `.ad-title`
            dagi `white-space: pre-line` uni ko'rsatadi. `<br>` ISHLATIB
            BO'LMAYDI: `applyLang()` tarjimani `textContent` bilan yozadi,
-           ya'ni teg sifatida emas, HARF sifatida chiqib qolardi. -->
+           ya'ni teg sifatida emas, HARF sifatida chiqib qolardi.
+
+           ===== RASM (2026-08-16, founder: "rasm sifati xira") =====
+           Ilgari bu yerda Mini App'ning `1200 × 338` fayli turardi va u
+           SAYT uchun kichik edi: brauzer uni cho'zishga majbur bo'lardi
+           (o'lchandi — telefonda 1.30x, retina monitorda 2.08x). Endi rasm
+           4800×2000 masterdan saytning O'Z o'lchamiga kesilgan.
+
+           Ikki `<source>` ikki xil KESIM (art direction, oddiy srcset emas):
+           telefonda slayd nisbati 1.3–2.7, keng ekranda 3.1–4.1 — bitta
+           kadr ikkalasiga ham to'g'ri kelmaydi. `-m-` = telefon uchun 2:1,
+           `-w-` = keng ekran uchun 3.18:1.
+           Har kesim ichida `srcset` + `sizes`, ya'ni brauzer DPR va ekran
+           kengligiga qarab O'ZI tanlaydi. Foydasi o'lchandi (o'nlik KB,
+           diskdagi baytdan): DPR2 telefon uchala slaydga 51 KB, DPR1
+           noutbuk 79 KB oladi; kichik o'lchamlar bo'lmasa o'sha ikkalasi
+           231 KB va 201 KB tortardi.
+           ⚠️ Bu raqamlar 2026-08-16 da hisobotchi tomonidan TUZATILDI —
+           avvalgi «46 / 78 / ~272 KB» telefon kesimi o'ngga surilishidan
+           OLDIN o'lchangan edi (surilgan kadrga ko'proq mato tushdi, fayl
+           og'irlashdi). Eng og'ir yo'l — DPR3 telefon: 231 KB.
+           ⚠️ JPEG zaxira nomi ATAYLAB yangi (`-w-1400.jpg`): eski `ad-1.jpg`
+           ustiga yozilsa `sw.js` uni `cacheFirst` bilan berardi va qaytib
+           kelgan foydalanuvchi ESKI xira rasmni ko'rib turardi.
+           TZ va o'lchovlar: `docs/dizayn-tizimi/banner-rasm-tz.md`. -->
       <article class="ad-slide" data-tone="rose">
         <picture>
-          <source type="image/webp" srcset="assets/ads/ad-1.webp" />
-          <img src="assets/ads/ad-1.jpg" alt="" aria-hidden="true" width="1200" height="338" fetchpriority="high" />
+          <source media="(max-width: 640px)" type="image/webp"
+                  srcset="assets/ads/ad-1-m-900.webp 900w, assets/ads/ad-1-m-1800.webp 1800w"
+                  sizes="92vw" />
+          <source type="image/webp"
+                  srcset="assets/ads/ad-1-w-1400.webp 1400w, assets/ads/ad-1-w-2240.webp 2240w"
+                  sizes="(min-width: 1244px) 1116px, 92vw" />
+          <img src="assets/ads/ad-1-w-1400.jpg" alt="" aria-hidden="true" width="2240" height="704" fetchpriority="high" />
         </picture>
         <div class="ad-copy">
           <h2 class="ad-title"><span data-i18n="ad1t">Matolarni AI bilan
@@ -155,8 +184,13 @@ jonlantiring</span><span class="ad-tag" data-i18n="ad1tag">Sinab ko'rish</span><
 
       <article class="ad-slide" data-tone="saffron">
         <picture>
-          <source type="image/webp" srcset="assets/ads/ad-2.webp" />
-          <img src="assets/ads/ad-2.jpg" alt="" aria-hidden="true" width="1200" height="338" loading="lazy" />
+          <source media="(max-width: 640px)" type="image/webp"
+                  srcset="assets/ads/ad-2-m-900.webp 900w, assets/ads/ad-2-m-1800.webp 1800w"
+                  sizes="92vw" />
+          <source type="image/webp"
+                  srcset="assets/ads/ad-2-w-1400.webp 1400w, assets/ads/ad-2-w-2240.webp 2240w"
+                  sizes="(min-width: 1244px) 1116px, 92vw" />
+          <img src="assets/ads/ad-2-w-1400.jpg" alt="" aria-hidden="true" width="2240" height="704" loading="lazy" />
         </picture>
         <div class="ad-copy">
           <!-- Mini App'da bu slaydda chip YO'Q — bu yerda ham qo'shilmadi -->
@@ -168,8 +202,13 @@ berishingiz mumkin</span></h2>
 
       <article class="ad-slide" data-tone="teal">
         <picture>
-          <source type="image/webp" srcset="assets/ads/ad-3.webp" />
-          <img src="assets/ads/ad-3.jpg" alt="" aria-hidden="true" width="1200" height="338" loading="lazy" />
+          <source media="(max-width: 640px)" type="image/webp"
+                  srcset="assets/ads/ad-3-m-900.webp 900w, assets/ads/ad-3-m-1800.webp 1800w"
+                  sizes="92vw" />
+          <source type="image/webp"
+                  srcset="assets/ads/ad-3-w-1400.webp 1400w, assets/ads/ad-3-w-2240.webp 2240w"
+                  sizes="(min-width: 1244px) 1116px, 92vw" />
+          <img src="assets/ads/ad-3-w-1400.jpg" alt="" aria-hidden="true" width="2240" height="704" loading="lazy" />
         </picture>
         <div class="ad-copy">
           <h2 class="ad-title"><span data-i18n="ad3t">Bepul yetkazib
