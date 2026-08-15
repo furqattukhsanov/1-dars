@@ -1398,11 +1398,11 @@ function testAssetVersionsAreFresh() {
     // YUQORIGA suriladi: teng raqam qaytib kelgan foydalanuvchida keshdagi
     // BIR TOMONLAMA faylni qoldirardi — sevimlilar yoki chiqish tuzatishining
     // faqat bittasi bo'lgan `app.js`.
-    'panel.js': { v: 36, hash: '4c63d128410b' },
+    'panel.js': { v: 37, hash: 'f61392008392' },
     'admin/admin.css': { v: 18, hash: '15b0bc977b85' },
     'admin/admin.js': { v: 25, hash: '08fae1bb61dc' },
-    'telegram-app/styles.css': { v: 35, hash: '06e85ffca371' },
-    'telegram-app/app.js': { v: 95, hash: '5a1b52a0d820' },
+    'telegram-app/styles.css': { v: 36, hash: '570a2450c3a4' },
+    'telegram-app/app.js': { v: 96, hash: 'ed169ab670d3' },
     'telegram-app/pwa.js': { v: 6, hash: '798ab85e1cde' },
   };
 
@@ -4052,12 +4052,33 @@ function testAdBannerWiring() {
   // brauzer JIMGINA bo'sh joy chizadi, konsolda JS xatosi bo'lmaydi.
   const slaydBlok = src.match(/const\s+AD_SLIDES\s*=\s*\[([\s\S]*?)\n\];/);
   assert.ok(slaydBlok, '`AD_SLIDES` topilmadi');
+  // 2026-08-15 dan `img` — KENGAYTMASIZ asos: chizishda `<picture>` undan
+  // `.webp` (asosiy) va `.jpg` (zaxira) yasaydi. IKKALASI ham diskda bo'lsin:
+  // biri yo'q bo'lsa brauzerning bir qismi bo'sh joy ko'radi, boshqasi rasm —
+  // "bir yuzda ishlab ikkinchisida ishlamaydigan" nuqson (CLAUDE.md oilasi).
   const rasmlar = [...slaydBlok[1].matchAll(/img:\s*'([^']+)'/g)].map((m) => m[1]);
   assert.ok(rasmlar.length >= 2, `banner kamida 2 slayddan iborat bo'lsin (${rasmlar.length} topildi)`);
   rasmlar.forEach((rel) => {
-    const p = path.join(__dirname, '..', 'telegram-app', rel);
-    assert.ok(fs.existsSync(p), `banner rasmi diskda yo'q: \`telegram-app/${rel}\``);
+    assert.ok(!/\.(jpe?g|png|webp)$/i.test(rel),
+      `AD_SLIDES.img kengaytmasiz asos bo'lsin (\`${rel}\`) — chizish \`.webp\` va \`.jpg\` ni o'zi qo'shadi`);
+    for (const ext of ['.webp', '.jpg']) {
+      const p = path.join(__dirname, '..', 'telegram-app', rel + ext);
+      assert.ok(fs.existsSync(p), `banner rasmi diskda yo'q: \`telegram-app/${rel}${ext}\``);
+    }
   });
+  // Chizish ham aynan shu ikki kengaytmani ishlatsin — `<picture>` da
+  // `image/webp` manba + `.jpg` zaxira. Aks holda "diskda bor" tekshiruvi
+  // yolg'on ishonch berardi.
+  const bannerHtmlTana = src.match(/function\s+adBannerHtml\s*\([^)]*\)\s*\{([\s\S]*?)\n\}/);
+  assert.ok(bannerHtmlTana, '`adBannerHtml()` topilmadi');
+  assert.ok(/<source[^>]+type="image\/webp"[^>]+\$\{s\.img\}\.webp/.test(bannerHtmlTana[1]),
+    '`adBannerHtml()` da `<source type="image/webp" srcset="${s.img}.webp">` yo\'q');
+  assert.ok(/<img[^>]+src="\$\{s\.img\}\.jpg"/.test(bannerHtmlTana[1]),
+    '`adBannerHtml()` da `<img src="${s.img}.jpg">` zaxirasi yo\'q');
+  // `<picture>` display:inline — CSS qoidasi bo'lmasa rasm 0px (CLAUDE.md).
+  const cssPicture = fs.readFileSync(path.join(__dirname, '..', 'telegram-app', 'styles.css'), 'utf8');
+  assert.ok(/\.ad-slide\s+picture\s*,?[\s\S]{0,80}\{[^}]*display:\s*block/.test(cssPicture),
+    '`.ad-slide picture { display: block }` yo\'q — `<picture>` inline bo\'lib rasm 0px ga tushadi');
 
   // Har slaydda IKKALA til ham bo'lsin — biri tushib qolsa o'sha tilda
   // sarlavha `undefined` bo'lib chizilardi (Test 20 buni qamramaydi,
@@ -4073,17 +4094,33 @@ function testAdBannerWiring() {
   // ---- 4-band: CSS tomonidagi ikki qotil xususiyat ----
   // Ikkalasi ham loyihada UCH martadan tishlagan va ikkalasi ham JIMGINA
   // buzadi: element DOM'da turadi, konsol toza, mazmun esa yo'qoladi.
+  // 2026-08-15 dan `.ad-banner` — gorizontal SKROLLER (karusel), slayd esa
+  // `.ad-slide`: nisbat slaydda, `flex: none` skrollerda.
   const css = fs.readFileSync(path.join(__dirname, '..', 'telegram-app', 'styles.css'), 'utf8');
   const bannerCss = css.match(/\.ad-banner\s*\{([\s\S]*?)\}/);
   assert.ok(bannerCss, '`.ad-banner` uslubi topilmadi');
   assert.ok(/flex:\s*none/.test(bannerCss[1]),
     '`.ad-banner` da `flex: none` yo\'q — bosh sahifa flex ustuni va bola SIQILADI, '
     + 'ya\'ni `aspect-ratio` kafolat emas (loyihada 3 marta tishlagan naqsh)');
-  assert.ok(/aspect-ratio:\s*32\s*\/\s*9/.test(bannerCss[1]),
-    '`.ad-banner` da `aspect-ratio: 32 / 9` yo\'q — balandlik qo\'lda yozilmasin (founder qarori 16:4.5)');
-  assert.ok(/touch-action:\s*pan-y/.test(bannerCss[1]),
-    '`.ad-banner` da `touch-action: pan-y` yo\'q — `pan-x` yoki yo\'qligi banner ustida '
-    + 'sahifa vertikal skrollini o\'ldiradi');
+  const slideCss = css.match(/\.ad-slide\s*\{([\s\S]*?)\}/);
+  assert.ok(slideCss, '`.ad-slide` uslubi topilmadi');
+  assert.ok(/aspect-ratio:\s*32\s*\/\s*9/.test(slideCss[1]),
+    '`.ad-slide` da `aspect-ratio: 32 / 9` yo\'q — balandlik qo\'lda yozilmasin (founder qarori 16:4.5)');
+  assert.ok(/flex:\s*0\s+0\s+100%/.test(slideCss[1]),
+    '`.ad-slide` da `flex: 0 0 100%` yo\'q — slayd skroller ichida siqilib, uchtasi bir ekranga sig\'ib qoladi');
+  // Skroller: `pan-x pan-y` — faqat `pan-x` sahifa vertikal skrollini o'ldiradi,
+  // faqat `pan-y` — karuselni. Ikkalasi ham bo'lsin.
+  assert.ok(/touch-action:\s*pan-x\s+pan-y/.test(bannerCss[1]),
+    '`.ad-banner` da `touch-action: pan-x pan-y` yo\'q — birisiz sahifa yoki karusel surilmaydi');
+  assert.ok(/scroll-snap-type:\s*x/.test(bannerCss[1]) && /scroll-snap-align/.test(slideCss[1]),
+    '`.ad-banner` `scroll-snap-type: x` + `.ad-slide` `scroll-snap-align` bo\'lsin — '
+    + 'aks holda karusel slaydlar orasida to\'xtab qoladi');
+  // Cheksiz aylanish — ikki chetda klon; `data-arg` HAQIQIY indeks.
+  const bannerHtmlTana2 = src.match(/function\s+adBannerHtml\s*\([^)]*\)\s*\{([\s\S]*?)\n\}/);
+  assert.ok(/\[n\s*-\s*1,\s*\.\.\.AD_SLIDES\.map\([\s\S]*?\),\s*0\]/.test(bannerHtmlTana2[1]),
+    '`adBannerHtml()` da klon tartibi `[n - 1, ...haqiqiy, 0]` yo\'q — karusel cheksiz aylanmaydi');
+  assert.ok(/data-action="adTap"\s+data-arg="\$\{i\}"/.test(bannerHtmlTana2[1]),
+    'har `.ad-slide` `data-action="adTap" data-arg="${i}"` bilan chizilsin — bosilganda qaysi slayd ekani shundan');
 
   console.log(`✅ Test 32: Reklama banneri qo'riqchisi — PASS `
     + `(${rasmlar.length} slayd × 2 til, chizish bitta nuqtadan, taymer tozalanadi)`);

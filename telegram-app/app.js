@@ -762,8 +762,13 @@ function cssUrl(u) {
 const FEATURED_IDS = ['ik-1402','ad-0890','sz-3310','hb-7740'];
 
 // ============ REKLAMA BANNERI (2026-08-14, founder qarori) ============
-// Uch slayd, 5 soniyada almashadi. Fon rasmlari — `assets/ads/ad-N.jpg`
-// (1200×338, Imagen bilan chizilgan yumshoq ipak, past kontrast).
+// Uch slayd, 5 soniyada almashadi. Fon rasmlari — `assets/ads/ad-N.webp`
+// (asosiy) + `ad-N.jpg` (zaxira), 1200×338, Gemini bilan chizilgan mato
+// fotosuratlari: atlas / paxta-adras / ikat (2026-08-15 dizayn handoff,
+// `docs/dizayn-tizimi/banner-dizayn-brief.md`). Chap 65% ataylab och va
+// tinch (matn uchun), o'ng 35% da mato burmasi.
+// `img` — KENGAYTMASIZ asos: chizishda `.webp` va `.jpg` shu asosdan
+// yasaladi, ya'ni yangi slayd qo'shilsa ikki yo'lni alohida yozish shart emas.
 //
 // ⚠️ MATN RASMDA EMAS, shu yerda. Sabab: Mini App ikki tilli va sarlavha
 // rasmga chizilsa rus xaridori o'zbekcha sarlavha ko'rardi. Bu yerda esa
@@ -773,19 +778,28 @@ const FEATURED_IDS = ['ik-1402','ad-0890','sz-3310','hb-7740'];
 // ⚠️ CTA tugmasi YO'Q — butun banner bosiladi (founder qarori). 101px
 // balandlikda 38px tugma bannerning ~70% ini yeb, sarlavhaga joy
 // qoldirmasdi.
+// ⚠️ STRELKA VA NUQTALAR HAM YO'Q (founder qarori 2026-08-15): slaydlar
+// o'zi almashadi (5 s) va barmoq bilan chapga/o'ngga suriladi — boshqa
+// boshqaruv elementi chizilmaydi.
 //
 // `go` — bosilganda chaqiriladigan amal. Yangi slayd qo'shilsa shu yerga
 // qo'shiladi, chizish kodiga tegilmaydi.
+//
+// ⚠️ Sarlavha HAR DOIM IKKI QATOR (`<br>` qo'lda) — founder qarori
+// 2026-08-15: uch slayd bir xil balandlikda ko'rinsin, birida bir qator,
+// boshqasida ikki qator "sakramasin". `tag` — qo'shimcha so'z, sarlavhaning
+// OXIRGI SO'ZIDAN KEYIN, o'sha qatorda kichik kartochka (chip) bo'lib
+// chiziladi (founder tahriri: "berish so'zidan keyin joylashtir").
 const AD_SLIDES = [
-  { img: 'assets/ads/ad-1.jpg', tone: 'rose', go: () => tab('ai'),
-    eyebrow: { uz: 'AI xizmati',        ru: 'AI-сервис' },
-    title:   { uz: 'Matolarni<br>jonlantiring', ru: 'Оживите ткани' } },
-  { img: 'assets/ads/ad-2.jpg', tone: 'saffron', go: () => tab('home'),
-    eyebrow: null,
-    title:   { uz: '24/7 buyurtma<br>berishingiz mumkin', ru: 'Принимаем<br>заказы 24/7' } },
-  { img: 'assets/ads/ad-3.jpg', tone: 'teal', go: () => tab('home'),
-    eyebrow: { uz: 'Ilk 3 ta buyurtma', ru: 'Первые 3 заказа' },
-    title:   { uz: 'Bepul yetkazib berish', ru: 'Доставка — бесплатно' } },
+  { img: 'assets/ads/ad-1', tone: 'rose', go: () => tab('ai'),
+    tag:   { uz: 'Sinab ko\'rish',    ru: 'Попробовать' },
+    title: { uz: 'Matolarni AI bilan<br>jonlantiring', ru: 'Оживите ткани<br>с помощью AI' } },
+  { img: 'assets/ads/ad-2', tone: 'saffron', go: () => tab('home'),
+    tag:   null,
+    title: { uz: '24/7 buyurtma<br>berishingiz mumkin', ru: 'Принимаем<br>заказы 24/7' } },
+  { img: 'assets/ads/ad-3', tone: 'teal', go: () => tab('home'),
+    tag:   { uz: 'Ilk 3 ta buyurtma', ru: 'Первые 3 заказа' },
+    title: { uz: 'Bepul yetkazib<br>berish', ru: 'Доставка —<br>бесплатно' } },
 ];
 
 const BADGE_COLORS = {
@@ -1140,25 +1154,41 @@ function updateNav() {
 // Matn `esc()` dan O'TMAYDI va bu ATAYLAB: manba `AD_SLIDES` — bizning O'Z
 // konstantamiz, foydalanuvchi kiritgan matn emas, va ichida `<br>` bor.
 // Foydalanuvchi matni bu yerga hech qachon kelmaydi.
+//
+// Fon `background-image` EMAS, `<picture>`: WebP ~2 barobar yengil (19 KB
+// vs 36 KB) va brauzer uni o'zi tanlaydi, eskisi JPEG ga tushadi. `<picture>`
+// ning o'zi `display:inline` — `.ad-slide picture` uchun styles.css da
+// alohida qoida BOR (CLAUDE.md `<picture>` bandi), aks holda rasm 0px bo'lardi.
+//
+// KARUSEL (2026-08-15, founder: "qolgan bannerlar yonida ko'rinib tursin"):
+// slaydlar yonma-yon, `.ad-banner` — gorizontal skroller (styles.css).
+// Cheksiz aylanish uchun ikki chetga KLON qo'yiladi: [oxirgi, 1, 2, 3,
+// birinchi]. Foydalanuvchi klonga yetib kelganda `mountAdBanner` uni
+// sezdirmasdan haqiqiy nusxaga "sakratadi" — mazmun bir xil, ko'z ilg'amaydi.
+// Har slayd O'ZI tugma va `data-arg` da HAQIQIY indeksini olib yuradi
+// (klon ham asl indeksini) — bosilganda qaysi slayd ekanini hisoblab
+// o'tirish shart emas.
 function adBannerHtml() {
   const L = S.lang;
+  const n = AD_SLIDES.length;
+  const order = [n - 1, ...AD_SLIDES.map((_, i) => i), 0];
   return `
-  <button class="ad-banner" data-action="adTap" aria-label="${STR[L].brand}">
-    ${AD_SLIDES.map((s, i) => `
-      <span class="ad-slide${i === 0 ? ' on' : ''}" data-tone="${s.tone}"
-            style="background-image:url('${s.img}')">
+  <div class="ad-banner" role="region" aria-label="${STR[L].brand}">
+    ${order.map((i, pos) => {
+      const s = AD_SLIDES[i];
+      const clone = pos === 0 || pos === order.length - 1;
+      return `
+      <button class="ad-slide" data-action="adTap" data-arg="${i}" data-tone="${s.tone}"${clone ? ' aria-hidden="true" tabindex="-1"' : ''}>
+        <picture>
+          <source type="image/webp" srcset="${s.img}.webp">
+          <img src="${s.img}.jpg" alt="" aria-hidden="true" decoding="async" draggable="false">
+        </picture>
         <span class="ad-copy">
-          ${s.eyebrow ? `<span class="ad-eyebrow">${s.eyebrow[L]}</span>` : ''}
-          <span class="ad-title">${s.title[L]}</span>
+          <span class="ad-title">${s.title[L]}${s.tag ? ` <span class="ad-tag">${s.tag[L]}</span>` : ''}</span>
         </span>
-        <span class="ad-chev">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 5l7 7-7 7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </span>
-      </span>`).join('')}
-    <span class="ad-dots">
-      ${AD_SLIDES.map((_, i) => `<span class="ad-dot${i === 0 ? ' on' : ''}" data-action="adGo" data-arg="${i}" role="button" aria-label="${i + 1}-banner"><i></i></span>`).join('')}
-    </span>
-  </button>`;
+      </button>`;
+    }).join('')}
+  </div>`;
 }
 
 // Taymer MODUL darajasida — `mountAdBanner()` uni har chizishda tozalaydi.
@@ -1167,16 +1197,29 @@ function adBannerHtml() {
 let adIdx = 0;
 let adTimer = null;
 
-function adPaint() {
-  const slides = document.querySelectorAll('.ad-banner .ad-slide');
-  const dots = document.querySelectorAll('.ad-banner .ad-dot');
-  slides.forEach((s, i) => s.classList.toggle('on', i === adIdx));
-  dots.forEach((d, i) => d.classList.toggle('on', i === adIdx));
+// Slaydning skrollerdagi snap nuqtasi. `k` — track dagi o'rin (−1 = oxirgi
+// klon, 0..n−1 haqiqiy, n = birinchi klon). Trackdagi element = k + 1.
+// `offsetLeft` skroller padding chetidan; snap chizig'i `scroll-padding`
+// (26px) da — shuning uchun ayiriladi (`.ad-banner` `position: relative`).
+function adPos(el, k) {
+  const slide = el.children[k + 1];
+  if (!slide) return 0;
+  const pad = parseFloat(getComputedStyle(el).paddingLeft) || 0;
+  return slide.offsetLeft - pad;
 }
 
-function adGo(i) {
-  adIdx = (i + AD_SLIDES.length) % AD_SLIDES.length;
-  adPaint();
+function adScrollTo(el, k, smooth) {
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  el.scrollTo({ left: adPos(el, k), behavior: smooth && !reduce ? 'smooth' : 'auto' });
+}
+
+// Klaviaturasiz muhit: `adGo` faqat avtomatik almashish uchun. `k` klon
+// bo'lishi mumkin (n) — sakratishni skroll to'xtaganda `mountAdBanner`
+// dagi `settle` qiladi.
+function adGo(k) {
+  const el = document.querySelector('.ad-banner');
+  if (!el) return;
+  adScrollTo(el, k, true);
   adStart();          // sanoq qaytadan boshlansin
 }
 
@@ -1185,46 +1228,51 @@ function adStart() {
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   adTimer = setInterval(() => {
     if (document.hidden) return;          // fon tabda batareya yemasin
-    adIdx = (adIdx + 1) % AD_SLIDES.length;
-    adPaint();
+    const el = document.querySelector('.ad-banner');
+    if (!el) return;
+    adScrollTo(el, adIdx + 1, true);      // n bo'lsa klon — settle sakratadi
   }, 5000);
 }
 
-// Bannerga bosilganda. ⚠️ Nuqta bosilganda BU CHAQIRILMAYDI — delegatsiya
-// `closest('[data-action]')` bilan eng ICHKARIGI elementni topadi, ya'ni
-// nuqtaning `adGo` si bannerning `adTap` ini bosib ketadi (app.js boshidagi
-// izoh). Aynan shu sabab `stopPropagation` ham kerak emas.
-// ⚠️ SURISH bosish deb hisoblanmasin: barmoq 45px dan ko'p surilgan bo'lsa
-// `adSwiped` yoqiladi va bu klik tashlab yuboriladi — aks holda har
-// surishda banner amali ishga tushardi.
-let adSwiped = false;
-function adTap() {
-  if (adSwiped) { adSwiped = false; return; }
-  const s = AD_SLIDES[adIdx];
+// Slayd bosilganda — har slayd o'zi tugma, `i` uning HAQIQIY indeksi
+// (klon ham aslining indeksini beradi). Barmoq bilan surish brauzer
+// skrolli, ya'ni surishdan keyin `click` UMUMAN kelmaydi — surishni
+// bosishdan ajratadigan qo'l kodi kerak emas.
+function adTap(i) {
+  const s = AD_SLIDES[i];
   if (s && typeof s.go === 'function') s.go();
 }
 
 // DOM tayyor bo'lgandan keyin ulanadi (`mountDetailMedia` naqshi).
 // ⚠️ `renderHome()` TO'RT joydan chaqiriladi va uchtasi `render()` dan
 // o'tmaydi — shuning uchun hamma joy `paintHome()` orqali yuradi.
+// ⚠️ `scrollend` hodisasi ISHLATILMAYDI — iOS WebView'da yo'q. O'rniga
+// `scroll` + 120 ms tinchlik = "to'xtadi" (`settle`).
 function mountAdBanner() {
   const el = document.querySelector('.ad-banner');
   if (!el) { if (adTimer) { clearInterval(adTimer); adTimer = null; } return; }
+  const n = AD_SLIDES.length;
   adIdx = 0;
-  adPaint();
+  adScrollTo(el, 0, false);              // birinchi haqiqiy slayd, klon emas
   adStart();
 
-  let x0 = null;
-  el.addEventListener('touchstart', (e) => {
-    x0 = e.changedTouches[0].clientX;
-    adSwiped = false;
+  let settleT = null;
+  const settle = () => {
+    const step = adPos(el, 1) - adPos(el, 0);   // slayd eni + oraliq
+    if (!step) return;
+    const k = Math.round(el.scrollLeft / step) - 1;
+    if (k >= n) { adScrollTo(el, 0, false); adIdx = 0; }
+    else if (k < 0) { adScrollTo(el, n - 1, false); adIdx = n - 1; }
+    else adIdx = k;
+  };
+  el.addEventListener('scroll', () => {
+    if (settleT) clearTimeout(settleT);
+    settleT = setTimeout(settle, 120);
   }, { passive: true });
-  el.addEventListener('touchend', (e) => {
-    if (x0 === null) return;
-    const dx = e.changedTouches[0].clientX - x0;
-    x0 = null;
-    if (Math.abs(dx) > 45) { adSwiped = true; adGo(adIdx + (dx < 0 ? 1 : -1)); }
-  }, { passive: true });
+  // Barmoq tekkanda avtomatik sanoq to'xtaydi — foydalanuvchi o'qiyotgan
+  // slayd tagidan qochib ketmasin; qo'yib yuborganda qaytadan boshlanadi.
+  el.addEventListener('touchstart', () => { if (adTimer) { clearInterval(adTimer); adTimer = null; } }, { passive: true });
+  el.addEventListener('touchend', () => adStart(), { passive: true });
 }
 
 // Bosh sahifani chizadigan YAGONA joy. Ilgari `innerHTML = renderHome()`

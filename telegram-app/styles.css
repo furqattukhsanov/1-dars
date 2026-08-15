@@ -777,14 +777,53 @@ button:active { opacity: .88; }
    ⚠️ `flex: none` SHART: bosh sahifa `flex-direction: column` va bolasi
    standart holda siqiladi, ya'ni `aspect-ratio` kafolat EMAS. Bu naqsh
    loyihada UCH marta tishlagan (`<picture>`, `.addr-map`, `.contact-block`).
-   ⚠️ `touch-action: pan-y` — gorizontalni JS boshqaradi, vertikal skroll
-   brauzerda qoladi. `pan-x` yozilsa banner ustida sahifa umuman
-   skroll qilmasdi (kategoriya chiplaridagi masala, teskarisi). */
+
+   ===== KARUSEL (2026-08-15, founder: "qolgan bannerlar yonida ko'rinib
+   tursin") =====
+   Ilgari slaydlar ustma-ust turib xiralashib almashardi. Endi `.ad-banner`
+   — GORIZONTAL SKROLLER (`overflow-x: auto` + `scroll-snap`), slaydlar yonma-
+   yon: joriy slayd markazda, qo'shnilarining ~6px cheti ikki tomondan
+   ko'rinib turadi. Surishni BRAUZERNING O'ZI qiladi (barmoq ortidan yuradi,
+   inersiya bor) — JS faqat avtomatik almashishni va cheksiz aylanishni
+   boshqaradi (`app.js` → `mountAdBanner`).
+   ⚠️ `margin: 0 -16px` — bosh sahifaning 16px hoshiyasidan CHIQIB, ekran
+   chetigacha cho'ziladi (`.cat-chips` naqshi), aks holda qo'shni slayd
+   hoshiyada KESILIB qolardi. `padding: 0 16px` = hoshiya bilan bir xil,
+   ya'ni joriy slayd sahifadagi boshqa bloklar bilan BIR CHIZIQDA turadi;
+   `scroll-padding-inline` ham 16 — snap nuqtasi shu chiziqqa tushadi.
+   Slayd eni = skroller ichki eni (100%), ya'ni ekran − 32px (avvalgidek).
+   Qo'shnining ko'rinadigan cheti = padding − gap = 16 − 10 = 6px.
+   ⚠️ Chet KAM bo'lsin (founder, 2026-08-15: 18px "chalg'itadi", 10px ham
+   "yana ozgina") — qo'shni slayd BOR ekanini bildirsin, MATNI ko'rinmasin
+   (`.ad-copy` chapdan 16px da boshlanadi, 6px chet unga yetmaydi).
+   ⚠️ `touch-action: pan-x pan-y` — gorizontal ham, vertikal ham brauzerda:
+   gorizontal → karusel, vertikal → sahifa. Faqat `pan-x` yozilsa banner
+   ustida sahifa skroll qilmasdi; faqat `pan-y` — karusel surilmasdi.
+   ⚠️ Pastki `padding` + manfiy `margin-bottom` — slayd SOYASI uchun:
+   skroller `overflow` bilan soyani kesardi. */
 .ad-banner {
   flex: none;
   position: relative;
-  width: 100%;
+  display: flex; gap: 10px;
+  margin: 0 -16px -12px;
+  padding: 0 16px 12px;
+  overflow-x: auto; overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: 16px;
+  scrollbar-width: none;
+  touch-action: pan-x pan-y;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+}
+.ad-banner::-webkit-scrollbar { display: none; }
+
+/* Slayd — bitta TUGMA (butun slayd bosiladi, ichida boshqa tugma yo'q). */
+.ad-slide {
+  flex: 0 0 100%;
+  position: relative;
   aspect-ratio: 32 / 9;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
   border: 0;
   padding: 0;
   border-radius: var(--radius-lg);
@@ -792,41 +831,42 @@ button:active { opacity: .88; }
   background: var(--pom-50);
   cursor: pointer;
   isolation: isolate;
-  touch-action: pan-y;
+  text-align: left;
   -webkit-tap-highlight-color: transparent;
   box-shadow: 0 10px 26px -18px rgba(23,26,48,.45);
   transition: transform var(--dur-fast) var(--ease-out);
 }
-.ad-banner:active { transform: scale(.985); }
-/* Global `button::after` (44×44 tap-maydon) bannerga KERAK EMAS — u
-   allaqachon 92–112px balandlikda, ya'ni minimumdan katta. Qoldirilsa
+.ad-slide:active { transform: scale(.985); }
+/* Global `button::after` (44×44 tap-maydon) slaydga KERAK EMAS — u
+   allaqachon 90+px balandlikda, ya'ni minimumdan katta. Qoldirilsa
    ::after ichkarida ortiqcha qatlam bo'lib turardi. */
-.ad-banner::after { content: none; }
-
-.ad-slide {
+.ad-slide::after { content: none; }
+/* Fon rasmi `<picture>` da (WebP + JPEG zaxira). `<picture>` ning o'zi
+   `display:inline` va balandligi `auto` — shu qoida bo'lmasa rasm 0px ga
+   tushardi (CLAUDE.md `<picture>` bandi, `.ad-slide picture` shu ro'yxatda). */
+.ad-slide picture,
+.ad-slide img {
   position: absolute; inset: 0;
-  opacity: 0; visibility: hidden;
-  background-size: cover;
-  background-position: center;
-  transition: opacity var(--dur-slow) var(--ease-out), visibility var(--dur-slow);
+  display: block; width: 100%; height: 100%;
+  object-fit: cover; object-position: center;
+  pointer-events: none;
 }
-.ad-slide.on { opacity: 1; visibility: visible; }
 
 /* Matn tuval birligida EMAS, ekran birligida: rasm sof fon, matn HTML.
-   Shu sabab uz/ru bepul almashadi va matn hech qachon xiralashmaydi. */
+   Shu sabab uz/ru bepul almashadi va matn hech qachon xiralashmaydi.
+   O'lchamlar — 2026-08-15 dizayn handoff (358×101 mockup): chap 16px,
+   sarlavha 17px/1.1, yorliq 8px/0.1em.
+   Founder tahrirlari (2026-08-15): sarlavha HAR DOIM ikki qator; yorliq
+   sarlavhaning OXIRGI SO'ZIDAN KEYIN, o'sha qatorda kichik kartochka
+   (chip); strelka va nuqtalar YO'Q. Matn zonasi — brief bo'yicha chap 65%
+   (o'ng 35% da mato burmasi, u yerga matn tushmasin). */
 .ad-copy {
   position: absolute;
-  left: 14px; right: 34%; top: 0; bottom: 0;
+  left: 16px; right: 35%; top: 0; bottom: 0;
   display: flex; flex-direction: column; justify-content: center;
-  align-items: flex-start; gap: 3px;
+  align-items: flex-start;
   z-index: 2;
   text-align: left;
-}
-.ad-eyebrow {
-  font-family: var(--font-sans);
-  font-size: 9.5px; font-weight: 700;
-  letter-spacing: .14em; text-transform: uppercase;
-  line-height: 1;
 }
 .ad-title {
   font-family: var(--font-display);
@@ -835,43 +875,31 @@ button:active { opacity: .88; }
   color: var(--ink-900);
   margin: 0;
 }
-/* Uch slaydning urg'u ranglari — dizayn tizimi tokenlaridan */
-.ad-slide[data-tone="rose"]    .ad-eyebrow { color: var(--pom-700); }
-.ad-slide[data-tone="saffron"] .ad-eyebrow { color: var(--saffron-700); }
-.ad-slide[data-tone="teal"]    .ad-eyebrow { color: var(--teal-700); }
-.ad-slide[data-tone="rose"]    .ad-chev { color: var(--pom-700); }
-.ad-slide[data-tone="saffron"] .ad-chev { color: var(--saffron-700); }
-.ad-slide[data-tone="teal"]    .ad-chev { color: var(--teal-700); }
-
-.ad-chev {
-  position: absolute; right: 15px; top: 50%;
-  transform: translateY(-50%);
-  z-index: 3; display: flex;
+/* Chip: sarlavha QATORI ichida, oxirgi so'zdan keyin. 8px katta harf,
+   urg'u rangida fon, oq matn. `vertical-align: middle` — 17px harf
+   o'rtasida tursin; `white-space: nowrap` — chip ikki bo'lakka sinmasin;
+   `margin-left` — so'zdan nafas. `<br>` bilan bo'lingan sarlavhada chip
+   ikkinchi qatorga tushadi, chunki u matn oqimida. */
+.ad-tag {
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: 4px;
+  padding: 4px 7px;
+  border-radius: 999px;
+  font-family: var(--font-sans);
+  font-size: 8px; font-weight: 700;
+  letter-spacing: .1em; text-transform: uppercase;
+  line-height: 1; white-space: nowrap;
+  color: #fff;
+  position: relative; top: -1px;
 }
-
-/* Nuqtalar: ko'rinadigan qism kichik, TEGISH MAYDONI 44px
-   (2026-07-29 qarori — o'zgarmaydi). */
-.ad-dots {
-  position: absolute; right: 3px; bottom: -6px;
-  z-index: 4; display: flex; align-items: center;
-}
-.ad-dot {
-  display: grid; place-items: center;
-  width: 26px; height: 44px;
-  padding: 0; border: 0; background: none; cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-}
-.ad-dot i {
-  display: block;
-  width: 7px; height: 7px; border-radius: 999px;
-  background: rgba(255,255,255,.95);
-  box-shadow: 0 1px 4px rgba(23,26,48,.45);
-  transition: width var(--dur-base) var(--ease-out), background var(--dur-base);
-}
-.ad-dot.on i { width: 18px; background: var(--pom-500); }
+/* Uch slaydning urg'u ranglari — dizayn tizimi tokenlaridan. */
+.ad-slide[data-tone="rose"]    .ad-tag { background: var(--pom-700); }
+.ad-slide[data-tone="saffron"] .ad-tag { background: var(--saffron-700); }
+.ad-slide[data-tone="teal"]    .ad-tag { background: var(--teal-700); }
 
 @media (prefers-reduced-motion: reduce) {
-  .ad-banner, .ad-slide, .ad-dot i { transition: none; }
+  .ad-banner, .ad-slide { transition: none; }
 }
 
 .cat-chips {

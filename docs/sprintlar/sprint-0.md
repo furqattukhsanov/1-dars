@@ -116,6 +116,21 @@ LolaMarket ning barcha asosiy ekranlarini vizual tarzda loyihalash. Kodga o'tish
   (`NULL` reyting oilasi). Yoqtirma soni "Saqlangan matolar" qatori bilan
   BITTA manba. Qadrdonda progress bar chizilmaydi — soxta 100% emas,
   intiladigan narsa qolmagani ko'rinadi.
+- [2026-08-15] **Reklama banneri uchun DIZAYN BRIEFI yozildi va uchala fon
+  rasmi qayta chizildi** — `docs/dizayn-tizimi/banner-dizayn-brief.md`
+  (ish materiali, deploy'ga chiqmaydi). Briefda: tuval (1200×338, 32:9),
+  zonalar (chap 65% matn uchun och va tinch, o'ng 35% mato burmasi),
+  uch slaydning rang kayfiyati (anor / za'faron / feruza), masshtab
+  ogohlantirishi (telefonda ~3.5x kichrayadi — mayda naqsh «shovqin»ga
+  aylanadi) va «qilinmasin» ro'yxati (matn, tugma, strelka, odam yuzi —
+  ularni ilova o'zi chizadi yoki ular umuman kerak emas). Natija: Gemini
+  bilan chizilgan mato fotosuratlari — atlas / paxta-adras / ikat,
+  WebP + JPEG. ⚠️ Brief endi QISMAN eskirgan: o'ng 35% «strelka va nuqtalar
+  turadigan joy» deb yozilgan, founder esa o'sha kuni ikkalasini ham olib
+  tashladi (zona qoladi, mazmuni o'zgardi). Ish materiali eskiradi — kod
+  haqiqat manbai. **Amalga oshirilishi, karusel mexanikasi va founder
+  tahrirlari `docs/sprintlar/sprint-4.md` da** (banner o'sha yerda
+  boshlangan, tarix bo'linmasin).
 - [2026-08-15] Yangi i18n kalitlar IKKALA tilda: `statOrders` / `statLikes` /
   `statRolls`, `rankPopTitle` / `rankHere` / `rankFoot` / `rankToGo`,
   `phoneNone`. Kesh: `styles.css?v=34→35`, `app.js?v=94→95`

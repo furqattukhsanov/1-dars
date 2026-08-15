@@ -125,6 +125,104 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
 
 ## Qilingan ishlar
 
+- [2026-08-15] **REKLAMA BANNERI QAYTA DIZAYN QILINDI — YANGI FON RASMLARI,
+  YANGI TIPOGRAFIYA VA KARUSEL MEXANIKASI.** Banner bir kun oldin
+  (`2026-08-14`, quyidagi yozuv) qo'shilgan edi; bu sessiyada founder bilan
+  LOKALDA bosqichma-bosqich ko'rib chiqildi va har qadam uning tahriri bilan
+  yopildi. **Uchta 2026-08-14 qarori shu yerda BEKOR QILINDI** — quyida
+  «BEKOR QILINGANLAR» bo'limida, chunki eskirgan qaror o'chirilmasa kelajakda
+  qaytib keladi.
+
+  **1) Fon rasmlari almashtirildi (dizayn handoff).** Dizaynerga brief
+  yozildi — `docs/dizayn-tizimi/banner-dizayn-brief.md` (tuval, zonalar,
+  uch slaydning rang kayfiyati, qilinmaydiganlar ro'yxati). Yangi rasmlar
+  Gemini bilan chizilgan mato fotosuratlari: atlas / paxta-adras / ikat.
+  **O'lchandi, hujjatdan ko'chirilmadi:** uchala rasm ham 1200×338,
+  WebP 13–22 KB, JPEG 26–40 KB (brief chegarasi ≤ 55 KB).
+
+  **2) Fon `background-image` EMAS, `<picture>`:** WebP asosiy, JPEG zaxira —
+  brauzer o'zi tanlaydi, eskisi JPEG ga tushadi. Yig'indida 102 KB → 56 KB
+  (~1.8x yengil, uchala slayd birga). `AD_SLIDES.img` endi KENGAYTMASIZ asos
+  (`assets/ads/ad-1`), `.webp`/`.jpg` ni chizish kodi o'zi qo'shadi — yangi
+  slayd qo'shilganda ikki yo'lni alohida yozish shart emas.
+  ⚠️ `.ad-slide picture, .ad-slide img { display: block; … }` qoidasi
+  BIRGA qo'shildi — CLAUDE.md dagi «`<picture>` blok balandligini nolga
+  tushiradi» bandi (loyihada UCH marta tishlagan naqsh).
+
+  **3) Tipografiya handoff bo'yicha:** chapdan 16px, sarlavha 17px/1.1,
+  yorliq 8px/0.1em. Matn zonasi chap 65% da qoladi (o'ng 35% da mato burmasi).
+
+  **FOUNDER TAHRIRLARI (ketma-ket, lokalda ko'rib):**
+  (a) **Sarlavha HAR DOIM ikki qator** (`<br>` qo'lda yoziladi) — uch slayd
+  bir xil balandlikda tursin, biri bir qator boshqasi ikki qator bo'lib
+  «sakramasin».
+  (b) **Qo'shimcha so'z sarlavha USTIDA emas** — sarlavhaning OXIRGI
+  SO'ZIDAN KEYIN, o'sha qatorda kichik kartochka (chip) bo'lib chiziladi,
+  foni urg'u rangida, matni oq (`eyebrow` → `tag`). Founder aynan shunday
+  dedi: «berish so'zidan keyin joylashtir».
+  (c) **1-slayd yorlig'i** `AI xizmati` → **`Sinab ko'rish`** (ru
+  `Попробовать`), sarlavhasi `Matolarni AI bilan / jonlantiring`
+  (ru `Оживите ткани / с помощью AI`).
+  (d) **Pastdagi 3 ta nuqta va strelka BUTUNLAY olib tashlandi.**
+  (e) **Banner KARUSEL bo'ldi** («qolgan bannerlar yonida ko'rinib tursin»):
+  slaydlar yonma-yon, joriysi markazda, qo'shnilarining cheti ko'rinadi.
+  (f) **Qo'shni slayd cheti IKKI MARTA kamaytirildi:** 18px → 10px → 6px
+  (founder: «chalg'itadi», keyin «yana ozgina»). Joriy slayd sahifaning
+  boshqa bloklari bilan bir chiziqda (343px).
+
+  **KARUSEL MEXANIKASI — surishni BRAUZER qiladi, JS emas.** `.ad-banner`
+  gorizontal skroller (`overflow-x: auto` + `scroll-snap`), ya'ni barmoq
+  ortidan yuradi va inersiya bepul keladi. Cheksiz aylanish uchun ikki chetga
+  KLON qo'yildi (`[n-1, ...haqiqiy, 0]`), skroll to'xtaganda haqiqiysiga
+  sezdirmasdan sakraydi. ⚠️ To'xtash `scrollend` bilan EMAS, `scroll` +
+  **120 ms tinchlik** bilan aniqlanadi: `scrollend` iOS WebView'da YO'Q va
+  unga tayanilsa karusel aynan Telegram ichida (ya'ni yagona haqiqiy
+  muhitda) klonda qotib qolardi. Har slayd O'ZI tugma, `data-arg` da
+  HAQIQIY indeks (klon ham aslining indeksini olib yuradi). Avto-almashish
+  5 s qoldi, barmoq tekkanda to'xtaydi va qo'yib yuborilganda qaytadan
+  boshlanadi.
+
+  **BEKOR QILINGANLAR (2026-08-14 dagi qarorlar, endi kuchda emas):**
+  - `touch-action: pan-y` → **`pan-x pan-y`**. Sabab o'zgardi: ilgari
+    gorizontalni JS boshqarardi, endi BRAUZER — faqat `pan-x` sahifa
+    vertikal skrollini o'ldiradi, faqat `pan-y` esa karuselni.
+  - **Nuqtalar va ular uchun 44px tegish maydoni** — element o'zi yo'q.
+  - **`adSwiped` (surishni bosishdan ajratish, 45px chegara)** — endi kerak
+    emas va bu kod qisqartirish emas, MEXANIKA farqi: surish brauzer skrolli,
+    ya'ni surishdan keyin `click` UMUMAN kelmaydi.
+  - `aspect-ratio: 32/9` **`.ad-banner` dan `.ad-slide` ga ko'chdi**
+    (nisbat slaydniki), `flex: none` esa skrollerda QOLDI — bosh sahifa flex
+    ustuni bolani baribir siqadi.
+
+  🔴 **SINOV PAYTIDA TUTILGAN NUQSON — VA UNI KO'Z KO'RMADI.** CSS izohida
+  ortiqcha `*/` qolib ketgan va `.ad-banner` qoidasi BUTUNLAY o'chib
+  qolgandi. Ekranda banner «shunchaki biroz boshqacha» ko'rinardi, konsolda
+  xato yo'q edi. Topilishiga yagona sabab — `getBoundingClientRect()` bilan
+  O'LCHASH. Bu CLAUDE.md dagi flex bandining aynan takrori: «ko'z bilan
+  qarash yetarli emas», va u endi CSS izohining o'ziga ham taalluqli.
+
+  **QOROVUL — Test 32 kengaytirildi:** `.webp` VA `.jpg` ikkalasi diskda
+  borligi, `AD_SLIDES.img` kengaytmasiz ekani, `<picture>` chizilishi,
+  `.ad-slide picture { display: block }` borligi, `flex: 0 0 100%`,
+  `scroll-snap`, klon tartibi va `data-arg`. Kesh: `styles.css?v=35→36`,
+  `app.js?v=95→96` (`telegram-app/index.html`), Test 16 jadvali birga.
+
+  **TEKSHIRILGANI:** `node server/test.js` — **74 test yashil** (hisobotchi
+  mustaqil qayta yurgizdi). Lokal brauzerda 375px mobil kenglikda: uchala
+  slayd ham ko'rildi, o'lchamlar `getBoundingClientRect` bilan o'lchandi,
+  cheksiz aylanish IKKI tomonga sinaldi, slayd bosilganda AI ekraniga
+  o'tishi va qaytganda banner 1-slayddan boshlanishi tekshirildi.
+  ⚠️ **TEKSHIRILMAGANI:** jonli Mini App'da (Telegram WebView ichida) hali
+  KO'RILMAGAN — ya'ni `scrollend` yo'qligi bo'yicha qaror TO'G'RI, lekin
+  120 ms `settle` ning haqiqiy iOS inersiyasi bilan xatti-harakati faqat
+  brauzerda o'lchangan.
+  ⚠️ **Brief ENDI QISMAN ESKIRGAN:** unda o'ng 35% «strelka + nuqtalar
+  turadigan joy» deb yozilgan, ular esa olib tashlandi (zonaning o'zi
+  qoladi — u yerda mato burmasi turadi). Brief ISH MATERIALI, kod esa
+  haqiqat manbai — `reklama-banner-spec.md` bilan bitta holat.
+  ⚠️ **OCHIQ QOLDI:** 2-slayd matni hamon «24/7 buyurtma berishingiz
+  mumkin» — founder bu bo'yicha javob bermadi, shuning uchun O'ZGARTIRILMADI.
+
 - [2026-08-14] **QOLDIQDAGI UCHTA OCHIQ BAND YOPILDI — VA UCHALASI HAM BITTA
   OILADAN: «kod bor, lekin u JIM».** Founder yangi funksiya takliflarining
   HAMMASINI rad etdi («hech qaysi — faqat uchta bandni yopamiz»), ya'ni bu
@@ -2382,6 +2480,57 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
 
 ## Qarorlar
 
+- [2026-08-15] Qaror (founder): **banner KARUSEL — qo'shni slaydning cheti
+  ko'rinib tursin, nuqta va strelka esa YO'Q.** Ikkalasi bitta qarorning
+  ikki yuzi: «yana banner bor» degan xabarni qo'shni slaydning O'ZI beradi,
+  ya'ni buni takrorlaydigan nuqtalar ortiqcha qatlam bo'lib qoladi. Chet
+  o'lchami ikki marta kamaytirildi (18 → 10 → **6px**): founder 18px ni
+  «chalg'itadi» dedi, 10px da «yana ozgina». 6px — qo'shni BOR ekanini
+  bildiradi, MATNINI esa ko'rsatmaydi (`.ad-copy` chapdan 16px da
+  boshlanadi). Joriy slayd sahifaning boshqa bloklari bilan bir chiziqda
+  qoladi — `margin: 0 -16px` + `padding: 0 16px` (`.cat-chips` naqshi).
+
+- [2026-08-15] Qaror: **karusel skrollini BRAUZER qiladi, JS emas**
+  (`overflow-x: auto` + `scroll-snap`). Sabab: barmoq ortidan yurish va
+  inersiya bepul keladi, va yon foyda TEXNIK EMAS, XATTI-HARAKATDA —
+  surishdan keyin `click` UMUMAN kelmaydi, ya'ni «surish bosish deb
+  hisoblanmasin» uchun yozilgan qo'l kodi (`adSwiped`, 45px chegara) butunlay
+  ortiqcha bo'ldi. Kod kamaydi, chunki MEXANIKA to'g'ri tanlandi.
+  ⚠️ **`scrollend` ISHLATILMAYDI — iOS WebView'da YO'Q.** O'rniga `scroll` +
+  120 ms tinchlik. Bu qoida, chunki unga tayanilsa karusel aynan Telegram
+  ichida (yagona haqiqiy muhitda) klonda qotib qolardi, brauzerda esa
+  hammasi joyida ko'rinardi — «bir yuzda ishlab ikkinchisida ishlamaydigan»
+  oila.
+
+- [2026-08-15] Qaror: **`touch-action: pan-x pan-y`** — 2026-08-14 dagi
+  `pan-y` qarorining O'RNIGA (quyida BEKOR deb belgilangan). Qiymat
+  mexanikaga ergashadi: gorizontal endi brauzernikiga qoldirildi, ya'ni faqat `pan-x`
+  sahifa vertikal skrollini o'ldiradi, faqat `pan-y` — karuselni. Ikkalasi
+  ham yozilishi SHART.
+
+- [2026-08-15] Qaror: **`AD_SLIDES.img` — KENGAYTMASIZ asos
+  (`assets/ads/ad-1`), `.webp`/`.jpg` ni chizish kodi qo'shadi.** Sabab:
+  yangi slayd qo'shilganda ikki yo'lni alohida yozib qo'yish kerak bo'lardi
+  va bittasi esdan chiqsa **brauzerning bir qismi rasm, boshqasi bo'sh joy**
+  ko'rardi — jimgina, konsolda xatosiz. Qorovul — Test 32: ikkala kengaytma
+  ham diskda borligi VA chizishda ishlatilishi tekshiriladi (faqat «diskda
+  bor» tekshiruvi yolg'on ishonch berardi).
+
+- [2026-08-15] Qaror (founder): **sarlavha HAR DOIM ikki qator, qo'shimcha
+  so'z esa sarlavhaning OXIRGI SO'ZIDAN KEYIN chip bo'lib turadi** (ustidagi
+  `eyebrow` qatori o'chirildi). Ikki qator — uch slayd bir xil balandlikda
+  tursin, almashganda «sakramasin»; chip esa matn OQIMIDA, ya'ni
+  `<br>` bilan bo'lingan sarlavhada u o'zi ikkinchi qatorga tushadi va
+  joyini alohida hisoblash kerak emas.
+
+- [2026-08-15] Qaror: **CSS izohi ham o'lchov bilan tekshiriladi.** Ortiqcha
+  `*/` `.ad-banner` qoidasini BUTUNLAY o'chirib yuborgan edi va ko'z buni
+  ko'rmadi — banner «biroz boshqacha» ko'rinardi, konsol toza edi. Topilishi
+  faqat `getBoundingClientRect()` tufayli bo'ldi. Ya'ni CLAUDE.md dagi «flex
+  bolasini KO'Z bilan emas, O'LCHOV bilan tekshir» bandi CSS ning O'ZI
+  yo'qolib qolgan holatga ham taalluqli: yo'q qoida ham, siqilgan blok ham
+  bir xil «shunchaki biroz boshqacha» bo'lib ko'rinadi.
+
 - [2026-08-14] Qaror (founder): **deep-link manba belgisining shakli QAT'IY
   QOLADI, o'zgaradigan narsa — JIMLIK.** Telegram `?start=Instagram` va
   `?start=guruh-ipak` ga ruxsat beradi, biz esa faqat `[a-z0-9_]{2,32}` ni
@@ -2499,12 +2648,15 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
   qolaman» yechim sifatida qabul qilinmadi. Qorovul — **Test 32**:
   yozilgan qoida himoya emas, uni tekshiradigan test himoya.
 
-- [2026-08-14] Qaror: **banner ustida `touch-action: pan-y`** — kategoriya
-  chiplaridagi `pan-x` ning ataylab TESKARISI. Chiplarda gorizontal skroll
-  brauzernikiga qoldiriladi, bannerda esa gorizontalni JS boshqaradi va
-  brauzerga vertikal qoladi. `pan-x` ko'chirib yozilganda banner ustida
-  sahifa umuman skroll qilmasdi — bir xil ko'ringan ikki holatga bir xil
-  qiymat qo'yish nuqson tug'diradi.
+- [2026-08-14] ~~Qaror: **banner ustida `touch-action: pan-y`**~~ —
+  🔴 **BEKOR QILINDI 2026-08-15** (yuqoridagi `pan-x pan-y` qarori).
+  Asl matn: kategoriya chiplaridagi `pan-x` ning ataylab TESKARISI —
+  chiplarda gorizontal skroll brauzernikiga qoldiriladi, bannerda esa
+  gorizontalni JS boshqaradi va brauzerga vertikal qoladi.
+  **Nima uchun bekor bo'ldi:** banner karuselga aylanganda gorizontal ham
+  brauzerga o'tdi, ya'ni qaror noto'g'ri emas edi — u tayangan MEXANIKA
+  o'zgardi. Yozuv o'chirilmadi: bekor qilingan qarorni o'chirish uni
+  kelajakda qaytadan «kashf qilinadigan» qiladi.
 
 - [2026-08-14] Qaror: **banner ish materiallari `docs/dizayn-tizimi/` da,
   `telegram-app/` da EMAS** (spec, uchta HTML demo, xom rasmlar, ikki
@@ -2512,7 +2664,9 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
   `telegram-app/*` bilan BUTUNLAY serverga ko'chiradi, ya'ni `telegram-app/`
   ichiga qo'yilgan ichki material `lolamarket.uz/mini-app/...` da hammaga
   ochiq turardi (`94c298e`). Production'ga faqat `assets/ads/ad-1..3.jpg`
-  chiqadi.
+  chiqadi. ⚠️ **2026-08-15 dan yoniga `ad-1..3.webp` ham qo'shildi** —
+  qoida o'zgarmadi, ro'yxat kengaydi (`<picture>` zaxirasi); yangi brief
+  (`banner-dizayn-brief.md`) esa o'sha ish materiali papkasida qoladi.
 - [2026-08-14] Qaror: **buyurtma tarixi BUGUNGI KATALOGGA bog'lanmaydi —
   nom va narx BUYURTMA YOZUVIDAGI snapshotdan olinadi.** Katalog faqat
   RASM uchun ishlatiladi va u yo'q bo'lsa qator baribir chiziladi
