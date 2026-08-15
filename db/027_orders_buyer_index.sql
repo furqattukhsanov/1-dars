@@ -1,0 +1,29 @@
+-- LolaMarket — xaridor bo'yicha buyurtma indeksi (2026-08-16)
+--
+-- ============ NEGA KERAK ============
+-- `orders` jadvalida `tg_user_id` bo'yicha indeks HECH QACHON bo'lmagan,
+-- holbuki xaridor kanalidagi eng issiq ikki so'rov aynan shu ustundan
+-- boshlanadi:
+--   1) `/api/orders`  — Mini App HAR OCHILGANDA buyurtmalar tarixini oladi
+--                       (`WHERE tg_user_id = $1 ORDER BY created_at DESC`);
+--   2) `/api/me`      — profil kartasidagi "buyurtma" va "rulon" soni
+--                       (2026-08-16 dan) shu ustun ustidan agregat qiladi.
+-- Ya'ni har bir foydalanuvchi ilovani ochganda butun `orders` jadvali
+-- to'liq skanerlanardi. Bugungi hajmda bu sezilmaydi — aynan shuning uchun
+-- ham u ko'rinmay kelgan: nuqson jadval o'sgan sari sekin yomonlashadi va
+-- hech qachon "buzildi" degan signal bermaydi.
+--
+-- ⚠️ `idx_orders_created` (001) BU ISHNI BAJARMAYDI: u faqat `created_at`
+-- bo'yicha va xaridorni ajratmaydi. Mavjud indeks "bor" bo'lgani uchun
+-- yetarli deb o'ylash — tekshirilmagan da'vo (CLAUDE.md).
+--
+-- ============ NEGA IKKI USTUNLI ============
+-- `(tg_user_id, created_at DESC)` — `/api/orders` dagi `ORDER BY` ham shu
+-- indeksdan qanoatlanadi, ya'ni tartiblash uchun alohida sort bosqichi
+-- kerak bo'lmaydi. Faqat `(tg_user_id)` bo'lganda baza qatorlarni topib,
+-- keyin ularni alohida saralardi.
+--
+-- `IF NOT EXISTS` — fayl qayta ishga tushirilsa xatosiz o'tsin (001 dagi
+-- naqsh).
+CREATE INDEX IF NOT EXISTS idx_orders_buyer
+  ON orders (tg_user_id, created_at DESC);

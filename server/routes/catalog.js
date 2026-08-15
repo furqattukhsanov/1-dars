@@ -8,7 +8,6 @@ const { verifyInitData, authUser, requestUser, isAdmin, currentSeller } = requir
 const { escapeHtml, money, safeEqual } = require('../lib/format');
 const { validate } = require('../lib/validate');
 const { rateLimited, readBody, sendJson, ok, fail } = require('../lib/http');
-const { loadContacts } = require('../lib/contacts');
 const { sendOrderNotifyMessage, callTelegram, notify, tgGetFile, tgDownloadFile,
   MAX_DOWNLOAD_BYTES } = require('../lib/telegram-api');
 const { r2Put, r2PublicUrl, R2_ENABLED } = require('../lib/r2');
@@ -562,26 +561,16 @@ async function handleModerationAction(req, res, ip) {
 
 
 
-// ============ /api/telegram-contact — telefon (fayl bazasi) ============
-function handleGetContact(req, res, ip) {
-  if (rateLimited(`contact:${ip}`, 30)) return fail(res, 'too many requests', 429);
-  let uid;
-  try {
-    uid = new URL(req.url, 'http://x').searchParams.get('uid');
-  } catch (e) {
-    uid = null;
-  }
-  if (!uid || !/^\d+$/.test(uid)) return fail(res, 'invalid uid', 400);
-  const data = loadContacts();
-  const entry = data[uid];
-  sendJson(res, 200, { phone: entry ? entry.phone : null });
-}
+// ⚠️ `handleGetContact` (`/api/telegram-contact?uid=`) 2026-08-16 da OLIB
+// TASHLANDI — sabab `server.js` dagi izohda: u telefon raqamini brauzerdan
+// kelgan `uid` bo'yicha, hech qanday tekshiruvsiz qaytarardi. Telefon endi
+// `/api/me` javobida (`users.phone`, kimlik `requestUser()` dan).
 
 
 
 
 module.exports = {
-  handleAuthTelegram, handleGetProducts, handleSubmitProduct, handleModerationList, handleModerationAction, handleGetContact,
+  handleAuthTelegram, handleGetProducts, handleSubmitProduct, handleModerationList, handleModerationAction,
   handleProductPhoto, handleProductImage, handleProductVideo, productPhotoUrl,
   // ⚠️ Telegram fayl turini aniqlash `routes/profile.js` (avatar proksisi)
   // da ham kerak. NUSXA KO'CHIRILMAYDI: `usableMime` ning "octet-stream ham

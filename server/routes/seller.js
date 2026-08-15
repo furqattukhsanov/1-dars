@@ -12,6 +12,56 @@ const { restoreStock } = require('./orders');
 // ============ SOTUVCHI KABINETI ============
 // Rol tekshiruvi (currentSeller / requireSeller) lib/auth.js da.
 
+// ============ XARIDOR STATISTIKASI — UMR BO'YI, 50 TALIK OYNADAN EMAS ============
+// (2026-08-16) Profil kartasidagi "buyurtma" va "rulon" raqamlari — va ular
+// ustiga qurilgan UNVON (Mehmon → Mijoz → Hamkor → Qadrdon) — ilgari klientda
+// `ORDERS` massividan hisoblanardi. Massiv esa `/api/orders` dan keladi va u
+// **`LIMIT 50`** bilan yuradi, ya'ni raqamlar UMRBOD emas, oxirgi 50 ta
+// buyurtmanikini ko'rsatardi.
+//
+// 🔴 Nuqson JIMGINA: 51-buyurtmadan keyin "rulon" soni o'sishdan TO'XTAYDI
+// (eng eskisi oynadan chiqib, yangisi kirgani uchun son deyarli joyida
+// qotadi) va 100 rulonga yetgan xaridor "Qadrdon" bo'lolmay qolardi. Xato
+// yo'q, konsol toza, raqam esa yolg'on — `NULL` reyting va `ALERT_CHAT_ID`
+// bilan bitta oila.
+//
+// ⚠️ `likes` ATAYLAB bu yerda YO'Q va bu tanlov. ♡ soni ro'yxatning O'ZIDAN
+// sanaladi (`app.js` → `buyerStats`), chunki u xaridor OCHA OLADIGAN ro'yxat
+// bilan mos bo'lishi shart: bazada 12 ta ♡ bo'lib, katalogda 9 tasi qolgan
+// bo'lsa (e'lon o'chgan/yashiringan), karta "12" deb turib ro'yxatda 9 ta
+// chiqarardi. Buyurtma va rulonda bunday chegara yo'q — ular hech qayerda
+// ro'yxat bo'lib chizilmaydi, shuning uchun ular BAZADAN.
+//
+// ⚠️ `count(DISTINCT o.id)` — oddiy `count(*)` EMAS: `order_items` bilan
+// birikma har mahsulot uchun qator beradi, ya'ni 3 mahsulotli bitta
+// buyurtma "3 ta buyurtma" bo'lib ko'rinardi.
+//
+// `refunded` ATAYLAB sanalmaydi — klientdagi ro'yxat bilan AYNI qoida:
+// unvon xaridni mukofotlaydi, mojaroni emas.
+const DONE_STATUSES = ['delivered', 'completed'];
+
+async function buyerStats(tgUserId) {
+  try {
+    const { rows } = await pool.query(
+      `SELECT count(DISTINCT o.id)::int AS orders,
+              coalesce(sum(CASE WHEN o.status = ANY($2) THEN i.qty ELSE 0 END), 0)::int AS rolls
+         FROM orders o
+         LEFT JOIN order_items i ON i.order_id = o.id
+        WHERE o.tg_user_id = $1`,
+      [tgUserId, DONE_STATUSES]
+    );
+    return { orders: rows[0].orders, rolls: rows[0].rolls };
+  } catch (e) {
+    // Statistika — kartaning BEZAGI, kimligi emas. So'rov yiqilsa `/api/me`
+    // butunlay qulamasin: rol, telefon va manzil baribir kerak. `null`
+    // qaytadi va klient o'zining mahalliy hisobiga qaytadi — o'ylab topilgan
+    // raqam CHIZILMAYDI.
+    // Xato YUTILMAYDI: birinchi argument o'zgarmas kalit (alert guruhlash).
+    console.error('buyerStats xatosi:', e.message);
+    return null;
+  }
+}
+
 // ============ /api/me — men kimman (rol + sotuvchi profili) ============
 async function handleMe(req, res, ip) {
   if (rateLimited(`me:${ip}`, 60)) return fail(res, 'too many requests', 429);
@@ -30,6 +80,12 @@ async function handleMe(req, res, ip) {
       // Tanlanmagan bo'lsa `null` — bo'sh satr EMAS: "tanlanmagan" holati
       // KO'RINSIN, aks holda frontend uni mavjud nuqta deb chizardi.
       pickupPointId: (me && me.pickup_point_id) || null,
+      // Telefon — BAZADAN, `pickupPointId` bilan AYNI mulohaza (2026-08-16).
+      // Yo'q bo'lsa `null`: profil kartasi "Raqam ulanmagan" deb TURADI va
+      // ulashish tugmasini ko'rsatadi. Soxta raqam ham, eski keshdagi raqam
+      // ham chizilmasin.
+      phone: (me && me.phone) || null,
+      stats: await buyerStats(String(u.id)),
       seller: me && me.seller_id
         ? { id: me.seller_id, name: { uz: me.business_name_uz, ru: me.business_name_ru || me.business_name_uz }, verified: me.is_verified }
         : null,

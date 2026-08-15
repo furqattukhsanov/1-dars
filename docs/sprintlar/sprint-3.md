@@ -194,6 +194,122 @@ ma'lumotdan aniqlanadi. Har kim faqat o'z buyurtmalarini ko'radi.
   bilan O'LCHANDI: kesilgan blok yo'q, chiqish matni yo'q, oxirgi ikki blok —
   "Ijtimoiy tarmoqlar" va brend izi
 
+### Telefon — kimlik brauzerdan olinmaydi (sprint yopilgandan keyin, 2026-08-16)
+
+> Bu bo'lim shu sprintga tegishli, chunki tuzatilgan narsa yuqoridagi
+> **2026-07-23 qarorining buzilishi** edi: «kimlik hech qachon mijozdan
+> (`uid`) olinmaydi». Qaror yozilgan, endpoint esa qoida yozilgandan keyin
+> ham o'sha holda turgan — bu loyihadagi **uchinchi** shunday holat
+> (`disputes`, `routes/ai.js`, endi `telegram-contact`).
+
+- [2026-08-16] 🔴 **`GET /api/telegram-contact?uid=<id>` BUTUNLAY OLIB
+  TASHLANDI** (`server/server.js` marshruti + `routes/catalog.js` →
+  `handleGetContact`). Endpoint telefon raqamini **so'rovda kelgan Telegram
+  ID bo'yicha** qaytarardi — imzo ham, sessiya ham, hech qanday tekshiruv
+  yo'q edi. Telegram ID esa **sir emas**: guruhdagi xabarda, forward'da,
+  `@userinfobot` da ko'rinadi. Ya'ni **istalgan odam istalgan
+  foydalanuvchining telefon raqamini o'qiy olardi** — bitta `curl` bilan.
+  Nuqson jimgina edi: endpoint 200 qaytarardi, jurnalda xato yo'q, hech
+  qaysi ekran uni ko'rsatmasdi
+- [2026-08-16] **Telefon endi `/api/me` javobida** (`routes/seller.js` →
+  `handleMe`): kimlik `requestUser()` dan (ikkala kanal — imzolangan
+  `initData` va sayt cookie sessiyasi), manba esa `users.phone`.
+  `lib/auth.js` → `currentSeller` `u.phone` ni ham SELECT qiladi —
+  **alohida so'rov qo'shilmadi**, qator baribir o'qilardi
+- [2026-08-16] **Mini App raqamni `localStorage` dan o'qishni to'xtatdi.**
+  Ilgari u qurilmaga bog'langan edi, sayt esa AYNI raqamni bazadan
+  ko'rsatardi — yana o'sha **bir yuzda ishlab ikkinchisida ishlamaydigan**
+  naqsh. Natijasi ikki tomonlama edi: (a) foydalanuvchi raqamini botda
+  almashtirsa (webhook `users.phone` ni ustidan yozadi va «endi shu raqam
+  turadi» deb **javob beradi**) Mini App eskisini cheksiz ko'rsatib turardi;
+  (b) boshqa qurilmada esa «Raqam ulanmagan» deb turardi. Endi `loadMe()`
+  server javobini QO'LLAYDI va server «raqam yo'q» desa `localStorage` dagi
+  eski qiymatni **O'CHIRADI** — `pickup_point_id` bilan bitta qoida
+  (faqat yozib, o'chirmaslik — o'sha tuzoq)
+- [2026-08-16] **`pollForPhone()` endi `/api/me` ni so'raydi** va `uid` ni
+  UMUMAN yubormaydi. Alohida so'rov yozilmadi: `loadMe()` ayni javobni
+  allaqachon o'qiydi (CLAUDE.md — mavjud funksiyaning ustiga ikkinchi yo'l
+  qo'shilmasin)
+- [2026-08-16] **Qayta chizish `pickupPointId` blokidan CHIQARILDI.** U
+  o'sha blokning ichida edi va bu **tasodifan** ishlardi — server har doim
+  `pickupPointId` qaytargani uchun. Javobga telefon va statistika
+  qo'shilgach, bitta maydonga bog'langan qayta chizish jimgina yetmay
+  qolardi: karta eski raqam bilan turaverardi
+- [2026-08-16] **`contacts.json` fayl bazasi olib tashlandi**
+  (`server/lib/contacts.js` O'CHIRILDI, `config.js` dan `CONTACTS_FILE`,
+  `routes/webhook.js` dan `saveContact()` yozuvi). U **ikkinchi manba** edi:
+  o'sha endpointdan boshqa hech kim o'qimasdi. Ustiga production'da
+  **EACCES bilan yiqilib turgan va alert yuborayotgan** edi — ya'ni jonli
+  serverda o'lik kod shovqin qilardi. Bitta fakt ikki joyda yashasa, biri
+  jimgina eskiradi (`db/014` darsi)
+- [2026-08-16] **`server/backfill-contacts.js` — YANGI, bir martalik.**
+  Bazaga yozish faqat 2026-08-14 da qo'shilgan, ya'ni o'sha sanagacha
+  kontaktini ulashgan odamlarning raqami **faqat faylda** qolgan bo'lishi
+  mumkin. Skript ularni `users.phone` ga ko'chiradi, **faqat bo'sh joyni
+  to'ldiradi** (`WHERE phone IS NULL`) — bazadagi raqam yangiroq bo'lishi
+  mumkin va u bosilmasin. Idempotent
+- [2026-08-16] 🔴 **EACCES ning ILDIZI O'LCHANDI — va u kutilganidan
+  yomonroq chiqdi: tirik papkada `contacts.json` UMUMAN YO'Q edi.**
+  Sabab: papka `root:root 755`, servis esa `www-data` nomidan ishlaydi —
+  ya'ni u o'sha papkada fayl **YARATA OLMAYDI** (o'lchandi:
+  `sudo -u www-data test -w /opt/lolamarket-notify` → yoza olmaydi).
+  Ya'ni alert bir nosozlikni emas, **raqamlar umuman yozilmayotganini**
+  aytib turgan edi.
+  ⚠️ **BU YERDA AVVAL NOTO'G'RI SABAB YOZILGANDI** va uni tuzatish
+  qoidaning o'zidan muhimroq: dastlab «papka egaligi `501:staff`, rsync
+  `-a` keltirib chiqargan» deb yozilgandi. Bu **birinchi `ls` chiqishini
+  noto'g'ri o'qishdan** tug'ilgan da'vo edi — qayta o'lchaganda papka
+  `root:root` (`ls -ldn` → `6 0 0`) bo'lib chiqdi. Da'vo shunchaki xato
+  emas edi, u **noto'g'ri TUZATISHNI ham oqlab turgandi**: taklif qilingan
+  `chown root:root /opt/lolamarket-notify` buyrug'i bo'sh amal bo'lardi.
+  Aynan «hujjatdagi raqam — tekshirilmagan da'vo» qoidasining o'zi
+  (CLAUDE.md), bu safar **egalik darajasida**.
+  ⚠️ Lekin ular yo'qolmagan: eski nusxalar `/opt/lolamarket-notify.bak-*/`
+  papkalarida qolgan — **o'lchandi, eng to'lasida 9 yozuv, ulardan 3 tasi
+  bazada yo'q edi.** Shuning uchun skriptga **yo'l argument bilan**
+  beriladi (`process.argv[2]`), qat'iy emas:
+  `cd /opt/lolamarket-notify && node backfill-contacts.js /opt/lolamarket-notify.bak-<sana>/contacts.json`
+  ⚠️ Zaxira **eng TO'LASI** bo'yicha tanlansin, eng yangisi bo'yicha emas —
+  fayl vaqti-vaqti bilan yo'qolib turgan, ya'ni yangiroq nusxa KAMROQ
+  yozuvga ega bo'lishi mumkin (`ls -S .../contacts.json | head -1`)
+- [2026-08-16] 🔴 **ALOHIDA NUQSON: serverdagi kod papkalari mavjud
+  bo'lmagan foydalanuvchiga tegishli edi.** Yuqoridagi noto'g'ri sababni
+  qayta o'lchayotganda topildi va u EACCES bilan bog'liq EMAS —
+  mustaqil xavfsizlik kamchiligi: `lib/`, `routes/`, `assets/` papkalari
+  hamda `README.md`, `assets/lola-banner.png` serverda **`501:50`** ga
+  tegishli edi (serverda bunday uid YO'Q). Papkalar `755`, ya'ni o'sha
+  uid bilan foydalanuvchi yaratilsa u **`routes/*.js` ni ALMASHTIRA
+  olardi**, servis esa o'sha kodni ishga tushirardi.
+  Tuzatildi: `find /opt/lolamarket-notify -uid 501 -not -path "*/node_modules/*"
+  -exec chown root:root {} +` (5 → 0). `chown -R` ISHLATILMADI — u sirlarni
+  ham qamrardi (2026-07-30 darsi); tekshirildi: `.env` va `pg-backup.sh`
+  hamon `root:root` 600/700, `www-data` esa kodni O'QIY oladi (o'lchandi).
+  ⚠️ **SABABI HAM TUZATILDI, oqibati emas:** buni `rsync -a` keltirib
+  chiqargan (`-a` ichidagi `-o -g` lokal macOS egaligini **raqam bo'yicha**
+  serverga bosadi). `server/README.md` dagi deploy buyrug'iga
+  `--no-owner --no-group` qo'shildi — busiz tuzatish **keyingi deployda
+  qaytib buzilardi**. README ning 4b qadami buni qoplamasdi: u faqat
+  `*.js`/`*.json`/`version.txt` **fayllariga** tegadi, PAPKALARGA emas
+- [2026-08-16] **Qorovul — `server/test.js` → Test 36** (4 band):
+  (1) `telegram-contact` na serverda, na klientda qaytmasin **va** Mini App
+  hech qayerga `uid=` yubormasin (bu NAQSHNI ushlaydi — endpoint boshqa nom
+  bilan qayta tug'ilsa birinchi ikki tekshiruv ko'rmasdi); (2) `/api/me`
+  javobida `phone` bor va `handleMe` `requestUser()` da, `currentSeller`
+  esa `u.phone` ni o'qiydi; (3) `loadMe()` server javobini QO'LLAYDI va
+  «raqam yo'q» deganda `localStorage` ni tozalaydi; (4) statistika
+  `LIMIT` siz va `count(DISTINCT o.id)` bilan.
+  **11 mutatsiya bilan sinaldi, 11 tasi ham ushlandi.** Sinov qorovulning
+  O'ZIDA teshik ochdi (M11): dastlab faqat `removeItem` tekshirilardi va
+  `S.tgPhone = d.phone` qatorini o'chirib yuborish qorovuldan **jimgina
+  o'tib ketdi** — ya'ni server to'g'ri javob berib turib, klient uni
+  qo'llamasdan eski qiymatda qolardi, tuzatilayotgan nuqsonning aynan o'zi.
+  Serverni to'g'rilash yetarli emas, javob QO'LLANISHI ham tekshirilsin
+- [2026-08-16] Kesh-bust: `telegram-app/app.js?v=96 → ?v=97`, Test 16 dagi
+  KUTILGAN jadval yangilandi (`ed169ab670d3` → `93fe0b47fd98`).
+  `server/README.md` da `contacts.json` qatori ESKIRGAN deb belgilandi
+  (fayl endi yozilmaydi ham, o'qilmaydi ham).
+  **`node server/test.js` — 75 test, hammasi PASS**
+
 ---
 
 ## Qarorlar
@@ -252,3 +368,23 @@ ma'lumotdan aniqlanadi. Har kim faqat o'z buyurtmalarini ko'radi.
   ALOHIDA amal va nomi ham boshqacha bo'lsin, "chiqish" deb atalmasin.
   Qoida `CLAUDE.md` ning arxitektura bo'limiga ham yozildi — chunki u bitta
   tugma haqida emas, ikki yuzning kimlik farqi haqida
+- [2026-08-16] Qaror: **kimlikni brauzerdan oladigan endpoint TUZATILMAYDI,
+  OLIB TASHLANADI.** `/api/telegram-contact` ga imzo tekshiruvi qo'shish
+  mumkin edi, lekin u holda AYNI faktni beradigan ikkita yo'l qolardi
+  (`/api/me` allaqachon "men kimman" javobini beradi). Yagona yo'l qoldirildi:
+  mavjud funksiyaning ustiga ikkinchi yo'l qo'shilmasin degan qoidaning
+  teskari tomoni — ortiqcha yo'l topilsa, u YOPILADI
+- [2026-08-16] Qaror: **telefonning yagona manbai — `users.phone`, ikkala
+  yuz uchun ham.** `contacts.json` (fayl bazasi) o'chirildi: bitta fakt ikki
+  joyda yashasa biri jimgina eskiradi, va aynan shunday bo'lgan — Mini App
+  fayldan, sayt bazadan o'qib, ikkisi bir-biriga zid raqam ko'rsatardi.
+  Klientdagi `localStorage` faqat birinchi chizishgacha yashaydi va server
+  javobi bilan **ustidan yoziladi** — server "yo'q" desa TOZALANADI ham
+  (`pickup_point_id` bilan bitta qoida). ⚠️ Eski fayldagi raqamlar
+  yo'qolmasin uchun `backfill-contacts.js` yozildi va u **bazadagi qiymatni
+  bosmaydi**: fayl eski holatni saqlaydi, baza yangisini
+- [2026-08-16] Qaror: **qorovul serverni emas, ZANJIRNI tekshiradi.** Test 36
+  faqat endpoint yo'qligini emas, klient server javobini QO'LLASHINI ham
+  ko'radi — mutatsiya sinovi aynan shu joyda teshik topdi. Dars: "manbani
+  to'g'riladim" ≠ "ekranda to'g'ri ko'rinadi", ya'ni **«qildim» ≠ «sodir
+  bo'ldi»** (2026-08-14 darsi shu yerda takrorlandi)

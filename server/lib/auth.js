@@ -93,7 +93,14 @@ async function currentSeller(tgUser) {
     // `pickup_point_id` shu yerdan olinadi, alohida so'rov bilan emas:
     // "men kimman" javobi (`/api/me`) baribir shu qatorni o'qiydi va
     // profil manzilni O'SHA javobdan ko'rsatadi (db/022).
-    `SELECT u.id AS user_id, u.role, u.pickup_point_id,
+    //
+    // `phone` HAM shu qatordan (2026-08-16). Ilgari Mini App profil kartasi
+    // raqamni `localStorage` dan va `/api/telegram-contact?uid=` dan olardi,
+    // ya'ni qurilmaga bog'langan edi — sayt esa AYNI raqamni bazadan
+    // ko'rsatardi (`web-session.js`). Bir yuzda ishlab ikkinchisida
+    // ishlamaydigan naqsh (CLAUDE.md). Endi ikkala yuz ham bitta ustundan
+    // oziqlanadi: `users.phone`.
+    `SELECT u.id AS user_id, u.role, u.pickup_point_id, u.phone,
             s.id AS seller_id, s.business_name_uz, s.business_name_ru, s.is_verified
        FROM users u
        LEFT JOIN sellers s ON s.user_id = u.id

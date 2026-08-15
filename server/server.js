@@ -30,7 +30,7 @@ const {
 } = require('./routes/orders');
 const {
   handleAuthTelegram, handleGetProducts, handleSubmitProduct,
-  handleModerationList, handleModerationAction, handleGetContact, handleProductPhoto,
+  handleModerationList, handleModerationAction, handleProductPhoto,
 } = require('./routes/catalog');
 const {
   handleCreateReview, handleGetReviews, handleSellerReviews,
@@ -294,12 +294,16 @@ function routeRequest(req, res) {
     return handleProductPhoto(req, res, ip);
   }
 
-  if (path === '/api/telegram-contact') {
-    cors(res, 'GET, OPTIONS');
-    if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
-    if (req.method !== 'GET') return fail(res, 'method not allowed', 405);
-    return handleGetContact(req, res, ip);
-  }
+  /* ⚠️ `/api/telegram-contact?uid=` OLIB TASHLANDI (2026-08-16) va QAYTIB
+     KELMASIN. U kimlikni BRAUZERDAN olardi: so'rovda kelgan `uid` bo'yicha
+     to'g'ridan-to'g'ri telefon raqami qaytarardi, hech qanday imzo yoki
+     sessiya tekshirmasdan. Telegram ID esa sir emas (guruhdagi xabar,
+     forward, `@userinfobot`), ya'ni istalgan odam istalgan foydalanuvchining
+     raqamini o'qiy olardi. Bu CLAUDE.md ning eng tepasidagi qoidaning
+     to'g'ridan-to'g'ri buzilishi: "Klient yuborgan `tg_user_id` ga
+     ishonadigan endpoint qo'shilmasin".
+     Raqam endi `/api/me` da — kimlik `requestUser()` dan, manba esa
+     `users.phone` (sayt ham AYNI ustundan o'qiydi). Qorovul: Test 36. */
 
   if (path === '/api/telegram-webhook' && req.method === 'POST') {
     return handleTelegramWebhook(req, res);

@@ -14,7 +14,6 @@ const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET;
 const MINI_APP_URL = process.env.MINI_APP_URL || 'https://lolamarket.uz/mini-app/';
 // Saytdagi "Telegram orqali kirish" tugmasi shu botga deep-link yasaydi.
 const BOT_USERNAME = (process.env.BOT_USERNAME || 'lolamarketbot').replace(/^@/, '');
-const CONTACTS_FILE = __dirname + '/contacts.json';
 
 // Server versiyasi — deploy diagnozida "serverda qaysi kod turibdi" savoliga javob.
 //
@@ -523,7 +522,7 @@ if (!process.env.DATABASE_URL) {
 
 module.exports = {
   PORT, BOT_TOKEN, ADMIN_CHAT_ID, ALLOWED_ORIGIN, WEBHOOK_SECRET,
-  MINI_APP_URL, BOT_USERNAME, CONTACTS_FILE, GIT_SHA, ALERT_CHAT_ID,
+  MINI_APP_URL, BOT_USERNAME, GIT_SHA, ALERT_CHAT_ID,
   ADMIN_PANEL_TOKEN, PREPAY_RATE, COMMISSION_RATE, ADMIN_TG_IDS, SELLER_TG_IDS, DELIVERY_FEE_ESTIMATE,
   AI_PROVIDERS, AI_PROVIDER, AI_API_KEY, AI_ENABLED, AI_DAILY_LIMIT,
   AI_CREDITS_START, AI_CREDIT_COST, AI_UNLIMITED_TG_IDS,

@@ -125,6 +125,60 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
 
 ## Qilingan ishlar
 
+- [2026-08-16] **XARIDOR STATISTIKASI 50 TALIK OYNADAN CHIQDI — VA
+  `orders` JADVALIDA XARIDOR INDEKSI UMUMAN YO'Q EKAN.** Bu **bugungi
+  UCHINCHI commit** (birinchisi `6d8b56d`, ikkinchisi `8600362` — ikkalasi
+  ham banner). Telefon/xavfsizlik qismi `sprint-3.md` da (kimlik qoidasi
+  o'sha sprintniki), bu yerda **buyurtma domeniga tegishli** qismi.
+
+  **1) RAQAM YOLG'ON EDI VA BUNI HECH NARSA KO'RSATMASDI.** Profil
+  kartasidagi «buyurtma» va «rulon» soni — va ular ustiga qurilgan UNVON
+  (🌱 Mehmon → 🧵 Mijoz → 🤝 Hamkor → 🌷 Qadrdon, 2026-08-15 qarori) —
+  klientda `ORDERS` massividan hisoblanardi. Massiv esa `/api/orders` dan
+  keladi va u **`LIMIT 50`** bilan yuradi. Ya'ni raqam umrbod emas,
+  **oxirgi 50 buyurtma oynasi** edi: 51-buyurtmadan keyin eng eskisi
+  oynadan chiqib yangisi kirgani uchun rulon soni deyarli joyida qotardi va
+  **100 rulon sotib olgan xaridor «Qadrdon» bo'lolmasdi**. Xato yo'q,
+  konsol toza, raqam esa yolg'on — `NULL` reyting va `ALERT_CHAT_ID` bilan
+  bitta oila. ⚠️ Nuqson ayni paytda **eng sodiq xaridorda** chiqardi: kam
+  xarid qilganda hammasi to'g'ri ko'rinardi.
+
+  **2) YECHIM — BAZA AGREGATI** (`routes/seller.js` → yangi `buyerStats()`,
+  `/api/me` javobiga `stats`). `count(DISTINCT o.id)` — oddiy `count(*)`
+  EMAS: `order_items` bilan birikma har MAHSULOT uchun qator beradi, ya'ni
+  3 mahsulotli bitta buyurtma «3 ta buyurtma» bo'lib ko'rinardi (bu
+  pglite'da nazorat sinovi bilan tasdiqlandi — `count(*)` 7 chiqardi,
+  `DISTINCT` 5). `refunded` ATAYLAB sanalmaydi — klientdagi qoida bilan
+  AYNI: unvon xaridni mukofotlaydi, mojaroni emas.
+  ⚠️ **♡ soni ataylab serverga KO'CHIRILMADI** — u ro'yxatning O'ZIDAN
+  sanaladi, chunki xaridor OCHA OLADIGAN ro'yxat bilan mos bo'lishi shart:
+  bazada 12 ta ♡ bo'lib katalogda 9 tasi qolgan bo'lsa (e'lon
+  o'chgan/yashiringan), karta «12» deb turib ro'yxat 9 ta chiqarardi.
+  Buyurtma va rulonda bunday chegara yo'q — ular hech qayerda ro'yxat
+  bo'lib chizilmaydi.
+  ⚠️ **So'rov yiqilsa `/api/me` QULAMAYDI** — `stats` `null` qaytadi va
+  klient mahalliy hisobga tushadi (aniqroq bo'lmasa ham, o'ylab topilgan
+  raqam emas). Xato YUTILMAYDI: `console.error('buyerStats xatosi:', ...)`
+  — birinchi argument o'zgarmas kalit (alert guruhlash qoidasi).
+
+  **3) 🔴 `db/027_orders_buyer_index.sql` — YANGI.** Tekshirilganda
+  ma'lum bo'ldi: `orders` da `tg_user_id` bo'yicha indeks **HECH QACHON
+  bo'lmagan**, holbuki xaridor kanalidagi eng issiq ikki so'rov aynan shu
+  ustundan boshlanadi — `/api/orders` (**Mini App HAR OCHILGANDA**) va endi
+  `/api/me` agregati. Ya'ni har ochilishda butun jadval to'liq skanerlanardi.
+  Indeks ikki ustunli — `(tg_user_id, created_at DESC)` — shunda
+  `/api/orders` dagi `ORDER BY` ham shu indeksdan qanoatlanadi va alohida
+  sort bosqichi kerak bo'lmaydi. ⚠️ Mavjud `idx_orders_created` (001) bu
+  ishni BAJARMAYDI: u xaridorni ajratmaydi — «indeks bor» degan taxmin
+  tekshirilmagan da'vo edi. Bugungi hajmda sekinlik sezilmaydi va **aynan
+  shuning uchun ko'rinmay kelgan**: nuqson jadval o'sgani sari yomonlashadi
+  va hech qachon «buzildi» degan signal bermaydi.
+
+  **4) SQL HAQIQIY POSTGRES'DA BAJARIB KO'RILDI** (pglite — `test.js`
+  SQL'ni bajarmaydi, yashil test «SQL to'g'ri» degani emas): agregat
+  `orders=5, rolls=20` berdi, `EXPLAIN` yangi indeksni ishlatdi, backfill
+  esa bazadagi mavjud raqamni bosmadi.
+
 - [2026-08-16] **BANNER RASMI VA SHRIFTI TUZATILDI — VA ENG QIMMAT DARS TZ
   NING O'ZIDA CHIQDI.** Founder: «Zo'r faqat rasm sifati xira hamda
   shiriftlar kichkina shularni fix qil. Dizayn uchun tz bersang olib kelman
@@ -2755,6 +2809,27 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
 ---
 
 ## Qarorlar
+
+- [2026-08-16] Qaror: **xaridor statistikasi BAZADAN, umr bo'yi — klientdagi
+  ro'yxatdan EMAS.** Sabab: ro'yxat `LIMIT 50` bilan keladi, ya'ni undan
+  hisoblangan har qanday «jami» aslida OYNA. ⚠️ Lekin qoida hamma raqamga
+  tarqatilmadi: ♡ soni ataylab ro'yxatdan sanaladi, chunki u xaridor OCHA
+  OLADIGAN ro'yxat bilan mos bo'lishi shart — bazadagi 12 ta ♡ katalogda 9
+  ta bo'lib chizilsa, karta bilan ekran zid bo'lardi. Mezon shu:
+  **raqam ro'yxat bo'lib chizilsa — ro'yxatdan, chizilmasa — bazadan.**
+
+- [2026-08-16] Qaror: **statistika `/api/me` ga qo'shildi, yangi endpoint
+  OCHILMADI.** «Men kimman» javobi allaqachon o'sha qatorni o'qiydi va
+  Mini App uni har ochilishda so'raydi — alohida yo'l qo'shilsa ikkinchi
+  so'rov, ikkinchi rate limit va ikkinchi eskirish nuqtasi paydo bo'lardi
+  (CLAUDE.md — mavjud funksiyaning ustiga ikkinchi yo'l qo'shilmasin).
+
+- [2026-08-16] Qaror: **statistika yiqilsa `/api/me` yiqilmaydi** — `stats`
+  `null` qaytadi, klient mahalliy hisobga tushadi. Sabab: rol, telefon va
+  manzil kartaning KIMLIGI, statistika esa BEZAGI; bezak uchun kimlikni
+  yo'qotib bo'lmaydi (R2 va tasma bandlari bilan bitta naqsh). Xato
+  YUTILMAYDI — `console.error` alertga chiqadi, aks holda so'rov har safar
+  yiqilib turgani oylab bilinmasdi (`ALERT_CHAT_ID` darsi).
 
 - [2026-08-16] Qaror (founder): **rasm sifati SAYT o'lchoviga bog'lanadi —
   Mini App fayli qayta ishlatilmaydi.** Founder «rasm sifati xira» dedi va

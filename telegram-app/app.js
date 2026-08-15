@@ -725,7 +725,13 @@ const S = {
   notif: true,
   comment: '',
   tgUser: null,
+  // Telefon — HAQIQAT MANBAI BAZA (`/api/me` → `users.phone`, 2026-08-16).
+  // `localStorage` faqat birinchi chizishgacha yashaydi va server javob
+  // berishi bilan USTIDAN yoziladi — o'chirish ham shunga kiradi.
   tgPhone: null,
+  // Buyurtma va rulon soni SERVERDAN (`/api/me` → `stats`) — umr bo'yi.
+  // `null` bo'lsa mahalliy hisobga qaytiladi (pastda `buyerStats`).
+  stats: null,
   // Buyurtmalar SERVERDAN kelganini bildiradi. Stats/unvon shu bayroqsiz
   // (va ro'yxat bo'sh bo'lsa) CHIZILMAYDI: yuklanmagan 0 bilan haqiqiy 0
   // ajralmasa, karta jimgina yolg'on gapirardi.
@@ -3682,14 +3688,29 @@ function rankFor(rolls) {
 // topilgan raqam ko'rsatilmasin", NULL reyting oilasi). Yoqtirma soni
 // ro'yxatning O'ZIDAN — profil qatoridagi son bilan bitta manba.
 function buyerStats() {
+  // ♡ HAR DOIM ro'yxatning O'ZIDAN — serverdan EMAS, va bu ataylab: son
+  // xaridor OCHA OLADIGAN ro'yxat bilan mos bo'lishi shart. Bazada 12 ta ♡
+  // bo'lib katalogda 9 tasi qolgan bo'lsa (e'lon o'chgan/yashiringan),
+  // "12" deb turib ro'yxatda 9 ta chiqardi. Profil qatoridagi son ham
+  // AYNI filtrdan chiqadi — bitta manba.
+  const likes = PRODUCTS.filter(p => S.liked[p.id]).length;
+
+  // Buyurtma va rulon — SERVERDAN (`/api/me` → `stats`), umr bo'yi.
+  // ⚠️ Bu yerda `0` ni ham qaytaramiz va u YOLG'ON EMAS: server hisoblab
+  // "nol" dedi, ya'ni bu O'LCHANGAN nol (yuklanmagan nol emas — farqi shu).
+  if (S.stats) return { orders: S.stats.orders, likes, rolls: S.stats.rolls };
+
+  // ⚠️ ZAXIRA YO'L — server javob bermaganda. Bu hisob OXIRGI 50 buyurtma
+  // oynasidan chiqadi (`/api/orders` da `LIMIT 50`), ya'ni ko'p xarid
+  // qilgan odamda KAM ko'rsatadi. Shuning uchun u birinchi emas, ikkinchi:
+  // aniqrog'i bor bo'lsa o'sha ishlatiladi.
   if (!S.ordersSynced && ORDERS.length === 0) return null;
   // refunded ATAYLAB sanalmaydi: mato xaridorda qolsa ham pul qaytgan —
-  // unvon xaridni mukofotlaydi, mojaroni emas.
+  // unvon xaridni mukofotlaydi, mojaroni emas (server tomonda ham shunday).
   const DONE = ['delivered', 'completed'];
   const rolls = ORDERS
     .filter(o => DONE.includes(o.statusKey))
     .reduce((s, o) => s + (o.items || []).reduce((a, it) => a + (Number(it.qty) || 0), 0), 0);
-  const likes = PRODUCTS.filter(p => S.liked[p.id]).length;
   return { orders: ORDERS.length, likes, rolls };
 }
 
@@ -4523,23 +4544,32 @@ function shareContact() {
     pollForPhone();
   });
 }
+// Kontakt ulashilgandan keyin raqam DARROV kelmaydi: u Telegram → webhook →
+// `users.phone` yo'lidan o'tadi, ya'ni bir necha yuz millisekund kerak.
+// Shuning uchun so'raladi va kutiladi.
+//
+// ⚠️ SO'RALADIGAN JOY — `/api/me`, ya'ni "men kimman" degan YAGONA yo'l.
+// Ilgari bu yerda `/api/telegram-contact?uid=${uid}` turardi va u kimlikni
+// BRAUZERDAN olardi: uid so'rovda ketardi, server esa uni tekshirmasdan
+// o'sha odamning raqamini qaytarardi. Telegram ID sir emas, ya'ni istalgan
+// odam istalgan foydalanuvchining raqamini o'qiy olardi. Endpoint olib
+// tashlandi (`server.js` dagi izoh) — bu yerda esa `uid` UMUMAN yuborilmaydi:
+// kimlikni imzolangan `initData` dan server O'ZI aniqlaydi.
+//
+// Alohida so'rov yozilmadi: `loadMe()` ayni javobni allaqachon o'qiydi va
+// telefonni ham, statistikani ham joyiga qo'yadi (CLAUDE.md: mavjud
+// funksiyaning ustiga ikkinchi yo'l qo'shilmasin).
 function pollForPhone(attempt) {
   attempt = attempt || 0;
-  const uid = S.tgUser?.id;
-  if (!uid || attempt > 6) return;
-  fetch(`/api/telegram-contact?uid=${uid}`)
-    .then((r) => r.json())
-    .then((d) => {
-      if (d && d.phone) {
-        S.tgPhone = d.phone;
-        localStorage.setItem('lolamarket_tg_phone', d.phone);
-        showToast(STR[S.lang].contactDone);
-        render();
-      } else {
-        setTimeout(() => pollForPhone(attempt + 1), 1200);
-      }
-    })
-    .catch(() => {});
+  if (attempt > 6) return;
+  loadMe().then(() => {
+    if (S.tgPhone) {
+      showToast(STR[S.lang].contactDone);
+      render();
+    } else {
+      setTimeout(() => pollForPhone(attempt + 1), 1200);
+    }
+  }).catch(() => {});
 }
 
 // ============ SERVERDAN (BAZADAN) YUKLASH ============
@@ -5095,6 +5125,27 @@ async function loadMe() {
     const d = await sellerFetch('/api/me');
     S.role = d.role || 'buyer';
     S.seller = d.seller || null;
+
+    // ── Telefon: BAZA g'olib (2026-08-16) ──────────────────────────────
+    // `pickupPointId` bilan AYNI mulohaza va AYNI tuzoqdan qochish uchun:
+    // server "raqam yo'q" desa `localStorage` dagi eski qiymat O'CHIRILADI.
+    // Aks holda foydalanuvchi raqamini botda ALMASHTIRGANDA (webhook
+    // `users.phone` ni ustidan yozadi va "endi shu raqam turadi" deb javob
+    // beradi) Mini App eski raqamni cheksiz ko'rsatib turardi — jimgina
+    // yolg'on. Saytda bu nuqson yo'q edi, chunki u boshidan bazadan
+    // o'qiydi: bir yuzda ishlab ikkinchisida ishlamaydigan naqsh.
+    if (d.phone !== undefined) {
+      S.tgPhone = d.phone || null;
+      if (S.tgPhone) localStorage.setItem('lolamarket_tg_phone', S.tgPhone);
+      else localStorage.removeItem('lolamarket_tg_phone');
+    }
+
+    // ── Buyurtma va rulon soni: BAZA (umr bo'yi) ───────────────────────
+    // Server hisoblamasa `null` da qoladi va `buyerStats()` mahalliy
+    // hisobga qaytadi — o'ylab topilgan raqam chizilmaydi.
+    if (d.stats && typeof d.stats.orders === 'number' && typeof d.stats.rolls === 'number') {
+      S.stats = d.stats;
+    }
     // Doimiy olish nuqtasi BAZADAN — u boshqa qurilmada tanlangan bo'lishi
     // mumkin. ⚠️ `localStorage` faqat server JAVOB BERMAGANDA yashaydi:
     // server "tanlanmagan" desa, brauzerdagi eski qiymat bosib turmasin,
@@ -5104,9 +5155,16 @@ async function loadMe() {
       S.btsPoint = btsById(d.pickupPointId) ? d.pickupPointId : null;
       saveBtsPoint(S.btsPoint);
       if (S.btsPoint) S.btsRegion = btsById(S.btsPoint).region;
-      if (S.screen === 'profile') {
-        document.getElementById('screen-wrap').innerHTML = renderProfile();
-      }
+    }
+
+    // ⚠️ Qayta chizish SHU YERDA — `pickupPointId` blokining ICHIDA emas.
+    // Ilgari u o'sha blokda edi va bu tasodifan ishlardi: server har doim
+    // `pickupPointId` qaytargani uchun. Endi javobda telefon va statistika
+    // ham bor, ya'ni bitta maydonga bog'langan qayta chizish keyingi maydon
+    // qo'shilganda JIMGINA yetmay qolardi — karta eski raqam bilan turardi.
+    if (S.screen === 'profile') {
+      const w = document.getElementById('screen-wrap');
+      if (w) w.innerHTML = renderProfile();
     }
   } catch (e) { /* rol aniqlanmadi — xaridor bo'lib qolaveradi */ }
 }
@@ -5165,6 +5223,9 @@ if (window.Telegram?.WebApp) {
 }
 document.documentElement.classList.toggle('in-telegram', inTelegram);
 S.tgUser = loadTgUser();
+// ⚠️ Bu FAQAT birinchi chizish uchun (tarmoq javobigacha karta bo'sh
+// turmasin). Haqiqat manbai — baza: `loadMe()` javob kelishi bilan buni
+// ustidan yozadi, raqam o'chirilgan bo'lsa TOZALAYDI ham.
 S.tgPhone = localStorage.getItem('lolamarket_tg_phone') || null;
 render();
 

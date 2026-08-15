@@ -24,8 +24,7 @@ server/
 │   ├── telegram-api.js — bot API (bot tokeni FAQAT shu yerda)
 │   ├── http.js         — rate limit, cors, ok/fail, readBody
 │   ├── format.js       — escapeHtml, money, sha256 …
-│   ├── validate.js     — sxema validatori va ClientError
-│   └── contacts.js     — telefon raqamlari fayl bazasi
+│   └── validate.js     — sxema validatori va ClientError
 └── routes/         — domen mantig'i
     ├── catalog.js, orders.js, seller.js, admin.js,
     ├── disputes.js, web-auth.js, seller-application.js
@@ -68,7 +67,16 @@ npm run version:write
 #    yubordi (ular exclude ro'yxatida yo'q edi) — kunlik zaxira cron'i
 #    ishlamay qolishiga bir qadam qolgandi. Serverda yashaydigan, repoda
 #    bo'lmagan HAR BIR fayl shu ro'yxatda bo'lishi shart.
-rsync -av --delete \
+#
+#    ⚠️ `--no-owner --no-group` SHART (2026-08-16 da o'lchandi). `-a` ichida
+#    `-o -g` bor va root nomidan yurganda rsync LOKAL egalikni RAQAM bo'yicha
+#    serverga bosadi: macOS'dagi `uid 501` serverda mavjud emas, natijada
+#    `lib/`, `routes/`, `assets/` papkalari serverda `501:50` ga o'tib qolgan
+#    edi. Papkalar `755`, ya'ni serverda uid 501 li foydalanuvchi paydo bo'lsa
+#    u `routes/*.js` ni ALMASHTIRA olardi — servis esa o'sha kodni ishga
+#    tushirardi. Bu bayroqlarsiz quyidagi 4b qadami ham yetmaydi: u faqat
+#    `*.js`/`*.json`/`version.txt` FAYLLARIGA tegadi, PAPKALARGA emas.
+rsync -av --no-owner --no-group --delete \
   --exclude='.env' --exclude='node_modules' --exclude='contacts.json' \
   --exclude='.mcp-db-url' --exclude='pg-backup.sh' \
   --exclude='*.bak-*' \
@@ -205,15 +213,15 @@ Hozirgi holat (2026-07-30 dagi tozalashdan keyin):
 | `.mcp-db-url` | `root:root` | 600 | Baza ulanish satri; servisga kerak emas |
 | `pg-backup.sh` | `root:root` | 700 | Root cron ishga tushiradi — www-data yozsa root'gacha ko'tarilish yo'li ochiladi |
 | `*.js`, `*.json`, `version.txt` | `www-data` | 644 | Servis o'qishi shart |
-| `contacts.json` | `www-data` | 600 | Servis YOZADI |
+| `contacts.json` | `www-data` | 600 | ⚠️ ESKIRGAN (2026-08-16) — servis endi YOZMAYDI ham, O'QIMAYDI ham. Telefon `users.phone` da. Fayl faqat eski raqamlar uchun turibdi (`backfill-contacts.js`) va u ko'chirilgandan keyin o'chirilishi mumkin |
 
 **Qoida: `chown -R` hech qachon ishlatilmasin** — u sirlarni ham qamrab oladi.
 
 **Keyinroq qilinadigan qattiqlashtirish** (shoshilinch emas): kod fayllari ham
 `root:root 644` bo'lishi mumkin edi — shunda servis buzilsa ham o'z kodini
-qayta yoza olmaydi (persistence yo'li yopiladi). Faqat `contacts.json` va
-`version.txt` www-data uchun ochiq qolishi kerak. Hozirgi holatda kod
-www-data'ga tegishli, ya'ni bu himoya hali yo'q.
+qayta yoza olmaydi (persistence yo'li yopiladi). Faqat `version.txt` www-data
+uchun ochiq qolishi kerak (`contacts.json` 2026-08-16 dan yozilmaydi). Hozirgi
+holatda kod www-data'ga tegishli, ya'ni bu himoya hali yo'q.
 
 ## Env o'zgaruvchilari (`.env` serverda)
 

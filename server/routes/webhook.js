@@ -2,7 +2,6 @@ const { ADMIN_CHAT_ID, WEBHOOK_SECRET } = require('../config');
 const { pool } = require('../db');
 const { escapeHtml, money } = require('../lib/format');
 const { rateLimited, readBody } = require('../lib/http');
-const { saveContact } = require('../lib/contacts');
 const {
   callTelegram, STATUS_COMMANDS, sendOpenAppMessage,
 } = require('../lib/telegram-api');
@@ -119,9 +118,17 @@ async function handleTelegramWebhook(req, res) {
 
     if (msg.contact) {
       if (msg.contact.user_id && msg.from && msg.contact.user_id === msg.from.id) {
-        saveContact(msg.contact.user_id, msg.contact.phone_number);
-        /* Telefon `users` ga ham yoziladi — saytdagi profil va checkout formasi
-           uni shu yerdan oladi (contacts.json faqat Mini App uchun edi).
+        /* Telefonning YAGONA manbai — `users.phone`. Sayt ham, Mini App ham
+           (`/api/me`), checkout formasi ham shu ustundan o'qiydi.
+
+           ⚠️ Ilgari bu yerda YANA BIR yozuv turardi: `saveContact()` ayni
+           raqamni `contacts.json` fayliga ham yozardi va Mini App uni
+           `/api/telegram-contact?uid=` orqali o'qirdi. Ikkalasi 2026-08-16 da
+           olib tashlandi — endpoint kimlikni BRAUZERDAN olardi (istalgan
+           odam istalgan raqamni o'qiy olardi), fayl esa o'sha endpointdan
+           boshqa hech kim o'qimaydigan ikkinchi manba edi. Bitta fakt ikki
+           joyda yashasa, biri jimgina eskiradi (db/014 darsi).
+           Eski fayldagi raqamlar: `server/backfill-contacts.js`.
 
            ⚠️ USTIDAN YOZADI va bu ATAYLAB (2026-08-14, founder shikoyati:
            "webdagi profilimda boshqa raqam turibdi telegram orqali login

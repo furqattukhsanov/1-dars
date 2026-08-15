@@ -331,7 +331,6 @@ const CALLS = [
   ['POST',  '/api/seller/orders', '{}'],
   ['POST',  '/api/telegram-notify', '{}'],
   ['GET',   '/api/order-status?id=1'],
-  ['GET',   '/api/telegram-contact?uid=1'],
   ['POST',  '/api/auth/telegram', '{}'],
   ['POST',  '/api/auth/web/start', '{}'],
   ['GET',   '/api/auth/web/poll?code=1&verifier=1'],
@@ -1398,11 +1397,11 @@ function testAssetVersionsAreFresh() {
     // YUQORIGA suriladi: teng raqam qaytib kelgan foydalanuvchida keshdagi
     // BIR TOMONLAMA faylni qoldirardi — sevimlilar yoki chiqish tuzatishining
     // faqat bittasi bo'lgan `app.js`.
-    'panel.js': { v: 39, hash: '32bb43459ea0' },
+    'panel.js': { v: 40, hash: 'a666294c284b' },
     'admin/admin.css': { v: 18, hash: '15b0bc977b85' },
     'admin/admin.js': { v: 25, hash: '08fae1bb61dc' },
     'telegram-app/styles.css': { v: 36, hash: '570a2450c3a4' },
-    'telegram-app/app.js': { v: 96, hash: 'ed169ab670d3' },
+    'telegram-app/app.js': { v: 97, hash: '93fe0b47fd98' },
     'telegram-app/pwa.js': { v: 6, hash: '798ab85e1cde' },
   };
 
@@ -4588,6 +4587,148 @@ function testBtsListsStayInSync() {
   console.log(`✅ Test 22c: BTS ro'yxati va kontakt ikki yuzda bir xil — PASS (${sayt.size} nuqta, ${Object.keys(sSayt).length} kontakt maydoni)`);
 }
 
+// ============ TEST 36: PROFIL KARTASI — KIMLIK BRAUZERDAN EMAS (2026-08-16) ============
+// Mini App profil kartasi ikkita fakt ko'rsatadi: TELEFON va STATISTIKA
+// (buyurtma / rulon, ular ustiga UNVON quriladi). 2026-08-16 gacha ikkalasi
+// ham noto'g'ri manbadan kelardi va ikkala nuqson ham JIMGINA edi.
+//
+// 🔴 (1) TELEFON — `/api/telegram-contact?uid=<id>`. Endpoint kimlikni
+// SO'ROVDAN olardi: `uid` ni tekshirmasdan o'sha odamning raqamini
+// qaytarardi. Telegram ID esa sir emas (guruhdagi xabar, forward,
+// `@userinfobot`) — ya'ni istalgan odam istalgan foydalanuvchining telefon
+// raqamini o'qiy olardi. Bu CLAUDE.md ning eng tepasidagi qoidaning
+// to'g'ridan-to'g'ri buzilishi va u qoida YOZILGANDAN KEYIN ham shu holda
+// turgan edi — aynan `authUser()` naqshi bilan bitta oila.
+//
+// (2) Karta raqamni `localStorage` dan o'qirdi, ya'ni QURILMAGA bog'langan
+// edi. Sayt esa AYNI raqamni bazadan ko'rsatardi. Natijada: raqam botda
+// almashtirilganda (webhook `users.phone` ni ustidan yozadi va "endi shu
+// raqam turadi" deb JAVOB BERADI) Mini App eskisini cheksiz ko'rsatib
+// turardi. Va'da berilgan, bajarilmagan — jimgina yolg'on.
+//
+// (3) STATISTIKA klientda `ORDERS` massividan hisoblanardi, massiv esa
+// `/api/orders` dan `LIMIT 50` bilan keladi. Ya'ni "rulon" soni 50-buyurtmadan
+// keyin o'sishdan to'xtardi va 100 rulonlik xaridor "Qadrdon" bo'lolmasdi.
+//
+// ⚠️ Bu test MANBA KODINI o'qiydi (Test 32 bilan bitta mulohaza): u
+// "karta to'g'ri ko'rsatyapti" demaydi — u "noto'g'ri MANBA qaytib
+// kelmadi" deydi. Farqi muhim.
+function testProfileCardTrustsServer() {
+  const fs = require('fs');
+  const path = require('path');
+  const root = path.join(__dirname, '..');
+  const oq = (rel) => fs.readFileSync(path.join(root, rel), 'utf8');
+  // Izohlar OLIB TASHLANADI — aks holda yuqoridagi tushuntirishlarning O'ZI
+  // qorovulni qizil qilardi (Test 3f va 33 da allaqachon tishlagan tuzoq).
+  const sof = (rel) => kodSofi(oq(rel));
+
+  const mini = sof('telegram-app/app.js');
+  const srv = sof('server/server.js');
+
+  // ---- 1. Brauzerdan kelgan kimlik bo'yicha telefon berilmasin ----
+  // Marshrut ham, uni chaqiradigan klient ham tekshiriladi: bittasi qolsa
+  // ikkinchisi jimgina tiklanardi.
+  assert.ok(!/telegram-contact/.test(srv),
+    '`server/server.js` da `/api/telegram-contact` marshruti qaytib keldi.\n'
+    + '    Bu endpoint kimlikni BRAUZERDAN olardi — so\'rovdagi `uid` bo\'yicha\n'
+    + '    telefon raqamini hech qanday imzo/sessiya tekshirmasdan qaytarardi.\n'
+    + '    Telegram ID sir emas, ya\'ni bu ISTALGAN foydalanuvchining raqamini\n'
+    + '    o\'qish yo\'li edi.\n'
+    + '    Telefon `/api/me` da: kimlik `requestUser()` dan, manba `users.phone`.');
+  assert.ok(!/telegram-contact/.test(mini),
+    '`telegram-app/app.js` yana `/api/telegram-contact` ni chaqiryapti — '
+    + 'endpoint olib tashlangan, telefon `/api/me` javobidan olinadi.');
+
+  // Kengroq qorovul: Mini App HECH QAYERGA o'z Telegram ID sini so'rov
+  // parametri qilib yubormasin. Endpoint boshqa nom bilan qayta tug'ilsa
+  // yuqoridagi ikki tekshiruv uni ko'rmasdi — bu esa NAQSHNI ushlaydi.
+  const uidQator = mini.split('\n').findIndex((q) => /[?&]uid=/.test(q));
+  assert.strictEqual(uidQator, -1,
+    `\`telegram-app/app.js\` (${uidQator + 1}-qator) so'rovda \`uid=\` yuboryapti — `
+    + 'kimlik hech qachon brauzerdan olinmaydi (CLAUDE.md).\n'
+    + '    Server kimlikni imzolangan `initData` dan O\'ZI aniqlaydi.');
+
+  // ---- 2. Telefon `/api/me` javobida va u BAZADAN kelsin ----
+  const seller = sof('server/routes/seller.js');
+  const meTana = funksiyaTanasi(seller, 'handleMe');
+  assert.ok(meTana, '`routes/seller.js` da `handleMe` topilmadi');
+  assert.ok(/\bphone\s*:/.test(meTana),
+    '`/api/me` javobida `phone` yo\'q — Mini App profil kartasi raqamni '
+    + 'yana `localStorage` dan olishga majbur bo\'lardi (qurilmaga bog\'langan, '
+    + 'boshqa qurilmada esa "Raqam ulanmagan" deb turardi).');
+  assert.ok(/requestUser\s*\(/.test(meTana),
+    '`handleMe` kimlikni `requestUser()` dan olmayapti — `authUser()` da qolsa '
+    + 'sayt foydalanuvchisi jimgina 401 olardi (bu naqsh loyihada UCH marta '
+    + 'takrorlangan: bahs, AI rasmi, sotuvchi kabineti).');
+
+  // Manba — `users` jadvalidagi ustun. `currentSeller` uni O'QIMASA javobdagi
+  // `phone` har doim `null` bo'lardi va nuqson JIMGINA qaytardi: maydon bor,
+  // qiymati yo'q.
+  const auth = sof('server/lib/auth.js');
+  const csTana = funksiyaTanasi(auth, 'currentSeller');
+  assert.ok(csTana && /\bu\.phone\b/.test(csTana),
+    '`lib/auth.js` → `currentSeller` `users.phone` ni SELECT qilmayapti — '
+    + '`/api/me` dagi `phone` har doim `null` bo\'lib qolardi (maydon bor, '
+    + 'qiymat yo\'q — eng yomon tur: nuqson javobning SHAKLIDA ko\'rinmaydi).');
+
+  // ---- 3. Baza "raqam yo'q" desa, eski qiymat TOZALANSIN ----
+  // `pickup_point_id` da aynan shu tuzoq bo'lgan: `localStorage` faqat
+  // yozilardi, o'chirilmasdi va boshqa qurilmada bekor qilingan tanlov bu
+  // yerda tirilib qolardi.
+  const loadMeTana = funksiyaTanasi(mini, 'loadMe');
+  assert.ok(loadMeTana, '`telegram-app/app.js` da `loadMe` topilmadi');
+
+  // ⚠️ Bu band MUTATSIYA SINOVIDA topilgan teshik (M11): dastlab faqat
+  // `removeItem` tekshirilardi va `S.tgPhone = d.phone` qatorini O'CHIRIB
+  // yuborish qorovuldan JIMGINA o'tib ketdi. Ya'ni server raqamni to'g'ri
+  // qaytarib turib, klient uni QO'LLAMASDAN eski `localStorage` qiymatida
+  // qolardi — tuzatilayotgan nuqsonning AYNAN o'zi. Serverni to'g'rilash
+  // yetarli emas, javob QO'LLANISHI ham tekshirilsin.
+  assert.ok(/S\.tgPhone\s*=\s*d\.phone/.test(loadMeTana),
+    '`loadMe()` serverdan kelgan `d.phone` ni `S.tgPhone` ga qo\'ymayapti — '
+    + 'ya\'ni `/api/me` raqamni qaytarsa ham karta uni ko\'rsatmasdi va '
+    + '`localStorage` dagi eski qiymatda qolardi. Haqiqat manbai — BAZA.');
+
+  assert.ok(/removeItem\(\s*['"]lolamarket_tg_phone['"]\s*\)/.test(loadMeTana),
+    '`loadMe()` server "raqam yo\'q" deganda `localStorage` dagi telefonni '
+    + 'O\'CHIRMAYAPTI.\n'
+    + '    Ya\'ni eski raqam brauzerda tirik qolardi va karta uni ko\'rsatib '
+    + 'turaverardi — foydalanuvchi raqamini botda ALMASHTIRGANDAN keyin ham. '
+    + 'Bot esa unga "endi shu raqam turadi" deb javob bergan bo\'lardi.\n'
+    + '    Haqiqat manbai — BAZA (`pickup_point_id` bilan bitta qoida).');
+
+  // ---- 4. Statistika 50 talik oynadan EMAS ----
+  const statTana = funksiyaTanasi(seller, 'buyerStats');
+  assert.ok(statTana, '`routes/seller.js` da `buyerStats` topilmadi');
+  assert.ok(/count\(\s*DISTINCT\s+o\.id\s*\)/i.test(statTana),
+    '`buyerStats` (server) `count(DISTINCT o.id)` ishlatmayapti — `order_items` '
+    + 'bilan birikma har MAHSULOT uchun qator beradi, ya\'ni 3 mahsulotli bitta '
+    + 'buyurtma "3 ta buyurtma" bo\'lib ko\'rinardi.');
+  assert.ok(!/\bLIMIT\b/i.test(statTana),
+    '`buyerStats` (server) so\'rovida `LIMIT` bor — statistika UMR BO\'YI '
+    + 'bo\'lishi kerak. Aynan `LIMIT` sabab bu raqamlar ilgari yolg\'on edi: '
+    + 'klient ularni `/api/orders` ning 50 talik oynasidan hisoblardi va '
+    + '"rulon" soni 51-buyurtmadan keyin o\'sishdan to\'xtardi.');
+
+  // Klient serverning raqamini AFZAL ko'rsin. Mahalliy hisob qolishi mumkin
+  // (server javob bermasa kerak), lekin u IKKINCHI bo'lsin — aks holda
+  // aniqrog'i kelib turib eskisi chizilardi.
+  const miniStat = funksiyaTanasi(mini, 'buyerStats');
+  assert.ok(miniStat, '`telegram-app/app.js` da `buyerStats` topilmadi');
+  const serverO = miniStat.indexOf('S.stats');
+  const mahalliyO = miniStat.indexOf('ORDERS.length');
+  assert.ok(serverO !== -1,
+    '`buyerStats()` (Mini App) serverdan kelgan `S.stats` ni umuman '
+    + 'ishlatmayapti — karta yana 50 talik oynadan hisoblardi.');
+  assert.ok(mahalliyO === -1 || serverO < mahalliyO,
+    '`buyerStats()` (Mini App) mahalliy hisobni SERVERNIKIDAN OLDIN '
+    + 'qaytaryapti — server aniq raqamni bergan bo\'lsa ham 50 talik oyna '
+    + 'g\'olib chiqardi.');
+
+  console.log('✅ Test 36: Profil kartasi — telefon va statistika bazadan, '
+    + 'kimlik brauzerdan emas — PASS (4 band)');
+}
+
 async function runTests() {
   console.log('\n🧪 LolaMarket Server Testlari\n');
 
@@ -4653,6 +4794,7 @@ async function runTests() {
     testPhoneVerifiedSourceWins();
     testAdBannerWiring();
     testMiniAppHasNoLogout();
+    testProfileCardTrustsServer();
 
     testR2ConfigValidation();
     testR2KeyGuard();
