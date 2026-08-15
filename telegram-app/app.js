@@ -221,6 +221,10 @@ const STR = {
     items: "tur", panelU: "dona", mU: "m", product: "Mahsulot", noProducts: "Mahsulot topilmadi",
     tgVerified: "Telegram orqali tasdiqlangan", tgNotConnected: "Telegram orqali ochilganda profil avtomatik aniqlanadi", tgUserFallback: "Telegram foydalanuvchisi",
     shareContact: "Telefon raqamni ulashish", contactPending: "Raqam so'ralmoqda, biroz kuting…", contactDone: "Telefon raqami yangilandi",
+    statOrders: "Buyurtma", statLikes: "Yoqtirma", statRolls: "Rulon",
+    rankPopTitle: "Unvonlar", rankHere: "siz shu yerdasiz",
+    rankFoot: "Unvon yetkazilgan rulonlar bo'yicha oshadi",
+    rankToGo: "{unvon} unvonigacha yana {n} rulon", phoneNone: "Raqam ulanmagan",
     orderErr: "Buyurtma yuborilmadi", netErr: "Internet aloqasi yo'q — qayta urinib ko'ring",
     pricesStale: "Narxlar yangilanmadi — internetni tekshiring va qayta urinib ko'ring",
     authErr: "Buyurtma berish uchun ilovani Telegram orqali oching",
@@ -379,6 +383,10 @@ const STR = {
     items: "поз.", panelU: "шт", mU: "м", product: "Товар", noProducts: "Товары не найдены",
     tgVerified: "Подтверждено через Telegram", tgNotConnected: "При открытии через Telegram профиль определится автоматически", tgUserFallback: "Пользователь Telegram",
     shareContact: "Поделиться номером телефона", contactPending: "Запрашивается номер, подождите…", contactDone: "Номер телефона обновлён",
+    statOrders: "Заказы", statLikes: "Избранное", statRolls: "Рулоны",
+    rankPopTitle: "Звания", rankHere: "вы здесь",
+    rankFoot: "Звание растёт по доставленным рулонам",
+    rankToGo: "До звания «{unvon}» — ещё {n} рул.", phoneNone: "Номер не подключён",
     orderErr: "Заказ не отправлен", netErr: "Нет соединения — попробуйте ещё раз",
     pricesStale: "Цены не обновились — проверьте интернет и попробуйте снова",
     authErr: "Чтобы оформить заказ, откройте приложение через Telegram",
@@ -718,6 +726,10 @@ const S = {
   comment: '',
   tgUser: null,
   tgPhone: null,
+  // Buyurtmalar SERVERDAN kelganini bildiradi. Stats/unvon shu bayroqsiz
+  // (va ro'yxat bo'sh bo'lsa) CHIZILMAYDI: yuklanmagan 0 bilan haqiqiy 0
+  // ajralmasa, karta jimgina yolg'on gapirardi.
+  ordersSynced: false,
   trackOpen: {},
 };
 
@@ -3504,21 +3516,181 @@ function renderTgCard() {
   // amalda u BOR edi. Tekshirilmagan da'vo yana ish yo'nalishini
   // belgilab qo'ydi.
   const suratSrc = _avaUrl;
+  // Avatar 66px DOIRA, oq halqa bilan — banner ustiga chiqib turadi
+  // (founder referensi 2026-08-15). Zaxira bosh harf o'sha o'lchamda,
+  // `id="tg-ava"` shartnomasi mountAvatar uchun SAQLANADI.
+  const AVA_BOX = 'width:66px;height:66px;border-radius:50%;box-shadow:0 0 0 3.5px #fff,0 4px 12px -4px rgba(23,26,48,.35)';
   const avatar = suratSrc
-    ? `<img src="${esc(suratSrc)}" style="width:48px;height:48px;border-radius:14px;object-fit:cover;flex:none" alt="">`
-    : `<span id="tg-ava" style="flex:none;width:48px;height:48px;border-radius:14px;background:linear-gradient(150deg,#37AEE2,#1E96C8);color:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:800;font-size:18px">${esc(fullName[0].toUpperCase())}</span>`;
+    ? `<img src="${esc(suratSrc)}" style="${AVA_BOX};object-fit:cover;display:block" alt="">`
+    : `<span id="tg-ava" style="${AVA_BOX};background:linear-gradient(150deg,#37AEE2,#1E96C8);color:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:800;font-size:24px">${esc(fullName[0].toUpperCase())}</span>`;
+
+  const st = buyerStats();
+  const rank = st ? rankFor(st.rolls) : null;
+  const next = rank ? RANKS[RANKS.indexOf(rank) + 1] || null : null;
+
+  // Telefon: serverdan kelgani ko'rsatiladi; YO'Q bo'lsa soxta raqam EMAS —
+  // "Raqam ulanmagan" + ulashish tugmasi (founder qarori 2026-08-15).
+  const phoneRow = S.tgPhone
+    ? `<div style="display:flex;align-items:center;gap:5px;margin-top:3px">
+        ${ICO_TEL}
+        <span style="font-family:var(--font-mono);font-size:11.5px;letter-spacing:-.01em;word-spacing:-4px;color:var(--text-muted)">${esc(fmtPhone(S.tgPhone))}</span>
+      </div>`
+    : (inTelegram ? `<div style="display:flex;align-items:center;gap:5px;margin-top:3px">
+        ${ICO_TEL}
+        <span style="font-size:11.5px;color:var(--text-muted)">${T.phoneNone}</span>
+        <button data-action="shareContact" style="font-size:11.5px;font-weight:600;color:var(--teal-600);background:none;border:none;cursor:pointer;padding:0">${T.shareContact}</button>
+      </div>` : '');
+
+  // Stats — belgi + raqam yonma-yon, ajratish chiziq bilan emas BO'SH JOY
+  // bilan (founder: "zamonaviy minimalistik"). `st` null bo'lsa qator ham,
+  // unvon chipi ham YO'Q — yuklanmagan 0 haqiqiy 0 dek ko'rinmasin.
+  const statCell = (ico, val, label) => `
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px">
+      <div style="display:flex;align-items:center;gap:6px">${ico}
+        <span style="font-family:var(--font-mono);font-size:17px;font-weight:600;color:var(--text-strong)">${val}</span>
+      </div>
+      <span style="font-size:10.5px;color:var(--text-muted)">${label}</span>
+    </div>`;
+  const statsRow = st ? `
+    <div style="display:flex;margin-top:15px;padding:0 6px${next ? '' : ';padding-bottom:14px'}">
+      ${statCell(ICO_STAT.bag, st.orders, T.statOrders)}
+      ${statCell(ICO_STAT.heart, st.likes, T.statLikes)}
+      ${statCell(ICO_STAT.roll, st.rolls, T.statRolls)}
+    </div>` : '';
+
+  // Keyingi unvongacha progress. Qadrdonda chizilmaydi — soxta 100% emas,
+  // intiladigan narsa qolmagani ko'rinadi.
+  const progress = (st && next) ? `
+    <div style="padding:13px 16px 14px">
+      <div style="height:4px;border-radius:999px;background:var(--ink-100);overflow:hidden">
+        <div style="width:${Math.min(100, Math.round(st.rolls / next.min * 100))}%;height:100%;border-radius:999px;background:linear-gradient(90deg,var(--saffron-700),var(--pom-500))"></div>
+      </div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:6px">${next.emoji} ${T.rankToGo
+        .replace('{unvon}', `<b style="color:${next.color}">${next.name[S.lang]}</b>`)
+        .replace('{n}', `<b style="font-family:var(--font-mono)">${next.min - st.rolls}</b>`)}</div>
+    </div>` : '';
+
+  // ⚠️ Ildiz `flex:none` — profil tanasi flex ustun, usiz karta QOLGAN
+  // JOYGA qarab siqiladi (uch marta tishlagan jim nuqson). Popover kartaning
+  // TASHQARISIDA turadi: kartada `overflow:hidden` bor (banner burchaklari).
   return `
-  <div style="display:flex;align-items:center;gap:12px;padding:14px;border-radius:var(--radius-lg);background:var(--glass-fill-strong);backdrop-filter:var(--blur-md);-webkit-backdrop-filter:var(--blur-md);border:1px solid var(--glass-border);box-shadow:var(--glass-shadow)">
-    ${avatar}
-    <div style="flex:1;min-width:0">
-      <div style="font-family:var(--font-display);font-size:15px;font-weight:700;color:var(--text-strong);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(fullName)}</div>
-      <div style="font-size:12px;color:var(--text-muted);margin-top:1px">${u.username ? '@' + esc(u.username) : ''}</div>
+  <div style="flex:none;position:relative">
+    <div style="border-radius:var(--radius-lg);background:var(--glass-fill-strong);backdrop-filter:var(--blur-md);-webkit-backdrop-filter:var(--blur-md);border:1px solid var(--glass-border);box-shadow:var(--glass-shadow);overflow:hidden">
+      <!-- Banner: anor mesh (faqat qizil oila — founder: "oq rangini yo'qot").
+           Ranglar tokendan, alpha color-mix bilan (Test 26). -->
+      <div style="height:84px;background:
+        radial-gradient(80% 160% at 68% -25%, color-mix(in srgb, var(--pom-400) 60%, transparent) 0%, transparent 62%),
+        radial-gradient(130% 220% at 112% 150%, color-mix(in srgb, var(--pom-900) 72%, transparent) 0%, transparent 62%),
+        linear-gradient(105deg, var(--pom-500), var(--pom-700) 58%, var(--pom-800))"></div>
+      <div style="padding:0 15px;margin-top:-32px;display:flex;align-items:flex-end;justify-content:space-between">
+        <span style="position:relative;flex:none">
+          ${avatar}
+          <span style="position:absolute;right:-3px;bottom:1px;width:22px;height:22px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(23,26,48,.25)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="#37AEE2"><circle cx="12" cy="12" r="11"/><path d="M7.5 12.4l3 3 6-6.4" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+        </span>
+        ${rank ? `<button id="rank-chip" data-action="toggleRankPop" aria-haspopup="true" class="rank-chip chip-glass" style="align-self:flex-start;margin-top:19px;color:${rank.color}">${rank.emoji} ${rank.name[S.lang]}</button>` : ''}
+      </div>
+      <div style="padding:9px 16px ${statsRow ? '0' : '15px'}">
+        <div style="font-family:var(--font-display);font-size:17.5px;font-weight:700;color:var(--text-strong);letter-spacing:-.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(fullName)}</div>
+        ${phoneRow}
+      </div>
+      ${statsRow}
+      ${progress}
     </div>
-    <span style="flex:none;display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 10px;border-radius:999px;background:rgba(55,174,226,.13);color:#1E96C8;font-size:11px;font-weight:600;white-space:nowrap">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M21 4L2.5 11.5l6 2 2 6.5L15 15l5-11z"/></svg>${T.tgVerified}
-    </span>
+    ${rank ? rankPopHtml(rank, st) : ''}
   </div>`;
 }
+
+// Telefon belgisi ikki joyda (raqam bor/yo'q) — bitta manba.
+const ICO_TEL = '<svg width="11.5" height="11.5" viewBox="0 0 24 24" fill="none" style="flex:none;color:var(--text-subtle)"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3-8.6A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8.1 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>';
+
+// Stats belgilari. ⚠️ `fill="var(...)"` EMAS — SVG prezentatsiya atributi
+// var() ni tushunmasligi mumkin (CLAUDE.md, jimgina qora). `currentColor` +
+// rang style'da.
+const ICO_STAT = {
+  bag:   '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="flex:none;color:var(--pom-700)"><path d="M6 7V6a6 6 0 1 1 12 0v1h3.2L20 21.5H4L2.8 7H6zm2 0h8V6a4 4 0 1 0-8 0v1z"/></svg>',
+  heart: '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="flex:none;color:var(--pom-700)"><path d="M12 20.8s-6.9-4.3-9-8a5.2 5.2 0 0 1-.5-3.7A4.8 4.8 0 0 1 6.3 5.5c1.9 0 3.4 1 4.3 2.3.4.6 1 .6 1.4 0 .9-1.3 2.4-2.3 4.3-2.3a4.8 4.8 0 0 1 3.8 3.6 5.2 5.2 0 0 1-.5 3.7c-2.1 3.7-9 8-9 8z"/></svg>',
+  roll:  '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="flex:none;color:var(--pom-700)"><circle cx="8" cy="12" r="5.5"/><path d="M8 6.5h13v11H8z"/><circle cx="8" cy="12" r="1.7" fill="#fff"/></svg>',
+};
+
+// ============ XARIDOR UNVONI (2026-08-15, founder: gemifikatsiya) ============
+// Ostonalar YETKAZILGAN rulonlar bo'yicha. Eng yuqori unvon belgisi 🌷 —
+// lola, brendning o'zi.
+const RANKS = [
+  { min: 0,   emoji: '🌱', name: { uz: 'Mehmon',  ru: 'Гость' },        color: 'var(--ink-700)' },
+  { min: 10,  emoji: '🧵', name: { uz: 'Mijoz',   ru: 'Клиент' },       color: 'var(--teal-700)' },
+  { min: 50,  emoji: '🤝', name: { uz: 'Hamkor',  ru: 'Партнёр' },      color: 'var(--saffron-700)' },
+  { min: 100, emoji: '🌷', name: { uz: 'Qadrdon', ru: 'Свой человек' }, color: 'var(--pom-700)' },
+];
+function rankFor(rolls) {
+  let r = RANKS[0];
+  for (const x of RANKS) if (rolls >= x.min) r = x;
+  return r;
+}
+
+// Stats faqat HAQIQIY manbadan. Buyurtmalar serverdan sinxronlanmagan VA
+// ro'yxat bo'sh — `null`: karta stats qatorini umuman chizmaydi ("o'ylab
+// topilgan raqam ko'rsatilmasin", NULL reyting oilasi). Yoqtirma soni
+// ro'yxatning O'ZIDAN — profil qatoridagi son bilan bitta manba.
+function buyerStats() {
+  if (!S.ordersSynced && ORDERS.length === 0) return null;
+  // refunded ATAYLAB sanalmaydi: mato xaridorda qolsa ham pul qaytgan —
+  // unvon xaridni mukofotlaydi, mojaroni emas.
+  const DONE = ['delivered', 'completed'];
+  const rolls = ORDERS
+    .filter(o => DONE.includes(o.statusKey))
+    .reduce((s, o) => s + (o.items || []).reduce((a, it) => a + (Number(it.qty) || 0), 0), 0);
+  const likes = PRODUCTS.filter(p => S.liked[p.id]).length;
+  return { orders: ORDERS.length, likes, rolls };
+}
+
+// Ko'rsatish uchun formatlash. Faqat 998XXXXXXXXX (12 raqam) chiroylanadi —
+// boshqa shakl BUZILMASDAN xom qaytadi (SUPPORT darsi: bir shakldan
+// ikkinchisini "yasash" jimgina buzilishi mumkin, shuning uchun zaxira xom).
+function fmtPhone(raw) {
+  const d = String(raw || '').replace(/\D/g, '');
+  if (/^998\d{9}$/.test(d))
+    return `+998 ${d.slice(3, 5)} ${d.slice(5, 8)} ${d.slice(8, 10)} ${d.slice(10, 12)}`;
+  return String(raw || '');
+}
+
+// Unvonlar popoveri — chip bosilganda. O'tilganda teal ✓, hozirgisida
+// "siz shu yerdasiz", kelajakdagisi xira.
+function rankPopHtml(cur, st) {
+  const T = STR[S.lang];
+  const ok = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" style="flex:none;color:var(--teal-600)"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  return `
+  <div id="rank-pop" role="menu">
+    <div class="pop-title">🏅 ${T.rankPopTitle}</div>
+    ${RANKS.map(r => {
+      const isCur = r === cur;
+      const passed = !isCur && st.rolls >= r.min;
+      return `
+      <div class="pop-row${isCur ? ' cur' : ''}${(!isCur && !passed) ? ' next' : ''}">
+        <span class="rank-chip chip-glass" style="height:22px;padding:0 9px;font-size:11px;color:${r.color}">${r.emoji} ${r.name[S.lang]}</span>
+        <span class="nm" style="color:${isCur ? r.color : 'var(--text-muted)'};font-size:10.5px">${isCur ? T.rankHere : ''}</span>
+        <span class="thr">${r.min}+</span>
+        ${passed ? ok : ''}
+      </div>`;
+    }).join('')}
+    <div class="pop-foot">${T.rankFoot}</div>
+  </div>`;
+}
+
+function toggleRankPop() {
+  const p = document.getElementById('rank-pop');
+  if (p) p.classList.toggle('open');
+}
+// Tashqariga bosilganda yopiladi. Dispatcher bu listenerdan OLDIN ro'yxatdan
+// o'tgan, ya'ni chip bosilganda avval toggle ishlaydi, keyin bu yerda
+// `closest` chipni ko'rib teginmaydi — ochish/yopish urishmaydi.
+document.addEventListener('click', (e) => {
+  const p = document.getElementById('rank-pop');
+  if (p && p.classList.contains('open') && !e.target.closest('#rank-chip,#rank-pop')) {
+    p.classList.remove('open');
+  }
+});
 
 // ============ PROFIL QATORI ============
 // Profildagi HAMMA bo'lim SHU funksiyadan chiqadi (founder 2026-08-13:
@@ -3710,27 +3882,10 @@ function renderProfile() {
   <div style="padding:16px 16px 28px;display:flex;flex-direction:column;gap:10px">
     ${renderTgCard()}
 
-    <div style="flex:none;display:flex;flex-direction:column;border-radius:var(--radius-lg);background:var(--glass-fill-strong);backdrop-filter:var(--blur-md);-webkit-backdrop-filter:var(--blur-md);border:1px solid var(--glass-border);box-shadow:var(--glass-shadow);overflow:hidden">
-      <div style="display:flex;align-items:center;gap:14px;padding:16px">
-        <span style="flex:none;width:54px;height:54px;border-radius:17px;background:linear-gradient(150deg,var(--pom-700),var(--pom-800));color:#ffe9db;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:800;font-size:21px">${COMPANY.initials}</span>
-        <div style="flex:1;min-width:0">
-          <div style="font-family:var(--font-display);font-size:17px;font-weight:700;color:var(--text-strong);letter-spacing:-.01em">${COMPANY.name[S.lang]}</div>
-          <div style="font-size:12.5px;color:var(--text-muted);margin-top:2px">${COMPANY.role[S.lang]} · ${COMPANY.since[S.lang]}</div>
-        </div>
-        <button style="flex:none;width:36px;height:36px;border-radius:10px;border:1px solid var(--glass-border);background:var(--glass-fill);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text-body)">
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M4 20h4L18 10l-4-4L4 16v4z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M14 6l4 4" stroke="currentColor" stroke-width="2"/></svg>
-        </button>
-      </div>
-      <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-top:1px solid var(--border-hair)">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style="flex:none;color:var(--text-subtle)"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3-8.6A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8.1 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
-        <span style="flex:1;min-width:0;font-size:13.5px;color:var(--text-body)">${S.tgPhone || COMPANY.phone}</span>
-        ${(!S.tgPhone && inTelegram) ? `<button data-action="shareContact" style="flex:none;font-size:12px;font-weight:600;color:var(--teal-600);background:none;border:none;cursor:pointer">${T.shareContact}</button>` : ''}
-      </div>
-      <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-top:1px solid var(--border-hair)">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style="flex:none;color:var(--text-subtle)"><rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" stroke-width="2"/><path d="M4 7l8 6 8-6" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
-        <span style="flex:1;min-width:0;font-size:13.5px;color:var(--text-body)">${COMPANY.email}</span>
-      </div>
-    </div>
+    <!-- ⚠️ Bu yerda ilgari IKKINCHI karta bor edi: "Muazzamxon Tekstil MChJ",
+         email, "2024 yildan beri" va o'lik ✏️ tugma — HAMMASI kodga qo'lda
+         yozilgan soxta ma'lumot edi (founder 2026-08-15: "umuman kerak
+         emas"). Telefon endi yuqoridagi kartada, EGASINING o'z raqami. -->
 
     ${profileRow({
       ico: ICO.heart,
@@ -4419,7 +4574,7 @@ async function loadOrdersFromServer() {
     const r = await fetch('/api/orders', { headers: { 'X-Telegram-Init-Data': initData } });
     if (!r.ok) return;
     const data = apiData(await r.json());
-    if (Array.isArray(data)) { ORDERS = data; saveOrders(); }
+    if (Array.isArray(data)) { ORDERS = data; saveOrders(); S.ordersSynced = true; }
   } catch (e) {}
 }
 

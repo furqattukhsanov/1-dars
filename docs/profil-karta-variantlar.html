@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="uz" class="in-telegram">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Profil kartasi — referens asosida</title>
+<link rel="stylesheet" href="../telegram-app/styles.css">
+<style>
+  /* Bu fayl — DIZAYN ISH MATERIALI, production'ga chiqmaydi (docs/ deploy
+     ro'yxatida yo'q). Founder referensi (2026-08-15): banner + ustiga chiqqan
+     dumaloq avatar + stats qatori (Olivia Rhye namunasi). */
+  html, body { height: auto; overflow: auto; }
+  body {
+    background:
+      radial-gradient(120% 70% at 12% 0%, rgba(255,241,232,.3) 0%, transparent 46%),
+      radial-gradient(120% 60% at 100% 8%, rgba(248,225,214,.2) 0%, transparent 44%),
+      linear-gradient(160deg, #FFFDFB, #FDF7F4);
+    padding: 28px 18px 60px;
+  }
+  .wrap { max-width: 1100px; margin: 0 auto; }
+  h1 { font-family: var(--font-display); font-size: 22px; color: var(--text-strong); margin-bottom: 4px; }
+  .lede { font-size: 13px; color: var(--text-muted); margin-bottom: 26px; max-width: 720px; line-height: 1.5; }
+  .grid { display: flex; flex-wrap: wrap; gap: 30px; align-items: flex-start; }
+  .col { width: 330px; }
+  .side { width: 400px; display: flex; flex-direction: column; gap: 16px; }
+  .col h2, .side h2 { font-family: var(--font-display); font-size: 15px; color: var(--text-strong); margin-bottom: 8px; }
+  .phone {
+    padding: 14px;
+    border-radius: 26px;
+    background:
+      radial-gradient(120% 70% at 12% 0%, rgba(255,241,232,.5) 0%, transparent 46%),
+      linear-gradient(160deg, #FFFDFB, #FDF7F4);
+    border: 1px solid rgba(23,26,48,.09);
+    box-shadow: 0 18px 44px -22px rgba(23,26,48,.4);
+  }
+  .scr-head { padding: 4px 4px 14px; }
+  .scr-head b { font-family: var(--font-display); font-size: 19px; font-weight: 800; color: var(--text-strong); letter-spacing:-.02em; }
+  .rows { display:flex; flex-direction:column; gap:10px; margin-top:10px; opacity:.45; }
+  .ghost { height: 56px; border-radius: var(--radius-md); background: rgba(255,255,255,.75); border:1px solid rgba(23,26,48,.07); box-shadow: 0 5px 16px -12px rgba(81,1,0,.3); }
+  .note { font-size: 11.5px; color: var(--text-muted); margin-top: 10px; line-height:1.45; }
+  .note b { color: var(--pom-700); }
+  .panel {
+    padding: 16px;
+    border-radius: var(--radius-lg);
+    background: var(--glass-fill-strong);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow);
+  }
+  .rank-row { display:flex; align-items:center; gap:12px; padding:9px 0; }
+  .rank-row + .rank-row { border-top: 1px solid var(--border-hair); }
+  .rank-chip {
+    flex:none; display:inline-flex; align-items:center; gap:6px;
+    height:26px; padding:0 11px; border-radius:999px;
+    font-size:12px; font-weight:700; font-family: var(--font-sans);
+  }
+  /* Unvon chipi — shisha (glassmorphism) + tovlanish. Fon rangi UNVONGA
+     qarab emas — shisha har doim oq, rang faqat matn va emojida. */
+  .chip-glass {
+    position: relative; overflow: hidden; cursor: pointer; border: none;
+    background: rgba(255,255,255,.5);
+    backdrop-filter: blur(12px) saturate(170%);
+    -webkit-backdrop-filter: blur(12px) saturate(170%);
+    box-shadow: 0 2px 10px -4px rgba(23,26,48,.3),
+                inset 0 1px 0 rgba(255,255,255,.9),
+                inset 0 0 0 1px rgba(255,255,255,.45);
+  }
+  .chip-glass::after {
+    content:''; position:absolute; top:-45%; bottom:-45%; width:34%; left:-65%;
+    background: linear-gradient(105deg, transparent, rgba(255,255,255,.9), transparent);
+    transform: skewX(-20deg);
+    animation: chip-sheen 3.4s ease-in-out infinite;
+    pointer-events: none;
+  }
+  @keyframes chip-sheen { 0%, 55% { left:-65%; } 88%, 100% { left:135%; } }
+  @media (prefers-reduced-motion: reduce) { .chip-glass::after { animation: none; } }
+
+  /* Unvonlar popoveri — chip bosilganda */
+  #rank-pop {
+    position: absolute; right: 16px; width: 246px; z-index: 5;
+    padding: 12px 13px 11px;
+    border-radius: var(--radius-md);
+    background: rgba(255,255,255,.82);
+    backdrop-filter: blur(24px) saturate(170%);
+    -webkit-backdrop-filter: blur(24px) saturate(170%);
+    border: 1px solid rgba(255,255,255,.75);
+    box-shadow: 0 18px 44px -16px rgba(23,26,48,.4), inset 0 1px 0 rgba(255,255,255,.9);
+    opacity: 0; transform: translateY(-6px) scale(.96); transform-origin: top right;
+    pointer-events: none;
+    transition: opacity .18s ease-out, transform .18s ease-out;
+  }
+  #rank-pop.open { opacity: 1; transform: none; pointer-events: auto; }
+  .pop-title { font-family: var(--font-display); font-size: 12.5px; font-weight: 800; color: var(--text-strong); letter-spacing:-.01em; margin-bottom: 8px; }
+  .pop-row { display:flex; align-items:center; gap:8px; padding:7px 8px; border-radius:10px; }
+  .pop-row .nm { flex:1; min-width:0; font-size:12.5px; font-weight:700; }
+  .pop-row .thr { flex:none; font-family:var(--font-mono); font-size:11.5px; color:var(--text-muted); }
+  .pop-row .ok { flex:none; color: var(--teal-600); }
+  .pop-row.cur { background: var(--saffron-50); box-shadow: inset 0 0 0 1px rgba(137,84,12,.14); }
+  .pop-row.next .nm, .pop-row.next .thr { opacity:.62; }
+  .pop-foot { font-size:10.5px; color:var(--text-muted); margin-top:7px; padding:0 8px; }
+  .rank-info { flex:1; min-width:0; }
+  .rank-info b { display:block; font-size:12.5px; color: var(--text-strong); }
+  .rank-info span { display:block; font-size:11.5px; color: var(--text-muted); margin-top:1px; }
+  .rank-thr { flex:none; font-family: var(--font-mono); font-size:12.5px; font-weight:600; color: var(--text-muted); }
+  ul.rules { margin: 0; padding-left: 16px; }
+  ul.rules li { font-size: 12px; color: var(--text-muted); line-height: 1.55; margin-bottom: 7px; }
+  ul.rules b { color: var(--text-strong); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Mini App — profil kartasi (referens asosida)</h1>
+  <p class="lede">
+    Banner + ustiga chiqib turgan dumaloq <b>Telegram avatari</b>, galochka
+    rasm yonida, ism tagida <b>telefon</b>, statda <b>yoqtirmalar</b>,
+    va unvon tizimi: rulon soniga qarab <b>Mehmon → Mijoz → Hamkor → Qadrdon</b>.
+  </p>
+
+  <div class="grid">
+
+    <!-- ═══ ASOSIY KARTA ═══ -->
+    <div class="col">
+      <h2>Yangi karta</h2>
+      <div class="phone" style="position:relative">
+
+        <!-- Unvonlar popoveri (chip bosilganda; karta overflow:hidden bo'lgani
+             uchun kartaning TASHQARISIDA, .phone ga nisbatan turadi) -->
+        <div id="rank-pop" role="menu">
+          <div class="pop-title">🏅 Unvonlar</div>
+          <div class="pop-row">
+            <span class="rank-chip chip-glass" style="height:22px;padding:0 9px;font-size:11px;color:var(--ink-700)">🌱 Mehmon</span>
+            <span class="nm" style="color:var(--text-muted)"></span>
+            <span class="thr">0+</span>
+            <svg class="ok" width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="pop-row">
+            <span class="rank-chip chip-glass" style="height:22px;padding:0 9px;font-size:11px;color:var(--teal-700)">🧵 Mijoz</span>
+            <span class="nm" style="color:var(--text-muted)"></span>
+            <span class="thr">10+</span>
+            <svg class="ok" width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="pop-row cur">
+            <span class="rank-chip chip-glass" style="height:22px;padding:0 9px;font-size:11px;color:var(--saffron-700)">🤝 Hamkor</span>
+            <span class="nm" style="color:var(--saffron-700);font-size:10.5px">siz shu yerdasiz</span>
+            <span class="thr">50+</span>
+          </div>
+          <div class="pop-row next">
+            <span class="rank-chip chip-glass" style="height:22px;padding:0 9px;font-size:11px;color:var(--pom-700)">🌷 Qadrdon</span>
+            <span class="nm"></span>
+            <span class="thr">100+</span>
+          </div>
+          <div class="pop-foot">Unvon yetkazilgan rulonlar bo'yicha oshadi</div>
+        </div>
+
+        <div class="scr-head"><b>Profil</b></div>
+
+        <div style="border-radius:var(--radius-lg);background:var(--glass-fill-strong);backdrop-filter:var(--blur-md);-webkit-backdrop-filter:var(--blur-md);border:1px solid var(--glass-border);box-shadow:var(--glass-shadow);overflow:hidden">
+
+          <!-- Banner: anor "mesh" gradient — referensdagi yashil banner kabi
+               bir nechta yumshoq rang dog'i (mesh) chuqurlik beradi.
+               Ranglar TOKENDAN, alpha esa color-mix bilan (Test 26 uchun
+               qo'lda hex yozilmaydi). -->
+          <!-- OQ/OCHIQ DOG' YO'Q (founder 2026-08-15: "oq rangini yo'qot") —
+               faqat qizil oila: yorqin qizil nur + chuqur to'q burchak. -->
+          <div style="height:84px;background:
+            radial-gradient(80% 160% at 68% -25%, color-mix(in srgb, var(--pom-400) 60%, transparent) 0%, transparent 62%),
+            radial-gradient(130% 220% at 112% 150%, color-mix(in srgb, var(--pom-900) 72%, transparent) 0%, transparent 62%),
+            linear-gradient(105deg, var(--pom-500), var(--pom-700) 58%, var(--pom-800))"></div>
+
+          <!-- Avatar (bannerga chiqib turadi) + unvon chipi -->
+          <div style="padding:0 15px;margin-top:-32px;display:flex;align-items:flex-end;justify-content:space-between">
+            <span style="position:relative;flex:none">
+              <img src="../Photo/founder-square.jpg" style="width:66px;height:66px;border-radius:50%;object-fit:cover;display:block;box-shadow:0 0 0 3.5px #fff, 0 4px 12px -4px rgba(23,26,48,.35)" alt="">
+              <!-- Galochka — rasm yonida (founder talabi) -->
+              <span style="position:absolute;right:-3px;bottom:1px;width:22px;height:22px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(23,26,48,.25)">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="#37AEE2"><circle cx="12" cy="12" r="11"/><path d="M7.5 12.4l3 3 6-6.4" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </span>
+            </span>
+            <!-- Unvon chipi — banner chetida, yarmi anor gradient USTIDA
+                 (shisha ostidan banner ko'rinib turadi), markazi avatar
+                 markazi bilan bitta chiziqda. Bosilganda popover ochiladi. -->
+            <button id="rank-chip" class="rank-chip chip-glass" aria-haspopup="true" aria-expanded="false" style="align-self:flex-start;margin-top:19px;color:var(--saffron-700)">🤝 Hamkor</button>
+          </div>
+
+          <!-- Ism + telefon -->
+          <div style="padding:9px 16px 0">
+            <div style="font-family:var(--font-display);font-size:17.5px;font-weight:700;color:var(--text-strong);letter-spacing:-.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Furqat Tukhsanov</div>
+            <div style="display:flex;align-items:center;gap:5px;margin-top:3px">
+              <svg width="11.5" height="11.5" viewBox="0 0 24 24" fill="none" style="flex:none;color:var(--text-subtle)"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3-8.6A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8.1 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+              <!-- Mono shriftda probel harf bilan teng keng — word-spacing bilan
+                   toraytirildi, aks holda raqam guruhlar orasida "teshik" ochilardi -->
+              <span style="font-family:var(--font-mono);font-size:11.5px;letter-spacing:-.01em;word-spacing:-4px;color:var(--text-muted)">+998 93 999 39 96</span>
+            </div>
+          </div>
+
+          <!-- Stats: buyurtma / yoqtirma / rulon — chiziqsiz, belgi + raqon
+               yonma-yon (referensdagi ★ 4.9 Rating naqshi). Ajratish chiziq
+               bilan emas, BO'SH JOY bilan. -->
+          <div style="display:flex;margin-top:15px;padding:0 6px">
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px">
+              <div style="display:flex;align-items:center;gap:6px">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="var(--pom-700)" style="flex:none"><path d="M6 7V6a6 6 0 1 1 12 0v1h3.2L20 21.5H4L2.8 7H6zm2 0h8V6a4 4 0 1 0-8 0v1z"/></svg>
+                <span style="font-family:var(--font-mono);font-size:17px;font-weight:600;color:var(--text-strong)">7</span>
+              </div>
+              <span style="font-size:10.5px;color:var(--text-muted)">Buyurtma</span>
+            </div>
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px">
+              <div style="display:flex;align-items:center;gap:6px">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="var(--pom-700)" style="flex:none"><path d="M12 20.8s-6.9-4.3-9-8a5.2 5.2 0 0 1-.5-3.7A4.8 4.8 0 0 1 6.3 5.5c1.9 0 3.4 1 4.3 2.3.4.6 1 .6 1.4 0 .9-1.3 2.4-2.3 4.3-2.3a4.8 4.8 0 0 1 3.8 3.6 5.2 5.2 0 0 1-.5 3.7c-2.1 3.7-9 8-9 8z"/></svg>
+                <span style="font-family:var(--font-mono);font-size:17px;font-weight:600;color:var(--text-strong)">3</span>
+              </div>
+              <span style="font-size:10.5px;color:var(--text-muted)">Yoqtirma</span>
+            </div>
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px">
+              <div style="display:flex;align-items:center;gap:6px">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="var(--pom-700)" style="flex:none"><circle cx="8" cy="12" r="5.5"/><path d="M8 6.5h13v11H8z"/><circle cx="8" cy="12" r="1.7" fill="#fff"/></svg>
+                <span style="font-family:var(--font-mono);font-size:17px;font-weight:600;color:var(--text-strong)">62</span>
+              </div>
+              <span style="font-size:10.5px;color:var(--text-muted)">Rulon</span>
+            </div>
+          </div>
+
+          <!-- Unvon progressi: keyingi darajagacha (chiziqsiz — bo'sh joy) -->
+          <div style="padding:13px 16px 14px">
+            <div style="height:4px;border-radius:999px;background:var(--ink-100);overflow:hidden">
+              <div style="width:62%;height:100%;border-radius:999px;background:linear-gradient(90deg,var(--saffron-700),var(--pom-500))"></div>
+            </div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:6px">🌷 <b style="color:var(--pom-700)">Qadrdon</b> unvonigacha yana <b style="font-family:var(--font-mono)">38 rulon</b></div>
+          </div>
+        </div>
+
+        <div class="rows"><div class="ghost"></div><div class="ghost"></div><div class="ghost"></div></div>
+      </div>
+      <div class="note">Raqamlar namuna. Jonli kodda uchalasi ham HAQIQIY manbadan
+        keladi — kelmasa stats qatori umuman chizilmaydi.</div>
+    </div>
+
+    <!-- ═══ YON PANEL ═══ -->
+    <div class="side">
+
+      <div class="panel">
+        <h2>🏅 Unvon tizimi (rulon bo'yicha)</h2>
+        <div class="rank-row">
+          <span class="rank-chip chip-glass" style="color:var(--ink-700)">🌱 Mehmon</span>
+          <div class="rank-info"><b>Yangi kelgan xaridor</b><span>Birinchi buyurtmagacha va boshida</span></div>
+          <span class="rank-thr">0+</span>
+        </div>
+        <div class="rank-row">
+          <span class="rank-chip chip-glass" style="color:var(--teal-700)">🧵 Mijoz</span>
+          <div class="rank-info"><b>Doimiy xaridor</b><span>O'n rulondan oshdi</span></div>
+          <span class="rank-thr">10+</span>
+        </div>
+        <div class="rank-row">
+          <span class="rank-chip chip-glass" style="color:var(--saffron-700)">🤝 Hamkor</span>
+          <div class="rank-info"><b>Katta xaridor</b><span>Ellik rulondan oshdi</span></div>
+          <span class="rank-thr">50+</span>
+        </div>
+        <div class="rank-row">
+          <span class="rank-chip chip-glass" style="color:var(--pom-700)">🌷 Qadrdon</span>
+          <div class="rank-info"><b>Eng yaqin xaridor</b><span>Yuz rulon — progress bar yo'qoladi, chip «yaltiraydi»</span></div>
+          <span class="rank-thr">100+</span>
+        </div>
+        <div class="note" style="margin-top:8px">🌷 — eng yuqori unvon LOLA (lola guli) — brendning o'zi.
+          Rulon soni faqat <b>yetkazilgan</b> buyurtmalardan yig'iladi.</div>
+      </div>
+
+      <div class="panel">
+        <h2>📵 Raqam ulanmagan holat</h2>
+        <div style="display:flex;align-items:center;gap:6px;margin-top:2px">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style="flex:none;color:var(--text-subtle)"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3-8.6A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8.1 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+          <span style="font-size:12.5px;color:var(--text-muted)">Raqam ulanmagan</span>
+          <button style="flex:none;font-size:12px;font-weight:600;color:var(--teal-600);background:none;border:none;cursor:pointer;padding:0">Raqamni ulashish</button>
+        </div>
+        <div class="note">Soxta «+998 90 123 45 67» O'CHADI (kelishilgan qaror) —
+          raqam yo'qligi ko'rinadi, yolg'on raqam emas.</div>
+      </div>
+
+      <div class="panel">
+        <h2>📏 Halollik qoidalari (kodga o'tishda)</h2>
+        <ul class="rules">
+          <li><b>Buyurtma va rulon soni serverdan</b> keladi (haqiqiy buyurtmalar).
+            Kelmasa (mehmon rejimi, tarmoq yo'q) — stats qatori va unvon chipi
+            <b>umuman chizilmaydi</b>, nol yoki taxminiy raqam ko'rsatilmaydi.</li>
+          <li><b>Yoqtirma soni</b> ro'yxatning o'zidan (`S.liked` filtri) — profil
+            qatoridagi son bilan bitta manba.</li>
+          <li>Kompaniya nomi, email, «2024 yildan beri» — <b>olib tashlanadi</b>
+            (hammasi kodga qo'lda yozilgan soxta ma'lumot edi).</li>
+          <li>O'lik ✏️ qalam tugmasi — <b>olib tashlanadi</b> (ortida hech narsa yo'q).</li>
+          <li>Avatar mavjud 3 pog'onali yo'ldan (`/api/me/photo` → bosh harf),
+            galochka esa faqat Telegram orqali kirilganda chiqadi.</li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+</div>
+<script>
+// Popover: chip bosilganda ochiladi, tashqariga bosilganda yopiladi.
+const chip = document.getElementById('rank-chip');
+const pop  = document.getElementById('rank-pop');
+const ph   = chip.closest('.phone');
+function joyla() {
+  const pr = ph.getBoundingClientRect(), cr = chip.getBoundingClientRect();
+  pop.style.top = Math.round(cr.bottom - pr.top + 8) + 'px';
+}
+joyla(); window.addEventListener('resize', joyla);
+chip.addEventListener('click', e => {
+  e.stopPropagation();
+  const ochiq = pop.classList.toggle('open');
+  chip.setAttribute('aria-expanded', ochiq);
+});
+document.addEventListener('click', () => { pop.classList.remove('open'); chip.setAttribute('aria-expanded','false'); });
+</script>
+</body>
+</html>

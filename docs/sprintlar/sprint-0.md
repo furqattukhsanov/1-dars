@@ -79,6 +79,52 @@ LolaMarket ning barcha asosiy ekranlarini vizual tarzda loyihalash. Kodga o'tish
 
 - [2026-07-29] **Landing katalogining boshiga uch slaydli reklama banneri (karusel) qo'shildi** — `index.html`, `style.css`, `script.js`. Banner kategoriya chiplaridan YUQORIDA turadi, sahifa tuzilmasi boshqa o'zgarmadi. Uch slayd, har birining o'z rasmi, sarlavhasi va tugmasi bor: (1) `Photo/Main/banner-mato.jpg` — "Tasdiqlangan fabrikalardan to'g'ridan-to'g'ri", tugmasi mahsulot to'riga silliq skroll qiladi (`adGoCatalog()`); (2) `Photo/Main/banner-mato-2.jpg` — "Gulli naqsh — ipak kolleksiya", tugmasi `silk` chipini bosib katalogni filtrlaydi va to'rga skroll qiladi (`adGoCat('silk')`); (3) mavjud mahsulot rasmi `Photo/textile/d7928cec4d1373dfd77b18311ebdca10.jpg` — "Telegram orqali ham buyurtma bering", `<a href="https://t.me/lolamarketbot">` (tugma emas, havola — yangi oynada, `rel="noopener"`). **Yangi ekran yaratilmadi va yangi kategoriya qo'shilmadi** — banner faqat mavjud katalog holatini o'zgartiradi, shuning uchun SEO va sahifa tuzilmasiga ta'sir qilmaydi. Mexanika: slaydlar bir-birining ustida (`position:absolute`) turadi va `opacity` bilan 5 soniyada almashadi, faol slayd rasmida sekin Ken Burns zumi (`scale(1.03)` → `scale(1.1)`, 7s). Aylanish TO'XTAYDI: sichqoncha ustida (`mouseenter`), klaviatura fokusida (`focusin`) va tab ko'rinmay qolganda (`document.hidden`) — oxirgisi orqa fonda behuda ishlashning oldini oladi. Telefonda chapga/o'ngga surish ishlaydi (`touchstart`/`touchend`, 45px chegara, `passive: true`). `prefers-reduced-motion: reduce` bo'lsa taymer umuman ishga tushmaydi va ikkala transition ham o'chiriladi. Kirish imkoniyati: `role="region"` + `aria-roledescription="karusel"`, nofaol slaydlar `aria-hidden="true"`, nuqtalar `role="tablist"`/`tab` va `aria-selected` bilan yangilanadi, har nuqtaning bosish maydoni 44px balandlikda (ko'rinadigan nuqta atigi 7px — 2026-07-29 dagi 44px qoidasiga muvofiq). Dizayn foydalanuvchi fikri bilan sozlandi: banner ATAYLAB yorug' va oq — rasm ustiga oq parda (`.ad-shade`, `rgba(255,253,251,…)` gorizontal gradient) tushadi va matn `--ink-900` bilan yoziladi, to'q fonli klassik banner emas; tugma esa teskari — anor fon (`--pom-700`) + och matn (`--pom-100`), soyasi saytdagi boshqa tugmalar bilan bir xil yumshoqlikda. "Reklama" yorlig'i ataylab qo'yilmadi (foydalanuvchi qarori). Mobil (≤640px): balandlik 250px, izoh matni yashiriladi (`.ad-sub { display: none }`), sarlavha to'liq kenglikda. Rasm yuklash: 1-slayd `fetchpriority="high"` (LCP elementi), qolgan ikkitasi `loading="lazy"`. Brauzerda tekshirildi (320 / 768 / 1280px): uchala rasm ham yuklandi, nuqtalar slaydni to'g'ri almashtiradi va `aria-selected` yangilanadi, 2-slayd tugmasi `silk` chipini faollashtirib 2 ta ipak mahsulotini qoldiradi, 320px'da gorizontal toshib ketish yo'q va nuqtalar tugma bilan to'qnashmaydi, 0 konsol xatosi. Kesh-bust: `style.css?v=31`, `script.js?v=18`
 
+### Sprint yopilgandan keyin (2026-08-15)
+
+- [2026-08-15] **Mini App profil kartasi founder referensi asosida qayta
+  dizayn qilindi** (`telegram-app/app.js` → `renderTgCard()` to'liq qayta
+  yozildi; Fable bilan bir necha iteratsiya, mockup:
+  `docs/profil-karta-variantlar.html` — ish materiali, deploy'ga chiqmaydi).
+  Yangi ko'rinish: anor "mesh" gradient banner (FAQAT qizil oila — founder:
+  "oq rangini yo'qot"; ranglar tokendan, alpha `color-mix` bilan — Test 26
+  qoidasi), 66px dumaloq avatar oq halqa bilan bannerga chiqib turadi
+  (Telegram suratidan, mavjud 3 pog'onali `mountAvatar` yo'li va `id="tg-ava"`
+  shartnomasi SAQLANDI), galochka endi avatar burchagida (eski katta
+  "Telegram orqali tasdiqlangan" pill o'rniga), ism tagida telefon
+  (`fmtPhone` — faqat `998XXXXXXXXX` chiroylanadi, boshqa shakl BUZILMASDAN
+  xom qaytadi), stats qatori (Buyurtma / Yoqtirma / Rulon — chiziqsiz
+  minimalistik, belgi+raqam) va keyingi unvongacha progress bar.
+  **O'CHIRILDI:** "Muazzamxon Tekstil MChJ" kartasi, email, "2024 yildan
+  beri" va o'lik ✏️ qalam tugmasi — hammasi kodga qo'lda yozilgan SOXTA
+  ma'lumot edi (founder: "umuman kerak emas"). Telefon yo'q bo'lsa soxta
+  "+998 90 123 45 67" o'rniga **"Raqam ulanmagan"** + ulashish tugmasi.
+- [2026-08-15] **Gemifikatsiya — xaridor unvonlari** (founder g'oyasi):
+  `RANKS` — 🌱 Mehmon 0+ → 🧵 Mijoz 10+ → 🤝 Hamkor 50+ → 🌷 Qadrdon 100+
+  rulon (🌷 = lola, brendning o'zi). Unvon YETKAZILGAN (`delivered` /
+  `completed`) rulonlardan hisoblanadi — bekor qilingan / `refunded`
+  ATAYLAB sanalmaydi: unvon xaridni mukofotlaydi, mojaroni emas. Chip
+  glassmorphism + tovlanish animatsiyasi (`chip-sheen`,
+  `prefers-reduced-motion` hurmat qilinadi), bosilganda unvonlar popoveri
+  (`#rank-pop`): o'tilganda ✓, hozirgisida "siz shu yerdasiz", kelajakdagisi
+  xira; tashqariga bosilsa yopiladi. Stillar `telegram-app/styles.css` da
+  (`.rank-chip`, `.chip-glass`, `#rank-pop`).
+- [2026-08-15] **Halollik — "o'ylab topilgan raqam ko'rsatilmasin" qoidasi
+  kartaning o'ziga ham qo'llandi:** `buyerStats()` — buyurtmalar serverdan
+  sinxronlanmagan (`S.ordersSynced` bayrog'i `loadOrdersFromServer` da
+  qo'yiladi) VA ro'yxat bo'sh bo'lsa `null` → stats ham, unvon chipi ham,
+  progress ham UMUMAN chizilmaydi: yuklanmagan 0 haqiqiy 0 dek ko'rinmasin
+  (`NULL` reyting oilasi). Yoqtirma soni "Saqlangan matolar" qatori bilan
+  BITTA manba. Qadrdonda progress bar chizilmaydi — soxta 100% emas,
+  intiladigan narsa qolmagani ko'rinadi.
+- [2026-08-15] Yangi i18n kalitlar IKKALA tilda: `statOrders` / `statLikes` /
+  `statRolls`, `rankPopTitle` / `rankHere` / `rankFoot` / `rankToGo`,
+  `phoneNone`. Kesh: `styles.css?v=34→35`, `app.js?v=94→95`
+  (`telegram-app/index.html`), Test 16 jadvali birga yangilandi.
+  **Tekshirildi:** `node server/test.js` — 74 test yashil; jonli brauzerda
+  stub bilan: 62 rulon hisobi to'g'ri (bekor/refund sanalmadi), ma'lumot
+  kelmaganda stats yo'q, telefon yo'q holati, ruscha (Партнёр / «вы здесь»),
+  Qadrdonda progress yo'q, popover ochish/yopish.
+
 ---
 
 ## Qarorlar
@@ -137,3 +183,7 @@ LolaMarket ning barcha asosiy ekranlarini vizual tarzda loyihalash. Kodga o'tish
 - [2026-07-29] Qaror: reklama banneri YORUG' bo'ladi — rasm ustiga oq parda tushadi va matn to'q rangda yoziladi, to'q fon + oq matn bo'lgan klassik banner uslubi rad etildi. Sabab (foydalanuvchi): sahifaning qolgan qismi krem/oq, to'q banner katalogdan alohida "yopishtirilgan reklama" bo'lib ko'rinardi. Istisno tugmada — tugma teskari (anor fon, och matn), chunki yorug' bannerda och tugma yo'qolib ketadi
 
 - [2026-07-29] Qaror: banner tugmasi yangi ekranga OLIB BORMAYDI — mavjud katalog holatini o'zgartiradi (mahsulot to'riga skroll yoki kategoriya chipini bosish). Sabab: 2026-07-24 dagi mobil nav qarori bilan bir xil mantiq — landing bitta sahifa bo'lib qolsin, banner tufayli yangi marshrut va yangi ekran paydo bo'lmasin; istisno faqat Telegram botiga tashqi havola
+
+- [2026-08-15] Qaror: **xaridor unvoni YETKAZILGAN rulonlardan hisoblanadi** (`delivered`/`completed`), bekor qilingan va `refunded` sanalmaydi. Sabab: unvon xaridni mukofotlaydi, mojaroni emas — refund'da pul qaytgan, ya'ni "sotib olingan rulon" degani yolg'on bo'lardi. Ostonalar: 🌱 Mehmon 0+ → 🧵 Mijoz 10+ → 🤝 Hamkor 50+ → 🌷 Qadrdon 100+ (🌷 = lola, brend belgisi)
+
+- [2026-08-15] Qaror: **profil kartasidagi stats/unvon ma'lumot kelmaguncha UMUMAN chizilmaydi** — buyurtmalar serverdan sinxronlanmagan va ro'yxat bo'sh bo'lsa `buyerStats()` `null` qaytaradi. Sabab: yuklanmagan 0 haqiqiy 0 dek ko'rinsa karta jimgina yolg'on gapiradi ("o'ylab topilgan raqam ko'rsatilmasin" / `NULL` reyting oilasi). Xuddi shu sabab kompaniya bloki (nom, email, "2024 yildan beri", ✏️) o'chirildi — kodga qo'lda yozilgan soxta ma'lumot edi, telefon yo'qligida esa soxta raqam o'rniga "Raqam ulanmagan" ko'rsatiladi
