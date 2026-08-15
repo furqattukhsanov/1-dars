@@ -31,7 +31,7 @@
        ko'p uchraydigan xatosi shu. -->
   <link rel="preconnect" href="https://telegram.org">
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@24,600..800&family=Hanken+Grotesk:wght@400..700&family=Geist+Mono:wght@600..700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=54" />
+  <link rel="stylesheet" href="style.css?v=56" />
   <!-- DIQQAT: uchala skript ham `defer` — TARTIB shu sababli saqlanadi
        (telegram → script.js → pwa.js). Bittasidan `defer` olib tashlansa,
        u tananing ichida parse paytida ishlaydi va DEFER'liklardan OLDIN
@@ -108,72 +108,76 @@
   <!-- ===== KATALOG ===== -->
   <section class="section container section-first" id="katalog" tabindex="-1">
 
-    <!-- ===== REKLAMA BANNERI =====
-         Uchta slayd: har birining o'z rasmi va matni bor.
-         5 soniyada avtomatik almashadi. -->
+    <!-- ===== REKLAMA BANNERI (karusel) =====
+         2026-08-16: banner Mini App'dagisi bilan BIR XIL qilindi — dizayni
+         ham, RASMLARI ham, MATNI ham (`telegram-app/app.js` → `AD_SLIDES`).
+         Slaydlar endi ustma-ust turib xiralashib almashmaydi: ular YONMA-YON
+         yotadi va `.ad-banner` ning O'ZI gorizontal skroller — joriy slayd
+         o'rnida, qo'shnisining bir necha piksel cheti ikki tomondan ko'rinib
+         turadi. Surishni brauzerning O'ZI qiladi (`scroll-snap`), JS faqat
+         avtomatik almashish va cheksiz aylanish uchun (`script.js` →
+         `mountAdBanner`). Ichki tugma, kichik matn va nuqtalar yo'q:
+         ikki qatorli sarlavha + oxirgi so'zdan keyin kichik chip.
+
+         ⚠️ FAQAT O'LCHAM Mini App'niki EMAS (founder, 2026-08-16). U yerda
+         nisbat `aspect-ratio: 32/9` dan keladi, bu yerda esa balandlik
+         `style.css` da qo'lda beriladi.
+
+         ⚠️ Rasmlar `assets/ads/` da — `telegram-app/assets/ads/` dagi
+         fayllarning NUSXASI. Landing HTML'idan `telegram-app/...` yo'liga
+         ishora qilib bo'lmaydi: serverda o'sha papka `mini-app/` deb ataladi
+         va havola 404 bo'lardi. Ikki nusxa bir-biridan ajralib ketmasligi
+         uchun `server/test.js` → Test 32 ularning `sha256` ini solishtiradi.
+
+         ⚠️ Slaydning O'ZI `<button>` QILINMADI: sarlavha `<h2>` va u
+         `<button>` ichida yaramaydi (tugma faqat phrasing content oladi),
+         sarlavhani tashlash esa landingning SEO matnini kamaytirardi —
+         HTML dagi o'zbekcha matn bu sahifada qidiruv ko'radigan yagona
+         tarkib. Shuning uchun bosish yuzasi — slayd ustidagi shaffof
+         qatlam (`.ad-hit`), natija bir xil: butun slayd bosiladi. -->
     <div class="ad-banner" id="ad-banner" role="region" aria-roledescription="karusel" aria-label="Reklama bannerlari">
-      <div class="ad-track">
 
-        <article class="ad-slide is-active" data-pos="left" aria-hidden="false">
-          <!-- WebP asosiy, JPEG zaxira (eski Safari). Mobil uchun alohida 800px
-               nusxa: banner konteyneri 1180px, telefonda esa ~400 CSS px —
-               1400px rasm u yerda ortiqcha edi. Sekin 3G'da 305 KB → 51 KB. -->
-          <picture>
-            <source type="image/webp"
-                    srcset="Photo/Main/banner-mato-800.webp 800w, Photo/Main/banner-mato.webp 1400w"
-                    sizes="(max-width: 1220px) 100vw, 1180px" />
-            <img src="Photo/Main/banner-mato.jpg" alt="Osilgan gulli naqshli matolar" width="1400" height="781" fetchpriority="high" />
-          </picture>
-          <div class="ad-shade"></div>
-          <div class="ad-content">
-            <h2 class="ad-title" data-i18n="ad1t">Tasdiqlangan fabrikalardan to'g'ridan-to'g'ri</h2>
-            <p class="ad-sub" data-i18n="ad1s">Rulon formatida ulgurji xarid — vositachisiz, himoyalangan to'lov bilan.</p>
-            <button class="ad-cta" type="button" data-action="adGoCatalog">
-              <span data-i18n="viewCatalog">Katalogni ko'rish</span>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M13 6l6 6-6 6"/></svg>
-            </button>
-          </div>
-        </article>
+      <!-- Sarlavhadagi qator uzilishi `\n` bilan beriladi va `.ad-title`
+           dagi `white-space: pre-line` uni ko'rsatadi. `<br>` ISHLATIB
+           BO'LMAYDI: `applyLang()` tarjimani `textContent` bilan yozadi,
+           ya'ni teg sifatida emas, HARF sifatida chiqib qolardi. -->
+      <article class="ad-slide" data-tone="rose">
+        <picture>
+          <source type="image/webp" srcset="assets/ads/ad-1.webp" />
+          <img src="assets/ads/ad-1.jpg" alt="" aria-hidden="true" width="1200" height="338" fetchpriority="high" />
+        </picture>
+        <div class="ad-copy">
+          <h2 class="ad-title"><span data-i18n="ad1t">Matolarni AI bilan
+jonlantiring</span><span class="ad-tag" data-i18n="ad1tag">Sinab ko'rish</span></h2>
+        </div>
+        <button class="ad-hit" type="button" data-action="adGoCatalog" data-i18n-aria="ad1aria" aria-label="Matolarni AI bilan jonlantiring — katalogga o'tish"></button>
+      </article>
 
-        <article class="ad-slide" data-pos="center" aria-hidden="true">
-          <picture>
-            <source type="image/webp" srcset="Photo/Main/banner-mato-2.webp" />
-            <img src="Photo/Main/banner-mato-2.jpg" alt="Osilgan naqshli ipak matolar" width="900" height="500" loading="lazy" />
-          </picture>
-          <div class="ad-shade"></div>
-          <div class="ad-content">
-            <h2 class="ad-title" data-i18n="ad2t">Gulli naqsh — ipak kolleksiya</h2>
-            <p class="ad-sub" data-i18n="ad2s">Marg'ilon va Andijon ustaxonalaridan qo'lbola ipak matolar.</p>
-            <button class="ad-cta" type="button" data-action="adGoCat" data-arg="silk">
-              Ipak matolar
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M13 6l6 6-6 6"/></svg>
-            </button>
-          </div>
-        </article>
+      <article class="ad-slide" data-tone="saffron">
+        <picture>
+          <source type="image/webp" srcset="assets/ads/ad-2.webp" />
+          <img src="assets/ads/ad-2.jpg" alt="" aria-hidden="true" width="1200" height="338" loading="lazy" />
+        </picture>
+        <div class="ad-copy">
+          <!-- Mini App'da bu slaydda chip YO'Q — bu yerda ham qo'shilmadi -->
+          <h2 class="ad-title"><span data-i18n="ad2t">24/7 buyurtma
+berishingiz mumkin</span></h2>
+        </div>
+        <button class="ad-hit" type="button" data-action="adGoCatalog" data-i18n-aria="ad2t" aria-label="24/7 buyurtma berishingiz mumkin"></button>
+      </article>
 
-        <article class="ad-slide" data-pos="right" aria-hidden="true">
-          <picture>
-            <source type="image/webp" srcset="Photo/textile/d7928cec4d1373dfd77b18311ebdca10.webp" />
-            <img src="Photo/textile/d7928cec4d1373dfd77b18311ebdca10.jpg" alt="Gulli ipak — lola matosi" width="850" height="1360" loading="lazy" />
-          </picture>
-          <div class="ad-shade"></div>
-          <div class="ad-content">
-            <h2 class="ad-title" data-i18n="tgOrder">Telegram orqali ham buyurtma bering</h2>
-            <p class="ad-sub" data-i18n="tgOrderSub">Katalog, savat va buyurtma holati — ilova o'rnatmasdan.</p>
-            <a class="ad-cta" href="https://t.me/lolamarketbot" target="_blank" rel="noopener">
-              Botni ochish
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M13 6l6 6-6 6"/></svg>
-            </a>
-          </div>
-        </article>
+      <article class="ad-slide" data-tone="teal">
+        <picture>
+          <source type="image/webp" srcset="assets/ads/ad-3.webp" />
+          <img src="assets/ads/ad-3.jpg" alt="" aria-hidden="true" width="1200" height="338" loading="lazy" />
+        </picture>
+        <div class="ad-copy">
+          <h2 class="ad-title"><span data-i18n="ad3t">Bepul yetkazib
+berish</span><span class="ad-tag" data-i18n="ad3tag">Ilk 3 ta buyurtma</span></h2>
+        </div>
+        <button class="ad-hit" type="button" data-action="adGoCatalog" data-i18n-aria="ad3aria" aria-label="Bepul yetkazib berish — katalogga o'tish"></button>
+      </article>
 
-      </div>
-
-      <div class="ad-dots" id="ad-dots" role="tablist" aria-label="Bannerni tanlash">
-        <button class="ad-dot is-active" type="button" role="tab" aria-selected="true"  aria-label="1-banner" data-action="adGo" data-arg="0"><i></i></button>
-        <button class="ad-dot"           type="button" role="tab" aria-selected="false" aria-label="2-banner" data-action="adGo" data-arg="1"><i></i></button>
-        <button class="ad-dot"           type="button" role="tab" aria-selected="false" aria-label="3-banner" data-action="adGo" data-arg="2"><i></i></button>
-      </div>
     </div>
 
     <div class="chips fade-up" id="chips">
@@ -649,7 +653,7 @@
     </button>
   </nav>
 
-  <script defer src="script.js?v=45"></script>
+  <script defer src="script.js?v=47"></script>
   <script defer src="pwa.js?v=2"></script>
 </body>
 </html>

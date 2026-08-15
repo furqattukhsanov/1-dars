@@ -125,6 +125,131 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
 
 ## Qilingan ishlar
 
+- [2026-08-16] **SAYTDAGI BANNER MINI APP'NIKI BILAN TENGLASHTIRILDI — VA
+  BIRINCHI URINISH YETARLI EMAS EDI.** Founder: «Mini appdagi banner
+  dizaynindek webdagini ham o'zgartir, faqat o'lchamlarini mini appdikidek
+  qilma, webdagini balandligini 20% ga qisqartir». Birinchi qadamda faqat
+  **TUZILISH** ko'chirildi — karusel mexanikasi, klonlar, `scroll-snap` —
+  rasm va matn esa saytnikida qoldirildi. Founder buni RAD ETDI: «dizayni
+  hamda matnlarini ham o'zgartirmabsanu, + 10% balandligini katta qilgin».
+  🔴 **Dars «shunday qilgin» ikki xil o'qilishi bandining (2026-08-13) TESKARI
+  yuzi.** O'sha bandda «shaklni ko'chirish» ORTIQCHA ish tug'dirgan edi; bu
+  yerda esa aksincha — «dizaynindek» faqat MEXANIKA deb o'qilib, YETMAGAN
+  ish chiqdi. Ikkalasida ham ildiz bitta: buyruqning qamrovi
+  BOSHLANISHIDA aniqlanmagan. To'g'ri qadam — nusxa olishdan oldin «nimasi
+  ko'chadi: mexanikami, ko'rinishmi, matnmi?» deb SO'RASH.
+
+  **YAKUNIY HOLAT (ikkinchi qadamdan keyin):**
+  (1) **Karusel.** Slaydlar endi ustma-ust `opacity` bilan emas, YONMA-YON:
+  `.ad-banner` ning O'ZI gorizontal skroller (`overflow-x` + `scroll-snap`).
+  Surishni brauzer qiladi, qo'lda yozilgan `touchstart`/`touchend` surish
+  kodi O'CHDI. Cheksiz aylanish ikki chetdagi KLON bilan; klonlar HTML da
+  emas, `mountAdBanner()` da yasaladi — ya'ni bir xil matn manbada uch
+  marta emas, BIR marta yoziladi va JS ishlamasa banner o'qiladigan holda
+  qoladi (faqat aylanmaydi).
+  (2) **Nuqtalar, ichki tugma va kichik matn (`ad-sub`) o'chdi** — Mini
+  App'dagidek: ikki qatorli sarlavha + oxirgi so'zdan keyin chip.
+  (3) **Rasm va matn Mini App'niki:** ad-1/2/3 (atlas / paxta-adras / ikat),
+  «Matolarni AI bilan jonlantiring» + SINAB KO'RISH, «24/7 buyurtma
+  berishingiz mumkin» (chipsiz), «Bepul yetkazib berish» + ILK 3 TA
+  BUYURTMA. Ikkala tilda ham `AD_SLIDES` bilan AYNAN bir xil.
+  (4) **Oq parda (`.ad-shade`) O'CHDI.** Rasmlarning chap 65% i brief
+  bo'yicha CHIZILGANDA allaqachon ochiq va tinch — parda o'sha joyni yana
+  bir marta oqartirib, rasmni xiralashtirardi.
+  (5) **Balandlik ikki qadamda:** 220→176 (−20%) →**193.6**px;
+  26vw→20.8→**22.88vw**; 400→320→**352**px; telefonda 250→200→**220**px.
+  O'lchandi: hozirgisi eskisining **0.88** i (0.8 × 1.1).
+
+  🔴 **RASMLAR `assets/ads/` GA NUSXALANDI — VA NUSXA MAJBURIY.** Landing
+  HTML'i `telegram-app/...` yo'liga ishora QILA OLMAYDI: serverda o'sha
+  papka `mini-app/` deb ataladi va havola 404 bo'lardi, CI esa ikkalasini
+  ALOHIDA qadam bilan chiqaradi. Xavf `BTS_POINTS` bilan bitta oila — ikki
+  nusxa JIMGINA ajralib ketadi: Mini App'da rasm yangilanadi, saytda eskisi
+  qolaveradi, ikkala sahifa ham ochiladi, konsol toza, faqat ikki yuzda ikki
+  xil banner turadi. **Qorovul — Test 32 ga 5-band:** ikki nusxaning
+  `sha256` i solishtiriladi, ro'yxat `AD_SLIDES` dan olinadi (qo'lda
+  yozilmaydi, to'rtinchi slayd qo'shilsa avtomatik qamraladi). **Ikki
+  mutatsiya bilan sinaldi — fayl o'zgartirildi / o'chirildi — ikkalasi ham
+  ushlandi.** `assets/` deploy `source` ro'yxatida ALLAQACHON bor (tekshirildi
+  — `.github/workflows/deploy.yml`), ya'ni yangi ildiz papkasi tuzog'i bu
+  safar otilmadi.
+
+  🔴 **TELEFONDA RASM KESILISHI O'LCHANDI VA TUZATILDI.** Mini App rasmi
+  32:9, sayt slaydi undan BALAND — 375px da `object-fit: cover` rasm enining
+  atigi **~44%** ini kadrga sig'diradi. Standart `center` da oyna 28–72% ga
+  tushadi va o'ngdagi mato burmasi (slaydning butun xarakteri) KESILIB
+  ketardi: banner tekis bej quti bo'lib ko'rinardi. Birinchi urinishda aynan
+  shunday chiqdi va buni **SCREENSHOT ko'rsatdi**. `object-position: 62%`
+  ga surildi (oyna 34.8–78.7%) — chapda matn zonasi ochiq qoladi, o'ngdan
+  mato o'z rangi bilan kiradi; uchala slaydda ham ko'z bilan tekshirildi.
+
+  ⚠️ **1-SLAYD AI NI OCHMAYDI, KATALOGGA OLIB BORADI — ATAYLAB.** Saytda AI
+  EKRANI YO'Q: AI bloki har mahsulotning o'z sahifasida yashaydi
+  (`aiSection` → `detailHtml`), ya'ni AI ga yagona yo'l mato tanlashdan
+  o'tadi va banner aynan o'sha qadamga olib boradi. Mini App'da esa u
+  `tab('ai')` ga tushadi. «AI ochiladi» deb ko'rsatish SOXTA TUGMA bo'lardi
+  («o'ylab topilgan raqam» qoidasining xatti-harakatdagi ko'rinishi).
+  Founder'ga aytildi.
+
+  ⚠️ **Telegram slaydi o'chdi, botga yo'l esa YO'QOLMADI** — pastdagi
+  «CTA — Telegram bot» bo'limi joyida. `tgOrder` kaliti O'SHA bo'lim uchun
+  saqlab qolindi: banner matnlari almashtirilganda u bilan birga o'chib
+  ketishiga oz qolgan edi (`tgOrderSub` va `viewCatalog` esa haqiqatan
+  ortiqcha bo'lgani uchun o'chdi).
+
+  **QOLGAN QARORLAR:**
+  - **Slayd `<button>` QILINMADI:** sarlavha `<h2>` va u `<button>` ichida
+    yaramaydi (tugma faqat phrasing content oladi), sarlavhani tashlash esa
+    landingning SEO matnini kamaytirardi — HTML dagi o'zbekcha matn bu
+    sahifada qidiruv ko'radigan yagona tarkib. Bosish yuzasi — ustidagi
+    shaffof `.ad-hit`; natija bir xil, butun slayd bosiladi.
+  - **Sarlavhadagi qator uzilishi `\n` + `white-space: pre-line`** bilan.
+    `<br>` YARAMAYDI: `applyLang()` tarjimani `textContent` bilan yozadi,
+    ya'ni teg HARF bo'lib chiqib qolardi (Mini App'da `<br>` turadi — farq
+    chizish usulidan, uslubdan emas).
+  - **`behavior: 'smooth'` faqat brauzer bilganda beriladi** (`AD_SMOOTH`).
+    2026-08-13 dagi `mountPdMedia` darsi: qo'llab-quvvatlanmagan muhitda
+    so'rov JIMGINA yutiladi — u yerda nuqta o'lik tugmaga aylangandi, bu
+    yerda esa karusel umuman almashmay qolardi.
+  - **Klon ekran o'quvchisiga ko'rinmaydi va Tab bilan tanlanmaydi**
+    (`aria-hidden`, `.ad-hit` `tabIndex = -1`) — aks holda bir xil sarlavha
+    ikki marta o'qilardi va Tab bir joyda ikki marta to'xtardi.
+
+  **RASM OG'IRLIGI — RAQAM HISOBOTCHI TOMONIDAN QAYTA O'LCHANDI VA
+  ANIQLASHTIRILDI.** Sessiyada «186 KB → 56 KB» deb aytilgan; qayta
+  o'lchovda bu raqam faqat **TELEFON** yo'liniki bo'lib chiqdi (eski
+  1-slayd `srcset` da ikki nusxa bor edi va brauzer telefonda 800px
+  variantini olardi: 50858 + 57306 + 78018 = 186 182 B). **Desktopda esa
+  eski yo'l 132732 + 57306 + 78018 = 268 056 B = 268 KB (o'nlik KB — telefon raqami «186 KB» ham shu birlikda)** edi. Yangisi
+  ikkala holatda ham bir xil: 19418 + 22516 + 13688 = **55 622 B ≈ 56 KB**.
+  Ya'ni haqiqiy yutuq telefonda **3.3x**, desktopda **4.8x**. Raqam
+  noto'g'ri emasdi — u YO'L NOMI YOZILMAGANI uchun chala edi
+  («hujjatdagi raqam — tekshirilmagan da'vo» bandi).
+  ⚠️ Eski `Photo/Main/banner-mato*` fayllari endi hech qayerda
+  ishlatilmaydi (tekshirildi), lekin `Photo/` ga TEGILMADI — rasmlar
+  founder mulki. `Photo/textile/d7928cec…` esa hamon KERAK: u `tx-4402`
+  kartochkasida ishlatiladi (`index.html`), ya'ni bannerdan chiqqani bilan
+  yetim qolmadi.
+
+  **TEKSHIRILGANI:** `node server/test.js` — **74 test yashil** (hisobotchi
+  mustaqil qayta yurgizdi, `✅ Test` satrlari sanaldi). Brauzerda
+  O'LCHANDI: slayd balandligi eskisining 0.88 i (1280px va 375px da),
+  `<picture>` balandligi slayd balandligiga TENG (blok yopilmagan —
+  CLAUDE.md `<picture>` bandi), matn `.ad-copy` dan chiqib ketmagan,
+  sahifada gorizontal skroll yo'q, qo'shni slayd cheti telefonda 6px /
+  desktopda 14px. Cheksiz aylanish beshta pozitsiyada (−1→2, 3→0, qolgani
+  joyida), bosish beshta slaydda ham (klonlarda ham) — `adGoCatalog`
+  chaqirildi. Rus tilida: ikkala tilda ham sarlavha 2 qator, chip o'chib
+  ketmadi, klonlar ham tarjima bo'ldi.
+  ⚠️ **TEKSHIRILMAGANI — ATAYLAB OCHIQ YOZILADI:** (a) **avtomatik
+  almashish (5 s) va silliq surish jonli ko'rilmagan.** Brauzer panelida
+  tab `hidden` turadi, u yerda `scroll` hodisasi UMUMAN otilmaydi va
+  `behavior: 'smooth'` bajarilmaydi — o'lchandi: 353→353 px, 1500 ms.
+  Mantiq qo'lda chaqirib sinaldi, ya'ni KOD to'g'ri, XATTI-HARAKAT esa
+  jonli saytda hali ko'rilmagan (bu «tezlik o'lchash usuli» xotira
+  yozuvining aynan takrori). (b) Jonli lolamarket.uz da hali ko'rilmagan —
+  deploy faqat statik, servis restarti kerak emas.
+
 - [2026-08-15] **REKLAMA BANNERI QAYTA DIZAYN QILINDI — YANGI FON RASMLARI,
   YANGI TIPOGRAFIYA VA KARUSEL MEXANIKASI.** Banner bir kun oldin
   (`2026-08-14`, quyidagi yozuv) qo'shilgan edi; bu sessiyada founder bilan
@@ -2479,6 +2604,49 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
 ---
 
 ## Qarorlar
+
+- [2026-08-16] Qaror (founder): **saytdagi banner Mini App'niki bilan
+  TO'LIQ tenglashadi — dizayn, rasm va MATN — faqat BALANDLIK saytniki.**
+  Founder o'lchamni ikki qadamda berdi: avval «20% ga qisqartir», keyin
+  «+10% katta qilgin» — natija eskisining **0.88** i. ⚠️ Ya'ni «bir xil
+  qil» bu yerda **shakl + mazmun, o'lcham esa ALOHIDA** degani. Buni
+  boshida so'ramaslik bir marta ish qaytishiga olib keldi: birinchi
+  urinishda faqat mexanika ko'chirilib, rasm va matn saytnikida qolgan
+  edi. **Qoida sifatida:** «falonchidek qil» degan topshiriq olinganda
+  QAMROV aniqlanadi — mexanikami, ko'rinishmi, matnmi, o'lchammi —
+  va shundan keyin kod yoziladi (2026-08-13 dagi «shunday qilgin»
+  bandining teskari yuzi: u yerda ORTIQCHA, bu yerda YETMAGAN ish chiqdi).
+
+- [2026-08-16] Qaror: **banner rasmlari saytda `assets/ads/` da, ya'ni
+  `telegram-app/assets/ads/` NUSXASI.** Nusxa MAJBURIY, chunki landing
+  HTML'i `telegram-app/...` yo'liga ishora qila olmaydi — serverda o'sha
+  papka `mini-app/` deb ataladi va havola 404 bo'lardi; CI ham ikkalasini
+  alohida qadam bilan chiqaradi. Nusxaning xavfi `BTS_POINTS` bilan bitta
+  oila — ikki yuz jimgina AJRALIB KETADI, buni na konsol, na testlar
+  ko'rsatardi. Shuning uchun qaror **qorovul bilan birga qabul qilindi:**
+  Test 32 → 5-band ikki nusxaning `sha256` ini solishtiradi, ro'yxatni
+  `AD_SLIDES` dan oladi (yangi slayd avtomatik qamraladi) va ikki
+  mutatsiya bilan sinaldi. «Yozilgan qoida himoya emas — uni tekshiradigan
+  test himoya» oilasidan.
+
+- [2026-08-16] Qaror: **saytdagi 1-slayd AI ekraniga EMAS, katalogga olib
+  boradi.** Saytda AI ekrani YO'Q — AI bloki har mahsulotning o'z sahifasida
+  (`aiSection` → `detailHtml`), ya'ni AI ga yagona yo'l mato tanlashdan
+  o'tadi. Mini App'da o'sha slayd `tab('ai')` ga tushadi va **bu farq
+  ATAYLAB:** «AI ochiladi» deb ko'rsatilgan, aslida boshqa joyga tushiradigan
+  banner soxta tugma bo'lardi. Ikki yuz bir xil KO'RINISHI shart, bir xil
+  ISHLASHI esa faqat orqasidagi narsa ikkalasida ham bor bo'lganda shart
+  («Hisobdan chiqish» bandi bilan bitta mulohaza: farq uslubda emas,
+  ortidagi mavjudlikda).
+
+- [2026-08-16] Qaror: **telefonda `object-position: 62%`** —
+  `center` EMAS. Rasm 32:9, sayt slaydi undan baland, ya'ni 375px da
+  `cover` rasm enining atigi ~44% ini ko'rsatadi va standart markazda
+  o'ngdagi mato burmasi butunlay kesilib, banner tekis bej quti bo'lib
+  qolardi. Raqam TAXMIN emas, o'lchovdan: 62% da oyna 34.8–78.7% ga
+  tushadi — chapda matn zonasi ochiq, o'ngda mato ko'rinadi. ⚠️ Nuqson
+  faqat **KO'Z** bilan ko'rindi (screenshot) — testda ham, konsolda ham
+  izi yo'q edi: CSP va flex bandlaridagi «jimgina nuqson» oilasidan.
 
 - [2026-08-15] Qaror (founder): **banner KARUSEL — qo'shni slaydning cheti
   ko'rinib tursin, nuqta va strelka esa YO'Q.** Ikkalasi bitta qarorning

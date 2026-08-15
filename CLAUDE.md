@@ -472,9 +472,13 @@
   u odatda `display: inline`, balandligi `auto`. Shuning uchun `img { height:
   100% }` tayanadigan narsasini yo'qotadi va **blok balandligi nolga tushadi**.
   Nuqson JIMGINA chiqadi: rasm yo'qolmaydi, konsolda xato yo'q, shunchaki blok
-  yopiladi. Yechim `style.css` da: `.ad-slide picture, .product-media picture
-  { display: block; width: 100%; height: 100% }` — yangi joy qo'shilsa shu
-  selektorlar ro'yxatiga ham qo'shilsin.
+  yopiladi. Yechim `style.css` da har bir konteyner uchun `picture` ni
+  `{ display: block; width: 100%; height: 100% }` qilib qo'yish — yangi joy
+  qo'shilsa u ham shu ro'yxatga tushsin. Hozirgi ikki joy: `.ad-slide picture`
+  (2026-08-16 dan `.ad-slide img` bilan birga `position: absolute` — banner
+  rasmi endi FON) va `.product-media picture`. Ilgari bu yerda ikkalasi
+  BITTA selektorda yozilgan namuna turardi; banner qayta yozilganda ular
+  ajraldi, qoidaning ma'nosi esa o'zgarmadi.
   ⚠️ **Bir xil rasm ikki joyda ishlatilsa — ikkalasi BIRGA o'tkazilsin.**
   Bittasini `<picture>` ga o'rab, ikkinchisini `.jpg` qoldirsangiz brauzer
   AYNAN BIR rasmni ikki formatda ikki marta yuklaydi va o'zgarishingiz

@@ -454,159 +454,200 @@ body {
 .section-head { margin-bottom: 22px; }
 
 /* ===== REKLAMA BANNERI (karusel) =====
-   Uchta slayd, har birining o'z rasmi bor. Slaydlar bir-birining ustida
-   turadi (absolute) va opacity bilan almashadi. */
+   2026-08-16: banner Mini App'nikiga to'liq tenglashtirildi — dizayn ham,
+   rasm ham, matn ham (`telegram-app/styles.css` → `.ad-banner`). Ilgari
+   slaydlar bir-birining USTIDA turib (`absolute` + `opacity`) xiralashib
+   almashardi; endi ular YONMA-YON yotadi va `.ad-banner` ning O'ZI
+   gorizontal skroller: joriy slayd o'rnida, qo'shnisining bir necha piksel
+   cheti ikki tomondan ko'rinib turadi. Surishni brauzer qiladi
+   (`scroll-snap`), JS faqat avtomatik almashish va cheksiz aylanish uchun.
+
+   ⚠️ FAQAT O'LCHAM Mini App'niki EMAS (founder, 2026-08-16). U yerda nisbat
+   `aspect-ratio: 32/9` dan keladi, bu yerda balandlik qo'lda beriladi va
+   founder uni IKKI qadamda sozladi: avval 20% pasaytirildi (220→176,
+   26vw→20.8vw, 400→320, telefonda 250→200), keyin o'shanga 10% qo'shildi.
+   Ya'ni hozirgisi eskisining 0.8 × 1.1 = 0.88 i.
+   ⚠️ Rasm 1200×338 (32:9) qilib chizilgan — brief bo'yicha chap 65% i
+   matn uchun ochiq, o'ng 35% ida mato burmasi. Sayt slaydi undan BALANDROQ,
+   ya'ni `object-fit: cover` rasmni yon tomondan kesadi va tor ekranda
+   kompozitsiya markazga siljiydi. Shu sabab telefonda `object-position`
+   CHAPGA suriladi: matn zonasi kadrda qolsin. */
 .ad-banner {
+  /* Qo'shni slaydning ko'rinadigan cheti = `--ad-bleed` − `--ad-gap`:
+     telefonda 16 − 10 = 6px (Mini App bilan AYNAN bir xil — founder
+     2026-08-15 da 18 → 10 → 6 deb qisqartirgan), keng ekranda 32 − 18 =
+     14px. Chet KAM bo'lsin: qo'shni slayd BOR ekanini bildirsin, matni
+     ko'rinmasin — aks holda ikkinchi sarlavha birinchisi bilan bahslashadi. */
+  --ad-bleed: var(--container-pad);
+  --ad-gap: clamp(10px, 2.4vw, 18px);
+
+  /* `adPos()` slaydning `offsetLeft` ini shu qutiga o'lchaydi */
   position: relative;
-  margin-bottom: 18px;
+  display: flex;
+  gap: var(--ad-gap);
+  /* Konteyner hoshiyasidan CHIQIB ekran chetigacha cho'ziladi, aks holda
+     qo'shni slayd hoshiyada KESILIB qolardi. `padding` = hoshiya, ya'ni
+     joriy slayd sahifadagi boshqa bloklar bilan bir chiziqda turadi;
+     `scroll-padding-inline` ham o'sha — snap nuqtasi shu chiziqqa tushadi.
+     Pastki `padding` slayd SOYASI uchun: `overflow` uni kesib tashlardi,
+     shuning uchun quyidagi 18px oraliq 14 + 4 bo'lib bo'lingan. */
+  margin: 0 calc(-1 * var(--ad-bleed)) 4px;
+  padding: 0 var(--ad-bleed) 14px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: var(--ad-bleed);
+  scrollbar-width: none;
+  /* Gorizontal ham, vertikal ham brauzerda: gorizontal → karusel,
+     vertikal → sahifa. Faqat bittasi yozilsa ikkinchisi o'ladi. */
+  touch-action: pan-x pan-y;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+}
+.ad-banner::-webkit-scrollbar { display: none; }
+
+.ad-slide {
+  /* Skroller ichida siqilmasin — aks holda uchtasi bir ekranga sig'ib qoladi */
+  flex: 0 0 100%;
+  position: relative;
+  height: clamp(193.6px, 22.88vw, 352px);
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
   border-radius: var(--radius-lg);
   overflow: hidden;
   background: var(--pom-50);
-  border: 1px solid rgba(122, 20, 13, .08);
-  box-shadow: 0 16px 38px -24px rgba(23,26,48,.4);
   isolation: isolate;
+  box-shadow: 0 16px 38px -24px rgba(23,26,48,.4);
+  transition: transform var(--dur-fast) var(--ease-out);
 }
-/* Balandlik ekran kengligiga qarab — aspect-ratio + max-height birga
-   ishlatilsa brauzer kenglikni ham qisqartirib yuboradi, shuning uchun
-   faqat height. */
-.ad-track {
-  position: relative;
-  height: clamp(220px, 26vw, 400px);
-}
-.ad-slide {
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity var(--dur-slow) var(--ease-out), visibility var(--dur-slow);
-}
-.ad-slide.is-active {
-  opacity: 1;
-  visibility: visible;
-}
+/* Bosilganda butun slayd bosilgandek javob bersin: `:active` bosilayotgan
+   elementning OTALARIGA ham tegadi, ya'ni `.ad-hit` bosilsa bu ham tutadi. */
+.ad-slide:active { transform: scale(.995); }
+
 /* `<picture>` rasm bilan uni o'rab turgan quti orasiga kiradi (WebP + JPEG
    zaxira). U odatda `inline` va balandligi `auto` — shuning uchun rasmdagi
    `height: 100%` tayanadigan narsasini yo'qotadi va blok yopilib qoladi.
-   Quyidagi qoida `<picture>` ni shaffof qutiga aylantiradi.
+   Quyidagi qoidalar `<picture>` ni shaffof qutiga aylantiradi.
    ⚠️ Rasmni `<picture>` ga o'rasangiz, uning konteynerini shu ro'yxatga
    qo'shing — aks holda nuqson JIMGINA chiqadi: rasm yo'qolmaydi, blok
    balandligi nolga tushadi. */
 .ad-slide picture,
+.ad-slide img {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  /* Bosish `.ad-hit` ga tegsin, rasmni sudrab yurish bo'lmasin */
+  pointer-events: none;
+}
 .product-media picture {
   display: block;
   width: 100%;
   height: 100%;
 }
-/* Har slayd o'z rasmiga ega; faol slaydda sekin yaqinlashish (Ken Burns).
-   Zum kuchli bo'lmasin — rasm xiralashib qolmasligi kerak. */
-.ad-slide img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center;
-  transform: scale(1.03);
-  transition: transform 7s linear;
-}
-.ad-slide.is-active img { transform: scale(1.1); }
-.ad-slide[data-pos="right"] img { object-position: 50% 30%; }
+/* ⚠️ Oq parda (`.ad-shade`) OLIB TASHLANDI va bu ataylab: Mini App rasmlari
+   brief bo'yicha CHIZILGANDA chap 65% i allaqachon ochiq va tinch
+   (`docs/dizayn-tizimi/banner-dizayn-brief.md`), ya'ni parda o'sha ochiq
+   joyni yana bir marta oqartirib, rasmni xiralashtirardi. */
 
-/* Matn o'qilishi uchun oq parda — banner yorug' va oq ko'rinsin */
-.ad-shade {
+/* Matn zonasi — chap 65%. O'ng 35% da mato o'zi "gapiradi" (burma, yorug'lik),
+   u yerga matn tushmasin: brief dagi zonalar jadvali. */
+.ad-copy {
   position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(90deg, rgba(255,253,251,.97) 0%, rgba(255,253,251,.93) 26%, rgba(255,253,251,.58) 46%, rgba(255,253,251,.14) 68%, transparent 86%),
-    linear-gradient(0deg, rgba(255,253,251,.3) 0%, transparent 36%);
-}
-.ad-content {
-  position: absolute;
-  inset: 0;
+  left: clamp(18px, 3.4vw, 44px);
+  right: 35%;
+  top: 0;
+  bottom: 0;
+  z-index: 2;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
   justify-content: center;
-  gap: 8px;
-  padding: clamp(18px, 3.4vw, 44px);
-  max-width: 62%;
+  align-items: flex-start;
+  text-align: left;
+  pointer-events: none;
 }
 .ad-title {
+  margin: 0;
   font-family: var(--font-display);
   font-size: clamp(19px, 2.9vw, 34px);
   font-weight: 800;
   letter-spacing: -.03em;
   line-height: 1.14;
   color: var(--ink-900);
+  /* Sarlavha HAR DOIM ikki qator (founder qarori, 2026-08-15) — uzilish joyi
+     tarjimadagi `\n` bilan beriladi. `pre-line` ayni shu ish uchun: qator
+     uzilishini SAQLAYDI, ortiqcha bo'shliqlarni esa yig'ib yuboradi.
+     `<br>` ishlatib bo'lmaydi — `applyLang()` matnni `textContent` bilan
+     yozadi va teg HARF bo'lib chiqib qolardi. */
+  white-space: pre-line;
 }
-.ad-sub {
-  font-size: clamp(12.5px, 1.35vw, 15px);
-  line-height: 1.5;
-  color: var(--text-muted);
-}
-.ad-cta {
-  margin-top: 6px;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  flex: none;          /* flex ichida 44px'dan pastga siqilmasin */
-  height: 44px;
-  padding: 0 20px;
-  border-radius: var(--radius-md);
-  /* Ranglar teskari: anor fon — och matn. Soyasi yumshoq qoladi,
-     tugma banner ustida bo'rtib turmasin. */
-  border: 1px solid rgba(122,20,13,.22);
-  background: var(--pom-700);
-  color: var(--pom-100);
-  font-size: 14px;
-  font-weight: 600;
-  box-shadow: 0 8px 22px -14px rgba(81,1,0,.45);
-  transition: transform var(--dur-fast), background var(--dur-fast);
-}
-.ad-cta:active { transform: scale(.98); }
-
-/* Nuqtalar — 44px tegish maydoni, ko'rinadigan qismi kichik.
-   O'ng pastda: chapdagi matn va tugma bilan to'qnashmasin. */
-.ad-dots {
-  position: absolute;
-  right: clamp(2px, 1.4vw, 20px);
-  bottom: clamp(2px, 1vw, 10px);
-  display: flex;
-  align-items: center;
-  gap: 0;
-}
-.ad-dot {
-  display: grid;
-  place-items: center;
-  /* 44x44 — 2026-07-29 sensorli tegish maydoni qarori */
-  width: 44px;
-  height: 44px;
-  background: none;
-  border: 0;
-  cursor: pointer;
-}
-.ad-dot i {
-  display: block;
-  width: 8px;
-  height: 8px;
+/* Chip — sarlavha QATORI ichida, oxirgi so'zdan keyin (Mini App naqshi,
+   faqat o'lcham saytnikida). `white-space: nowrap` — chip ikki bo'lakka
+   sinmasin; `vertical-align: middle` — katta harf o'rtasida tursin. */
+.ad-tag {
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: .4em;
+  padding: clamp(4px, .45vw, 6px) clamp(7px, .8vw, 11px);
   border-radius: 999px;
-  background: rgba(255,255,255,.9);
-  /* Har xil rangli rasm ustida ham ko'rinsin */
-  box-shadow: 0 1px 4px rgba(23,26,48,.55);
-  transition: width var(--dur-base) var(--ease-out), background var(--dur-base);
+  font-family: var(--font-sans);
+  font-size: clamp(9px, .82vw, 11.5px);
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  line-height: 1;
+  white-space: nowrap;
+  color: #fff;
+  position: relative;
+  top: -.1em;
 }
-.ad-dot.is-active i {
-  width: 22px;
-  background: var(--pom-400);
+/* Uch slaydning urg'u ranglari — dizayn tizimi tokenlaridan */
+.ad-slide[data-tone="rose"]    .ad-tag { background: var(--pom-700); }
+.ad-slide[data-tone="saffron"] .ad-tag { background: var(--saffron-700); }
+.ad-slide[data-tone="teal"]    .ad-tag { background: var(--teal-700); }
+
+/* Butun slayd bosiladi — Mini App'dagidek ichida alohida tugma yo'q.
+   Saytda slaydning O'ZI tugma bo'la olmaydi (izoh `index.html` da), shuning
+   uchun bosish yuzasi ustidagi shaffof qatlam. Nomi `.ad-hit` — u ko'rinmaydi,
+   ya'ni ranglar va o'lchamlar bu yerda yo'q. */
+.ad-hit {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: block;
+  width: 100%;
+  border: 0;
+  padding: 0;
+  background: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+/* Klaviatura bilan yurgan odam qaysi slaydda turganini ko'rsin */
+.ad-hit:focus-visible {
+  outline: 2px solid var(--pom-700);
+  outline-offset: -4px;
+  border-radius: var(--radius-lg);
 }
 
 @media (max-width: 640px) {
-  .ad-track { height: 250px; }
-  .ad-content { max-width: 100%; }
-  .ad-sub { display: none; }
+  .ad-slide { height: 220px; }     /* 250 → 200 (−20%) → 220 (+10%) */
+  /* ⚠️ Tor ekranda slayd 32:9 rasmdan ancha BALAND, ya'ni `cover` rasmning
+     yon tomonlarini kesadi va enining atigi ~44% i ko'rinadi (o'lchandi,
+     375px da). Standart `center` da kadrga rasmning 28–72% i tushadi —
+     o'ng 35% dagi mato burmasi (rasmning butun xarakteri) KESILIB qoladi
+     va banner tekis bej quti bo'lib ko'rinadi. Chapga surish ham yordam
+     bermadi: u yanada bo'shroq kadr berdi.
+     62% da oyna 34.8–78.7% ga tushadi: chapda matn uchun ochiq zona
+     qoladi, o'ngdan esa mato o'z rangi bilan kiradi — uchala slaydda ham
+     ko'z bilan tekshirildi (anor ipak, oltin adras, feruza ikat). */
+  .ad-slide img { object-position: 62% center; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .ad-slide, .ad-slide img { transition: none; }
-  .ad-slide img, .ad-slide.is-active img { transform: none; }
+  .ad-slide { transition: none; }
 }
 
 /* ===== KATEGORIYA CHIPLARI ===== */

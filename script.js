@@ -43,13 +43,26 @@ const STR = {
     catAll: 'Barchasi',
     verifiedNote: '— LolaMarket tomonidan tekshirilgan ishlab chiqaruvchi',
     bTavsiya: 'Tavsiya', bKamQoldi: 'Kam qoldi', bHunarmand: 'Hunarmand', bYangi: 'Yangi',
-    ad1t: "Tasdiqlangan fabrikalardan to'g'ridan-to'g'ri",
-    ad1s: "Rulon formatida ulgurji xarid — vositachisiz, himoyalangan to'lov bilan.",
-    ad2t: 'Gulli naqsh — ipak kolleksiya',
-    ad2s: "Marg'ilon va Andijon ustaxonalaridan qo'lbola ipak matolar.",
+    // ---- Banner ----
+    // Matn Mini App'dagi `AD_SLIDES` bilan AYNAN bir xil (2026-08-16).
+    // ⚠️ Sarlavhadagi `\n` — qator uzilishi va u SHART: founder qaroriga
+    // ko'ra sarlavha har doim ikki qator (`style.css` → `.ad-title`
+    // `white-space: pre-line`). Mini App'da o'sha joyda `<br>` turadi;
+    // bu yerda `<br>` yaramaydi, chunki tarjima `textContent` bilan yoziladi.
+    // ⚠️ `aria-label` sarlavhadan ALOHIDA yozilgan: ekran o'quvchi uchun
+    // "Bepul yetkazib berish" o'zi qayerga olib borishini aytmaydi, ko'z
+    // esa buni chipdan va rasm ostidagi katalogdan tushunadi.
+    ad1t: "Matolarni AI bilan\njonlantiring",
+    ad1tag: "Sinab ko'rish",
+    ad1aria: "Matolarni AI bilan jonlantiring — katalogga o'tish",
+    ad2t: '24/7 buyurtma\nberishingiz mumkin',
+    ad3t: 'Bepul yetkazib\nberish',
+    ad3tag: 'Ilk 3 ta buyurtma',
+    ad3aria: "Bepul yetkazib berish — katalogga o'tish",
+    // ⚠️ Bannerga EMAS, pastdagi «CTA — Telegram bot» bo'limiga tegishli
+    // (`index.html` → `.cta-title`). Banner matni almashtirilganda shu
+    // kalit ham banner bilan birga o'chib ketishiga oz qolgan edi.
     tgOrder: 'Telegram orqali ham buyurtma bering',
-    tgOrderSub: "Katalog, savat va buyurtma holati — ilova o'rnatmasdan.",
-    viewCatalog: "Katalogni ko'rish",
     catIkat: 'Ikat va adras',
     catSuzani: "So'zana",
     catSilk: 'Ipak',
@@ -251,13 +264,14 @@ const STR = {
     catAll: 'Все',
     verifiedNote: '— производитель проверен LolaMarket',
     bTavsiya: 'Рекомендуем', bKamQoldi: 'Мало осталось', bHunarmand: 'Ремесленник', bYangi: 'Новинка',
-    ad1t: 'Напрямую с проверенных фабрик',
-    ad1s: 'Оптовая закупка рулонами — без посредников, с защищённой оплатой.',
-    ad2t: 'Цветочный узор — шёлковая коллекция',
-    ad2s: 'Ручные шёлковые ткани из мастерских Маргилана и Андижана.',
+    ad1t: 'Оживите ткани\nс помощью AI',
+    ad1tag: 'Попробовать',
+    ad1aria: 'Оживите ткани с помощью AI — перейти в каталог',
+    ad2t: 'Принимаем\nзаказы 24/7',
+    ad3t: 'Доставка —\nбесплатно',
+    ad3tag: 'Первые 3 заказа',
+    ad3aria: 'Бесплатная доставка — перейти в каталог',
     tgOrder: 'Заказывайте и через Telegram',
-    tgOrderSub: 'Каталог, корзина и статус заказа — без установки приложения.',
-    viewCatalog: 'Смотреть каталог',
     catIkat: 'Икат и адрас',
     catSuzani: 'Сюзане',
     catSilk: 'Шёлк',
@@ -597,81 +611,136 @@ const observer = new IntersectionObserver((entries) => {
 document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
 
 /* ====================================================
-   REKLAMA BANNERI — 3 slayd, avtomatik aylanadi
-   Sichqoncha ustida, fokusda yoki tab ko'rinmay qolganda to'xtaydi.
+   REKLAMA BANNERI — karusel (Mini App bilan bir xil naqsh, 2026-08-16)
+
+   Ilgari slaydlar ustma-ust turib `opacity` bilan almashardi va barmoq bilan
+   surish QO'LDA hisoblanardi (`touchstart`/`touchend` orasidagi masofa). Endi
+   slaydlar yonma-yon yotadi va surishni BRAUZERNING O'ZI qiladi (`overflow-x`
+   + `scroll-snap`, `style.css` → `.ad-banner`): barmoq ortidan yuradi,
+   inersiyasi bor. Ya'ni qo'l bilan yozilgan surish kodi ortiqcha bo'lib
+   qoldi va o'chirildi.
+
+   Cheksiz aylanish uchun ikki chetga KLON qo'yiladi: [oxirgi, 1, 2, 3,
+   birinchi]. Foydalanuvchi klonga yetganda `adSettle()` uni sezdirmasdan
+   haqiqiy nusxaga "sakratadi" — mazmun bir xil, ko'z ilg'amaydi.
+   Klonlar HTML da emas, shu yerda yasaladi: `index.html` da uchta slayd
+   qoladi, ya'ni bir xil matn manbada uch marta emas, bir marta yoziladi
+   (JS ishlamasa ham banner o'qiladigan holda qoladi, faqat aylanmaydi).
    ==================================================== */
 
 const adBanner = document.getElementById('ad-banner');
-const adSlides = adBanner ? [...adBanner.querySelectorAll('.ad-slide')] : [];
-const adDots = adBanner ? [...adBanner.querySelectorAll('.ad-dot')] : [];
 const AD_DELAY = 5000;
 
-let adIndex = 0;
+let adIndex = 0;    // KO'RINIB turgan HAQIQIY slayd (0..adCount-1)
+let adCount = 0;    // haqiqiy slaydlar soni — klonlar bunga kirmaydi
 let adTimer = null;
 let adPaused = false;
 
-function adRender() {
-  adSlides.forEach((s, i) => {
-    const on = i === adIndex;
-    s.classList.toggle('is-active', on);
-    s.setAttribute('aria-hidden', on ? 'false' : 'true');
-  });
-  adDots.forEach((d, i) => {
-    const on = i === adIndex;
-    d.classList.toggle('is-active', on);
-    d.setAttribute('aria-selected', on ? 'true' : 'false');
-  });
+/* ⚠️ `behavior: 'smooth'` FAQAT brauzer uni bilganda beriladi. Sabab
+   `mountPdMedia` da o'lchangan (2026-08-13): qo'llab-quvvatlanmagan muhitda
+   so'rov JIMGINA yutiladi — u yerda nuqta o'lik tugmaga aylanardi, bu yerda
+   esa karusel umuman almashmay qolardi va buni hech narsa ko'rsatmasdi.
+   `scrollBehavior` CSS xususiyati borligi `scrollTo` ning `behavior` ni
+   bilishini bildiradi; yo'q bo'lsa to'g'ridan-to'g'ri qiymat beriladi —
+   silliq emas, lekin ISHLAYDI. */
+const AD_SMOOTH = 'scrollBehavior' in document.documentElement.style;
+
+/* Slaydning skrollerdagi snap nuqtasi. `k` — mantiqiy o'rin (−1 = oxirgi
+   klon, 0..n−1 haqiqiy, n = birinchi klon), DOM dagi element esa `k + 1`.
+   `offsetLeft` skrollerning chetidan o'lchanadi (`.ad-banner` `position:
+   relative`), snap chizig'i esa `scroll-padding` da — shuning uchun
+   `paddingLeft` ayiriladi. */
+function adPos(k) {
+  const slide = adBanner.children[k + 1];
+  if (!slide) return 0;
+  const pad = parseFloat(getComputedStyle(adBanner).paddingLeft) || 0;
+  return slide.offsetLeft - pad;
+}
+
+function adScrollTo(k, smooth) {
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const left = adPos(k);
+  if (smooth && AD_SMOOTH && !reduce) adBanner.scrollTo({ left, behavior: 'smooth' });
+  else adBanner.scrollLeft = left;
+}
+
+/* Skroll to'xtaganda chaqiriladi: qaysi slaydda turganimizni HISOBLAYDI va
+   klonda to'xtagan bo'lsak haqiqiy nusxaga sakraydi. */
+function adSettle() {
+  const step = adPos(1) - adPos(0);      // slayd eni + oraliq
+  if (!step) return;
+  const k = Math.round(adBanner.scrollLeft / step) - 1;
+  if (k >= adCount) { adScrollTo(0, false); adIndex = 0; }
+  else if (k < 0) { adScrollTo(adCount - 1, false); adIndex = adCount - 1; }
+  else adIndex = k;
 }
 
 function adStart() {
-  if (!adSlides.length || adTimer) return;
+  if (adTimer) clearInterval(adTimer);
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   adTimer = setInterval(() => {
+    // Sichqoncha ustida, fokusda, barmoq tekkanda yoki tab ko'rinmay
+    // qolganda — turaveradi: o'qilayotgan slayd ko'z oldidan qochmasin.
     if (adPaused || document.hidden) return;
-    adIndex = (adIndex + 1) % adSlides.length;
-    adRender();
+    adScrollTo(adIndex + 1, true);       // `adCount` bo'lsa klon — `adSettle` qaytaradi
   }, AD_DELAY);
 }
 
-/* Nuqta bosilganda — o'sha slayd, keyin sanoq qaytadan boshlanadi */
-function adGo(i) {
-  if (!adSlides.length) return;
-  adIndex = (i + adSlides.length) % adSlides.length;
-  adRender();
-  clearInterval(adTimer);
-  adTimer = null;
-  adStart();
-}
-
-/* Banner tugmalari */
+/* Banner bosilganda boradigan joy (`data-action` orqali chaqiriladi).
+   ⚠️ Uchala slayd ham KATALOGGA olib boradi va bu Mini App'dan farq qiladi:
+   u yerda 1-slayd `tab('ai')` ga tushadi, saytda esa AI ekrani YO'Q — AI
+   bloki har mahsulotning o'z sahifasida yashaydi (`aiSection`, `detailHtml`
+   ichida). Ya'ni saytda AI ga yagona yo'l mato tanlashdan o'tadi va banner
+   aynan o'sha qadamga olib boradi. Havolani "AI ochiladi" deb ko'rsatish
+   soxta tugma bo'lardi.
+   ⚠️ Ilgari shu yerda `adGoCat(cat)` ham turardi (kategoriya chipini bosib,
+   keyin katalogga tushardi) — u faqat eski "ipak kolleksiya" slaydi uchun
+   edi va o'sha slayd bilan birga o'chdi. */
 function adGoCatalog() {
   document.getElementById('product-grid')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
-function adGoCat(cat) {
-  const chip = document.querySelector('.chip[data-cat="' + cat + '"]');
-  if (chip) chip.click();
-  adGoCatalog();
-}
+function mountAdBanner() {
+  if (!adBanner) return;
+  const slaydlar = [...adBanner.querySelectorAll('.ad-slide')];
+  adCount = slaydlar.length;
+  if (adCount < 2) return;
 
-if (adBanner) {
+  // Klon ekran o'quvchisiga ko'rinmaydi va Tab bilan tanlanmaydi — aks holda
+  // bir xil sarlavha ikki marta o'qilardi va Tab bir joyda ikki marta to'xtardi.
+  const bosh = slaydlar[0].cloneNode(true);
+  const oxir = slaydlar[adCount - 1].cloneNode(true);
+  for (const klon of [bosh, oxir]) {
+    klon.setAttribute('aria-hidden', 'true');
+    klon.querySelectorAll('.ad-hit').forEach((h) => { h.tabIndex = -1; });
+  }
+  adBanner.append(bosh);
+  adBanner.prepend(oxir);
+
+  adIndex = 0;
+  adScrollTo(0, false);          // birinchi HAQIQIY slayd, klon emas
+  adStart();
+
+  // ⚠️ `scrollend` ISHLATILMAYDI — hamma brauzerda yo'q (Mini App tomonida
+  // sabab iOS WebView edi). O'rniga `scroll` + 120 ms tinchlik = "to'xtadi".
+  let settleT = null;
+  adBanner.addEventListener('scroll', () => {
+    clearTimeout(settleT);
+    settleT = setTimeout(adSettle, 120);
+  }, { passive: true });
+
   adBanner.addEventListener('mouseenter', () => { adPaused = true; });
   adBanner.addEventListener('mouseleave', () => { adPaused = false; });
   adBanner.addEventListener('focusin', () => { adPaused = true; });
   adBanner.addEventListener('focusout', () => { adPaused = false; });
-
-  /* Telefonda chapga/o'ngga surish */
-  let adX0 = null;
-  adBanner.addEventListener('touchstart', (e) => { adX0 = e.changedTouches[0].clientX; }, { passive: true });
-  adBanner.addEventListener('touchend', (e) => {
-    if (adX0 === null) return;
-    const dx = e.changedTouches[0].clientX - adX0;
-    adX0 = null;
-    if (Math.abs(dx) > 45) adGo(adIndex + (dx < 0 ? 1 : -1));
-  }, { passive: true });
-
-  adStart();
+  adBanner.addEventListener('touchstart', () => { adPaused = true; }, { passive: true });
+  adBanner.addEventListener('touchend', () => { adPaused = false; }, { passive: true });
 }
+
+// `script.js` `defer` bilan yuklanadi, ya'ni bu yerga yetganda DOM tayyor.
+// ⚠️ `window.addEventListener('load', ...)` ISHLATILMAYDI: u BARCHA rasm
+// yuklangandan keyin otiladi va sekin tarmoqda banner soniyalab qotib turardi.
+mountAdBanner();
 
 /* ====================================================
    QIDIRUV VA FILTRLASH

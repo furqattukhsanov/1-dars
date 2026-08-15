@@ -1383,8 +1383,8 @@ function testAssetVersionsAreFresh() {
     // Shuning uchun versiya ikkala tomonnikidan ham YUQORI olinadi — teng
     // yoki past raqam qaytib kelgan foydalanuvchida keshdagi YARIM
     // (bir tomonlama) faylni qoldirardi.
-    'style.css': { v: 54, hash: '06c273d3a068' },
-    'script.js': { v: 45, hash: '90235cdc8b91' },
+    'style.css': { v: 56, hash: '9eb0ef13c990' },
+    'script.js': { v: 47, hash: 'bbad6bd6acfb' },
     'pwa.js': { v: 2, hash: 'f46683d58662' },
     // ⚠️ IKKINCHI BIRLASHTIRISH (2026-08-14): ikkala tomon panel.js ni 24,
     // app.js ni 87 ga ko'targan — AYNI raqamlar, TARKIB esa har xil.
@@ -1398,7 +1398,7 @@ function testAssetVersionsAreFresh() {
     // YUQORIGA suriladi: teng raqam qaytib kelgan foydalanuvchida keshdagi
     // BIR TOMONLAMA faylni qoldirardi — sevimlilar yoki chiqish tuzatishining
     // faqat bittasi bo'lgan `app.js`.
-    'panel.js': { v: 37, hash: 'f61392008392' },
+    'panel.js': { v: 38, hash: 'd05582a68651' },
     'admin/admin.css': { v: 18, hash: '15b0bc977b85' },
     'admin/admin.js': { v: 25, hash: '08fae1bb61dc' },
     'telegram-app/styles.css': { v: 36, hash: '570a2450c3a4' },
@@ -4122,8 +4122,46 @@ function testAdBannerWiring() {
   assert.ok(/data-action="adTap"\s+data-arg="\$\{i\}"/.test(bannerHtmlTana2[1]),
     'har `.ad-slide` `data-action="adTap" data-arg="${i}"` bilan chizilsin — bosilganda qaysi slayd ekani shundan');
 
+  // ---- 5-band: SAYT nusxasi Mini App bilan bir xil qolsin (2026-08-16) ----
+  // Sayt banneri Mini App'niki bilan bir xil qilindi va shu bilan birga
+  // rasmlar `assets/ads/` ga NUSXALANDI. Nusxa MAJBURIY: landing HTML'i
+  // `telegram-app/...` yo'liga ishora qila olmaydi (serverda o'sha papka
+  // `mini-app/` deb ataladi, havola 404 bo'lardi), CI esa ikkalasini
+  // ALOHIDA qadam bilan chiqaradi.
+  //
+  // Xavf esa `BTS_POINTS` bilan bitta oila: ikki nusxa jimgina AJRALIB
+  // KETADI — Mini App'da rasm yangilanadi, saytda esa eskisi qolib
+  // ketaveradi va buni hech narsa ko'rsatmaydi (ikkala sahifa ham ochiladi,
+  // konsol toza, faqat ikki yuzda IKKI XIL banner turadi). Shuning uchun
+  // bu yerda `sha256` solishtiriladi.
+  //
+  // Ro'yxat QO'LDA yozilmaydi: `AD_SLIDES` dagi `img` asoslaridan olinadi,
+  // ya'ni to'rtinchi slayd qo'shilsa u ham avtomatik qamraladi.
+  const crypto = require('crypto');
+  const webRoot = path.join(__dirname, '..');
+  let nusxaSoni = 0;
+  for (const rel of rasmlar) {
+    const nom = path.posix.basename(rel);         // `assets/ads/ad-1` → `ad-1`
+    for (const ext of ['.webp', '.jpg']) {
+      const mini = path.join(webRoot, 'telegram-app', rel + ext);
+      const sayt = path.join(webRoot, 'assets', 'ads', nom + ext);
+      assert.ok(fs.existsSync(sayt),
+        `Mini App banneri \`${nom}${ext}\` saytda YO'Q: \`assets/ads/${nom}${ext}\`. ` +
+        'Sayt banneri shu papkadan o\'qiydi (`index.html`) — fayl yetmasa slayd bo\'sh chiqadi.');
+      const h = (p) => crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex').slice(0, 12);
+      assert.strictEqual(h(sayt), h(mini),
+        `\`${nom}${ext}\` ikki joyda HAR XIL: \`telegram-app/${rel}${ext}\` va ` +
+        `\`assets/ads/${nom}${ext}\`. Mini App rasmi yangilanib, saytdagi nusxa ` +
+        'eskisicha qolgan bo\'lsa — ikki yuzda ikki xil banner turadi va buni ' +
+        'hech narsa ko\'rsatmaydi. Nusxani yangilang: `cp telegram-app/' + rel + ext +
+        ' assets/ads/' + nom + ext + '`');
+      nusxaSoni++;
+    }
+  }
+
   console.log(`✅ Test 32: Reklama banneri qo'riqchisi — PASS `
-    + `(${rasmlar.length} slayd × 2 til, chizish bitta nuqtadan, taymer tozalanadi)`);
+    + `(${rasmlar.length} slayd × 2 til, chizish bitta nuqtadan, taymer tozalanadi, `
+    + `${nusxaSoni} ta rasm ikki yuzda bir xil)`);
 }
 
 // ====== TEST 33: SEVIMLILAR BAZADA VA YOLG'ON KO'RSATMAYDI (2026-08-14) ======
