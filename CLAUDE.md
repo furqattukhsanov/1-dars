@@ -507,6 +507,24 @@
   (`script.js` → `pdpBarSync`). 880px dan tor ekranda qidiruv ikkinchi
   qatorga tushadi va header 64px emas: **700px da 115px, 375px da 162px**
   (o'lchandi). Qattiq yozilsa qator header ostiga kirib, KO'RINMAY qolardi.
+  🔴 **QATOR CHIQQANDA HEADER KETADI** (founder qarori o'sha kuni kechqurun:
+  "mahsulot qadalganda tepadagi doim qadaladigani qadalmasin"). Ikkita
+  qadalgan qator birga 125px (64 + 61), telefonda esa **223px** (162 + 61)
+  yeb qo'yardi. Endi bittasi ikkinchisini almashtiradi:
+  `body.pdp-bar-on #nav { transform: translateY(-100%) }`, qator esa
+  `top: 0` ga o'tadi.
+  ⚠️ **Chegara `offsetHeight` dan olinadi, `getBoundingClientRect` dan
+  EMAS** — aks holda AYLANMA bog'liqlik: qator chiqadi → header suriladi →
+  rect o'zgaradi → chegara siljiydi → qator yashirinadi → header qaytadi,
+  ya'ni ekran har kadrda miltillardi. `transform` oqimdagi o'lchamga
+  TEGMAYDI, `position` almashtirish esa tegardi — CSS tomonda `transform`
+  tanlanganining sababi ham shu.
+  ⚠️ **`pdp-bar-on` belgisi TANADA, qator esa `#pdp` ichida** — ular alohida
+  yo'l bilan yo'qoladi. Belgi qolib ketsa **katalogda header butunlay
+  ko'rinmay qolardi** (qidiruv, savat, kirish — hammasi yo'q). Shuning uchun
+  `closePdp()` uni ataylab o'chiradi va `pdpBarSync()` da zaxira tozalash
+  turadi. Qorovul: **Test 41** (4 band, jami 11 mutatsiya bilan sinaldi —
+  11 tasi ham ushlandi).
   ⚠️ **Tugma NUSXALANMAYDI** — ikkala joy ham `pdpActHtml()` dan oziqlanadi
   va `renderPdpAct()` IKKALASINI ham yangilaydi. Bittasi unutilsa ekran
   o'z ustidan yolg'on gapirardi: bir joyda "savatda 2 dona", ikkinchisida

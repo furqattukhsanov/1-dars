@@ -1962,6 +1962,13 @@ function openDetail(id) {
   // o'rtasidan bosgan odam mahsulot sahifasining o'rtasiga tushardi va
   // rasm ham, nom ham ekrandan tashqarida qolardi.
   window.scrollTo(0, 0);
+  // ⚠️ Qadalgan qator skroll TIKLANGANDAN KEYIN hisoblanadi. `renderPdp`
+  // ichidagi chaqiruv sahifa hali ESKI joyida turganda bo'ladi, ya'ni
+  // o'xshash mato kartochkasidan yangi mahsulot ochilganda qator "ko'rinsin"
+  // deb qolar, header esa surilgan holatda turardi — yangi mahsulotning
+  // suratini bosib. Skroll hodisasiga tayanib bo'lmaydi: `scrollY` 0 dan 0
+  // ga o'zgarsa hodisa UMUMAN otilmaydi.
+  pdpBarSync();
   loadCatalogMeta();
   loadReviews(id);
 }
@@ -3650,19 +3657,39 @@ function pdpBarHtml(id, p, m) {
    header ostiga kirib ketardi.
    ⚠️ Solishtirish tugunning O'Z `style.top` i bilan bo'ladi, o'zgaruvchi
    bilan emas: `#pdp` har ochilishda QAYTA yoziladi, ya'ni tugun YANGI va
-   eslab qolingan qiymat unga hech qachon qo'yilmagan bo'lardi. */
+   eslab qolingan qiymat unga hech qachon qo'yilmagan bo'lardi.
+
+   🔴 Qator chiqqanda header yuqoriga suriladi (founder qarori: "mahsulot
+   qadalganda tepadagi doim qadaladigani qadalmasin") va o'shanda qator
+   `top: 0` ga o'tadi — ikkita qadalgan qator birga turmaydi.
+   ⚠️ Header balandligi `offsetHeight` bilan olinadi, `getBoundingClientRect`
+   BILAN EMAS. Sabab AYLANMA BOG'LIQLIK: rect header surilganda O'ZGARADI,
+   ya'ni chegara qatorning O'Z holatiga bog'lanib qolardi — qator chiqadi →
+   chegara siljiydi → qator yashirinadi → chegara qaytadi… `offsetHeight`
+   esa oqimdagi o'lchov, u `transform` dan TA'SIRLANMAYDI (CSS tomonda
+   `position` emas, `transform` tanlanganining sababi ham shu). */
 function pdpBarSync() {
   const bar = document.getElementById('pdp-bar');
-  if (!bar) return;
+  // Qator yo'q (katalog) — header'ni surib qo'yadigan belgi ham qolmasin.
+  // Bu O'ZINI TUZATADIGAN qator: `closePdp` allaqachon tozalaydi, lekin
+  // belgi tanada, qator esa `#pdp` ichida yashaydi — ya'ni ular ALOHIDA
+  // yo'l bilan yo'qoladi va bittasi qolib ketsa katalogda header BUTUNLAY
+  // ko'rinmay qolardi.
+  if (!bar) { document.body.classList.remove('pdp-bar-on'); return; }
   const nav = document.getElementById('nav');
-  const past = nav ? Math.round(nav.getBoundingClientRect().bottom) : 0;
-  const top = past + 'px';
-  if (bar.style.top !== top) bar.style.top = top;
+  const navH = nav ? nav.offsetHeight : 0;
 
   const buy = document.querySelector('.pdp-buy');
-  const kor = !!buy && buy.getBoundingClientRect().bottom < past;
+  const kor = !!buy && buy.getBoundingClientRect().bottom < navH;
+
+  const top = (kor ? 0 : navH) + 'px';
+  if (bar.style.top !== top) bar.style.top = top;
+
   if (kor === bar.classList.contains('is-on')) return;
   bar.classList.toggle('is-on', kor);
+  // Header'ni surish belgisi TANADA turadi: `#nav` `#pdp` dan tashqarida,
+  // ya'ni qatorning o'z klassi unga yetib bormasdi.
+  document.body.classList.toggle('pdp-bar-on', kor);
   // Ko'rinmaganda `visibility: hidden` (CSS) uni TAB tartibidan ham
   // chiqaradi; `aria-hidden` esa ekran o'quvchisiga aytadi.
   bar.setAttribute('aria-hidden', kor ? 'false' : 'true');
@@ -3916,6 +3943,10 @@ function closePdp() {
   pdpAllReviews = false;
   if (box) { box.hidden = true; box.innerHTML = ''; }
   document.body.classList.remove('pdp-on');
+  // Qadalgan qator bilan birga header'ni surib turgan belgi ham ketadi —
+  // aks holda katalogga qaytgan odam header'siz qolardi (belgi tanada,
+  // qator esa `#pdp` ichida edi, ya'ni u O'ZI bilan ketmasdi).
+  document.body.classList.remove('pdp-bar-on');
   pdpTitle(null);
   mNavActive('catalog');
   // Manzil qatorida mahsulot yo'li qolib ketmasin — qolsa sahifa
@@ -3988,6 +4019,10 @@ window.addEventListener('popstate', () => {
   renderPdp();
   loadReviews(id);
   window.scrollTo(0, 0);
+  // `openDetail` dagi bilan bitta sabab: qator skroll tiklangandan KEYIN
+  // hisoblanadi, aks holda "orqaga" bosilgan sahifada header surilgan
+  // holatda qolib ketardi.
+  pdpBarSync();
 });
 
 function addFromDetail(id) {

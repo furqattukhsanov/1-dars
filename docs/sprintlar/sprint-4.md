@@ -131,6 +131,89 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
 
 ## Qilingan ishlar
 
+- [2026-08-16] **QADALGAN QATOR CHIQQANDA HEADER YUQORIGA SURILADI —
+  IKKITA QADALGAN QATOR BIRGA TURMAYDI** (bugungi SAKKIZINCHI commit).
+  Ish FAQAT SAYTGA tegdi — Mini App'ga tegilmadi.
+
+  ⚠️ **Raqam TEKSHIRILDI va oldingi yozuvda XATO topildi:** bir oldingi
+  yozuv o'zini «OLTINCHI commit» deb ataydi, `git log --since="2026-08-16"`
+  esa o'sha paytda **yetti** ta commit ko'rsatadi — `2a93153` (`og:` meta
+  tuzatishi) alohida sanalmay, beshinchining yozuviga qo'shib yuborilgan
+  edi. Yozuvlar tuzatilmadi (tarix qayta yozilmaydi), lekin bu yerdagi
+  raqam GIT dan olindi, oldingi yozuvdan emas. «Hujjatdagi raqam —
+  tekshirilmagan da'vo» qoidasi bu safar xato TOPDI.
+
+  **FOUNDER SHIKOYATI (skrinshot bilan):** «mahsulot qadalganda tepadagi
+  doim qadaladigani qadalmasin». Kechagi commitda qo'shilgan `.pdp-bar`
+  header'ning OSTIDA turardi, ya'ni ekranning yuqorisini **IKKITA** qadalgan
+  qator egallardi: 1280px da 64 + 61 = **125px**, telefonda (375px)
+  162 + 61 = **223px**. Ya'ni ekranning eng qimmat joyida mato emas,
+  BOSHQARUV turardi.
+
+  **YECHIM: bittasi ikkinchisining O'RNINI bosadi.** Qator ko'ringanda
+  tanaga `pdp-bar-on` belgisi qo'yiladi va CSS header'ni yuqoriga suradi
+  (`body.pdp-bar-on #nav { transform: translateY(-100%) }`), qator esa
+  `top: 0` ga o'tadi. Qator yashiringanda header qaytadi. `#nav` ga
+  `transition: transform` qo'shildi — o'tish silliq.
+  ⚠️ **`position: static` EMAS, `transform`** — sabab harakat emas, IKKI
+  TOMONLAMA: (a) `#nav` ustida `backdrop-filter` bor va `position`
+  almashtirilsa paint qatlami qayta yig'iladi (sakrash); (b) `transform`
+  oqimdagi joyni ham, `offsetHeight` ni ham TEGMASDAN qoldiradi — quyidagi
+  aylanma bog'liqlik aynan shunga tayanadi.
+
+  🔴 **AYLANMA BOG'LIQLIK OCHILDI VA U ENG NOZIK QISM.** `pdpBarSync()`
+  ilgari header chegarasini `getBoundingClientRect().bottom` bilan olardi.
+  Header endi qatorning holatiga qarab SURILADI, ya'ni rect chegarani
+  o'zgartiradi: qator chiqadi → header suriladi → chegara siljiydi →
+  qator yashirinadi → header qaytadi → chegara qaytadi… **ekran har kadrda
+  miltillardi.** Endi balandlik `offsetHeight` dan olinadi — u oqimdagi
+  o'lchov va `transform` dan TA'SIRLANMAYDI, ya'ni chegara qat'iy.
+
+  **IKKITA JIMGINA NUQSON TOPILDI VA YOPILDI** — ikkalasi ham AYNI
+  sessiyada yozilgan kodda edi va **jonli tekshiruvda** chiqdi, testda emas:
+  **(a) Katalogga qaytgan odam HEADERSIZ qolardi.** `closePdp()`
+  `pdp-bar-on` belgisini o'chirmasdi. Sabab tuzilishda: belgi **TANADA**,
+  qator esa **`#pdp` ICHIDA** yashaydi — ular ALOHIDA yo'l bilan yo'qoladi
+  va bittasi qolib ketsa qidiruv, savat, kirish — hammasi ko'rinmas bo'lardi.
+  `pdpBarSync()` ga zaxira tozalash ham qo'shildi (`if (!bar)` shohbasida),
+  ya'ni qator boshqa yo'l bilan yo'qolsa ham belgi qolib ketmaydi.
+  **(b) O'xshash matodan yangi mahsulot ochilganda header surilgan holatda
+  qolardi.** `openDetail` va `popstate` da qator skroll TIKLANMASDAN OLDIN
+  hisoblanardi. Endi `pdpBarSync()` `window.scrollTo(0, 0)` dan KEYIN
+  chaqiriladi. ⚠️ Skroll hodisasiga tayanib bo'lmaydi: `scrollY` 0 dan 0
+  ga «o'zgarsa» hodisa UMUMAN otilmaydi.
+
+  **QOROVUL — TEST 41 KENGAYDI (1 band → 4 band), 4 YANGI MUTATSIYA,
+  4 TASI USHLANDI** (bu funksiya bo'yicha jami **11/11**):
+  2-band — chegara `offsetHeight` dan olinsin va `pdpBarSync` ichida
+  header uchun `getBoundingClientRect` BO'LMASIN (aylanma bog'liqlik);
+  3-band — `closePdp()` `pdp-bar-on` ni o'chirsin VA `pdpBarSync` da
+  `if (!bar)` zaxira tozalashi bo'lsin; 4-band — CSS tomonda
+  `body.pdp-bar-on #nav` qoidasi haqiqatan header'ni yuqoridan olib
+  tashlasin. ⚠️ 4-band **USLUBNI emas, NATIJANI** so'raydi:
+  `translateY(-100%)` ham, `position: static` ham qabul qilinadi — test
+  maqsadni qulflaydi, amalga oshirishni emas.
+
+  **SINALGANI: 80 TEST YASHIL** — raqam runner chiqishidan MUSTAQIL
+  sanaldi (`^✅ Test` satrlari, TAKRORSIZ). ⚠️ **Son O'ZGARMADI va bu
+  to'g'ri:** yangi test raqami qo'shilmadi, mavjud Test 41 kengaydi.
+  🔴 **JONLI SAYTDA HALI KO'RILMAGAN** — deploy faqat statik (server
+  kodiga tegilmadi, servis restarti va migratsiya KERAK EMAS).
+
+  ⚠️ **TEKSHIRUV KO'Z BILAN EMAS, O'LCHOV BILAN** (1280px va 375px):
+  header surilgani (`navTop` 0 → **-64** / **-162**), qator `top: 0` ga
+  o'tgani, `pdpBarSync()` ketma-ket chaqirilganda holat O'ZGARMAGANI
+  (ya'ni tebranish yo'q — aylanma bog'liqlik haqiqatan uzilgan),
+  katalogga qaytganda header tiklangani, o'xshash kartochkadan yangi
+  mahsulot ochilganda holat to'g'ri bo'lgani.
+
+  Kesh: `style.css` 61 → **62** (`index.html` va `admin/index.html`
+  birga — bitta fayl hamma sahifada bir xil versiya), `script.js`
+  50 → **51**, `panel.js` 43 → **44**, Test 16 jadvalidagi `sha256` lar
+  birga (`style.css` `0a32cbfbbbce`, `script.js` `5d49be2ec8f6`).
+  CLAUDE.md dagi mavjud band kengaytirildi (yangi qoida ochilmadi —
+  bu o'sha qadalgan qator bandining davomi).
+
 - [2026-08-16] **MAHSULOT SAHIFASIDA QADALGAN QUTI OLIB TASHLANDI VA
   O'XSHASH MATOLAR KATALOG O'LCHAMIGA QAYTDI** (bugungi OLTINCHI commit).
   Uchala o'zgarish ham founder shikoyati/qarori bo'yicha, ish FAQAT SAYTGA
@@ -3029,6 +3112,58 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
 ---
 
 ## Qarorlar
+
+- [2026-08-16] Qaror: **qadalgan qator chiqqanda header YUQORIGA SURILADI —
+  ikkita qadalgan qator ekranda birga turmaydi.** Founder shikoyati (skrinshot
+  bilan): «mahsulot qadalganda tepadagi doim qadaladigani qadalmasin».
+  O'lchov: 1280px da 64 + 61 = **125px**, 375px da 162 + 61 = **223px**.
+  Muqobili — qatorni ingichkaroq qilish — RAD ETILDI: u ikkita qatorni
+  BITTA muammoning kichikroq shakliga aylantirardi, founder esa aynan
+  ikkitaligidan shikoyat qildi. Qator header'ning O'RNINI bosadi, unga
+  qo'shimcha emas — bu kechagi «qator quti o'rnini bosadi» qarorining
+  ayni mantig'i, faqat bir qavat yuqorida
+
+- [2026-08-16] Qaror: **surish `transform` bilan bo'ladi, `position`
+  almashtirish bilan EMAS.** Ikki sabab va ikkinchisi muhimroq:
+  (a) `#nav` ustida `backdrop-filter` bor, `position` almashtirilsa paint
+  qatlami qayta yig'iladi va o'tish sakraydi; (b) `transform` oqimdagi
+  o'lchamga TEGMAYDI, ya'ni `offsetHeight` o'zgarmay qoladi — chegara
+  hisobi aynan shunga tayanadi. Ya'ni uslub tanlovi emas, ARXITEKTURA
+  tanlovi: `position` almashtirilsa quyidagi aylanma bog'liqlikni
+  uzib bo'lmasdi
+
+- [2026-08-16] Qaror: **header balandligi `offsetHeight` bilan o'lchanadi,
+  `getBoundingClientRect()` bilan EMAS.** Sabab AYLANMA BOG'LIQLIK: header
+  endi qatorning holatiga qarab suriladi, ya'ni rect chegarani o'zgartiradi —
+  qator chiqadi → chegara siljiydi → qator yashirinadi → chegara qaytadi…
+  ekran har kadrda miltillardi. Bu kechagi «`top` qattiq yozilmaydi,
+  O'LCHANADI» qarorining davomi va uning tuzog'i: o'lchov to'g'ri qaror
+  edi, lekin **QAYSI o'lchov** ekani endi ahamiyatli bo'lib qoldi
+
+- [2026-08-16] Qaror: **`pdp-bar-on` belgisi ikkita mustaqil yo'l bilan
+  tozalanadi** — `closePdp()` da ATAYLAB va `pdpBarSync()` ning `if (!bar)`
+  shohbasida ZAXIRA sifatida. Sabab tuzilishda: belgi TANADA, qator esa
+  `#pdp` ichida yashaydi, ya'ni ular alohida yo'l bilan yo'qoladi. Bitta
+  tozalash yetarli deb qoldirilsa — va aynan shunday qoldirilgan edi —
+  katalogga qaytgan foydalanuvchi **headersiz** qolardi: qidiruv, savat,
+  kirish hammasi ko'rinmas. Nuqson JIMGINA edi: konsolda xato yo'q,
+  DOM to'liq, element esa ekrandan tashqarida
+
+- [2026-08-16] Qaror: **Test 41 ning 4-bandi USLUBNI emas, NATIJANI
+  so'raydi** — `translateY(-100%)` ham, `position: static` ham qabul
+  qilinadi. Sabab: test maqsadni qulflashi kerak («header yuqorida joy
+  egallamasin»), amalga oshirishni emas. Qat'iy shakl talab qilinsa
+  kelajakdagi to'g'ri yechim testni qizil qilardi va test himoyadan
+  to'siqqa aylanardi
+
+- [2026-08-16] Dars: **ikkala nuqsonni ham TEST emas, JONLI TEKSHIRUV
+  topdi.** `closePdp` da belgi qolib ketishi va `openDetail` da tartib
+  xatosi — ikkalasi ham AYNI sessiyada yozilgan kodda edi va Test 41
+  ning birinchi bandi ularni ko'rmasdi (u tugmalar sinxronligiga
+  qarardi). Test faqat SHUNDAN KEYIN yozildi. Ya'ni «yozilgan qoida
+  himoya emas — uni tekshiradigan test himoya» oilasining yana bir
+  yuzi: **test ham faqat O'ZI QARAYDIGAN narsani himoya qiladi**,
+  yonidagi qatorni emas
 
 - [2026-08-16] Qaror: **sotib olish qutisi QADALMAYDI; narx va tugmaning
   o'rnini yuqoridagi qator bosadi** (`.pdp-bar`). Founder shikoyati: «webda

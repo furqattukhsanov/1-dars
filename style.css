@@ -406,7 +406,11 @@ body {
 
 /* ===== HEADER ===== */
 /* Header qadalmaydi — sahifa bilan birga yuqoriga chiqib ketadi */
+/* ⚠️ Mahsulot sahifasidagi qadalgan qator chiqqanda header yuqoriga
+   suriladi (`body.pdp-bar-on #nav`) — o'tish silliq bo'lishi uchun
+   `transform` shu yerda transition ro'yxatiga qo'yiladi. */
 #nav {
+  transition: transform var(--dur-base) var(--ease-out);
   position: sticky;   /* kontent ostidan o'tadi — shisha shundagina ko'rinadi */
   top: 0;
   z-index: 100;
@@ -2423,7 +2427,21 @@ body.pdp-on #bot { display: none; }
    qator header ostiga kirib ketardi. Bu yerdagi qiymat — faqat ZAXIRA
    (JS ishlamasa qator baribir to'g'ri joyda turadi, chunki u ko'rinmaydi).
    ⚠️ `visibility` ATAYLAB — faqat `opacity: 0` bo'lsa ko'rinmas tugma
-   sichqonchani ham, TAB tartibini ham ushlab qolardi. */
+   sichqonchani ham, TAB tartibini ham ushlab qolardi.
+
+   🔴 QATOR CHIQQANDA HEADER KETADI (founder qarori, 2026-08-16 kechqurun:
+   "mahsulot qadalganda tepadagi doim qadaladigani qadalmasin"). Ikkita
+   qadalgan qator birga 125px (64 + 61) yeb qo'yardi va ekranning yuqori
+   qismida mato o'rniga BOSHQARUV turardi. Endi bittasi ikkinchisini
+   almashtiradi: qator chiqqanda header yuqoriga surilib ketadi, qator
+   yashiringanda qaytadi.
+   ⚠️ `position: static` EMAS, `transform` — sabab HARAKAT emas, XAVFSIZLIK:
+   `#nav` ustida `backdrop-filter` bor va `position` almashtirilsa u paint
+   qatlamini qayta yig'adi (sakrash). `transform` esa oqimdagi joyini ham,
+   `offsetHeight` ni ham TEGMASDAN qoldiradi — `pdpBarSync` aynan o'shanga
+   tayanadi. */
+body.pdp-bar-on #nav { transform: translateY(-100%); }
+
 .pdp-bar {
   position: fixed;
   left: 0; right: 0;

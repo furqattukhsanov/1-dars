@@ -1387,8 +1387,10 @@ function testAssetVersionsAreFresh() {
     // 2026-08-16 (kechqurun): sotib olish qutisi QADALMAY qoldi, o'rniga
     // yuqorida qadalgan qator paydo bo'ldi (`.pdp-bar`), o'xshash matolar
     // esa butun kenglikda ikki qator bo'lib terildi.
-    'style.css': { v: 61, hash: '0f2f51c38847' },
-    'script.js': { v: 50, hash: '3d02e03306f0' },
+    // 2026-08-16 (kechqurun, 2-tahrir): qator chiqqanda header yuqoriga
+    // suriladi — ikkita qadalgan qator birga turmaydi.
+    'style.css': { v: 62, hash: '0a32cbfbbbce' },
+    'script.js': { v: 51, hash: '5d49be2ec8f6' },
     'pwa.js': { v: 3, hash: 'dce9fcfee6cb' },
     // ⚠️ IKKINCHI BIRLASHTIRISH (2026-08-14): ikkala tomon panel.js ni 24,
     // app.js ni 87 ga ko'targan — AYNI raqamlar, TARKIB esa har xil.
@@ -1402,7 +1404,7 @@ function testAssetVersionsAreFresh() {
     // YUQORIGA suriladi: teng raqam qaytib kelgan foydalanuvchida keshdagi
     // BIR TOMONLAMA faylni qoldirardi — sevimlilar yoki chiqish tuzatishining
     // faqat bittasi bo'lgan `app.js`.
-    'panel.js': { v: 43, hash: '8716c410d629' },
+    'panel.js': { v: 44, hash: 'd29e76b069e1' },
     'admin/admin.css': { v: 18, hash: '15b0bc977b85' },
     'admin/admin.js': { v: 25, hash: '08fae1bb61dc' },
     'telegram-app/styles.css': { v: 36, hash: '570a2450c3a4' },
@@ -4927,7 +4929,59 @@ function testBuyButtonBoxesStayInSync() {
       `→ \`renderPdpAct()\` dagi ro'yxatga '${id}' ni qo'shing.`);
   });
 
-  console.log(`✅ Test 41: Sotib olish tugmasi hamma joyda bir xil — PASS (${idlar.length} ta idish: ${idlar.join(', ')})`);
+  // ── 2-band: chegara qatorning O'Z holatiga bog'lanmasin ──
+  // Qator ko'ringanda header yuqoriga suriladi (founder qarori). Ya'ni
+  // header'ning EKRANDAGI o'rni qatorning holatiga bog'liq bo'lib qoldi.
+  // 🔴 Agar chegara `getBoundingClientRect()` dan olinsa AYLANMA hosil
+  // bo'ladi: qator chiqadi → header suriladi → rect o'zgaradi → chegara
+  // siljiydi → qator yashirinadi → header qaytadi… ekran har kadrda
+  // miltillardi. `offsetHeight` oqimdagi o'lchov — `transform` unga
+  // TEGMAYDI, shuning uchun chegara qat'iy qoladi.
+  const sync = js.match(/function pdpBarSync\(\)\s*\{([\s\S]*?)\n\}/);
+  assert.ok(sync, '`pdpBarSync` topilmadi');
+  assert.ok(/offsetHeight/.test(sync[1]),
+    '`pdpBarSync()` header balandligini `offsetHeight` bilan o\'lchashi shart.');
+  assert.ok(!/nav[^\n]*getBoundingClientRect/.test(sync[1]),
+    '`pdpBarSync()` header\'ni `getBoundingClientRect()` bilan o\'lchayapti. ' +
+    'Header qator chiqqanda SURILADI, ya\'ni bu o\'lchov qatorning o\'z holatiga ' +
+    'bog\'lanadi va ikkalasi bir-birini cheksiz almashtirib turadi (miltillash).\n' +
+    '→ `nav.offsetHeight` ishlatilsin — u `transform` dan ta\'sirlanmaydi.');
+
+  // ── 3-band: header'ni surib turgan belgi mahsulot bilan BIRGA ketsin ──
+  // `pdp-bar-on` TANADA, qator esa `#pdp` ichida yashaydi — ya'ni ular
+  // alohida yo'l bilan yo'qoladi. Belgi qolib ketsa katalogda header
+  // BUTUNLAY ko'rinmay qolardi va buni hech narsa ko'rsatmasdi.
+  const yopish = js.match(/function closePdp\(\)\s*\{([\s\S]*?)\n\}/);
+  assert.ok(yopish, '`closePdp` topilmadi');
+  assert.ok(/pdp-bar-on/.test(yopish[1]),
+    '`closePdp()` `pdp-bar-on` belgisini olib tashlamayapti — katalogga qaytgan ' +
+    'foydalanuvchida header surilgan holatda qolib ketardi (qidiruv, savat, ' +
+    'kirish — hammasi ko\'rinmas bo\'lardi).');
+  assert.ok(/if \(!bar\)[^\n]*pdp-bar-on/.test(sync[1]),
+    '`pdpBarSync()` qator yo\'q holatda `pdp-bar-on` ni tozalashi shart — ' +
+    'bu o\'zini tuzatadigan zaxira yo\'l (`closePdp` dan boshqa yo\'l bilan ' +
+    'yopilgan holatlar uchun).');
+
+  // ── 4-band: CSS tomonida header HAQIQATAN ketsin ──
+  // JS belgi qo'yadi, header'ni esa CSS suradi. Qoida o'chirilsa JS yashil
+  // qolib, ekranda YANA ikkita qadalgan qator paydo bo'lardi (64 + 61 =
+  // 125px) — founder aynan shundan shikoyat qilgan edi.
+  // Shakl QAT'IY belgilanmaydi: `transform` ham, `position: static` ham
+  // maqsadga yetadi. Test NATIJANI so'raydi — header yuqorida joy
+  // egallamasin, uslubni emas.
+  const css = fs.readFileSync(path.join(__dirname, '..', 'style.css'), 'utf8');
+  const nav = css.match(/body\.pdp-bar-on\s+#nav\s*\{([^}]*)\}/);
+  assert.ok(nav,
+    '`style.css` da `body.pdp-bar-on #nav` qoidasi yo\'q — qator chiqqanda header ' +
+    'joyida qolib, ekranning yuqorisini ikkita qadalgan qator egallardi ' +
+    '(founder qarori, 2026-08-16: "mahsulot qadalganda tepadagi doim qadaladigani ' +
+    'qadalmasin").');
+  assert.ok(/translateY\(-100%\)/.test(nav[1]) || /position:\s*static/.test(nav[1]),
+    '`body.pdp-bar-on #nav` header\'ni yuqoridan OLIB TASHLAMAYAPTI.\n' +
+    `→ Hozirgi tarkib: ${nav[1].replace(/\s+/g, ' ').trim()}\n` +
+    '→ `transform: translateY(-100%)` yoki `position: static` bo\'lsin.');
+
+  console.log(`✅ Test 41: Qadalgan qator — tugma bir xil, chegara barqaror, header ketadi — PASS (${idlar.length} ta idish: ${idlar.join(', ')})`);
 }
 
 // ============ TEST 22c: BTS RO'YXATI IKKI YUZDA BIR XIL (2026-08-13) ============
