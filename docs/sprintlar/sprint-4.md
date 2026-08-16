@@ -131,6 +131,122 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
 
 ## Qilingan ishlar
 
+- [2026-08-16] **SAYTNING TAGIGA TO'LIQ FOOTER QO'SHILDI — HAVOLALARI SAHIFA
+  EMAS, OYNA OCHADI** (bugungi TO'QQIZINCHI commit, `git log --since` bilan
+  sanaldi). Ish FAQAT SAYTGA tegdi — Mini App'ga tegilmadi (u yerda pastda
+  navigatsiya turadi, ya'ni footer uchun joy ham, ehtiyoj ham yo'q).
+
+  **NAMUNA VA MANBA:** founder Uzum marketning footer'ini ko'rsatdi va
+  kerakli bo'limlarni quiz orqali berdi. Ikki ustun oldi: «Biz haqimizda»
+  (Topshirish punktlari, Loyiha haqida, Vakansiyalar, Hamkor bo'lish) va
+  «Foydalanuvchilarga» (Biz bilan bog'lanish, Savol-Javob, Yetkazish va
+  to'lov, Ommaviy oferta va maxfiylik). «Tadbirkorlarga» ustuni founder
+  tomonidan TANLANMADI va o'zboshimchalik bilan qo'shilmadi.
+
+  🔴 **QATORLAR HAVOLA EMAS, TUGMA — VA BU MAJBURIY TANLOV EDI.** Sayt bitta
+  sahifadan iborat (`index.html`), ya'ni `/vakansiyalar` kabi manzil YO'Q va
+  oddiy `<a href>` qo'yilsa har bir qator **404** berardi. Har qator
+  `data-action` orqali savat/profil bilan BITTA mexanizmda oyna ochadi
+  (`drawerView = 'info'`, `INFO_TOPICS` jadvali). Founder qarori:
+  «kerak bo'lishi shartlarini ham qo'y keyin ichini to'ldiramiz» — ya'ni
+  shakl bugun, mazmun keyin, lekin bo'shligi KO'RINIB tursin.
+
+  ⚠️ **BO'SH BO'LIM BO'SHLIGINI AYTADI, «TEZ ORADA» DEMAYDI.** Matn —
+  «Bu bo'lim matni hali yozilmagan» + bog'lanish tugmasi. Sana va'da
+  qilinmadi: bajarilmagan va'da yo'q matndan yomonroq (`NULL` reyting va
+  `ALERT_CHAT_ID` darslari bilan bitta oila — jimgina yolg'on). Har bo'limda
+  «Biz bilan bog'lanish» tugmasi turadi: matn yo'q bo'lsa ham javob
+  beradigan odam bor.
+
+  **«YETKAZISH VA TO'LOV» — YAGONA TO'LIQ BO'LIM,** chunki uning mazmuni
+  allaqachon kodda bor. ⚠️ Foiz `PREPAY_RATE` dan O'QILADI (u serverdan
+  keladi), matnga qo'lda yozilmadi: stavka o'zgargan kuni sahifa jimgina
+  yolg'on gapirardi va buni hech narsa ko'rsatmasdi (komissiya 10→12%
+  o'tishida ayni tuzoq bo'lgan).
+
+  ⚠️ **«TOPSHIRISH PUNKTLARI» YANGI RO'YXAT CHIZMAYDI** — profildagi
+  «Mening manzilim» ochadigan AYNI ko'rinishni ochadi (`openPoints` →
+  `drawerView = 'address'`). Ikkinchi nusxa ATAYLAB qilinmadi (CLAUDE.md:
+  mavjud funksiya ustiga ikkinchi yo'l qo'shilmaydi) — nusxa yozilsa nuqta
+  nomlari va koordinatalari vaqt o'tib ajralib ketardi. Farqi bitta va u
+  yangi `addrFrom` o'zgaruvchisida: sarlavha footer'dan kelinganda
+  «Topshirish punktlari», profildan kelinganda «Mening manzilim» (aks holda
+  bosilgan so'z bilan ochilgan ekran boshqa-boshqa bo'lardi), nuqta
+  tanlangandan keyin esa footer yo'lida oyna YOPILADI — profilga
+  «qaytarish» mumkin emas, chunki foydalanuvchi u yerda umuman bo'lmagan va
+  KIRMAGAN odam u yerda bo'sh karta bilan «Hisobdan chiqish» tugmasini
+  ko'rardi.
+
+  **QR BLOKI — founder so'ragan:** «ilovada qulayroq» emas, «Telegram botda
+  xarid qilish qulayroq», QR generatsiya qilinsin, o'rtasida lolaning
+  shaffof logosi tursin. Bajarildi: QR **INLINE SVG** (tashqi fayl CSP va
+  `?v=` bilan yana bitta bog'liqlik bo'lardi), tashqi npm paket
+  ishlatilmadi — kodlagich qo'lda yozildi (byte mode, ECC **H**). Rang CSS
+  klassida va `fill="currentColor"`: `fill="var(...)"` SVG prezentatsiya
+  atributida jimgina QORA berardi (CLAUDE.md — brend rangi bandi).
+
+  🔴 **DEEP-LINK PAYLOAD'I `web_footer` EMAS, `sayt_footer` — VA BU FARQ
+  O'LCHOVDAN CHIQDI.** Quiz javobida `web_footer` yozilgan edi;
+  `server/routes/webhook.js` → `manbaBelgisi()` esa `web_` bilan
+  boshlanadigan payloadni **RAD ETADI** (u saytga kirish kodi uchun band) va
+  uni ATAYLAB JIM tashlaydi — alert ham chiqmaydi. Ya'ni asl variant bilan
+  QR panelda **«nol odam keltirdi»** bo'lib turardi, ya'ni raqam yo'q emas,
+  YOLG'ON bo'lardi. Serverning O'Z funksiyasida sinaldi: `sayt_footer` →
+  qabul, `sayt_hamkor` → qabul, `web_footer` → `null`.
+
+  ✅ **QR HISOBOTCHI TOMONIDAN MUSTAQIL QAYTA O'QILDI** (da'voga emas,
+  o'lchovga ishonish): `index.html` dagi `<path d="...">` ning O'ZIDAN
+  37×37 modul to'ri qayta yig'ildi (355 ta yugurish, 709 qora modul),
+  `server/lib/png.js` bilan PNG ga chizildi va macOS Vision bilan
+  dekodlandi → **`https://t.me/lolamarketbot?start=sayt_footer`**, ya'ni
+  sahifadagi belgi bilan yonidagi `href` bir xil. Markazi yopilgan holda
+  ham o'qildi: 22% (sahifadagi holat), 28% va hatto **34%** — ya'ni H
+  darajasi tanlovi zaxira bilan ishlayapti.
+
+  🔴 **TELEFONDA TOPILGAN VA TUZATILGAN JIMGINA NUQSON:** `.footer-top`
+  bloki AYNI paytda `.container` ham edi va CSS'da `padding: 32px 0 8px`
+  **QISQARTMASI** uning yon to'ldirmasini NOLGA tushirgan — `.container`
+  faylning yuqorisida (154-qator) turgani uchun keyingi qoida uni bosib
+  o'tardi. O'lchov: chap chegara **0px**, QR kartochkasi 375px ekranda
+  **360px** joy egallagan, ustunlar ekran chetiga yopishib qolgan. Konsolda
+  xato YO'Q edi, blok «bor» bo'lib ko'rinardi — nuqsonni faqat
+  `getBoundingClientRect()` ko'rsatdi. Endi `padding-top` va
+  `padding-bottom` ALOHIDA yoziladi.
+
+  **IKKI TIL — 22 ta yangi kalit** (uz + ru; `Test 20` ni sanadi: 249 → 271
+  kalit). ⚠️ **`INFO_TOPICS` da matn kaliti SATR emas, `t('...')`
+  CHAQIRUVI:** Test 20 ishlatilishni `t('kalit')` shakli bo'yicha sanaydi,
+  ya'ni kalitlar massivda satr bo'lib yotsa ular «o'lik» ro'yxatiga tushardi
+  va bir kun kelib «ishlatilmayapti» deb o'chirilardi — o'shanda bo'lim matn
+  o'rniga KALIT NOMINI ko'rsatardi.
+  ⚠️ **RAQAM TEKSHIRILDI VA HISOBOTDAGI IKKITA DA'VO TUZATILDI**
+  («hujjatdagi raqam — tekshirilmagan da'vo» qoidasi yana ish berdi):
+  (1) «24 ta yangi kalit» → aslida **22** (271 − 249, ikkala tilda ham);
+  (2) «o'lik ro'yxat 23 → 16 ga qaytdi» → HEAD da o'lik ro'yxat
+  **ALLAQACHON 16** ta edi va shundayligicha **16** ta qoldi. To'g'ri
+  o'qilishi: bu ish o'lik ro'yxatni QISQARTIRMADI — u **o'smasligini**
+  ta'minladi (satr sifatida yozilganda 7 ta `...Body` kaliti qo'shilib 23
+  bo'lardi). Farq muhim: «kamaydi» degan o'qish bu commitga o'ziniki
+  bo'lmagan yutuqni yozib qo'yardi.
+
+  **SINALGANI: 80 TEST YASHIL** — hisobotchi mustaqil yurgizdi va
+  `^✅ Test` satrlarini takrorsiz sanadi. ⚠️ **Son O'ZGARMADI va bu safar bu
+  KAMCHILIK:** bu ishga YANGI QOROVUL QO'SHILMADI. HEAD da ham 80 edi
+  (o'lchandi). Ochiq qolgan teshik pastda, «Qarorlar» da yozilgan.
+
+  ⚠️ **Tekshiruv ko'z bilan emas, O'LCHOV bilan** (brauzer paneli render
+  qilmasligi mumkin — 2026-08-16 da shunday bo'lgan): 1280px da uch ustun
+  **338/338/360**, 375px da bitta ustun, gorizontal siljish **0**, hech
+  qayerda kesilish yo'q, havola bo'yi **40px** (barmoq uchun), QR logosi
+  markazda. CSS tokenlari ham tekshirildi — `--saffron-50`,
+  `--glass-fill-strong`, `--surface-solid` va qolgan 16 tasi `style.css` da
+  MAVJUD (aniqlanmagan token jimgina yo'qoladi).
+  🔴 **Jonli saytda hali ko'rilmagan.**
+  **DEPLOY: faqat STATIK** — server kodiga tegilmadi, servis restarti ham,
+  migratsiya ham kerak emas. Kesh: `style.css` 62→**63** (`index.html` va
+  `admin/index.html` BIRGA), `script.js` 51→**52**, `panel.js` 44→**45**,
+  Test 16 jadvali birga.
+
 - [2026-08-16] **QADALGAN QATOR CHIQQANDA HEADER YUQORIGA SURILADI —
   IKKITA QADALGAN QATOR BIRGA TURMAYDI** (bugungi SAKKIZINCHI commit).
   Ish FAQAT SAYTGA tegdi — Mini App'ga tegilmadi.
@@ -3112,6 +3228,44 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
 ---
 
 ## Qarorlar
+
+- [2026-08-16] Qaror: **footer havolalari SAHIFA emas, OYNA ochadi.** Sayt
+  bitta sahifadan iborat, ya'ni `/vakansiyalar` kabi manzil yo'q va oddiy
+  havola qo'yilsa har qator 404 berardi. Muqobili — har bo'lim uchun alohida
+  HTML fayl — RAD ETILDI: u `deploy.yml` ning `source` ro'yxatiga sakkizta
+  yangi yozuv, `?v=` qatoriga esa sakkizta yangi kesh kaliti qo'shardi,
+  mazmuni esa hozircha bir abzatsdan iborat. Bo'lim matnlari `INFO_TOPICS`
+  jadvalida (`script.js`) — to'ldirilganda faqat shu jadval o'zgaradi
+
+- [2026-08-16] Qaror: **bo'sh bo'lim BO'SHLIGINI aytadi, «tez orada»
+  DEMAYDI.** Founder: «kerak bo'lishi shartlarini ham qo'y keyin ichini
+  to'ldiramiz». «Tez orada» yozilsa u tekshirilmagan va'da bo'lardi va
+  bajarilmagan kuni sahifa jimgina yolg'on gapirardi (`NULL` reyting
+  qoidasi bilan bitta oila). O'rniga: nima bo'lishi aytiladi + hozir kim
+  javob berishi ko'rsatiladi (bog'lanish tugmasi har bo'limda)
+
+- [2026-08-16] Qaror: **«Yetkazish va to'lov» matnidagi foiz `PREPAY_RATE`
+  dan o'qiladi, matnga yozilmaydi.** Sabab tarixdan: komissiya 10→12% ga
+  o'tganda uch qatlam birga yangilangan edi; qo'lda yozilgan foiz esa
+  stavka o'zgargan kuni yangilanmay qolardi va buni hech narsa
+  ko'rsatmasdi
+
+- [2026-08-16] Qaror: **deep-link payload'i `sayt_` bilan boshlanadi,
+  `web_` bilan EMAS.** `web_` prefiksi saytga kirish kodi uchun band va
+  `manbaBelgisi()` uni manba sifatida JIM rad etadi — QR panelda «nol odam
+  keltirdi» bo'lib ko'rinardi. Yangi manba belgisi qo'shilganda birinchi
+  qadam — `server/routes/webhook.js` dagi shu funksiyada SINAB ko'rish
+
+- [2026-08-16] 🟠 **OCHIQ QOLDI: bu ishga qorovul test qo'shilmadi** (80 test
+  yashil, lekin soni HEAD dagidek — ya'ni yangisi yo'q). Ikkita joy
+  qamrovsiz va ikkalasi ham JIMGINA sinadigan turdan: (1) `data-action`
+  nomlari (`openInfo`, `openPoints`) `window[action]` orqali chaqiriladi —
+  funksiya qayta nomlansa tugma jim o'lik bo'ladi, konsolda xato yo'q;
+  (2) deep-link payload'ining `sayt_` prefiksi — `manbaBelgisi()` ga qarshi
+  tekshirilmaydi, ya'ni kelajakda `web_` ga qaytarilsa panel yana «nol»
+  ko'rsatardi. Loyihaning o'z qoidasi bo'yicha («yozilgan qoida himoya emas
+  — uni tekshiradigan test himoya») bu qarz sifatida yozib qo'yildi;
+  yopilishi founder qaroriga qoldi
 
 - [2026-08-16] Qaror: **qadalgan qator chiqqanda header YUQORIGA SURILADI —
   ikkita qadalgan qator ekranda birga turmaydi.** Founder shikoyati (skrinshot

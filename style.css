@@ -990,21 +990,133 @@ body {
 
 /* ===== ASOSCHI ===== */
 
-/* ===== FOOTER ===== */
+/* ===== FOOTER =====
+   Telefonda ustunlar bir-birining ostiga tushadi, 640px dan ikki ustun,
+   880px dan yon blok (QR + ijtimoiy tarmoqlar) o'ng tomonga chiqadi.
+   ⚠️ Pastki `© ...` qatori ALOHIDA chiziq ostida — Uzumdagi kabi. */
 .footer {
   margin-top: var(--section-gap);
-  padding: 28px 0 34px;
   border-top: 1px solid var(--border-hair);
 }
-.footer-inner {
-  display: flex;
-  flex-direction: column;
+/* ⚠️ `padding` QISQARTMASI ISHLATILMAYDI — bu blok `.container` ham,
+   ya'ni qisqartma uning yon to'ldirmasini nolga tushirardi va ustunlar
+   telefonda ekran chetiga YOPISHIB qolardi (o'lchandi: chap chegara 0px,
+   QR kartochkasi 375px ekranda 360px joy egallardi). Xato JIMGINA edi:
+   konsolda hech narsa yo'q, blok "bor" bo'lib ko'rinadi. */
+.footer-top {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 30px 24px;
+  padding-top: 32px;
+  padding-bottom: 8px;
+}
+.footer-col { min-width: 0; }
+.footer-h {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-strong);
+  margin: 0 0 14px;
+}
+.footer-links { list-style: none; margin: 0; padding: 0; }
+/* Tugma — havola emas: sayt bitta sahifadan iborat, `/vakansiyalar` kabi
+   manzil YO'Q (izohi `index.html` da). Ko'rinishi havoladek bo'lsin. */
+.footer-link {
+  display: inline-flex;
   align-items: center;
-  gap: 16px;
-  text-align: center;
+  /* 40px — barmoq uchun. 44px qilinmadi: qatorlar YONMA-YON turadi va
+     `::after` qoplamasi (ikonka tugmalardagi hiyla) qo'shni qatorning
+     bosilishini o'g'irlab qolardi. Bu yerda bo'yni oshirish yagona
+     to'g'ri yo'l. */
+  min-height: 40px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.4;
+  text-align: left;
+  text-decoration: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color var(--dur-fast);
+}
+.footer-link:hover { color: var(--pom-600); }
+
+/* ── Yon blok: QR + ijtimoiy tarmoqlar ── */
+.footer-side { display: flex; flex-direction: column; gap: 18px; }
+.footer-qr {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  max-width: 360px;
+  padding: 14px;
+  border: 1px solid var(--border-hair);
+  border-radius: var(--radius-lg);
+  background: var(--glass-fill-strong);
+  text-decoration: none;
+  transition: border-color var(--dur-fast), box-shadow var(--dur-fast);
+}
+.footer-qr:hover {
+  border-color: var(--glass-border);
+  box-shadow: var(--shadow-sm);
+}
+/* Oq maydon SHART: QR kontrastga tayanadi, shaffof fon ustida sahifa
+   fonining dog'lari modul chegarasini yeb qo'yardi. */
+.footer-qr-box {
+  position: relative;
+  flex: none;
+  display: block;
+  padding: 6px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-solid);
+  line-height: 0;
+}
+/* ⚠️ Rang CSS da, `fill="var(...)"` da EMAS: SVG prezentatsiya atributi
+   `var()` ni tushunmaydi va belgi jimgina qora bo'lib qolardi
+   (CLAUDE.md — brend rangi bandi). */
+.footer-qr-svg { display: block; width: 112px; height: 112px; color: var(--pom-900); }
+/* Logo markazni yopadi — shuning uchun QR H darajasida (30% chidamlilik)
+   yasalgan. O'lchami QR ning ~22% i: 28% gacha dekodlanishi tekshirilgan. */
+.footer-qr-logo {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 26px; height: 26px;
+  padding: 3px;
+  border-radius: 6px;
+  background: var(--surface-solid);
+}
+.footer-qr-txt { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.footer-qr-title { font-size: 14.5px; font-weight: 600; color: var(--text-strong); }
+.footer-qr-sub { font-size: 12.5px; line-height: 1.45; color: var(--text-muted); }
+
+.footer-soc { display: flex; flex-direction: column; gap: 10px; }
+.footer-soc-h { font-size: 13px; font-weight: 600; color: var(--text-body); }
+
+/* ── Pastki qator ── */
+.footer-bottom {
+  margin-top: 24px;
+  padding: 16px 0 26px;
+  border-top: 1px solid var(--border-hair);
 }
 .footer-copy { font-size: 12.5px; color: var(--text-muted); }
 .footer-social { display: flex; gap: 10px; }
+
+/* Ikki ustun — 640px dan. QR bloki hali pastda, butun kenglikda. */
+@media (min-width: 640px) {
+  .footer-top { grid-template-columns: 1fr 1fr; }
+  .footer-side { grid-column: 1 / -1; }
+}
+/* 880px dan yon blok o'ng ustunga chiqadi (mobil nav ham shu chegarada
+   yo'qoladi — bitta chegara, ikkita qaror emas). */
+@media (min-width: 880px) {
+  .footer-top {
+    grid-template-columns: 1fr 1fr minmax(280px, 360px);
+    gap: 40px;
+  }
+  .footer-side { grid-column: auto; }
+}
 .social-btn {
   width: 36px; height: 36px;
   border-radius: 50%;
@@ -3441,6 +3553,47 @@ body.pdp-bar-on #nav { transform: translateY(-100%); }
 
 @media (hover: hover) {
   .way:hover { border-color: var(--pom-700); }
+}
+
+/* ===== FOOTER BO'LIMLARI (oyna ichida) =====
+   ⚠️ `flex: none` — `.contact-ways` bilan bir xil sabab: oyna tanasi flex
+   ustun va standart `flex-shrink: 1` mazmunni JIMGINA kesib tashlaydi
+   (CLAUDE.md — "flex ustundagi yangi blok" bandi). */
+.info-view {
+  flex: none;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.info-soon {
+  align-self: flex-start;
+  padding: 6px 11px;
+  border-radius: 999px;
+  background: var(--saffron-50);
+  color: var(--saffron-700);
+  font-size: 12.5px; font-weight: 600;
+}
+.info-p { margin: 0; font-size: 14.5px; line-height: 1.55; color: var(--text-body); }
+.info-ask {
+  display: flex; flex-direction: column; gap: 10px;
+  margin-top: 4px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border-hair);
+}
+.info-ask-txt { font-size: 13.5px; line-height: 1.5; color: var(--text-muted); }
+.info-cta {
+  align-self: flex-start;
+  min-height: 42px;
+  padding: 0 18px;
+  border: 1px solid var(--pom-700);
+  border-radius: var(--radius-sm);
+  background: none;
+  font-family: inherit;
+  font-size: 14px; font-weight: 600;
+  color: var(--pom-700);
+  cursor: pointer;
+  transition: background var(--dur-fast), color var(--dur-fast);
+}
+@media (hover: hover) {
+  .info-cta:hover { background: var(--pom-700); color: var(--pom-100); }
 }
 
 /* Profildagi kirish tugmasi — kabinet bor ekanini KO'RSATADI.

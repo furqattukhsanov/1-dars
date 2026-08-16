@@ -263,6 +263,34 @@ const STR = {
     sExpired: 'Sessiya tugagan — qaytadan kiring',
     sForbidden: 'Bu amal uchun sotuvchi huquqi kerak',
     sFailed: 'Amal bajarilmadi',
+    // ---- Footer ----
+    fAbout: 'Biz haqimizda',
+    fForUsers: 'Foydalanuvchilarga',
+    fPoints: 'Topshirish punktlari',
+    fProject: 'Loyiha haqida',
+    fJobs: 'Vakansiyalar',
+    fPartner: "Hamkor bo'lish",
+    fFaq: 'Savol-Javob',
+    fDelivery: "Yetkazish va to'lov",
+    fLegal: 'Ommaviy oferta va maxfiylik',
+    fQrTitle: 'Telegram botda xarid qilish qulayroq.',
+    fQrSub: "Kamerani QR kodga yo'naltiring — LolaMarket boti ochiladi.",
+    fSocial: 'LolaMarket ijtimoiy tarmoqlarda',
+    // Bo'sh bo'limlar. ⚠️ Matn "tez orada" DEB VA'DA BERMAYDI — sana
+    // aytilsa u tekshirilmagan da'vo bo'lardi (CLAUDE.md). Aytilayotgani
+    // faqat shu: bu yerda nima bo'lishi va hozir kim javob berishi.
+    fSoonTitle: "Bu bo'lim matni hali yozilmagan",
+    fSoonAsk: 'Savolingiz bo\'lsa — bevosita bizga yozing, javob beramiz.',
+    fAboutBody: "LolaMarket — O'zbekistondagi to'qima materiallar uchun B2B platforma: ishlab chiqaruvchi mato e'lonini qo'yadi, xaridor to'g'ridan-to'g'ri buyurtma beradi.",
+    fJobsBody: "Jamoaga qo'shilmoqchi bo'lsangiz — Telegram orqali yozing, tajribangizni ko'ramiz.",
+    fFaqBody: "Savollarga hozircha jonli javob beramiz — ro'yxat yig'ilgach shu yerga chiqadi.",
+    fLegalBody: "Shartlarni hujjat tayyor bo'lgunicha bevosita so'rab olishingiz mumkin.",
+    // Yetkazish matni RAQAMLARNI KODDAN oladi — qo'lda yozilsa stavka
+    // o'zgargan kuni sahifa jimgina yolg'on gapirardi.
+    fDeliveryPay: "To'lov ikki bosqichda: buyurtma berilganda {pct}%, qolgani matoni topshirish punktida olganingizda.",
+    fDeliveryBts: 'Mato BTS Pochta orqali siz tanlagan topshirish punktiga boradi — uyga yetkazish yo\'q.',
+    fDeliveryMore: "To'liq shartlar matni tayyorlanmoqda.",
+    fPickPoint: 'Nuqtani tanlash',
   },
   ru: {
     searchPh: 'Ткань или производитель',
@@ -476,6 +504,29 @@ const STR = {
     sExpired: 'Сессия истекла — войдите снова',
     sForbidden: 'Нужны права продавца',
     sFailed: 'Действие не выполнено',
+    // ---- Footer ----
+    fAbout: 'О нас',
+    fForUsers: 'Пользователям',
+    fPoints: 'Пункты выдачи',
+    fProject: 'О проекте',
+    fJobs: 'Вакансии',
+    fPartner: 'Стать партнёром',
+    fFaq: 'Вопрос-ответ',
+    fDelivery: 'Доставка и оплата',
+    fLegal: 'Оферта и конфиденциальность',
+    fQrTitle: 'В Telegram-боте покупать удобнее.',
+    fQrSub: 'Наведите камеру на QR-код — откроется бот LolaMarket.',
+    fSocial: 'LolaMarket в соцсетях',
+    fSoonTitle: 'Текст этого раздела ещё не написан',
+    fSoonAsk: 'Есть вопрос — напишите нам напрямую, ответим.',
+    fAboutBody: 'LolaMarket — B2B платформа для текстильных материалов в Узбекистане: производитель размещает ткань, покупатель заказывает напрямую.',
+    fJobsBody: 'Хотите в команду — напишите в Telegram, посмотрим ваш опыт.',
+    fFaqBody: 'Пока отвечаем на вопросы напрямую — список появится здесь, когда соберётся.',
+    fLegalBody: 'До публикации документов условия можно уточнить напрямую.',
+    fDeliveryPay: 'Оплата в два этапа: {pct}% при оформлении заказа, остальное — при получении ткани в пункте выдачи.',
+    fDeliveryBts: 'Ткань едет через BTS Pochta в выбранный вами пункт выдачи — доставки до двери нет.',
+    fDeliveryMore: 'Полный текст условий готовится.',
+    fPickPoint: 'Выбрать пункт',
   },
 };
 
@@ -1597,6 +1648,68 @@ function openContactView() {
   openDrawerEl();
 }
 
+/* ── Footer bo'limlari ("Loyiha haqida", "Vakansiyalar", ...) ──
+   Sayt bitta sahifadan iborat, ya'ni bu bo'limlar ALOHIDA MANZIL emas —
+   savat/profil bilan bitta oynada ochiladi. Matn tayyor bo'lgach shu
+   jadvalning O'ZI to'ldiriladi, boshqa joyga tegilmaydi.
+
+   ⚠️ Bo'sh bo'lim BO'SHLIGINI AYTADI. "Tez orada" deb sana va'da
+   qilinmaydi — bajarilmagan va'da yo'q matndan yomonroq (CLAUDE.md:
+   jimgina yolg'on). Har bo'limda bog'lanish tugmasi turadi: matn yo'q
+   bo'lsa ham javob beradigan odam bor. */
+/* ⚠️ Matn KALIT NOMI bilan emas, `t('...')` CHAQIRUVI bilan olinadi.
+   Sabab qorovulda: Test 20 kalit ishlatilganini `t('kalit')` shakli
+   bo'yicha sanaydi — kalitlar massivda satr bo'lib yotsa, ular "o'lik"
+   ro'yxatiga tushardi va bir kun kelib "ishlatilmayapti" deb
+   o'chirilardi. O'shanda bo'lim matn o'rniga KALIT NOMINI ko'rsatardi. */
+const INFO_TOPICS = {
+  about:    { title: 'fProject',  soon: true,  body: () => [t('fAboutBody')] },
+  jobs:     { title: 'fJobs',     soon: true,  body: () => [t('fJobsBody')] },
+  faq:      { title: 'fFaq',      soon: true,  body: () => [t('fFaqBody')] },
+  legal:    { title: 'fLegal',    soon: true,  body: () => [t('fLegalBody')] },
+  /* "Yetkazish va to'lov" — YAGONA to'liq bo'lim, chunki uning mazmuni
+     allaqachon kodda bor. Foizi `PREPAY_RATE` dan O'QILADI (u serverdan
+     keladi): qo'lda yozilsa stavka o'zgargan kuni sahifa jimgina yolg'on
+     gapirardi va buni hech narsa ko'rsatmasdi. */
+  delivery: {
+    title: 'fDelivery', soon: false,
+    body: () => [
+      t('fDeliveryBts'),
+      t('fDeliveryPay').replace('{pct}', String(Math.round(PREPAY_RATE * 100))),
+      t('fDeliveryMore'),
+    ],
+  },
+};
+
+let infoTopic = 'about';
+
+function openInfo(topic) {
+  infoTopic = INFO_TOPICS[topic] ? topic : 'about';
+  drawerView = 'info';
+  renderDrawer();
+  openDrawerEl();
+}
+
+function infoHtml() {
+  const cfg = INFO_TOPICS[infoTopic] || INFO_TOPICS.about;
+  const lines = cfg.body()
+    .map((s) => `<p class="info-p">${esc(s)}</p>`)
+    .join('');
+
+  return `
+    <div class="info-view">
+      ${cfg.soon ? `<div class="info-soon">${esc(t('fSoonTitle'))}</div>` : ''}
+      ${lines}
+      ${infoTopic === 'delivery' ? `
+        <button class="info-cta" data-action="openPoints">${esc(t('fPickPoint'))}</button>
+      ` : ''}
+      <div class="info-ask">
+        <span class="info-ask-txt">${esc(t('fSoonAsk'))}</span>
+        <button class="info-cta" data-action="openContactView">${esc(t('contactT'))}</button>
+      </div>
+    </div>`;
+}
+
 /* Matnni buferga nusxalash. Ikki yo'l ATAYLAB: `navigator.clipboard`
    xavfsiz kontekst (HTTPS) va ruxsat talab qiladi hamda Telegram
    WebView'ida mavjud bo'lmasligi mumkin — o'shanda eski `execCommand`
@@ -1661,8 +1774,27 @@ function addressPickerHtml() {
     <div class="addr-opts">${rows}</div>`;
 }
 
+/* Ko'rinish QAYERDAN ochilgani. Faqat ikki qiymat: `'profile'` (standart)
+   va `'footer'`. Sabab pastda — `pickAddrPoint` ning qaytish yo'li shunga
+   qarab tanlanadi. */
+let addrFrom = 'profile';
+
 /** Profildan manzil tanlashga o'tish */
 function openAddrPicker() {
+  addrFrom = 'profile';
+  drawerView = 'address';
+  renderDrawer();
+  openDrawerEl();
+}
+
+/* Footer'dagi "Topshirish punktlari" — AYNI ko'rinish, ikkinchi nusxa EMAS
+   (CLAUDE.md: mavjud funksiyaning ustiga ikkinchi yo'l qo'shilmaydi).
+   Farqi bitta: bu yerga profildan emas, sahifa tagidan kelinadi, ya'ni
+   nuqta tanlangandan keyin profilga "qaytarish" mumkin emas — u yerda
+   foydalanuvchi umuman bo'lmagan. Kirmagan odam uchun esa profil
+   ko'rinishi bo'sh karta va "Hisobdan chiqish" tugmasini ko'rsatardi. */
+function openPoints() {
+  addrFrom = 'footer';
   drawerView = 'address';
   renderDrawer();
   openDrawerEl();
@@ -1677,12 +1809,13 @@ function backToProfile() {
 /* ⚠️ Bu yerda BUTUN ko'rinish qayta chizilMAYDI: karta o'chib qaytadan
    yuklanardi va ekran har bosishda sakrardi (checkout formasidagi
    `paintBtsInfo` bilan bitta mulohaza). Faqat ro'yxatdagi belgi va
-   kartadagi nuqta yangilanadi, so'ng profilga qaytiladi. */
+   kartadagi nuqta yangilanadi, so'ng kelingan joyga qaytiladi. */
 function pickAddrPoint(id) {
   if (!btsById(id)) return;
   setBtsPoint(id);
   paintAddrMarkers();
   savePickupPoint(id);
+  if (addrFrom === 'footer') { closeCart(); return; }
   backToProfile();
 }
 
@@ -4781,7 +4914,11 @@ function renderDrawer() {
   }
 
   if (drawerView === 'address') {
-    title.textContent = t('myAddr');
+    // Sarlavha KIRISH NUQTASIGA qarab: profildan kelinganda bu "mening
+    // manzilim", footer'dan kelinganda esa oddiy ro'yxat — o'sha yerda
+    // bosilgan so'z bilan bir xil bo'lsin, aks holda foydalanuvchi
+    // "Topshirish punktlari" ni bosib "Mening manzilim" ni ko'rardi.
+    title.textContent = t(addrFrom === 'footer' ? 'fPoints' : 'myAddr');
     body.innerHTML = addressPickerHtml();
     foot.hidden = true;
     // Karta HTML bilan birga kelmaydi — `#addr-map` tuguni DOM'ga
@@ -4794,6 +4931,15 @@ function renderDrawer() {
   if (drawerView === 'contact') {
     title.textContent = t('contactT');
     body.innerHTML = contactWaysHtml();
+    foot.hidden = true;
+    return;
+  }
+
+  // Footer bo'limlari — sarlavha ham, matn ham BITTA jadvaldan
+  // (`INFO_TOPICS`), ya'ni yangi bo'lim qo'shilganda bu yerga tegilmaydi.
+  if (drawerView === 'info') {
+    title.textContent = t((INFO_TOPICS[infoTopic] || INFO_TOPICS.about).title);
+    body.innerHTML = infoHtml();
     foot.hidden = true;
     return;
   }
