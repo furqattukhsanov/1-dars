@@ -131,6 +131,92 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
 
 ## Qilingan ishlar
 
+- [2026-08-16] **MAHSULOT SAHIFASIDA QADALGAN QUTI OLIB TASHLANDI VA
+  O'XSHASH MATOLAR KATALOG O'LCHAMIGA QAYTDI** (bugungi OLTINCHI commit).
+  Uchala o'zgarish ham founder shikoyati/qarori bo'yicha, ish FAQAT SAYTGA
+  tegdi — Mini App'ga tegilmadi.
+
+  **1) QUTI QADALMAYDI, O'RNINI YUQORIDAGI QATOR BOSADI.** Founder:
+  «webda scroll qilsam shu qadalib pastga tushayabdi». `.pdp-aside` dan
+  `position: sticky` OLIB TASHLANDI. Lekin narx va tugma yo'qolib qolmadi:
+  yangi `.pdp-bar` — yuqorida ingichka qator (surat, nom, reyting, narx va
+  AYNI «Savatga» tugmasi), u FAQAT sotib olish qutisi ekrandan chiqib
+  ketganda ko'rinadi va sahifa mazmunini bosib turmaydi.
+  ⚠️ **Tugma NUSXALANMADI** — ikkala joy ham `pdpActHtml()` dan oziqlanadi
+  va `renderPdpAct()` endi IKKALA idishni ham yangilaydi. Nusxa yozilsa
+  ekran o'z ustidan jimgina yolg'on gapirardi: bir joyda «savatda 2 dona»,
+  ikkinchisida hamon «Savatga qo'shish».
+  ⚠️ **Qatorning `top` i JS da O'LCHANADI** (`pdpBarSync`), `--header-h`
+  dan OLINMAYDI. Sabab o'lchov: 880px dan tor ekranda qidiruv ikkinchi
+  qatorga tushadi va header o'sha o'zgaruvchidan BALAND bo'ladi —
+  **700px da 115px, 375px da 162px**. Qattiq yozilsa qator header ostiga
+  kirib, umuman KO'RINMAY qolardi.
+  ⚠️ `position: fixed`, `sticky` EMAS: qator `#pdp` ichida yashaydi va
+  sticky bo'lsa sahifa oxirida (o'xshash matolar orasida) yuqoriga chiqib
+  ketardi. Tinglovchilar HUJJAT umri bo'yicha bir marta ulanadi —
+  `renderPdp` da ulansa har ochilishda yangi tinglovchi qo'shilardi.
+
+  **2) O'XSHASH MATOLAR IKKI QATOR VA KATALOG O'LCHAMIDA.** Founder:
+  «kartochkalar pastda ezilib o'z hajmini yo'qotayotgan edi, shunaqa
+  yo'qotmasin hech qachon». Pastki qator endi UCHALA ustunni egallaydi
+  (`"below below side"` → **`"below below below"`**).
+  🔴 **O'LCHANDI (1280px):** o'xshash mato kartochkasi **179×394** edi,
+  AYNI kartochka katalogda **264×501** — ya'ni tavsiya kartochkasi
+  kengligining uchdan birini yo'qotardi. Endi **264×501**, harfma-harf
+  bir xil.
+  **`.pdp-sim` ustunlar sonini QAYTA YOZMAYDI** — u `.product-grid` dan
+  keladi, ya'ni «kartochka o'z hajmini yo'qotmasin» qoidasi bitta joyda
+  turadi. Ko'rinadigan kartochka soni ham ustunga bog'landi
+  (2/3/4 ustun → **4/6/8**, ya'ni har doim ikki qator), `PDP_SIM_MAX`
+  4 → **8** va u eng katta songa TENG. Ortiqchasi DOM'da qoladi va faqat
+  yashiriladi: `pdpMountSimilar` sahifa ochilganda BIR marta ishlaydi,
+  ya'ni ekran kengaysa qator qayta chizilmasdan to'ladi.
+
+  **3) VARAQA NISHONI FONSIZ BELGIGA O'TDI.** Founder: «admin
+  panelnikidek qilgin». `index.html` → `rel="icon"` =
+  `/Photo/logo/lola-mark.png` (ilgari `assets/pwa/icon-192.png` — to'q
+  qizil KVADRAT, varaqa tasmasida qora dog'day ko'rinardi).
+  ⚠️ `apple-touch-icon` ATAYLAB kvadrat bo'lib QOLDI: uy ekranidagi nishon
+  fonsiz bo'lsa iOS uni oq fonga qo'yadi va belgi rangsiz ko'rinardi —
+  ikki nishon ikki xil ish qiladi, bir xillashtirilmasin. `Photo/`
+  `deploy.yml` `source` ro'yxatida ALLAQACHON bor (tekshirildi) va fayl
+  diskda mavjud — «yangi ildiz papkasi CI ga qo'shilmasa serverga chiqmaydi»
+  tuzog'i bu safar otilmadi.
+
+  **YANGI QOROVULLAR — 7 MUTATSIYA, 7 TASI USHLANDI.**
+  **Test 40** — o'xshash matolar katalog o'lchamida: `.pdp-sim` da
+  `grid-template-columns` QAYTA YOZILMASIN + ikki qator pog'onalari
+  (`4 / 6 / 8`) + `PDP_SIM_MAX` eng katta pog'onaga teng bo'lsin.
+  **Test 41** — sotib olish tugmasi HAMMA idishda yangilansin: idishlar
+  ro'yxati qo'lda yozilmaydi, manbadan yig'iladi (2 ta topildi:
+  `pdp-act`, `pdp-bar-act`), ya'ni uchinchi joy qo'shilsa avtomatik
+  qamraladi. **Test 37** izohi yangi maydon tuzilmasiga moslandi (u
+  kechagi commitda aynan qadalgan quti uchun yozilgan edi).
+
+  **SINALGANI: 80 TEST YASHIL** — raqam runner chiqishidan MUSTAQIL
+  sanaldi (`^✅ Test` satrlari, TAKRORSIZ; yakuniy «Hammasi PASS» qatori
+  bu naqshga tushmaydi, ya'ni sanoqqa kirmaydi).
+  ⚠️ Ish yozuvida raqam KELMAGAN edi («butun to'plam yashil») —
+  shuning uchun zanjir git tarixidan tiklandi va TEKSHIRILDI:
+  `5cd89cf` → 75, `e174291` → 77, `2a93153` (HEAD, Test 39 qo'shilgan)
+  → **78**, bugun 2 ta (Test 40, 41) → **80**. Ya'ni oldingi hisobotlardagi
+  raqamlar TO'G'RI bo'lib chiqdi; «hujjatdagi raqam — tekshirilmagan
+  da'vo» qoidasi bu safar xato TOPMADI, lekin qadam baribir bajarildi
+
+  ⚠️ **TEKSHIRUV KO'Z BILAN EMAS, O'LCHOV BILAN:** brauzer paneli render
+  qilmadi (`document.hidden`), ya'ni skrinshotga ishonib bo'lmasdi —
+  `getBoundingClientRect()` bilan **1280 / 900 / 700 / 500 / 375 / 320px**
+  kengliklarda o'lchandi, gorizontal skroll yo'q. Bu CLAUDE.md dagi
+  «flex ustunda ko'z bilan qarash yetarli emas» bandining amaliyoti.
+  🔴 **JONLI SAYTDA HALI KO'RILMAGAN** — deploy faqat statik (servis
+  restarti va migratsiya KERAK EMAS).
+
+  Kesh: `style.css` 60 → **61** (`index.html` va `admin/index.html`
+  birga — bitta fayl hamma sahifada bir xil versiya), `script.js`
+  49 → **50**, `panel.js` 42 → **43**, Test 16 jadvalidagi `sha256` lar
+  birga (`style.css` `0f2f51c38847`, `script.js` `3d02e03306f0`).
+  CLAUDE.md ga ikkita yangi qoida yozildi (quyida).
+
 - [2026-08-16] **MAHSULOT DETALI DRAWER'DAN TO'LIQ SAHIFAGA O'TDI — VA
   ENG QIMMAT NUQSONNI FOUNDER TOPDI, TEST EMAS** (bugungi BESHINCHI commit).
   Ish FAQAT SAYTGA tegdi — Mini App'ga tegilmadi, bu founder sharti edi.
@@ -2943,6 +3029,43 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
 ---
 
 ## Qarorlar
+
+- [2026-08-16] Qaror: **sotib olish qutisi QADALMAYDI; narx va tugmaning
+  o'rnini yuqoridagi qator bosadi** (`.pdp-bar`). Founder shikoyati: «webda
+  scroll qilsam shu qadalib pastga tushayabdi». Muqobili — qadalishni
+  saqlab, faqat kesishmani tuzatish — RAD ETILDI: kechagi commitda aynan
+  shunday qilingan edi (tor ekranda `position: static`) va nuqson keng
+  ekranda QOLGAN edi, ya'ni tuzatish nuqsonning bir yuzini yopib
+  ikkinchisini ochiq qoldirardi. Qator qutining O'RNINI bosadi, unga
+  QO'SHIMCHA emas — shuning uchun quti ekranda turganda u chiqmaydi
+  (aks holda bitta narx va bitta tugma ikki marta ko'rinardi)
+
+- [2026-08-16] Qaror: **qadalgan qatorning `top` i har safar O'LCHANADI,
+  `--header-h` dan olinmaydi.** Sabab o'lchov: 880px dan tor ekranda
+  qidiruv ikkinchi qatorga tushadi va header o'sha o'zgaruvchidan baland
+  bo'ladi (700px da 115px, 375px da 162px). Qattiq yozilgan qiymat qatorni
+  header ostiga yashirardi — nuqson JIMGINA bo'lardi: konsolda xato yo'q,
+  element DOM'da bor, shunchaki ko'rinmaydi. CSS dagi `top: var(--header-h)`
+  faqat ZAXIRA sifatida qoldi
+
+- [2026-08-16] Qaror: **o'xshash matolar `.product-grid` ustunlarini
+  MEROS QILIB oladi — `.pdp-sim` ustunlar sonini qayta yozmaydi**, va
+  ko'rinadigan kartochka soni ustunga BOG'LANADI (2/3/4 → 4/6/8), qattiq
+  son yozilmaydi. Founder: «kartochkalar pastda ezilib o'z hajmini
+  yo'qotayotgan edi, shunaqa yo'qotmasin hech qachon» + «2 qator bo'lib
+  tursin». Sabab: kartochkaning O'ZI katalogdan NUSXALANADI, ya'ni uning
+  o'lchami ham katalogdan kelishi TA'RIF bo'yicha kafolatlansin — ikkita
+  mustaqil ro'yxat jimgina ajralib ketardi (`BTS_POINTS` oilasi). Qattiq
+  son (masalan har doim 8) telefonda to'rt qator, desktopda ikki qator
+  chiqarardi
+
+- [2026-08-16] Qaror: **varaqa nishoni (`rel="icon"`) — FONSIZ belgi,
+  `apple-touch-icon` esa KVADRAT bo'lib qoladi.** Founder: «admin
+  panelnikidek qilgin». Ikkalasini tenglashtirish noto'g'ri bo'lardi: iOS
+  uy ekranida fonsiz PNG ni oq fonga qo'yadi va anor rangdagi belgi
+  rangsiz ko'rinardi. Ya'ni bu 2026-08-14 dagi «ikki yuz bir xil ko'rinishi
+  SHART EMAS» mulohazasining takrori — farq uslubda emas, NISHONNI
+  ISHLATADIGAN MUHITDA
 
 - [2026-08-16] Qaror: **mahsulot detali saytda TO'LIQ SAHIFA, drawer emas —
   va eski ko'rinish OLIB TASHLANDI.** Founder Uzum referensini berdi. Ikkala

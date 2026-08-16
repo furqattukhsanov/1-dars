@@ -2409,26 +2409,123 @@ body.pdp-on #bot { display: none; }
 }
 .pdp-back:hover { background: var(--pom-50); color: var(--pom-700); }
 
-/* To'rt maydon (referens tuzilmasi): galereya — nom/reyting — sotib olish
-   qutisi bitta qatorda, tavsif/sharhlar/o'xshashlar esa PASTDA, chap ikki
-   ustun ostida. O'ng ustun ikkala qatorni egallab qadalib turadi, ya'ni
-   sharh o'qiyotgan odam narx va tugmani ko'rmay qolmaydi.
+/* ── Qadalgan mahsulot qatori (2026-08-16, founder qarori) ──
+   Sotib olish qutisi ekrandan chiqib ketganda yuqorida ingichka qator
+   paydo bo'ladi: surat, nom, reyting, narx va AYNI "Savatga" tugmasi.
+   U qutining O'RNINI bosadi — quti endi qadalmaydi (`.pdp-grid` izohi).
+
+   ⚠️ `position: fixed`, `sticky` EMAS: qator `#pdp` ning ichida yashaydi,
+   sticky bo'lsa u faqat O'Z otasi ichida yopishardi va sahifa oxirida
+   (o'xshash matolar orasida) yuqoriga chiqib ketardi.
+   ⚠️ `top` ni JS O'LCHAYDI (`pdpBarSync`) — `--header-h` YETARLI EMAS:
+   880px dan tor ekranda qidiruv ikkinchi qatorga tushadi va header o'sha
+   o'zgaruvchidan baland bo'ladi ("HEADER MOBILDA" bo'limi). Qattiq yozilsa
+   qator header ostiga kirib ketardi. Bu yerdagi qiymat — faqat ZAXIRA
+   (JS ishlamasa qator baribir to'g'ri joyda turadi, chunki u ko'rinmaydi).
+   ⚠️ `visibility` ATAYLAB — faqat `opacity: 0` bo'lsa ko'rinmas tugma
+   sichqonchani ham, TAB tartibini ham ushlab qolardi. */
+.pdp-bar {
+  position: fixed;
+  left: 0; right: 0;
+  top: var(--header-h);
+  z-index: 90;   /* `#nav` (100) DAN PAST: header ustiga chiqmasin */
+  padding: 8px 0;
+  background: linear-gradient(to bottom, rgba(255,253,251,.94), rgba(255,250,247,.88));
+  backdrop-filter: blur(22px) saturate(170%);
+  -webkit-backdrop-filter: blur(22px) saturate(170%);
+  border-bottom: 1px solid var(--border-hair);
+  box-shadow: 0 14px 28px -22px rgba(81,1,0,.4);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-10px);
+  transition: opacity var(--dur-fast) var(--ease-out),
+              transform var(--dur-base) var(--ease-out),
+              visibility var(--dur-base);
+}
+.pdp-bar.is-on { opacity: 1; visibility: visible; transform: none; }
+
+.pdp-bar-in { display: flex; align-items: center; gap: 14px; }
+/* Chap guruh SIQILADIGAN yagona element — narx va tugma esa `flex: none`.
+   Aks holda uzun nom tugmani qisib qo'yardi (CLAUDE.md, flex-siqilish). */
+.pdp-bar-id { flex: 1; min-width: 0; display: flex; align-items: center; gap: 11px; }
+/* ⚠️ `min-width` ATAYLAB `width` bilan BIR XIL va u `flex: none` ga
+   QO'SHIMCHA. O'LCHANDI (2026-08-16, 320px ekran): `flex: none` bo'lsa ham
+   surat 38px o'rniga **28px** chiqdi — chunki ota (`.pdp-bar-id`)
+   `min-width: 0` bilan siqiladi va ildizdagi `img { max-width: 100% }`
+   (137-qator) suratni O'SHA siqilgan otaga moslaydi. `min-width` esa
+   `max-width` dan kuchli, ya'ni zanjir shu yerda uziladi.
+   O'lchami uch pog'onada o'zgaradi — shuning uchun BITTA o'zgaruvchi:
+   uchta joyda uchta raqam yozilsa biri unutilib, surat yana siqilardi. */
+.pdp-bar-img {
+  flex: none;
+  width: var(--bar-img, 44px);
+  height: var(--bar-img, 44px);
+  min-width: var(--bar-img, 44px);
+  border-radius: 10px;
+  object-fit: cover;
+  background: var(--ink-100);
+}
+.pdp-bar-txt { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.pdp-bar-name {
+  font-size: 14px; font-weight: 700;
+  color: var(--text-strong);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.pdp-bar-rate {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12px; color: var(--text-muted);
+}
+.pdp-bar-rate b { color: var(--text-body); }
+.pdp-bar-price {
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: 19px; font-weight: 600;
+  letter-spacing: -.02em;
+  color: var(--text-strong);
+  white-space: nowrap;
+}
+.pdp-bar-act { flex: none; width: 208px; }
+.pdp-bar-act .pd-add { min-height: 42px; font-size: 14px; }
+.pdp-bar-act .qty-row { justify-content: space-between; }
+.pdp-bar-act .qty-num {
+  font-family: var(--font-mono);
+  font-size: 14px; font-weight: 600;
+  color: var(--text-strong);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pdp-bar { transition: none; }
+}
+
+/* To'rt maydon: galereya — nom/reyting — sotib olish qutisi bitta qatorda,
+   tavsif/sharhlar/o'xshashlar esa PASTDA va BUTUN KENGLIKDA.
 
    ⚠️ Rasm ustuni CHEGARALANGAN (`520px`): 1fr qoldirilganda u 780px gacha
    cho'zilib, sahifaning yarmini bitta surat egallardi — nom ham, narx ham
-   birinchi ekranga sig'masdi. */
+   birinchi ekranga sig'masdi.
+
+   🔴 QUTI QADALMAYDI va pastki qator UCHALA USTUNNI egallaydi (2026-08-16,
+   founder shikoyati: "scroll qilsam shu qadalib pastga tushayabdi").
+   Ilgari `"below below side"` edi, ya'ni o'ng ustun ikkala qatorni
+   egallab turardi va pastki bo'limlarga faqat 776px qolardi. O'LCHANDI
+   (1280px ekran): o'xshash mato kartochkasi **179×394**, AYNI kartochka
+   katalogda esa **264×501** — ya'ni tavsiya kartochkasi kengligining
+   uchdan birini yo'qotardi. Endi pastki qator 1116px oladi va kartochka
+   katalogdagi bilan HARFMA-HARF bir xil chiqadi.
+   Narx va tugmani ko'rmay qolish muammosi qadalish bilan emas, YUQORIDAGI
+   QATOR bilan yechiladi (`.pdp-bar`) — u sahifa mazmunini bosib turmaydi. */
 .pdp-grid {
   display: grid;
   gap: 26px 28px;
   grid-template-columns: minmax(280px, 500px) minmax(180px, 1fr) 312px;
   grid-template-areas:
     "gal   info  side"
-    "below below side";
+    "below below below";
   align-items: start;
 }
 .pdp-gal   { grid-area: gal; min-width: 0; }
 .pdp-info  { grid-area: info; min-width: 0; }
-.pdp-aside { grid-area: side; position: sticky; top: calc(var(--header-h) + 14px); }
+.pdp-aside { grid-area: side; min-width: 0; }
 .pdp-below { grid-area: below; min-width: 0; }
 
 /* ── Galereya ── */
@@ -2757,11 +2854,31 @@ body.pdp-on #bot { display: none; }
 /* ── O'xshash matolar ──
    Kartochkaning O'ZI katalogdagidan NUSXALANADI (`pdpMountSimilar`), ya'ni
    bu yerda kartochka uslubi QAYTA YOZILMAYDI — `.product-card` qoidalari
-   o'z holicha ishlaydi. Faqat qator sig'imi boshqacha: katalogda 2 ustun,
-   bu yerda kengroq joy bor. */
+   o'z holicha ishlaydi.
+
+   🔴 USTUNLAR SONI HAM QAYTA YOZILMAYDI (2026-08-16). Ilgari bu yerda
+   `repeat(4, …)` turardi va u `.product-grid` ning o'z pog'onalarini
+   (2 / 3 / 4 ustun) BOSIB ketardi: planshetda to'rtta kartochka tor
+   joyga tiqilib, katalogdagi AYNI kartochka bilan boshqacha ko'rinardi.
+   Endi ustunlar `.product-grid` dan keladi, ya'ni "kartochka o'z hajmini
+   yo'qotmasin" qoidasi bitta joyda turadi — kenglik ham, sig'im ham. */
 .pdp-sim {
   margin-top: 0;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+/* IKKI QATOR (founder qarori, 2026-08-16: "2 qator bo'lib tursin, ko'p
+   bo'lsa ham"). Ko'rinadigan kartochka soni USTUNLAR soniga bog'langan —
+   `2 × ustun`, ya'ni 4 / 6 / 8. Qattiq son yozilsa (masalan har doim 8)
+   telefonda to'rt qator, desktopda ikki qator chiqardi.
+   Ortiqcha nusxalar DOM'da qoladi va faqat YASHIRILADI: ekran kengaysa
+   qator qayta chizilmasdan to'ladi (`pdpMountSimilar` faqat bir marta
+   ishlaydi). Manba `PDP_SIM_MAX` — u shu yerdagi eng katta songa teng. */
+.pdp-sim .product-card:nth-child(n+5) { display: none; }
+@media (min-width: 640px) {
+  .pdp-sim .product-card:nth-child(-n+6) { display: flex; }
+}
+@media (min-width: 960px) {
+  .pdp-sim .product-card:nth-child(-n+8) { display: flex; }
 }
 
 /* Sichqonchali kengliklar — strelkalar shu yerda paydo bo'ladi */
@@ -2780,19 +2897,6 @@ body.pdp-on #bot { display: none; }
       "info  side"
       "below below";
   }
-  /* 🔴 QADALISH SHU YERDA O'CHIRILADI — bu KO'RINISH emas, NUQSON tuzatishi
-     (2026-08-16, founder skrinshoti). Bu tuzilmada pastki qator IKKALA
-     ustunni egallaydi (`"below below"`), ya'ni u sotib olish qutisining
-     TAGIDAN ham o'tadi. Quti qadalgan bo'lsa ekranda osilib qoladi va
-     "o'xshash matolar" kartochkalari uning ostidan surilib, quti
-     ULARNING USTIDA suzib turadi.
-     O'lchandi (1000px kenglik): quti 668→968, pastki qator 32→968 —
-     ya'ni 300px kesishma. Keng ekranda bunday emas: u yerda pastki qator
-     faqat 1–2-ustunda (`"below below side"`), quti esa o'z ustunida
-     to'liq balandlikda turadi va qadalishi TO'G'RI ishlaydi.
-     ⚠️ Ya'ni sabab `position: sticky` da emas, MAYDON TUZILMASIDA:
-     qadalgan element ostidan o'tadigan qator bo'lmasligi kerak. */
-  .pdp-aside { position: static; }
 }
 
 /* ── Telefon va tor planshet: bitta ustun ── */
@@ -2801,8 +2905,6 @@ body.pdp-on #bot { display: none; }
     grid-template-columns: minmax(0, 1fr);
     grid-template-areas: "gal" "info" "side" "below";
   }
-  .pdp-aside { position: static; }
-  .pdp-sim { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 /* ── Telefon ── */
@@ -2815,6 +2917,32 @@ body.pdp-on #bot { display: none; }
   .pdp-card { padding: 14px; }
   .pdp-price { font-size: 24px; }
   .pdp-sec + .pdp-sec { margin-top: 24px; }
+  /* Qadalgan qator telefonda: surat + narx + tugma. Reyting BIRINCHI
+     bo'lib tushadi — u sahifaning o'zida yuqorida turibdi, bu qatorning
+     vazifasi esa "narx qancha edi + savatga". */
+  .pdp-bar-rate { display: none; }
+  .pdp-bar { --bar-img: 38px; }
+  .pdp-bar-price { font-size: 15.5px; }
+  .pdp-bar-act { width: 132px; }
+  .pdp-bar-act .pd-add { min-height: 38px; font-size: 13px; }
+  .pdp-bar-in { gap: 10px; }
+}
+
+/* Telefon kengligida NOM ham tushadi. Sabab o'lchov (2026-08-16, 375px):
+   surat 38 + narx 108 + tugma 132 + oraliqlar 20 = **298px**, konteyner
+   ichi esa 343px — ya'ni nomga 45px qolardi. 45px da nom "Marg'…" bo'lib
+   kesiladi, ya'ni u ma'lumot emas, SHOVQIN bo'lib qolardi. 480px da esa
+   nomga 133px tegadi (o'lchandi) va u haqiqatan o'qiladi. */
+@media (max-width: 479px) {
+  .pdp-bar-txt { display: none; }
+}
+
+/* Eng tor telefonlar (320–359px): 298px konteyner ichiga (288px) SIG'MAYDI.
+   Uch element ham bir oz kichrayadi — yashiriladigan narsa qolmadi. */
+@media (max-width: 359px) {
+  .pdp-bar { --bar-img: 32px; }
+  .pdp-bar-price { font-size: 15px; }
+  .pdp-bar-act { width: 124px; }
 }
 
 /* --- Profildagi buyurtma qatorida baholash --- */

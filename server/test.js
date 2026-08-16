@@ -1384,8 +1384,11 @@ function testAssetVersionsAreFresh() {
     // (bir tomonlama) faylni qoldirardi.
     // 2026-08-16: mahsulot detali drawer'dan TO'LIQ SAHIFAGA o'tdi (`#pdp`) —
     // ikkala fayl ham sezilarli o'zgardi.
-    'style.css': { v: 60, hash: '761828abe28b' },
-    'script.js': { v: 49, hash: '2cba09affc92' },
+    // 2026-08-16 (kechqurun): sotib olish qutisi QADALMAY qoldi, o'rniga
+    // yuqorida qadalgan qator paydo bo'ldi (`.pdp-bar`), o'xshash matolar
+    // esa butun kenglikda ikki qator bo'lib terildi.
+    'style.css': { v: 61, hash: '0f2f51c38847' },
+    'script.js': { v: 50, hash: '3d02e03306f0' },
     'pwa.js': { v: 3, hash: 'dce9fcfee6cb' },
     // ⚠️ IKKINCHI BIRLASHTIRISH (2026-08-14): ikkala tomon panel.js ni 24,
     // app.js ni 87 ga ko'targan — AYNI raqamlar, TARKIB esa har xil.
@@ -1399,7 +1402,7 @@ function testAssetVersionsAreFresh() {
     // YUQORIGA suriladi: teng raqam qaytib kelgan foydalanuvchida keshdagi
     // BIR TOMONLAMA faylni qoldirardi — sevimlilar yoki chiqish tuzatishining
     // faqat bittasi bo'lgan `app.js`.
-    'panel.js': { v: 42, hash: 'd9f0498fad2c' },
+    'panel.js': { v: 43, hash: '8716c410d629' },
     'admin/admin.css': { v: 18, hash: '15b0bc977b85' },
     'admin/admin.js': { v: 25, hash: '08fae1bb61dc' },
     'telegram-app/styles.css': { v: 36, hash: '570a2450c3a4' },
@@ -4559,15 +4562,18 @@ function testMapsConfigValidation() {
 
 // ============ TEST 37: QADALGAN QUTI OSTIDAN QATOR O'TMASIN (2026-08-16) ============
 // Mahsulot sahifasining o'ng ustuni (`.pdp-aside` — narx, "Savatga",
-// kafolat, sotuvchi) `position: sticky`. Bu KENG ekranda to'g'ri: u yerda
-// pastki bo'limlar faqat 1–2-ustunda yotadi (`"below below side"`), ya'ni
-// qadalgan quti O'Z ustunida turadi va hech narsani yopmaydi.
+// kafolat, sotuvchi) ilgari `position: sticky` edi.
 //
-// 🔴 TOR ekranda esa tuzilma boshqacha (`"below below"` — pastki qator
-// IKKALA ustunni egallaydi) va o'shanda qadalish NUQSONGA aylanadi:
+// 🔴 Pastki qator o'ng ustun OSTIDAN o'tsa qadalish NUQSONGA aylanadi:
 // "o'xshash matolar" kartochkalari qutining TAGIDAN surilib o'tadi, quti
 // esa ularning ustida suzib turadi. Founder skrinshot yubordi
 // (1000px kenglik): quti 668→968, pastki qator 32→968 — 300px kesishma.
+//
+// ⚠️ 2026-08-16 (kechqurun) founder qadalishning O'ZINI rad etdi
+// ("scroll qilsam shu qadalib pastga tushayabdi") va endi HAMMA
+// kenglikda pastki qator uchala ustunni egallaydi (`"below below below"`),
+// ya'ni bu test qaytib kelgan HAR QANDAY `sticky` ni ushlaydi — narx va
+// tugmaning o'rnini yuqoridagi qator bosadi (`.pdp-bar`).
 //
 // ⚠️ Nuqson JIMGINA edi: konsolda xato yo'q, `overflow` yo'q, o'lchamlar
 // "to'g'ri", DOM tekshiruvi yashil. U faqat SKROLL QILGANDA va faqat
@@ -4774,6 +4780,154 @@ function testDbImportShape() {
     `\`require('../db')\` chaqiruvlari topilmadi (${korilgan} ta) — regex eskirgan bo'lishi mumkin`);
 
   console.log(`✅ Test 39: Baza importi shakli to'g'ri — PASS (${korilgan} ta import)`);
+}
+
+// ============ TEST 40: O'XSHASH MATOLAR — IKKI QATOR, KATALOG O'LCHAMIDA ============
+// (2026-08-16, founder shikoyati: "mahsulot kartochkalari pastda ezilib o'z
+// hajmini yo'qotayotgan edi — shunaqa yo'qotmasin HECH QACHON")
+//
+// O'LCHANDI (1280px): o'xshash mato kartochkasi 179×394, AYNI kartochka
+// katalogda 264×501 — ya'ni tavsiya kartochkasi kengligining uchdan birini
+// yo'qotardi. Ikki sabab bor edi va ikkalasi ham TUZATILDI:
+//   (1) pastki qator o'ng ustun ostidan o'tmasdi (`"below below side"`),
+//   (2) `.pdp-sim` `grid-template-columns` ni QAYTA YOZARDI (har doim 4).
+//
+// 🔴 Ikkinchisi asosiysi va u qaytishi ENG OSON: "bu yerda kengroq joy bor"
+// degan o'y bilan bitta qator yozilsa yetadi. Shuning uchun qoida shu:
+// **`.pdp-sim` ustunlar sonini QAYTA YOZMAYDI** — u `.product-grid` dan
+// keladi, ya'ni tavsiya kartochkasi katalogdagi bilan bir xil bo'lishi
+// TA'RIF bo'yicha kafolatlanadi.
+//
+// Ikki qator esa ustunlar soniga BOG'LANGAN (2/3/4 → 4/6/8). Qattiq son
+// yozilsa telefonda to'rt qator, desktopda ikki qator chiqardi. Test shu
+// bog'lanishni tekshiradi: sonlar CSS dan O'QILADI, qo'lda yozilmaydi.
+function testSimilarGridMatchesCatalog() {
+  const fs = require('fs');
+  const path = require('path');
+  const ildiz = path.join(__dirname, '..');
+  const css = fs.readFileSync(path.join(ildiz, 'style.css'), 'utf8');
+  const js = fs.readFileSync(path.join(ildiz, 'script.js'), 'utf8');
+
+  // CSS ni bloklarga ajratamiz. Kalit — MEDIA SHARTI (manba tartibi emas):
+  // `.product-grid` ning 640/960 qoidalari faylning boshida, `.pdp-sim`
+  // niki esa oxirida turadi, ya'ni tartib bo'yicha yurilsa ular bir-biriga
+  // mos kelmasdi.
+  const bloklar = { '': css.replace(/@media[^{]+\{[\s\S]*?\n\}/g, '') };
+  for (const m of css.matchAll(/@media([^{]+)\{([\s\S]*?)\n\}/g)) {
+    const kalit = m[1].trim();
+    bloklar[kalit] = (bloklar[kalit] || '') + m[2];
+  }
+
+  // ── Ustunlar: `.product-grid` dan ──
+  const ustun = {};
+  for (const [kalit, src] of Object.entries(bloklar)) {
+    const m = src.match(/\.product-grid\s*\{[\s\S]*?grid-template-columns:\s*repeat\((\d+)/);
+    if (m) ustun[kalit] = Number(m[1]);
+  }
+  assert.ok(Object.keys(ustun).length >= 2,
+    `\`.product-grid\` ustunlari topilmadi (${Object.keys(ustun).length} ta blok) — ` +
+    'selektor o\'zgargan bo\'lsa test ham yangilansin.');
+
+  // ── `.pdp-sim` ustunlarni QAYTA YOZMAYDI ──
+  for (const [kalit, src] of Object.entries(bloklar)) {
+    const m = src.match(/\.pdp-sim[^{]*\{([\s\S]*?)\}/g) || [];
+    m.forEach((qoida) => {
+      assert.ok(!/grid-template-columns/.test(qoida),
+        `${kalit || 'ildiz'}: \`.pdp-sim\` \`grid-template-columns\` ni qayta yozyapti.\n` +
+        '→ O\'xshash matolar kartochkasi katalogdagi AYNI kartochka bo\'lishi kerak ' +
+        '(u `cloneNode` bilan ko\'chiriladi). Ustun soni bu yerda qayta yozilsa ' +
+        'kartochka boshqa kenglikda chizilib, 2026-08-16 dagi "ezilib qolgan ' +
+        'kartochka" nuqsoni QAYTADI (o\'lchangan farq: 179px va 264px).\n' +
+        `→ Topilgan qoida: ${qoida.replace(/\s+/g, ' ').slice(0, 120)}`);
+    });
+  }
+
+  // ── Ko'rinadigan kartochka soni = 2 × ustun ──
+  // Yashirish `:nth-child(n+K)` (K dan boshlab yo'q), ko'rsatish
+  // `:nth-child(-n+K)` (K gacha bor) shaklida yoziladi.
+  const korinadi = {};
+  for (const [kalit, src] of Object.entries(bloklar)) {
+    for (const m of src.matchAll(/\.pdp-sim\s+\.product-card:nth-child\((-?)n\+(\d+)\)\s*\{([^}]*)\}/g)) {
+      const [, minus, son, tana] = m;
+      if (!minus && /display:\s*none/.test(tana)) korinadi[kalit] = Number(son) - 1;
+      if (minus && !/display:\s*none/.test(tana)) korinadi[kalit] = Number(son);
+    }
+  }
+
+  assert.ok(Object.keys(korinadi).length >= 2,
+    `O'xshash matolar uchun "ikki qator" qoidasi topilmadi (${Object.keys(korinadi).length} ta blok). ` +
+    '→ `.pdp-sim .product-card:nth-child(...)` qoidalari o\'chirilgan bo\'lsa, ro\'yxat endi ' +
+    'ikki qator emas — founder qarori (2026-08-16) buzilgan.');
+
+  // Pog'onalar BIR XIL chegaralarda bo'lsin. Bittasi tushib qolsa test
+  // baribir yashil bo'lardi: qolganlari o'zaro mos, ya'ni "ikki qator"
+  // faqat qolgan kengliklarda ishlab, telefonda TO'RT qator chiqardi.
+  assert.deepStrictEqual(Object.keys(korinadi).sort(), Object.keys(ustun).sort(),
+    'Ustunlar soni va o\'xshash matolar sig\'imi BIR XIL chegaralarda belgilanishi shart.\n' +
+    `→ \`.product-grid\` chegaralari: ${Object.keys(ustun).map((k) => k || 'ildiz').join(', ')}\n` +
+    `→ \`.pdp-sim\` sig'imi: ${Object.keys(korinadi).map((k) => k || 'ildiz').join(', ')}\n` +
+    '→ Katalogga yangi pog\'ona qo\'shilgan bo\'lsa, ikki qator qoidasi ham o\'sha ' +
+    'chegarada yangilansin.');
+
+  Object.entries(korinadi).forEach(([kalit, son]) => {
+    const ust = ustun[kalit];
+    assert.ok(ust,
+      `${kalit || 'ildiz'}: o'xshash matolar sig'imi shu blokda belgilangan, ` +
+      '`.product-grid` ustunlari esa YO\'Q — ikkalasi BIR XIL chegarada turishi shart, ' +
+      'aks holda qator yarim bo\'sh yoki uch qator bo\'lib qolardi.');
+    assert.strictEqual(son, ust * 2,
+      `${kalit || 'ildiz'}: ustun ${ust} ta, ko'rinadigan kartochka esa ${son} ta — ` +
+      `ikki qator uchun ${ust * 2} ta bo'lishi kerak.`);
+  });
+
+  // ── `PDP_SIM_MAX` eng katta sig'imga teng ──
+  const maxM = js.match(/const PDP_SIM_MAX = (\d+);/);
+  assert.ok(maxM, '`PDP_SIM_MAX` topilmadi (`script.js`)');
+  const engKatta = Math.max(...Object.values(korinadi));
+  assert.strictEqual(Number(maxM[1]), engKatta,
+    `\`PDP_SIM_MAX\` = ${maxM[1]}, eng keng ekrandagi sig'im esa ${engKatta}. ` +
+    'Kam bo\'lsa desktopda ikkinchi qator YARIM bo\'sh qolardi, ko\'p bo\'lsa DOM\'da ' +
+    'hech qachon ko\'rinmaydigan nusxalar yotardi.');
+
+  console.log('✅ Test 40: O\'xshash matolar katalog o\'lchamida, ikki qator — PASS ' +
+    `(${Object.keys(korinadi).length} ta pog'ona: ${Object.entries(korinadi).map(([k, v]) => (k || 'ildiz') + '→' + v).join(', ')})`);
+}
+
+// ============ TEST 41: SOTIB OLISH TUGMASI HAMMA JOYDA BIR XIL (2026-08-16) ============
+// Narx va "Savatga" tugmasi endi IKKI joyda chiziladi: o'ng ustundagi quti
+// va yuqoridagi qadalgan qator (`.pdp-bar`). Ikkalasi ham AYNI funksiyadan
+// oziqlanadi (`pdpActHtml`) — lekin YANGILANISH alohida: `renderPdpAct`
+// idishlarni `id` bo'yicha topadi.
+//
+// 🔴 Bittasi unutilsa nuqson JIMGINA bo'ladi: bir joyda "savatda 2 dona"
+// turadi, ikkinchisida hamon "Savatga qo'shish" — ya'ni ekran o'z ustidan
+// yolg'on gapiradi va xaridor ikkinchi marta qo'shadi. Xato yo'q, test
+// (agar bu bo'lmasa) yashil.
+//
+// Ro'yxat QO'LDA yozilmaydi: `pdpActHtml()` chizadigan idishlar manbadan
+// TOPILADI, ya'ni uchinchi joy qo'shilsa u avtomatik qamraladi.
+function testBuyButtonBoxesStayInSync() {
+  const fs = require('fs');
+  const path = require('path');
+  const js = fs.readFileSync(path.join(__dirname, '..', 'script.js'), 'utf8');
+
+  const idlar = [...js.matchAll(/id="([^"]+)"[^>]*>\$\{pdpActHtml\(/g)].map((m) => m[1]);
+  assert.ok(idlar.length >= 2,
+    `\`pdpActHtml()\` chizadigan idish topilmadi (${idlar.length} ta). Shakl o'zgargan ` +
+    'bo\'lsa test ham yangilansin — aks holda u hech narsani qo\'riqlamaydi.');
+
+  const tana = js.match(/function renderPdpAct\(\)\s*\{([\s\S]*?)\n\}/);
+  assert.ok(tana, '`renderPdpAct` topilmadi');
+
+  idlar.forEach((id) => {
+    assert.ok(tana[1].includes(`'${id}'`) || tana[1].includes(`"${id}"`),
+      `\`#${id}\` da sotib olish tugmasi chiziladi, lekin \`renderPdpAct()\` uni ` +
+      'YANGILAMAYDI. Savatga qo\'shilganda o\'sha joy eski holatda qolib, ekranning ' +
+      'ikki qismi bir-biriga zid gap aytadi.\n' +
+      `→ \`renderPdpAct()\` dagi ro'yxatga '${id}' ni qo'shing.`);
+  });
+
+  console.log(`✅ Test 41: Sotib olish tugmasi hamma joyda bir xil — PASS (${idlar.length} ta idish: ${idlar.join(', ')})`);
 }
 
 // ============ TEST 22c: BTS RO'YXATI IKKI YUZDA BIR XIL (2026-08-13) ============
@@ -5086,6 +5240,8 @@ async function runTests() {
     testMapsConfigValidation();
     testBtsListsStayInSync();
     testStickyAsideHasNoRowBeneath();
+    testSimilarGridMatchesCatalog();
+    testBuyButtonBoxesStayInSync();
     testRootPathsAreAbsolute();
     testDbImportShape();
 

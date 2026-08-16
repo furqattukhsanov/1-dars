@@ -3484,7 +3484,12 @@ function pdpReviewsHtml(id) {
    Buni MUMKIN qilgan narsa — `id="act-<id>"` / `id="fav-<id>"` ning
    `data-*` ga ko'chishi (`cardBoxes()` izohi): `id` bilan ikkinchi nusxa
    hujjatda takror `id` hosil qilib, jimgina yangilanmay qolardi. */
-const PDP_SIM_MAX = 4;
+/* IKKI QATOR (founder qarori, 2026-08-16). Son ENG KENG ekrandagi ikki
+   qatorga qarab olinadi (4 ustun × 2 = 8); torroq ekranda ortiqchasi CSS
+   bilan yashiriladi (`style.css` → `.pdp-sim …:nth-child`). Teskarisi —
+   ekranga qarab JS da sanash — resize'da qator yarim bo'sh qolardi, chunki
+   `pdpMountSimilar` faqat sahifa ochilganda bir marta ishlaydi. */
+const PDP_SIM_MAX = 8;
 
 /* Tavsiya UCH POG'ONA bilan yig'iladi va bu O'LCHOVDAN kelib chiqqan
    (2026-08-16): jonli katalogda toifalar taqsimoti
@@ -3601,6 +3606,80 @@ function pdpSpecsHtml(id, m) {
     </div>`;
 }
 
+/* ── Yuqoridagi qadalgan qator (`.pdp-bar`) ──
+   Sotib olish qutisi ekrandan chiqib ketganda paydo bo'ladi: surat, nom,
+   reyting, narx va AYNI "Savatga" tugmasi. Founder qarori (2026-08-16):
+   quti sahifa bo'ylab qadalib yurmasin, lekin narx va tugma yo'qolib ham
+   qolmasin — ya'ni qator qutining O'RNINI bosadi, unga QO'SHIMCHA emas.
+
+   ⚠️ Tugma QAYTA YOZILMAYDI — `pdpActHtml(id)` AYNI o'zi ishlatiladi.
+   Nusxa yozilsa "savatda 3 dona" holati ikki joyda ikki xil chizilardi va
+   bittasi vaqt o'tib jimgina eskirardi. Shu sababdan `renderPdpAct()`
+   endi IKKALA idishni ham yangilaydi.
+   ⚠️ Rasm `mediaList()` dan olinadi, `p.img` dan TO'G'RIDAN-TO'G'RI emas:
+   galereya bir kun `m.images` ga o'tganda qatordagi surat sahifadagidan
+   boshqa bo'lib qolmasin. */
+function pdpBarHtml(id, p, m) {
+  const rasm = (mediaList(p, m).find((x) => x.tur === 'img') || {}).src || '';
+  return `
+    <div class="pdp-bar" id="pdp-bar" aria-hidden="true">
+      <div class="container pdp-bar-in">
+        <div class="pdp-bar-id">
+          ${rasm ? `<img class="pdp-bar-img" src="${esc(rasm)}" alt="">` : ''}
+          <div class="pdp-bar-txt">
+            <div class="pdp-bar-name">${esc(p.name)}</div>
+            ${m && m.rating != null
+              ? `<div class="pdp-bar-rate">${starsHtml(m.rating, 'sm')}<b>${esc(String(m.rating))}</b>
+                   <span>· ${esc(String(m.reviews || 0))} ${t('reviewsCount')}</span></div>`
+              : ''}
+          </div>
+        </div>
+        <div class="pdp-bar-price">${money(p.price)}</div>
+        <div class="pdp-bar-act" id="pdp-bar-act">${pdpActHtml(id)}</div>
+      </div>
+    </div>`;
+}
+
+/* Qatorning holati: KO'RSATISH SHARTI — sotib olish qutisi header ostiga
+   to'liq kirib ketgani. Ya'ni quti ekranda turganda qator CHIQMAYDI —
+   aks holda bitta narx va bitta tugma ikki marta ko'rinardi.
+
+   ⚠️ `top` HAR SAFAR O'LCHANADI, `--header-h` dan olinmaydi: 880px dan tor
+   ekranda qidiruv ikkinchi qatorga tushadi va header o'sha o'zgaruvchidan
+   BALAND bo'ladi (`style.css` → "HEADER MOBILDA"). Qattiq yozilsa qator
+   header ostiga kirib ketardi.
+   ⚠️ Solishtirish tugunning O'Z `style.top` i bilan bo'ladi, o'zgaruvchi
+   bilan emas: `#pdp` har ochilishda QAYTA yoziladi, ya'ni tugun YANGI va
+   eslab qolingan qiymat unga hech qachon qo'yilmagan bo'lardi. */
+function pdpBarSync() {
+  const bar = document.getElementById('pdp-bar');
+  if (!bar) return;
+  const nav = document.getElementById('nav');
+  const past = nav ? Math.round(nav.getBoundingClientRect().bottom) : 0;
+  const top = past + 'px';
+  if (bar.style.top !== top) bar.style.top = top;
+
+  const buy = document.querySelector('.pdp-buy');
+  const kor = !!buy && buy.getBoundingClientRect().bottom < past;
+  if (kor === bar.classList.contains('is-on')) return;
+  bar.classList.toggle('is-on', kor);
+  // Ko'rinmaganda `visibility: hidden` (CSS) uni TAB tartibidan ham
+  // chiqaradi; `aria-hidden` esa ekran o'quvchisiga aytadi.
+  bar.setAttribute('aria-hidden', kor ? 'false' : 'true');
+}
+
+/* Tinglovchilar BIR MARTA ulanadi (sahifa emas, HUJJAT umri bo'yicha):
+   `renderPdp` da ulansa har ochilishda yangi tinglovchi qo'shilib,
+   yopilganda ham qolib ketardi. Qator yo'q bo'lsa `pdpBarSync` darhol
+   qaytadi, ya'ni katalogda hech narsa hisoblanmaydi. */
+let pdpBarRaf = 0;
+function pdpBarTick() {
+  if (pdpBarRaf) return;
+  pdpBarRaf = requestAnimationFrame(() => { pdpBarRaf = 0; pdpBarSync(); });
+}
+window.addEventListener('scroll', pdpBarTick, { passive: true });
+window.addEventListener('resize', pdpBarTick);
+
 function pdpHtml(id) {
   const p = product(id);
   if (!p) return '';
@@ -3609,6 +3688,8 @@ function pdpHtml(id) {
   const fav = isFav(id);
 
   return `
+    ${pdpBarHtml(id, p, m)}
+
     <div class="container">
       <button class="pdp-back" data-action="closePdp">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
@@ -3710,6 +3791,10 @@ function renderPdp() {
   // DOM'da bo'lgandan keyin ulanadi (`mountAddrMap` bilan bir xil sabab).
   mountPdMedia();
   pdpMountSimilar();
+  // Qadalgan qator ham shu yerda holatga keltiriladi: sahifa qayta
+  // chizilganda (til almashuvi, sharh kelishi) tugun YANGI bo'ladi va
+  // `top` i hali o'lchanmagan bo'ladi.
+  pdpBarSync();
   // Mobil nav'dagi "Katalog" faol emas: foydalanuvchi katalogda EMAS.
   mNavActive('');
 }
@@ -3729,10 +3814,17 @@ function pdpTitle(id) {
   document.title = p ? `${p.name} — LolaMarket` : PDP_TITLE_ASL;
 }
 
-/** Faqat sotib olish tugmasi — galereya va video tegilmaydi */
+/** Faqat sotib olish tugmasi — galereya va video tegilmaydi.
+    IKKALA idish ham yangilanadi: quti va qadalgan qator (`pdpBarHtml`) —
+    bittasi qolib ketsa "savatda 3 dona" bir joyda ko'rinib, ikkinchisida
+    hamon "Savatga qo'shish" turardi. */
 function renderPdpAct() {
-  const box = document.getElementById('pdp-act');
-  if (box && pdpId) box.innerHTML = pdpActHtml(pdpId);
+  if (!pdpId) return;
+  const html = pdpActHtml(pdpId);
+  ['pdp-act', 'pdp-bar-act'].forEach((box) => {
+    const el = document.getElementById(box);
+    if (el) el.innerHTML = html;
+  });
 }
 
 /** Faqat sharhlar bo'limi */

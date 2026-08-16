@@ -498,6 +498,37 @@
   bo'lib ko'ringan. Yagona ishonchli usul — o'lchash:
   `el.getBoundingClientRect()` ni ICHIDAGI element bilan solishtirish
   (bola pastki chegarasi ota pastki chegarasidan oshsa — kesilgan).
+- **Mahsulot sahifasida sotib olish qutisi QADALMAYDI** (2026-08-16, founder
+  shikoyati: "webda scroll qilsam shu qadalib pastga tushayabdi"). O'ng ustun
+  (`.pdp-aside`) oddiy oqimda turadi; narx va "Savatga" tugmasining o'rnini
+  YUQORIDAGI ingichka qator bosadi (`.pdp-bar`) — u faqat quti ekrandan
+  chiqib ketganda chiqadi va sahifa mazmunini surib qo'ymaydi.
+  ⚠️ **Qatorning `top` i O'LCHANADI, `--header-h` dan OLINMAYDI**
+  (`script.js` → `pdpBarSync`). 880px dan tor ekranda qidiruv ikkinchi
+  qatorga tushadi va header 64px emas: **700px da 115px, 375px da 162px**
+  (o'lchandi). Qattiq yozilsa qator header ostiga kirib, KO'RINMAY qolardi.
+  ⚠️ **Tugma NUSXALANMAYDI** — ikkala joy ham `pdpActHtml()` dan oziqlanadi
+  va `renderPdpAct()` IKKALASINI ham yangilaydi. Bittasi unutilsa ekran
+  o'z ustidan yolg'on gapirardi: bir joyda "savatda 2 dona", ikkinchisida
+  hamon "Savatga qo'shish". Qorovul — **Test 41** (ro'yxat qo'lda emas,
+  manbadan yig'iladi).
+  🔴 **Pastki qator endi UCHALA ustunni egallaydi** (`"below below below"`)
+  va shu bilan ikkinchi shikoyat yopildi ("kartochkalar pastda ezilib o'z
+  hajmini yo'qotayapti"): o'xshash mato kartochkasi 776px joyda **179×394**
+  edi, AYNI kartochka katalogda **264×501** — ya'ni kengligining uchdan
+  birini yo'qotardi. **`.pdp-sim` ustunlar sonini QAYTA YOZMAYDI** — u
+  `.product-grid` dan keladi, ya'ni tavsiya kartochkasi katalogdagi bilan
+  bir xil bo'lishi TA'RIF bo'yicha kafolatlanadi. Ko'rinadigan kartochka
+  soni ham ustunga bog'langan (2/3/4 → **4/6/8**, ya'ni har doim ikki
+  qator; `PDP_SIM_MAX` eng kattasiga teng). Qorovul — **Test 40** va
+  **Test 37**; 7 mutatsiya bilan sinaldi, yettitasi ham ushlandi.
+- **Varaqa nishoni — FONSIZ belgi, PWA kvadrati EMAS** (2026-08-16, founder:
+  "admin paneldagidek chiqsin"). `index.html` → `rel="icon"` =
+  `/Photo/logo/lola-mark.png`. Ilgari u `assets/pwa/icon-192.png` edi va u
+  to'q qizil KVADRAT: varaqa tasmasida qora dog'day ko'rinardi.
+  ⚠️ `apple-touch-icon` esa kvadrat bo'lib QOLADI — uy ekranidagi nishon
+  fonsiz bo'lsa iOS uni oq fonga qo'yadi va belgi rangsiz ko'rinardi.
+  **Ikki nishon ikki xil ish qiladi, bir xillashtirilmasin.**
 - **Rasmni `<picture>` ga o'rasangiz, konteynerini CSS ro'yxatiga qo'shing**
   (2026-08-05). `<picture>` rasm bilan uni o'rab turgan quti ORASIGA kiradi va
   u odatda `display: inline`, balandligi `auto`. Shuning uchun `img { height:
