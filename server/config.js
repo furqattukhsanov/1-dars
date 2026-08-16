@@ -139,6 +139,35 @@ if (!MAPS_ENABLED) {
   console.error('Karta o\'chiq — YANDEX_MAPS_KEY berilmagan:', 'nuqta ro\'yxatdan tanlanadi');
 }
 
+// ============ MAHSULOT SAHIFASI UCHUN og: META (2026-08-16) ============
+// Mahsulot endi o'z manzilida yashaydi (`/mahsulot/<id>`). Telegramga havola
+// tashlanganda oldindan ko'rish mato nomi va suratini ko'rsatishi uchun
+// SERVER o'sha sahifaning `<head>` iga `og:` teglarini qo'yib beradi —
+// buning uchun unga statik `index.html` ning joyi kerak.
+//
+// ⚠️ Yo'l SHAKLI bo'yicha tekshiriladi, "bo'sh emas" degani yetarli emas
+// (`ALERT_CHAT_ID` darsi): papkada `index.html` HAQIQATAN turganini
+// ko'ramiz. Topilmasa funksiya JIMGINA emas, QICHQIRIB o'chadi va nginx
+// avvalgidek statik faylni beraveradi — ya'ni sayt ishlaydi, faqat
+// oldindan ko'rish umumiy bo'lib qoladi.
+function webRoot(raw) {
+  const v = String(raw || '/var/www/lolamarket').trim();
+  try {
+    // eslint-disable-next-line global-require
+    if (require('fs').existsSync(require('path').join(v, 'index.html'))) return v;
+    console.error('WEB_ROOT da index.html topilmadi, og: meta o\'chirildi:', v);
+  } catch (e) {
+    console.error('WEB_ROOT o\'qilmadi, og: meta o\'chirildi:', e.message);
+  }
+  return null;
+}
+const WEB_ROOT = webRoot(process.env.WEB_ROOT);
+const OG_ENABLED = !!WEB_ROOT;
+
+// Havolada ko'rinadigan domen. `og:url` va `og:image` MUTLAQ bo'lishi shart —
+// nisbiy manzilni Telegram ham, Facebook ham o'qimaydi.
+const SITE_ORIGIN = (String(process.env.SITE_ORIGIN || 'https://lolamarket.uz').trim().replace(/\/+$/, ''));
+
 // ============ AI (Sprint 10) ============
 // 2026-08-07 dan beri yagona AI funksiyasi — kiyim RASMI. Matn g'oyalari
 // founder qarori bilan olib tashlandi. Pastdagi `AI_PROVIDER` / `AI_API_KEY`
@@ -531,5 +560,6 @@ module.exports = {
   R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET,
   R2_ENABLED, R2_ENDPOINT, R2_PUBLIC_BASE,
   YANDEX_MAPS_KEY, MAPS_ENABLED,
-  chatId, aiKey, mapsKey, r2Sir, r2AccountId, r2Bucket, r2PublicBase,
+  WEB_ROOT, OG_ENABLED, SITE_ORIGIN,
+  chatId, aiKey, mapsKey, r2Sir, r2AccountId, r2Bucket, r2PublicBase, webRoot,
 };

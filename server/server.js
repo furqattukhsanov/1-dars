@@ -37,11 +37,24 @@ const {
 } = require('./routes/reviews');
 const { handleAiImage, handleAiGallery, handleAiMy } = require('./routes/ai');
 const { handleTelegramWebhook } = require('./routes/webhook');
+const { handleProductPage } = require('./routes/pdp');
+const { OG_ENABLED } = require('./config');
 
 
 function routeRequest(req, res) {
   const ip = clientIp(req);
   const path = req.url.split('?')[0];
+
+  /* Mahsulot sahifasi — `og:` teglari bilan (2026-08-16).
+     ⚠️ Bu YO'L `/api/` ostida EMAS, ya'ni u faqat nginx uni shu yerga
+     yo'naltirganda keladi. Yo'naltirilmasa — nginx statik `index.html` ni
+     beraveradi va sayt to'liq ishlaydi, faqat oldindan ko'rish umumiy
+     bo'ladi (`routes/pdp.js` bandiga qara). `OG_ENABLED` yolg'on bo'lsa
+     (statik papka topilmadi) route umuman qatnashmaydi. */
+  if (OG_ENABLED && req.method === 'GET' && path.indexOf('/mahsulot/') === 0) {
+    handleProductPage(req, res, ip, path);
+    return;
+  }
 
   // Versiyani tekshirish — deploy diagnozida serverda qaysi kod turgani bilish uchun
   if (path === '/api/version') {

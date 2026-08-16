@@ -30,7 +30,16 @@
     whenReady(function () {
       // updateViaCache:'none' — sw.js brauzer keshidan olinmasin, aks holda
       // yangilangan service worker soatlab eskisi bilan qolib ketadi.
-      navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).catch(function (err) {
+      // ⚠️ Yo'l MUTLAQ (`/sw.js`), nisbiy EMAS (2026-08-16). Mahsulot endi
+      // o'z manzilida ochiladi (`/mahsulot/<id>`), nisbiy yo'l esa o'sha
+      // sahifada `/mahsulot/sw.js` ga aylanardi. U yerda fayl YO'Q, lekin
+      // nginx `try_files ... /index.html` bilan **HTML va HTTP 200**
+      // qaytaradi (o'lchandi: `200 text/html`) — ya'ni ro'yxatdan o'tish
+      // "fayl topilmadi" deb emas, NOTO'G'RI TUR deb yiqilardi va offline
+      // rejim jimgina o'chib qolardi. `scope` ham aniq beriladi: sahifa
+      // ildizda bo'lmagani uchun standart qamrov `/mahsulot/` bo'lib
+      // qolardi va bosh sahifa SW'siz qolardi.
+      navigator.serviceWorker.register('/sw.js', { scope: '/', updateViaCache: 'none' }).catch(function (err) {
         console.warn('[pwa] service worker ro\'yxatdan o\'tmadi:', err);
       });
     });

@@ -2369,6 +2369,454 @@ body { padding-bottom: calc(var(--dock-h) + env(safe-area-inset-bottom, 0px)); }
 .pd-rev-body { margin-top: 7px; font-size: 13px; line-height: 1.55; color: var(--text-body); }
 .pd-rev-who { margin-top: 6px; font-size: 11.5px; color: var(--text-muted); }
 
+/* ====================================================
+   MAHSULOT SAHIFASI (`#pdp`, 2026-08-16)
+
+   Mahsulot ilgari 430px o'ng panelda (drawer) ochilardi; founder qaroriga
+   ko'ra endi TO'LIQ SAHIFA: chapda galereya, o'ngda sotib olish qutisi
+   (qadalgan), pastida tavsif, AI bloki, sharhlar va o'xshash matolar.
+
+   Tuzilma GRID, flex EMAS — va bu ataylab tanlangan: flex ustunda yangi
+   bolaning standart holati `flex-shrink: 1` va u `overflow: hidden` bilan
+   birga JIMGINA kesardi (CLAUDE.md — uch marta tishlagan naqsh). Grid
+   maydonlarida bolaning o'lchami maydondan keladi, siqilishdan emas.
+   ==================================================== */
+
+/* Sahifa ochiq — katalog va CTA vaqtincha yashiriladi. `display: none`,
+   `remove()` EMAS: kartochkalar DOM'da qolishi SHART, chunki savat,
+   saralanganlar, narx va "o'xshash matolar" hammasi o'sha `data-*`
+   atributlaridan o'qiydi (`product()`). */
+body.pdp-on #katalog,
+body.pdp-on #bot { display: none; }
+
+.pdp {
+  padding-top: 16px;
+  padding-bottom: 40px;
+}
+
+.pdp-back {
+  display: inline-flex; align-items: center; gap: 6px;
+  margin-bottom: 16px;
+  padding: 8px 14px 8px 10px;
+  border: 1px solid var(--border-hair);
+  border-radius: 999px;
+  background: var(--glass-fill);
+  color: var(--text-body);
+  font-family: var(--font-sans);
+  font-size: 13px; font-weight: 600;
+  cursor: pointer;
+  transition: background var(--dur-fast), color var(--dur-fast);
+}
+.pdp-back:hover { background: var(--pom-50); color: var(--pom-700); }
+
+/* To'rt maydon (referens tuzilmasi): galereya — nom/reyting — sotib olish
+   qutisi bitta qatorda, tavsif/sharhlar/o'xshashlar esa PASTDA, chap ikki
+   ustun ostida. O'ng ustun ikkala qatorni egallab qadalib turadi, ya'ni
+   sharh o'qiyotgan odam narx va tugmani ko'rmay qolmaydi.
+
+   ⚠️ Rasm ustuni CHEGARALANGAN (`520px`): 1fr qoldirilganda u 780px gacha
+   cho'zilib, sahifaning yarmini bitta surat egallardi — nom ham, narx ham
+   birinchi ekranga sig'masdi. */
+.pdp-grid {
+  display: grid;
+  gap: 26px 28px;
+  grid-template-columns: minmax(280px, 500px) minmax(180px, 1fr) 312px;
+  grid-template-areas:
+    "gal   info  side"
+    "below below side";
+  align-items: start;
+}
+.pdp-gal   { grid-area: gal; min-width: 0; }
+.pdp-info  { grid-area: info; min-width: 0; }
+.pdp-aside { grid-area: side; position: sticky; top: calc(var(--header-h) + 14px); }
+.pdp-below { grid-area: below; min-width: 0; }
+
+/* ── Galereya ── */
+.pdp-gal .pd-media {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+.pdp-gal .pdp-stage { position: relative; min-width: 0; }
+.pdp-gal .pd-img,
+.pdp-gal .pd-vid { aspect-ratio: 4 / 3; }
+/* Rasm bosilsa kattalashadi — kursor buni AYTIB turadi. Matoda tekstura
+   asosiy narsa, ya'ni bu ko'rinmas funksiya bo'lib qolmasligi kerak. */
+.pdp-gal .pd-img { cursor: zoom-in; }
+
+/* Eskizlar ustuni. Founder qarori (2026-08-16): haqiqiy suratlar
+   qo'yilganda mahsulotda 3–4 rasm bo'ladi, ya'ni ustun 4–5 elementni ham
+   ko'tarishi kerak.
+
+   O'LCHANDI (2026-08-16, eng keng holat: galereya 500px, ya'ni eskiz
+   ustuni 72 + sahna 416×312; eskiz 72px + 9px oraliq):
+     3 rasm → ustun 234px, sahnadan 78px PAST — sig'adi;
+     4 rasm → 315px, atigi **3px** oshadi — amalda tekis;
+     5 rasm → 396px, 84px oshadi, ya'ni galereya bloki shuncha balandroq
+       bo'ladi (KESILISH emas, faqat rasm yonida bo'sh joy).
+   Ya'ni founder aytgan 3–4 rasm hozirgi o'lchamga TEGMASDAN sig'adi.
+   ⚠️ `max-height: 100%` QO'YILMADI: grid qatorining bo'yi aniq emas, ya'ni
+   foiz `none` ga aylanardi — hech narsa qilmaydigan, lekin "chegara bor"
+   deb turadigan qator bo'lardi. Chegara kerak bo'lganda u SONDA
+   yozilsin, foizda emas. */
+.pdp-thumbs { display: flex; flex-direction: column; gap: 9px; }
+.pdp-thumb {
+  position: relative;
+  /* ⚠️ `flex: none` — ustun flex konteyner, ya'ni eskiz standart holda
+     SIQILADI va uchta eskiz 72px o'rniga 40px bo'lib qolardi. */
+  flex: none;
+  width: 72px; height: 72px;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: var(--radius-sm);
+  background: var(--ink-100);
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color var(--dur-fast);
+}
+.pdp-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.pdp-thumb.is-on { border-color: var(--pom-600); }
+.pdp-thumb-play {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(23,26,48,.34);
+  color: #fff;
+}
+
+/* Strelkalar — faqat sichqonchali kengliklarda; telefonda barmoq bilan
+   surish va nuqtalar yetarli, strelka esa rasmni yopib turardi. */
+.pdp-arrow {
+  position: absolute; top: 50%;
+  transform: translateY(-50%);
+  width: 36px; height: 36px;
+  display: none; align-items: center; justify-content: center;
+  border: 1px solid var(--glass-edge);
+  border-radius: 50%;
+  background: var(--glass-fill-strong);
+  backdrop-filter: var(--blur-sm);
+  -webkit-backdrop-filter: var(--blur-sm);
+  color: var(--text-body);
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+}
+.pdp-arrow.prev { left: 10px; }
+.pdp-arrow.next { right: 10px; }
+.pdp-arrow[disabled] { opacity: 0; pointer-events: none; }
+.pdp-gal .pd-dots { position: absolute; left: 0; right: 0; bottom: 10px; margin: 0; }
+.pdp-gal .pd-dot { box-shadow: 0 1px 3px rgba(23,26,48,.35); }
+
+/* ── O'rta ustun: nom va reyting ── */
+.pdp-name {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(20px, 2.4vw, 25px);
+  font-weight: 800; line-height: 1.16;
+  letter-spacing: -.02em;
+  color: var(--text-strong);
+}
+.pdp-rating {
+  margin-top: 8px;
+  display: flex; align-items: center; gap: 5px;
+  font-family: var(--font-mono);
+  font-size: 13px; font-weight: 600;
+  color: var(--text-body);
+}
+.pdp-sup {
+  margin-top: 7px;
+  display: flex; align-items: center; flex-wrap: wrap; gap: 6px;
+  font-size: 13px; color: var(--text-muted);
+}
+.pdp-verified {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 8px 3px 6px;
+  border-radius: 999px;
+  background: var(--teal-50);
+  color: var(--teal-700);
+  font-size: 11px; font-weight: 600;
+}
+/* Tarkib (`comp`) — nom ostidagi yagona qator. Bu O'YLAB TOPILGAN tavsif
+   emas: qiymat bazadan keladi va pastdagi jadvalda ham aynan shu turadi.
+   Bo'lmasa qator umuman chizilmaydi. */
+.pdp-lede {
+  margin: 12px 0 0;
+  font-size: 13.5px; line-height: 1.6;
+  color: var(--text-body);
+}
+
+/* ── O'ng ustun: kartochkalar ── */
+.pdp-card {
+  padding: 16px;
+  border: 1px solid var(--border-hair);
+  border-radius: var(--radius-lg);
+  background: var(--surface-solid);
+  box-shadow: var(--shadow-sm);
+}
+.pdp-card + .pdp-card { margin-top: 12px; }
+.pdp-card-t {
+  font-size: 10.5px; font-weight: 700;
+  letter-spacing: .08em; text-transform: uppercase;
+  color: var(--text-subtle);
+  margin-bottom: 10px;
+}
+
+.pdp-price-label {
+  font-size: 10.5px; font-weight: 700;
+  letter-spacing: .07em; text-transform: uppercase;
+  color: var(--text-subtle);
+}
+.pdp-price {
+  margin-top: 3px;
+  font-family: var(--font-mono);
+  font-size: 27px; font-weight: 600;
+  letter-spacing: -.02em;
+  color: var(--text-strong);
+}
+.pdp-buy .pd-stock { margin-top: 8px; }
+.pdp-act { margin-top: 14px; }
+.pdp-act .qty-row { justify-content: space-between; }
+.pdp-act .qty-num {
+  font-family: var(--font-mono);
+  font-size: 15px; font-weight: 600;
+  color: var(--text-strong);
+}
+
+.pdp-fav {
+  width: 100%;
+  margin-top: 9px;
+  min-height: 42px;
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+  border: 1px solid var(--border-hair);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text-body);
+  font-family: var(--font-sans);
+  font-size: 13.5px; font-weight: 600;
+  cursor: pointer;
+  transition: background var(--dur-fast), color var(--dur-fast);
+}
+.pdp-fav:hover { background: var(--pom-50); }
+.pdp-fav.on { color: var(--pom-600); border-color: var(--pom-100); background: var(--pom-50); }
+.pdp-fav.on svg { fill: var(--pom-500); color: var(--pom-500); }
+
+.pdp-note {
+  margin-top: 13px;
+  padding-top: 13px;
+  border-top: 1px solid var(--border-hair);
+  display: flex; align-items: flex-start; gap: 8px;
+  font-size: 12px; line-height: 1.5;
+  color: var(--text-muted);
+}
+.pdp-note svg { flex: none; margin-top: 1px; color: var(--teal-600); }
+
+.pdp-safe-t {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 13.5px; font-weight: 700;
+  color: var(--text-strong);
+}
+.pdp-safe-t svg { flex: none; color: var(--success-500); }
+.pdp-safe-s {
+  margin: 6px 0 0;
+  font-size: 12px; line-height: 1.55;
+  color: var(--text-muted);
+}
+
+/* ── Ishlab chiqaruvchi ── */
+.pdp-seller-row { display: flex; align-items: center; gap: 10px; }
+.pdp-seller-mono {
+  flex: none;
+  width: 38px; height: 38px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+  background: var(--pom-50);
+  color: var(--pom-700);
+  font-family: var(--font-display);
+  font-size: 17px; font-weight: 800;
+}
+.pdp-seller-txt { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.pdp-seller-name {
+  font-size: 13.5px; font-weight: 700; color: var(--text-strong);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.pdp-seller-city { font-size: 12px; color: var(--text-muted); }
+.pdp-seller-rate {
+  margin-top: 9px;
+  display: flex; align-items: center; gap: 5px;
+  font-family: var(--font-mono);
+  font-size: 12.5px; font-weight: 600;
+  color: var(--text-body);
+}
+.pdp-ghost {
+  width: 100%;
+  margin-top: 12px;
+  min-height: 40px;
+  border: 1px solid var(--border-hair);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text-body);
+  font-family: var(--font-sans);
+  font-size: 13px; font-weight: 600;
+  cursor: pointer;
+  transition: background var(--dur-fast), color var(--dur-fast);
+}
+.pdp-ghost:hover { background: var(--pom-50); color: var(--pom-700); }
+
+/* Havolani nusxalash — ikkilamchi amal, shuning uchun "ko'rinmas" tugma
+   (`.pdp-ghost`) uslubida. Asosiy tugma bilan bir xil bo'lsa ikkalasi
+   e'tibor uchun kurashardi. */
+.pdp-share { display: flex; align-items: center; justify-content: center; gap: 7px; }
+
+/* ── Rasmni kattalashtirish (to'liq ekran) ──
+   ⚠️ Telefon uchun alohida zoom kodi YO'Q va bu O'LCHANGAN qaror: saytda
+   `user-scalable=no` qo'yilmagan (`index.html` viewport'i), ya'ni barmoq
+   bilan kattalashtirish brauzerning O'ZIDA ishlaydi. Mini App'da bunday
+   emas — u yerda sahifa umuman skrollamaydi va o'z zoom'i bor (CLAUDE.md).
+   Bu yerda faqat sichqoncha uchun 2x bosish qo'shiladi. */
+.zoom {
+  position: fixed; inset: 0;
+  z-index: 200;                     /* drawer 100, scrim 90 — ustida turadi */
+  display: flex; align-items: center; justify-content: center;
+  padding: max(16px, env(safe-area-inset-top, 0px)) 16px;
+  background: rgba(23,26,48,.92);
+  overflow: auto;
+  cursor: zoom-out;
+}
+.zoom-img {
+  max-width: 100%; max-height: 100%;
+  object-fit: contain;
+  border-radius: var(--radius-sm);
+  cursor: zoom-in;
+  transition: transform var(--dur-base) var(--ease-out);
+}
+.zoom-img.is-2x { transform: scale(2); cursor: zoom-out; }
+.zoom-x {
+  position: fixed;
+  top: max(14px, env(safe-area-inset-top, 0px)); right: 14px;
+  width: 40px; height: 40px;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid rgba(255,255,255,.25);
+  border-radius: 50%;
+  background: rgba(255,255,255,.12);
+  color: #fff;
+  cursor: pointer;
+}
+@media (prefers-reduced-motion: reduce) {
+  .zoom-img { transition: none; }
+}
+
+/* ── Pastki bo'limlar ── */
+.pdp-sec + .pdp-sec { margin-top: 30px; }
+/* AI bloki server sozlamasi kelmaguncha (yoki AI o'chirilgan bo'lsa) BO'SH
+   qaytadi — bo'sh idish ostidagi bo'limni sababsiz pastga surib turmasin. */
+.pdp-sec:empty { display: none; }
+.pdp-sec-title {
+  margin: 0 0 12px;
+  font-family: var(--font-display);
+  font-size: 18px; font-weight: 800;
+  letter-spacing: -.02em;
+  color: var(--text-strong);
+}
+.pdp-below .pd-specs { margin-top: 0; }
+.pdp-empty {
+  margin: 0;
+  padding: 15px 16px;
+  border: 1px dashed var(--border-hair);
+  border-radius: var(--radius-md);
+  font-size: 13px; line-height: 1.55;
+  color: var(--text-muted);
+}
+/* AI bloki sahifada o'z sarlavhasi bilan keladi — pastki bo'limlarning
+   umumiy sarlavha uslubiga tenglashtiriladi (`pd-sec-title` drawer uchun
+   yozilgan mayda katta harfli variant edi). */
+.pdp-below .pd-sec-title {
+  margin: 0 0 12px;
+  font-family: var(--font-display);
+  font-size: 18px; font-weight: 800;
+  letter-spacing: -.02em;
+  text-transform: none;
+  color: var(--text-strong);
+}
+
+.pdp-revs { display: grid; gap: 10px; }
+.pdp-revs .pd-rev + .pd-rev { margin-top: 0; }
+.pdp-more {
+  width: 100%;
+  margin-top: 12px;
+  min-height: 44px;
+  border: 1px solid var(--border-hair);
+  border-radius: var(--radius-md);
+  background: var(--glass-fill);
+  color: var(--text-body);
+  font-family: var(--font-sans);
+  font-size: 13.5px; font-weight: 600;
+  cursor: pointer;
+  transition: background var(--dur-fast), color var(--dur-fast);
+}
+.pdp-more:hover { background: var(--pom-50); color: var(--pom-700); }
+
+/* ── O'xshash matolar ──
+   Kartochkaning O'ZI katalogdagidan NUSXALANADI (`pdpMountSimilar`), ya'ni
+   bu yerda kartochka uslubi QAYTA YOZILMAYDI — `.product-card` qoidalari
+   o'z holicha ishlaydi. Faqat qator sig'imi boshqacha: katalogda 2 ustun,
+   bu yerda kengroq joy bor. */
+.pdp-sim {
+  margin-top: 0;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+/* Sichqonchali kengliklar — strelkalar shu yerda paydo bo'ladi */
+@media (min-width: 861px) {
+  .pdp-arrow { display: flex; }
+}
+
+/* ── Planshet: nom rasm OSTIGA tushadi, sotib olish qutisi esa o'ngda
+      QOLADI. Uni ham pastga tushirish oson yo'l edi, lekin o'shanda narx va
+      "Savatga" tugmasi birinchi ekrandan chiqib ketardi. ── */
+@media (max-width: 1059px) {
+  .pdp-grid {
+    grid-template-columns: minmax(0, 1fr) 300px;
+    grid-template-areas:
+      "gal   side"
+      "info  side"
+      "below below";
+  }
+  /* 🔴 QADALISH SHU YERDA O'CHIRILADI — bu KO'RINISH emas, NUQSON tuzatishi
+     (2026-08-16, founder skrinshoti). Bu tuzilmada pastki qator IKKALA
+     ustunni egallaydi (`"below below"`), ya'ni u sotib olish qutisining
+     TAGIDAN ham o'tadi. Quti qadalgan bo'lsa ekranda osilib qoladi va
+     "o'xshash matolar" kartochkalari uning ostidan surilib, quti
+     ULARNING USTIDA suzib turadi.
+     O'lchandi (1000px kenglik): quti 668→968, pastki qator 32→968 —
+     ya'ni 300px kesishma. Keng ekranda bunday emas: u yerda pastki qator
+     faqat 1–2-ustunda (`"below below side"`), quti esa o'z ustunida
+     to'liq balandlikda turadi va qadalishi TO'G'RI ishlaydi.
+     ⚠️ Ya'ni sabab `position: sticky` da emas, MAYDON TUZILMASIDA:
+     qadalgan element ostidan o'tadigan qator bo'lmasligi kerak. */
+  .pdp-aside { position: static; }
+}
+
+/* ── Telefon va tor planshet: bitta ustun ── */
+@media (max-width: 740px) {
+  .pdp-grid {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "gal" "info" "side" "below";
+  }
+  .pdp-aside { position: static; }
+  .pdp-sim { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* ── Telefon ── */
+@media (max-width: 640px) {
+  .pdp { padding-top: 10px; }
+  .pdp-gal .pd-media { grid-template-columns: minmax(0, 1fr); }
+  /* Eskizlar telefonda YASHIRILADI — 72px ustun rasmning uchdan birini yeb
+     qo'yardi, o'rnini esa nuqtalar allaqachon ko'rsatib turibdi. */
+  .pdp-thumbs { display: none; }
+  .pdp-card { padding: 14px; }
+  .pdp-price { font-size: 24px; }
+  .pdp-sec + .pdp-sec { margin-top: 24px; }
+}
+
 /* --- Profildagi buyurtma qatorida baholash --- */
 .order-rev {
   margin-top: 10px;

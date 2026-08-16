@@ -78,6 +78,7 @@ const STR = {
     addToCart: "Savatga qo'shish",
     specWidth: 'Eni', specWeight: 'Zichlik', specComp: 'Tarkibi',
     mediaPhoto: 'Rasm', mediaVideo: 'Video',
+    mediaPrev: 'Oldingi', mediaNext: 'Keyingi',
     specLead: 'Yetkazish muddati', specMoq: 'Minimal buyurtma',
     days: 'kun', pcs: 'dona',
     reviews: 'Sharhlar',
@@ -85,6 +86,23 @@ const STR = {
     noReviewsSub: 'Sharhni faqat shu matoni sotib olgan xaridor yoza oladi.',
     reviewsCount: 'sharh',
     decrease: 'Kamaytirish', increase: "Ko'paytirish",
+    // ---- Mahsulot sahifasi (2026-08-16) ----
+    pdpBack: 'Katalogga qaytish',
+    pdpDesc: 'Mahsulot tavsifi',
+    pdpCat: 'Toifa',
+    pdpSimilar: "O'xshash matolar",
+    pdpSeller: 'Ishlab chiqaruvchi',
+    pdpSellerMore: 'Shu ishlab chiqaruvchining matolari',
+    pdpVerified: 'LolaMarket tasdiqlagan',
+    pdpSafe: "Himoyalangan to'lov",
+    pdpSafeSub: "Mato mos kelmasa — buyurtma bo'yicha murojaat qilasiz, pul qaytariladi.",
+    pdpAllReviews: "Hamma sharhlarni ko'rish",
+    pdpFavAdd: "Saralanganlarga qo'shish",
+    pdpFavOn: 'Saralanganlarda',
+    pdpNoSpecs: "Ishlab chiqaruvchi bu mato bo'yicha qo'shimcha tavsif bermagan.",
+    pdpCopyLink: 'Havolani nusxalash',
+    pdpLinkCopied: 'Havola nusxalandi',
+    pdpLinkCopyErr: "Havolani nusxalab bo'lmadi — manzil qatoridan ko'chiring",
     // ---- Savat / buyurtma ----
     total: 'Jami',
     order: 'Buyurtma berish',
@@ -285,6 +303,7 @@ const STR = {
     addToCart: 'В корзину',
     specWidth: 'Ширина', specWeight: 'Плотность', specComp: 'Состав',
     mediaPhoto: 'Фото', mediaVideo: 'Видео',
+    mediaPrev: 'Назад', mediaNext: 'Вперёд',
     specLead: 'Срок поставки', specMoq: 'Минимальный заказ',
     days: 'дн.', pcs: 'шт.',
     reviews: 'Отзывы',
@@ -292,6 +311,22 @@ const STR = {
     noReviewsSub: 'Отзыв может оставить только покупатель этой ткани.',
     reviewsCount: 'отз.',
     decrease: 'Уменьшить', increase: 'Увеличить',
+    pdpBack: 'Вернуться в каталог',
+    pdpDesc: 'Описание товара',
+    pdpCat: 'Категория',
+    pdpSimilar: 'Похожие ткани',
+    pdpSeller: 'Производитель',
+    pdpSellerMore: 'Другие ткани производителя',
+    pdpVerified: 'Проверено LolaMarket',
+    pdpSafe: 'Защищённая оплата',
+    pdpSafeSub: 'Если ткань не подошла — оформляете обращение по заказу, деньги возвращаются.',
+    pdpAllReviews: 'Смотреть все отзывы',
+    pdpFavAdd: 'В избранное',
+    pdpFavOn: 'В избранном',
+    pdpNoSpecs: 'Производитель не добавил описание для этой ткани.',
+    pdpCopyLink: 'Скопировать ссылку',
+    pdpLinkCopied: 'Ссылка скопирована',
+    pdpLinkCopyErr: 'Не удалось скопировать — скопируйте из адресной строки',
     total: 'Итого',
     order: 'Оформить заказ',
     checkout: 'Оформление заказа',
@@ -484,6 +519,9 @@ function setLang(v) {
   if (isOpen()) renderDrawer();
   // Katalog kartochkalari bazadan kelgan nom bilan qayta chiziladi
   if (catalogMeta) mergeCatalog(Object.keys(catalogMeta).map((k) => catalogMeta[k]));
+  // Mahsulot sahifasi ham — u kartochkalardan nom oladi, ya'ni yuqoridagi
+  // qatordan KEYIN chizilishi shart.
+  if (pdpId) renderPdp();
 }
 
 /** `data-i18n` belgilangan hamma elementni joriy tilga keltiradi.
@@ -689,7 +727,7 @@ function adStart() {
 /* Banner bosilganda boradigan joy (`data-action` orqali chaqiriladi).
    ⚠️ Uchala slayd ham KATALOGGA olib boradi va bu Mini App'dan farq qiladi:
    u yerda 1-slayd `tab('ai')` ga tushadi, saytda esa AI ekrani YO'Q — AI
-   bloki har mahsulotning o'z sahifasida yashaydi (`aiSection`, `detailHtml`
+   bloki har mahsulotning o'z sahifasida yashaydi (`aiSection`, `pdpHtml`
    ichida). Ya'ni saytda AI ga yagona yo'l mato tanlashdan o'tadi va banner
    aynan o'sha qadamga olib boradi. Havolani "AI ochiladi" deb ko'rsatish
    soxta tugma bo'lardi.
@@ -1086,11 +1124,12 @@ function onLoggedIn(user) {
   }
   // AI blokidan kirgan bo'lsa — AYNI mahsulotga qaytamiz, aks holda xaridor
   // profilga tushib qolib, qaysi matoni ko'rayotganini qaytadan qidirardi.
-  if (afterLoginView === 'detail' && detailId && product(detailId)) {
+  // Mahsulot sahifasi kirish oynasi ortida OCHIQ turgan edi, ya'ni uni
+  // qaytadan ochish emas, ustidagi oynani yopish kifoya.
+  if (afterLoginView === 'detail' && pdpId && product(pdpId)) {
     afterLoginView = null;
-    drawerView = 'detail';
-    renderDrawer();
-    if (!isOpen()) openDrawerEl();
+    if (isOpen()) closeCart();
+    renderPdp();
     return;
   }
   afterLoginView = null;
@@ -1222,7 +1261,7 @@ apiJson('/api/auth/web/me')
     // qoladi: manzil bo'limi ishlayveradi, faqat kartasiz (ro'yxat bilan).
     mapsKey = (d.mapsEnabled && typeof d.mapsKey === 'string' && d.mapsKey) ? d.mapsKey : null;
     aiCfg = readAiConfig(d);
-    if (aiCfg && isOpen() && drawerView === 'detail') renderDrawer();
+    if (aiCfg && pdpId) renderPdpAi();
     if (d.user) {
       me = d.user;
       refreshAuthUi();
@@ -1867,22 +1906,40 @@ function orderRowHtml(o) {
 }
 
 /* ====================================================
-   MAHSULOT DETALI VA SHARHLAR (sayt)
+   MAHSULOT SAHIFASI VA SHARHLAR (sayt)
 
    Landing'da 2026-07-31 gacha mahsulot detali umuman yo'q edi — kartochkadan
-   to'g'ridan-to'g'ri savatga qo'shilardi, ya'ni sharhni ko'rsatadigan joy ham
-   yo'q edi. Detal yangi SAHIFA emas, mavjud drawer'ning yangi ko'rinishi:
-   marshrutlash, yangi HTML fayl va CI `source` ro'yxatiga qo'shish kerak
-   bo'lmaydi (o'sha ro'yxat tuzog'i — CLAUDE.md).
+   to'g'ridan-to'g'ri savatga qo'shilardi. O'shanda detal DRAWER ichida
+   ochilardi (430px o'ng panel), 2026-08-16 dan esa u TO'LIQ SAHIFA
+   (founder qarori, Uzum referensi): rasm chapda, sotib olish qutisi o'ngda,
+   pastida tavsif, sharhlar va o'xshash matolar.
+
+   ⚠️ «To'liq sahifa» YANGI HTML FAYL DEGANI EMAS va bu ATAYLAB shunday.
+   Yangi ildiz fayli `deploy.yml` dagi `source` ro'yxatiga qo'lda qo'shilishi
+   kerak bo'lardi, unutilsa esa nginx yo'q faylga `try_files ... /index.html`
+   bilan HTML va **HTTP 200** qaytaradi — ya'ni sahifa yo'qligi tekshiruvda
+   ham SOG'LOM ko'rinardi (CLAUDE.md dagi soft-200 tuzog'i). Shuning uchun
+   sahifa `index.html` ICHIDA yashaydi (`#pdp`), katalog esa vaqtincha
+   yashiriladi. Manzil qatori baribir o'zgaradi (`#/mahsulot/<id>`) —
+   brauzerning «orqaga» tugmasi va havola ulashish shundan ishlaydi.
+
+   ⚠️ Drawer'dagi eski `detail` ko'rinishi OLIB TASHLANDI, saqlab
+   qolinmadi: bitta narsaga ikkita yo'l qolsa ular vaqt o'tib bir-biridan
+   ajralib ketardi va qaysi biri haqiqat ekani ko'rinmasdi (CLAUDE.md —
+   «mavjud funksiyaning ustiga ikkinchi yo'l»).
 
    Ma'lumot ikki manbadan qo'shiladi:
      * kartochkaning `data-*` atributlari — nom, narx, sotuvchi, rasm.
        Doim bor, tarmoqqa bog'liq emas;
-     * `/api/products` — reyting, zaxira, tafsilotlar (eni, zichlik, tarkib).
-       Kelmasa detal baribir ochiladi, faqat qo'shimcha qatorlarsiz.
+     * `/api/products` — reyting, zaxira, tafsilotlar (eni, zichlik, tarkib),
+       sotuvchi shahri va reytingi. Kelmasa sahifa baribir ochiladi, faqat
+       qo'shimcha qatorlarsiz.
    ==================================================== */
 
-let detailId = null;
+/** Ochiq mahsulot sahifasining id'si; `null` — sahifa yopiq */
+let pdpId = null;
+/** Sharhlar to'liq ochilganmi (boshida faqat dastlabki nechtasi ko'rinadi) */
+let pdpAllReviews = false;
 /** mahsulot id → API'dagi to'liq yozuv; null — hali yuklanmagan */
 let catalogMeta = null;
 let catalogMetaTried = false;
@@ -1893,10 +1950,18 @@ let myReviews = [];
 
 function openDetail(id) {
   if (!product(id)) return;
-  detailId = id;
-  drawerView = 'detail';
-  renderDrawer();
-  openDrawerEl();
+  // Savat/profil oynasi ochiq bo'lsa yopiladi: sahifa almashayotganda
+  // ustida osilib turgan panel qaysi mahsulot ochilganini yashirardi.
+  if (isOpen()) closeCart();
+  const yangi = pdpId !== id;
+  pdpId = id;
+  if (yangi) pdpAllReviews = false;
+  pdpPush(id);
+  renderPdp();
+  // Yangi sahifa ochilganda skroll TEPADAN boshlanadi. Usiz katalogning
+  // o'rtasidan bosgan odam mahsulot sahifasining o'rtasiga tushardi va
+  // rasm ham, nom ham ekrandan tashqarida qolardi.
+  window.scrollTo(0, 0);
   loadCatalogMeta();
   loadReviews(id);
 }
@@ -1911,7 +1976,10 @@ function loadCatalogMeta() {
       catalogMeta = {};
       list.forEach((p) => { catalogMeta[p.id] = p; });
       mergeCatalog(list);
-      if (isOpen() && drawerView === 'detail') renderDrawer();
+      // Sahifa ochiq bo'lsa TO'LIQ qayta chiziladi: aynan shu javob bilan
+      // reyting, zaxira, o'lchovlar va sotuvchi shahri birinchi marta
+      // keladi, ya'ni o'zgaradigan joy bitta blok emas.
+      if (pdpId) renderPdp();
     })
     .catch(() => { /* detal data-* atributlari bilan ishlayveradi */ })
     // Savat/saralanganlarni tozalash SO'ROV TUGAGACH bo'ladi — muvaffaqiyatda
@@ -2020,7 +2088,7 @@ function apiCardHtml(p) {
       <div class="product-media"${p.video ? ` data-video="${esc(p.video)}"${p.videoPoster ? ` data-poster="${esc(p.videoPoster)}"` : ''}` : ''}>
         ${img ? `<img src="${esc(img)}" alt="${esc(name)}" loading="lazy" />` : ''}
         ${badgeTxt ? `<span class="badge-pill ${badgeCls}">${esc(badgeTxt)}</span>` : ''}
-        <button class="fav-btn" id="fav-${esc(p.id)}" data-action="toggleFav" data-arg="${esc(p.id)}" aria-label="Saralanganlarga qo'shish" aria-pressed="false">
+        <button class="fav-btn" data-fav="${esc(p.id)}" data-action="toggleFav" data-arg="${esc(p.id)}" aria-label="Saralanganlarga qo'shish" aria-pressed="false">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 20.8s-6.9-4.3-9-8a5.2 5.2 0 0 1-.5-3.7A4.8 4.8 0 0 1 6.3 5.5c1.9 0 3.4 1 4.3 2.3.4.6 1 .6 1.4 0 .9-1.3 2.4-2.3 4.3-2.3a4.8 4.8 0 0 1 3.8 3.6 5.2 5.2 0 0 1-.5 3.7c-2.1 3.7-9 8-9 8z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
         </button>
       </div>
@@ -2034,16 +2102,27 @@ function apiCardHtml(p) {
           <span class="price-label">${t(p.unit === 'panel' ? 'unitPricePanel' : 'unitPrice')}</span>
           <span class="price-value">${money(Number(p.price) || 0)}</span>
         </div>
-        <div class="card-action" id="act-${esc(p.id)}"></div>
+        <div class="card-action" data-act="${esc(p.id)}"></div>
       </div>
     </article>`;
 }
 
-/** Yangi kartochka HTML'dagilar bilan bir xil imkoniyatga ega bo'lsin:
-    ko'rinish animatsiyasi va klaviatura bilan ochilishi. Init blokidagi
-    sozlash faqat sahifa yuklanganda mavjud kartochkalar ustidan yurgan. */
-function equipCard(card) {
-  observer.observe(card);
+/* Yangi kartochka HTML'dagilar bilan bir xil imkoniyatga ega bo'lsin:
+   ko'rinish animatsiyasi va klaviatura bilan ochilishi. Init blokidagi
+   sozlash faqat sahifa yuklanganda mavjud kartochkalar ustidan yurgan.
+
+   ⚠️ `reveal = false` — kartochka DARHOL ko'rinsin, kuzatuvchini kutmasin.
+   `.fade-up` `opacity: 0` dan boshlanadi va uni `IntersectionObserver`
+   yoqadi; mahsulot sahifasidagi "o'xshash matolar" esa sahifa bilan BIRGA
+   chiziladi va o'sha onda ekrandan pastda bo'ladi, ya'ni kuzatuvchi
+   otilmaydi. O'lchandi (2026-08-16): to'rtala nusxa ham `opacity: 0` da
+   qolgan — DOM'da bor, o'lchamlari to'g'ri (394px), konsol jim, lekin
+   bo'lim KO'ZGA BO'SH ko'rinardi. Aynan shu sabab uni faqat rasmga
+   olganda ko'rdim, DOM tekshiruvi esa "4 ta kartochka bor" deb
+   yashil javob bergandi. */
+function equipCard(card, reveal) {
+  if (reveal === false) card.classList.remove('fade-up');
+  else observer.observe(card);
   card.tabIndex = 0;
   card.setAttribute('role', 'button');
   card.setAttribute('aria-label', (card.dataset.name || 'Mahsulot') + ' — batafsil');
@@ -2159,6 +2238,13 @@ function settleCatalog() {
   updateBadge();
   updateFavBadge();
   if (isOpen()) renderDrawer();
+
+  /* Manzilda mahsulot havolasi bo'lsa (`#/mahsulot/<id>`) — o'sha sahifa
+     ochiladi. AYNAN SHU YERDA, chunki kartochkalar hozirgina joyiga tushdi:
+     ilgariroq urinilsa `product()` bazadan kelgan e'lonni topa olmasdi va
+     ulashilgan havola jimgina katalogni ochib qo'yardi. */
+  const havola = pdpFromUrl();
+  if (havola && !pdpId && product(havola)) openDetail(havola);
 }
 
 function loadReviews(id) {
@@ -2168,7 +2254,7 @@ function loadReviews(id) {
       const list = d && d.ok ? d.data : null;
       if (!Array.isArray(list)) return;
       reviewsCache[id] = list;
-      if (isOpen() && drawerView === 'detail' && detailId === id) renderDrawer();
+      if (pdpId === id) renderPdpReviews();
     })
     .catch(() => { /* sharhsiz ham detal ishlaydi */ });
 }
@@ -2478,10 +2564,12 @@ function aiSection(id) {
     ${aiCreditLine()}`;
 }
 
-/* Detalni qayta chizish — foydalanuvchi boshqa ko'rinishga o'tib ketgan
-   bo'lsa hech narsa qilmaydi (`loadReviews` dagi bilan bir xil naqsh). */
+/* AI blokini qayta chizish — foydalanuvchi boshqa mahsulotga o'tib ketgan
+   bo'lsa hech narsa qilmaydi (`loadReviews` dagi bilan bir xil naqsh).
+   ⚠️ BUTUN sahifa emas, faqat AI bloki: sahifa qayta yozilsa galereya
+   boshiga qaytardi va o'ynab turgan video uzilardi. */
 function repaintDetail(id) {
-  if (isOpen() && drawerView === 'detail' && detailId === id) renderDrawer();
+  if (pdpId === id) renderPdpAi();
 }
 
 /* Chip bosilganda. Argument `id|guruh|kalit` — delegatsiya bitta `data-arg`
@@ -2620,7 +2708,7 @@ function loadAiCredits() {
     .then((d) => {
       if (d && d.ok && d.data && d.data.credits) {
         aiCredits = d.data.credits;
-        if (isOpen() && drawerView === 'detail') renderDrawer();
+        if (pdpId) renderPdpAi();
       }
     })
     .catch(() => { /* kredit qatori chizilmaydi — nuqson emas */ });
@@ -3163,49 +3251,114 @@ function hoverMediaArm() {
 
 hoverMediaArm();
 
-/* Media galereya — 1-slayd RASM, 2-slayd VIDEO (founder qarori, 2026-08-13:
-   "bitta mahsulot ichida 1 rasm, ikkinchi video bo'ladi").
+/* ── Mahsulot media ro'yxati — YAGONA manba ──
+   Galereya SLAYDLAR SONIGA bog'lanmagan: u shu ro'yxatni chizadi, xolos.
+   Ilgari `mediaHtml` da ikkita slayd QO'LDA yozilgan edi ("1-rasm,
+   2-video"), ya'ni uchinchi rasm paydo bo'lgan kuni chizish, eskizlar,
+   nuqtalar va strelkalar — to'rtala joy alohida tuzatilishi kerak bo'lardi.
 
-   ⚠️ Video bo'lmasa galereya UMUMAN chizilmaydi va `<img>` avvalgidek yolg'iz
-   qoladi: bitta slayd uchun nuqta va gorizontal skroll shovqindan boshqa narsa
-   emas. Bu `NULL` reyting qoidasi bilan bitta oila — yo'q narsa uchun bo'sh
-   idish ko'rsatilmaydi.
+   🔴 BUGUNGI HOLAT: bazada mahsulotga BITTA rasm saqlanadi
+   (`products.img` / `img_file_id` / `img_r2_key`) + ixtiyoriy bitta video,
+   ya'ni ro'yxatda amalda 1–2 element bo'ladi. Founder qarori (2026-08-16):
+   haqiqiy suratlar qo'yilganda mahsulotda 3–4 rasm bo'ladi.
+   ⚠️ Shu qatordagi `m.images` — KELAJAKKA QOLDIRILGAN JOY va u hozircha
+   HECH QAYERDA to'ldirilmaydi: `/api/products` bunday maydon QAYTARMAYDI.
+   Ya'ni bu "ishlayotgan funksiya" emas, TAYYOR ULANISH NUQTASI. Rasm
+   ustuni qo'shilganda (migratsiya + sotuvchi formasi + `productRowToVM`)
+   o'zgaradigan yagona frontend joyi — mana shu funksiya. */
+function mediaList(p, m) {
+  const list = [];
+  const rasmlar = (m && Array.isArray(m.images) && m.images.length)
+    ? m.images.map(apiImgUrl).filter(Boolean)
+    : (p.img ? [p.img] : []);
+  rasmlar.forEach((src) => list.push({ tur: 'img', src, eskiz: src }));
+  if (m && m.video) {
+    // Muqova yo'q bo'lsa birinchi rasmga tushamiz — qora to'rtburchak
+    // "video buzuq" degan taassurot berardi.
+    list.push({ tur: 'video', src: m.video, eskiz: m.videoPoster || rasmlar[0] || '' });
+  }
+  return list;
+}
+
+/* Media galereya.
+
+   ⚠️ Media BITTA bo'lsa eskizlar, nuqtalar va strelkalar UMUMAN chizilmaydi:
+   bitta slayd uchun ular shovqindan boshqa narsa emas. Bu `NULL` reyting
+   qoidasi bilan bitta oila — yo'q narsa uchun bo'sh idish ko'rsatilmaydi.
 
    Slaydlar CSS `scroll-snap` bilan suriladi, JS bilan emas: barmoq harakati
    brauzerning O'ZINIKI bo'lib qoladi (inersiya, chekka qarshiligi) va uni
    qo'lda takrorlash har doim yomonroq chiqadi. JS faqat nuqtalarni holatga
    moslashtiradi. */
 function mediaHtml(p, m) {
-  const video = m && m.video ? m.video : null;
-  if (!video) return `<img class="pd-img" src="${esc(p.img)}" alt="${esc(p.name)}" />`;
-  // Muqova yo'q bo'lsa mahsulot rasmiga tushamiz — qora to'rtburchak
-  // "video buzuq" degan taassurot berardi.
-  const poster = (m && m.videoPoster) || p.img;
+  const media = mediaList(p, m);
+  // Umuman rasm yo'q — bo'sh kulrang quti. Yiqilmaydi, yolg'on ham gapirmaydi.
+  if (!media.length) return `<div class="pdp-stage"><div class="pd-img pd-img-none"></div></div>`;
+
+  const slayd = (x, i) => (x.tur === 'video'
+    ? `<video class="pd-vid" src="${esc(x.src)}" poster="${esc(x.eskiz)}"
+              controls preload="none" playsinline
+              aria-label="${esc(t('mediaVideo'))}"></video>`
+    : `<img class="pd-img" src="${esc(x.src)}" alt="${esc(p.name)}"${i ? ' loading="lazy"' : ''}
+             data-action="openZoom" data-arg="${esc(x.src)}" />`);
+
+  if (media.length === 1) {
+    return `<div class="pdp-stage">${slayd(media[0], 0)}</div>`;
+  }
+
+  const yorliq = (x, i) => (x.tur === 'video' ? t('mediaVideo') : `${t('mediaPhoto')} ${i + 1}`);
+
   return `
     <div class="pd-media">
-      <div class="pd-slides" id="pd-slides">
-        <img class="pd-img" src="${esc(p.img)}" alt="${esc(p.name)}" />
-        <video class="pd-vid" src="${esc(video)}" poster="${esc(poster)}"
-               controls preload="none" playsinline
-               aria-label="${esc(t('mediaVideo'))}"></video>
+      <div class="pdp-thumbs">
+        ${media.map((x, i) => `
+        <button class="pdp-thumb${i ? '' : ' is-on'}" data-slide="${i}" aria-label="${esc(yorliq(x, i))}">
+          ${x.eskiz ? `<img src="${esc(x.eskiz)}" alt="" />` : ''}
+          ${x.tur === 'video' ? `<span class="pdp-thumb-play" aria-hidden="true">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l11-6.5z"/></svg>
+          </span>` : ''}
+        </button>`).join('')}
       </div>
-      <div class="pd-dots" id="pd-dots">
-        <button class="pd-dot is-on" data-slide="0" aria-label="${esc(t('mediaPhoto'))}"></button>
-        <button class="pd-dot" data-slide="1" aria-label="${esc(t('mediaVideo'))}"></button>
+      <div class="pdp-stage">
+        <div class="pd-slides" id="pd-slides">
+          ${media.map(slayd).join('')}
+        </div>
+        <button class="pdp-arrow prev" data-step="-1" aria-label="${esc(t('mediaPrev'))}">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+        </button>
+        <button class="pdp-arrow next" data-step="1" aria-label="${esc(t('mediaNext'))}">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>
+        </button>
+        <div class="pd-dots" id="pd-dots">
+          ${media.map((x, i) => `
+          <button class="pd-dot${i ? '' : ' is-on'}" data-slide="${i}" aria-label="${esc(yorliq(x, i))}"></button>`).join('')}
+        </div>
       </div>
     </div>`;
 }
 
 /* Galereya HTML bilan birga "jonlanmaydi" — tugunlar DOM'ga tushgandan keyin
    ulanadi (`mountAddrMap` bilan bir xil naqsh: har qayta chizishda tugun
-   YANGI bo'ladi, shuning uchun listener ham qaytadan ulanadi). */
+   YANGI bo'ladi, shuning uchun listener ham qaytadan ulanadi).
+
+   ⚠️ Boshqaruvchilar UCH XIL (nuqta, eskiz, strelka) va ular BITTA tinglovchi
+   bilan qamraladi — har biriga alohida tinglovchi yozilsa yangi boshqaruvchi
+   qo'shilganda uni ulash unutilardi va tugma jimgina o'lik bo'lardi. */
 function mountPdMedia() {
   const slides = document.getElementById('pd-slides');
   const dots = document.getElementById('pd-dots');
   if (!slides || !dots) return;
+  const gal = slides.closest('.pd-media') || dots.parentNode;
 
-  const nuqtalar = [...dots.querySelectorAll('.pd-dot')];
-  const vid = slides.querySelector('.pd-vid');
+  const nuqtalar = [...gal.querySelectorAll('.pd-dot')];
+  const eskizlar = [...gal.querySelectorAll('.pdp-thumb')];
+  const oldinga = gal.querySelector('.pdp-arrow.next');
+  const orqaga = gal.querySelector('.pdp-arrow.prev');
+  // Slaydlarning O'ZI sanaladi, nuqtalar emas: nuqta faqat KO'RSATKICH va
+  // ular bir kun boshqacha chizilsa (masalan ko'p slaydda "1/4" yozuvi
+  // bilan) sanoq jimgina noto'g'ri bo'lib qolardi.
+  const slaydlar = [...slides.children];
+  let joriy = 0;
 
   /* Holatni BITTA funksiya belgilaydi va uni IKKI manba chaqiradi: nuqta
      bosilishi va barmoq bilan surish (`scroll`).
@@ -3217,20 +3370,33 @@ function mountPdMedia() {
      hodisaga bog'lanmaydi; `scroll` faqat barmoq bilan surishni QO'SHIMCHA
      ravishda qamraydi. */
   function sync(i) {
+    joriy = i;
     nuqtalar.forEach((d, k) => d.classList.toggle('is-on', k === i));
-    // Video slayddan chiqilsa TO'XTAYDI: aks holda foydalanuvchi rasmga
-    // qaytganda ko'rinmaydigan video ovoz chiqarib o'ynayverardi.
-    if (vid && i !== 1 && !vid.paused) vid.pause();
+    eskizlar.forEach((d, k) => d.classList.toggle('is-on', k === i));
+    // Strelka chekkada o'chiriladi: bosilganda hech narsa qilmaydigan tugma
+    // "sindi" degan taassurot beradi (`pd-dot` dagi o'sha dars).
+    if (orqaga) orqaga.disabled = i <= 0;
+    if (oldinga) oldinga.disabled = i >= slaydlar.length - 1;
+    // KO'RINMAYDIGAN video to'xtatiladi. ⚠️ Ilgari bu yerda "1-slayd video"
+    // deb QO'LDA yozilgan edi; uchinchi rasm qo'shilgan kuni video 2- yoki
+    // 3-o'ringa surilar va ko'rinmagan holda ovoz chiqarib o'ynayverardi.
+    // Endi tekshiruv o'rinni emas, TURNI biladi.
+    slaydlar.forEach((el, k) => {
+      if (k !== i && el.tagName === 'VIDEO' && !el.paused) el.pause();
+    });
   }
 
   slides.addEventListener('scroll', () => {
     sync(Math.round(slides.scrollLeft / Math.max(1, slides.clientWidth)));
   }, { passive: true });
 
-  dots.addEventListener('click', (e) => {
-    const b = e.target.closest('.pd-dot');
-    if (!b) return;
-    const i = Number(b.dataset.slide);
+  gal.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-slide], [data-step]');
+    if (!b || !gal.contains(b)) return;
+    const i = b.dataset.step !== undefined
+      ? joriy + Number(b.dataset.step)
+      : Number(b.dataset.slide);
+    if (i < 0 || i >= slaydlar.length) return;
     // ⚠️ `behavior: 'smooth'` ISHLATILMAYDI va bu O'LCHANGAN qaror
     // (2026-08-13): silliq surish bajarilmaydigan muhitda so'rov jimgina
     // yutiladi va nuqta BUTUNLAY o'lik tugmaga aylanadi. To'g'ridan-to'g'ri
@@ -3239,95 +3405,507 @@ function mountPdMedia() {
     slides.scrollLeft = slides.clientWidth * i;
     sync(i);
   });
+
+  sync(0);
 }
 
-function detailHtml(id) {
-  const p = product(id);
-  if (!p) return '';
-  const m = catalogMeta ? catalogMeta[id] : null;
-  const list = reviewsCache[id];
+/* ── Sotib olish qutisidagi amal (savatga / miqdor) ──
+   ALOHIDA funksiya, chunki u BUTUN sahifadan mustaqil qayta chiziladi:
+   "+" bosilganda butun `#pdp` qayta yozilsa galereya boshiga qaytardi va
+   o'ynab turgan video uzilardi (tugun almashadi). Kartochkadagi
+   `renderCardAction()` bilan bir xil naqsh — faqat o'z qutisi. */
+function pdpActHtml(id) {
   const qty = cart[id] || 0;
-
-  // Tafsilotlar faqat API'dan keladi — bo'lmasa qatorning o'zi chizilmaydi
-  // (bo'sh "Eni: —" ko'rsatish ma'lumot emas, shovqin)
-  const specs = m ? [
-    [t('specWidth'), m.width], [t('specWeight'), m.weight], [t('specComp'), L(m.comp)],
-    [t('specLead'), m.lead ? m.lead + ' ' + t('days') : null],
-    [t('specMoq'), m.moq ? m.moq + ' ' + t('pcs') : null],
-  ].filter(([, v]) => v) : [];
-
+  if (soldOutIds.has(id)) {
+    return `<button class="pd-add is-out" type="button" disabled>${esc(stockTxt('out'))}</button>`;
+  }
+  if (!qty) {
+    return `<button class="pd-add" data-action="addFromDetail" data-arg="${esc(id)}">${t('addToCart')}</button>`;
+  }
   return `
-    <div class="pd">
-      ${mediaHtml(p, m)}
-
-      <div class="pd-head">
-        <h3 class="pd-name">${esc(p.name)}</h3>
-        ${m && m.rating != null
-          ? `<span class="pd-rating">${starsHtml(m.rating)}<b>${esc(String(m.rating))}</b>
-               <span class="pd-rating-n">· ${esc(String(m.reviews || 0))} ${t('reviewsCount')}</span></span>`
-          : ''}
-      </div>
-
-      <div class="pd-sup">${esc(p.supplier)}</div>
-
-      <div class="pd-price">
-        <span class="pd-price-label">${t('unitPrice')}</span>
-        <span class="pd-price-val">${money(p.price)}</span>
-      </div>
-
-      ${specs.length ? `
-      <div class="pd-specs">
-        ${specs.map(([k, v]) => `
-        <div class="pd-spec"><span>${esc(k)}</span><b>${esc(String(v))}</b></div>`).join('')}
-      </div>` : ''}
-
-      ${m ? `<div class="pd-stock ${esc(stockView(m).key)}">${esc(stockView(m).txt)}</div>` : ''}
-
-      <div class="pd-act" id="pd-act">
-        ${soldOutIds.has(id)
-          ? `<button class="pd-add is-out" type="button" disabled>${esc(stockTxt('out'))}</button>`
-          : qty
-          ? `<div class="qty-row">
-               <button class="qty-circle qty-minus" data-action="qtyStepDetail" data-arg="${esc(id)}|-1" aria-label="${t('decrease')}">
-                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 12h14"/></svg>
-               </button>
-               <span class="qty-num">${qty} dona</span>
-               <button class="qty-circle qty-plus" data-action="qtyStepDetail" data-arg="${esc(id)}|1" aria-label="${t('increase')}">
-                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
-               </button>
-             </div>`
-          : `<button class="pd-add" data-action="addFromDetail" data-arg="${esc(id)}">${t('addToCart')}</button>`}
-      </div>
-
-      ${aiSection(id)}
-
-      <div class="pd-sec-title">${t('reviews')}</div>
-      ${list === undefined
-        // Yuklanmoqda — "sharh yo'q" DEYILMAYDI, aks holda yuklanish paytida
-        // yolg'on gap ko'rsatilardi
-        ? `<div class="pd-rev-wait"></div>`
-        : !list.length
-        ? `<div class="pd-rev-empty">
-             <div class="pd-rev-empty-t">${t('noReviews')}</div>
-             <div class="pd-rev-empty-s">${t('noReviewsSub')}</div>
-           </div>`
-        : list.map((r) => `
-          <div class="pd-rev">
-            <div class="pd-rev-top">${starsHtml(r.stars)}<span class="pd-rev-date">${esc(L(r.date))}</span></div>
-            ${r.body ? `<div class="pd-rev-body">${esc(r.body)}</div>` : ''}
-            <div class="pd-rev-who">${esc(r.author || '—')}</div>
-          </div>`).join('')}
+    <div class="qty-row">
+      <button class="qty-circle qty-minus" data-action="qtyStepDetail" data-arg="${esc(id)}|-1" aria-label="${t('decrease')}">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 12h14"/></svg>
+      </button>
+      <span class="qty-num">${qty} ${t('pcs')}</span>
+      <button class="qty-circle qty-plus" data-action="qtyStepDetail" data-arg="${esc(id)}|1" aria-label="${t('increase')}">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      </button>
     </div>`;
 }
 
+/** Sharhlar ro'yxati — boshida faqat shuncha tasi ko'rinadi */
+const PDP_REV_HEAD = 3;
+
+function pdpReviewsHtml(id) {
+  const list = reviewsCache[id];
+  // Yuklanmoqda — "sharh yo'q" DEYILMAYDI, aks holda yuklanish paytida
+  // yolg'on gap ko'rsatilardi.
+  if (list === undefined) return `<div class="pd-rev-wait"></div>`;
+  if (!list.length) {
+    return `
+      <div class="pd-rev-empty">
+        <div class="pd-rev-empty-t">${t('noReviews')}</div>
+        <div class="pd-rev-empty-s">${t('noReviewsSub')}</div>
+      </div>`;
+  }
+  // Ro'yxat uzun bo'lsa boshi ko'rsatiladi: sharhlar ostidagi "o'xshash
+  // matolar" 30 ta sharh ortida ko'milib qolmasin. Tugma FAQAT haqiqatan
+  // yashiringan sharh bo'lganda chiziladi va uning ichida ANIQ son turadi —
+  // "hammasi" so'zi nechtaligini aytmaydi.
+  const ochiq = pdpAllReviews || list.length <= PDP_REV_HEAD;
+  const ko = ochiq ? list : list.slice(0, PDP_REV_HEAD);
+  return `
+    <div class="pdp-revs">
+      ${ko.map((r) => `
+        <div class="pd-rev">
+          <div class="pd-rev-top">${starsHtml(r.stars)}<span class="pd-rev-date">${esc(L(r.date))}</span></div>
+          ${r.body ? `<div class="pd-rev-body">${esc(r.body)}</div>` : ''}
+          <div class="pd-rev-who">${esc(r.author || '—')}</div>
+        </div>`).join('')}
+    </div>
+    ${ochiq ? '' : `
+      <button class="pdp-more" data-action="showAllReviews">
+        ${t('pdpAllReviews')} · ${list.length}
+      </button>`}`;
+}
+
+/* ── O'xshash matolar ──
+   Manba — KATALOGNING O'ZI (DOM'dagi kartochkalar), yangi so'rov yo'q:
+   `mergeCatalog` allaqachon bazadagi hamma e'lonni gridga qo'ygan.
+
+   ⚠️ Kartochka QAYTA CHIZILMAYDI — katalogdagi tugun NUSXALANADI
+   (`cloneNode`). Founder qarori (2026-08-16): "o'xshash matolar kartochkasi
+   o'zgarmasin, qanday holatda bo'lsa shunda chiqsin". Nusxalash buni
+   TA'RIF bo'yicha kafolatlaydi: yengil variant qayta yozilsa u vaqt o'tib
+   katalognikidan ajralib ketardi (belgi, zaxira holati, tasdiqlangan
+   nishoni, savat tugmasi — har biri alohida unutilishi mumkin bo'lgan joy).
+
+   Buni MUMKIN qilgan narsa — `id="act-<id>"` / `id="fav-<id>"` ning
+   `data-*` ga ko'chishi (`cardBoxes()` izohi): `id` bilan ikkinchi nusxa
+   hujjatda takror `id` hosil qilib, jimgina yangilanmay qolardi. */
+const PDP_SIM_MAX = 4;
+
+/* Tavsiya UCH POG'ONA bilan yig'iladi va bu O'LCHOVDAN kelib chiqqan
+   (2026-08-16): jonli katalogda toifalar taqsimoti
+   `ipak 13 · paxta 4 · zig'ir 3 · so'zana 2 · jun 1 · ikat 1` —
+   ya'ni faqat toifaga tayanilsa **jun va ikat matolarida bo'lim UMUMAN
+   chizilmasdi** (o'zidan boshqa hech kim yo'q). Bu "bo'sh idish"
+   emas, tavsiyaning butunlay yo'qligi edi.
+
+   Pog'onalar: (1) ayni toifa, (2) ayni ishlab chiqaruvchi, (3) narxi
+   eng yaqin. Har pog'ona faqat YETMAGANINI to'ldiradi, ya'ni toifa
+   to'la bo'lsa qolgani umuman ishlamaydi va tartib o'zgarmaydi. */
+function pdpMountSimilar() {
+  const box = document.getElementById('pdp-sim');
+  if (!box || !pdpId) return;
+  const bu = productEl(pdpId);
+  if (!bu) return;
+  const cat = bu.dataset.cat || '';
+  const sotuvchi = bu.dataset.supplier || '';
+  const narx = Number(bu.dataset.price) || 0;
+
+  const hammasi = [...document.querySelectorAll('.product-grid .product-card[data-id]')]
+    .filter((el) => el.dataset.id !== pdpId);
+
+  const yaqin = [];
+  const olingan = new Set();
+  const qo = (list) => list.forEach((el) => {
+    if (yaqin.length >= PDP_SIM_MAX || olingan.has(el.dataset.id)) return;
+    olingan.add(el.dataset.id);
+    yaqin.push(el);
+  });
+
+  if (cat) qo(hammasi.filter((el) => el.dataset.cat === cat));
+  if (sotuvchi) qo(hammasi.filter((el) => el.dataset.supplier === sotuvchi));
+  // Narxi noma'lum bo'lsa (0) bu pog'ona ma'nosini yo'qotadi — hammasi
+  // "eng yaqin" bo'lib chiqardi, ya'ni tartib tasodifiy bo'lardi.
+  if (narx) {
+    qo(hammasi
+      .filter((el) => Number(el.dataset.price) > 0)
+      .sort((a, b) => Math.abs(Number(a.dataset.price) - narx) - Math.abs(Number(b.dataset.price) - narx)));
+  }
+
+  // Bitta ham o'xshashi bo'lmasa BO'LIM UMUMAN chizilmaydi — bo'sh
+  // sarlavha "yuklanmadi" degan taassurot berardi.
+  const sec = box.closest('.pdp-sec');
+  if (!yaqin.length) { if (sec) sec.remove(); return; }
+
+  yaqin.forEach((el) => {
+    const nusxa = el.cloneNode(true);
+    // Katalog filtri yashirgan bo'lsa ham bu yerda ko'rinsin: bu ro'yxat
+    // qidiruv natijasi emas, tavsiya.
+    nusxa.classList.remove('is-hidden');
+    box.appendChild(nusxa);
+    // Hodisa tinglovchilari `cloneNode` bilan KO'CHMAYDI — klaviatura bilan
+    // ochish qaytadan ulanadi. Ko'rinish animatsiyasi esa ATAYLAB
+    // o'chiriladi (`equipCard` izohi): u kuzatuvchiga bog'liq va bu yerda
+    // kartochkalar ko'rinmay qolardi.
+    equipCard(nusxa, false);
+  });
+}
+
+/* ── Ishlab chiqaruvchi kartochkasi ──
+   Logotip BAZADA YO'Q, shuning uchun o'ylab topilmaydi: nomning birinchi
+   harfidan monogramma chiziladi (bu ma'lumot emas, TIPOGRAFIYA).
+   Reyting `sellers.rating` dan keladi va `null` bo'lsa qator UMUMAN
+   chizilmaydi — "baholanmagan" ≠ "yomon baholangan". */
+function pdpSellerHtml(p, m) {
+  const nom = p.supplier || '';
+  if (!nom) return '';
+  const shahar = m ? L(m.city) : '';
+  const reyting = m && m.sellerRating != null ? m.sellerRating : null;
+  return `
+    <div class="pdp-card pdp-seller">
+      <div class="pdp-card-t">${t('pdpSeller')}</div>
+      <div class="pdp-seller-row">
+        <span class="pdp-seller-mono" aria-hidden="true">${esc(nom.trim().charAt(0) || '?')}</span>
+        <span class="pdp-seller-txt">
+          <span class="pdp-seller-name">${esc(nom)}</span>
+          ${shahar ? `<span class="pdp-seller-city">${esc(shahar)}</span>` : ''}
+        </span>
+      </div>
+      ${reyting != null
+        ? `<div class="pdp-seller-rate">${starsHtml(reyting, 'sm')}<b>${esc(String(reyting))}</b></div>`
+        : ''}
+      <button class="pdp-ghost" data-action="sellerProducts" data-arg="${esc(nom)}">${t('pdpSellerMore')}</button>
+    </div>`;
+}
+
+/* ── Tavsif ──
+   Bazada ERKIN MATNLI tavsif ustuni YO'Q, shuning uchun bu blok o'ylab
+   topilgan gap yozmaydi: u faqat sotuvchi kiritgan o'lchov qatorlarini
+   ko'rsatadi. Hech biri bo'lmasa — buni AYTADI, bo'sh joy qoldirmaydi
+   (bo'sh idish "yuklanmadi" degan taassurot berardi). */
+function pdpSpecsHtml(id, m) {
+  const bu = productEl(id);
+  const catKey = bu ? bu.dataset.cat : '';
+  const catNom = catKey ? t('cat' + catKey.charAt(0).toUpperCase() + catKey.slice(1)) : '';
+  const specs = [
+    [t('specWidth'), m && m.width], [t('specWeight'), m && m.weight],
+    [t('specComp'), m ? L(m.comp) : ''],
+    [t('pdpCat'), catNom && catNom.indexOf('cat') !== 0 ? catNom : ''],
+    [t('specMoq'), m && m.moq ? m.moq + ' ' + t('pcs') : null],
+    [t('specLead'), m && m.lead ? m.lead + ' ' + t('days') : null],
+  ].filter(([, v]) => v);
+
+  return `
+    <div class="pdp-sec">
+      <h2 class="pdp-sec-title">${t('pdpDesc')}</h2>
+      ${specs.length
+        ? `<div class="pd-specs">
+             ${specs.map(([k, v]) => `
+             <div class="pd-spec"><span>${esc(k)}</span><b>${esc(String(v))}</b></div>`).join('')}
+           </div>`
+        : `<p class="pdp-empty">${t('pdpNoSpecs')}</p>`}
+    </div>`;
+}
+
+function pdpHtml(id) {
+  const p = product(id);
+  if (!p) return '';
+  const m = catalogMeta ? catalogMeta[id] : null;
+  const st = m ? stockView(m) : null;
+  const fav = isFav(id);
+
+  return `
+    <div class="container">
+      <button class="pdp-back" data-action="closePdp">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+        ${t('pdpBack')}
+      </button>
+
+      <div class="pdp-grid">
+        <div class="pdp-gal">${mediaHtml(p, m)}</div>
+
+        <div class="pdp-info">
+          <h1 class="pdp-name">${esc(p.name)}</h1>
+          ${m && m.rating != null
+            ? `<div class="pdp-rating">${starsHtml(m.rating)}<b>${esc(String(m.rating))}</b>
+                 <span class="pd-rating-n">· ${esc(String(m.reviews || 0))} ${t('reviewsCount')}</span></div>`
+            : ''}
+          <div class="pdp-sup">
+            <span>${esc(p.supplier)}</span>
+            ${m && m.verified
+              ? `<span class="pdp-verified"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.4 1.8 3-.2 1 2.8 2.6 1.5-.9 2.9.9 2.9-2.6 1.5-1 2.8-3-.2L12 22l-2.4-1.8-3 .2-1-2.8L3 16.3l.9-2.9L3 10.5l2.6-1.5 1-2.8 3 .2z"/><path d="M9 12l2 2 4-4" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>${t('pdpVerified')}</span>`
+              : ''}
+          </div>
+          ${m && L(m.comp) ? `<p class="pdp-lede">${esc(L(m.comp))}</p>` : ''}
+        </div>
+
+        <aside class="pdp-aside">
+          <div class="pdp-card pdp-buy">
+            <div class="pdp-price-label">${t(m && m.unit === 'panel' ? 'unitPricePanel' : 'unitPrice')}</div>
+            <div class="pdp-price">${money(p.price)}</div>
+            ${st ? `<div class="pd-stock ${esc(st.key)}">${esc(st.txt)}</div>` : ''}
+
+            <div class="pdp-act" id="pdp-act">${pdpActHtml(id)}</div>
+
+            <button class="pdp-fav${fav ? ' on' : ''}" id="pdp-fav" data-action="toggleFav" data-arg="${esc(id)}" aria-pressed="${fav ? 'true' : 'false'}">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 20.8s-6.9-4.3-9-8a5.2 5.2 0 0 1-.5-3.7A4.8 4.8 0 0 1 6.3 5.5c1.9 0 3.4 1 4.3 2.3.4.6 1 .6 1.4 0 .9-1.3 2.4-2.3 4.3-2.3a4.8 4.8 0 0 1 3.8 3.6 5.2 5.2 0 0 1-.5 3.7c-2.1 3.7-9 8-9 8z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+              <span class="pdp-fav-txt">${fav ? t('pdpFavOn') : t('pdpFavAdd')}</span>
+            </button>
+
+            <button class="pdp-ghost pdp-share" data-action="copyProductLink">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7 0l2-2a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-2 2a5 5 0 0 0 7 7l1-1"/></svg>
+              ${t('pdpCopyLink')}
+            </button>
+
+            <div class="pdp-note">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h11v8H3zM14 11h4l3 3v2h-7z"/><circle cx="7" cy="18" r="1.6"/><circle cx="17.5" cy="18" r="1.6"/></svg>
+              <span>${t('btsHint')}</span>
+            </div>
+            ${m && m.moq > 1 ? `
+            <div class="pdp-note">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h16M4 17h10"/></svg>
+              <span>${t('specMoq')}: <b>${esc(String(m.moq))} ${t('pcs')}</b></span>
+            </div>` : ''}
+          </div>
+
+          <div class="pdp-card pdp-safe">
+            <div class="pdp-safe-t">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7.5 3.2v5c0 4.4-3 8.3-7.5 9.6-4.5-1.3-7.5-5.2-7.5-9.6v-5z"/></svg>
+              ${t('pdpSafe')}
+            </div>
+            <p class="pdp-safe-s">${t('pdpSafeSub')}</p>
+          </div>
+
+          ${pdpSellerHtml(p, m)}
+        </aside>
+
+        <div class="pdp-below">
+          ${pdpSpecsHtml(id, m)}
+
+          <div class="pdp-sec" id="pdp-ai">${aiSection(id)}</div>
+
+          <div class="pdp-sec">
+            <h2 class="pdp-sec-title">${t('reviews')}</h2>
+            <div id="pdp-revs">${pdpReviewsHtml(id)}</div>
+          </div>
+
+          <div class="pdp-sec">
+            <h2 class="pdp-sec-title">${t('pdpSimilar')}</h2>
+            <div class="product-grid pdp-sim" id="pdp-sim"></div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
+
+/* ── Sahifani chizish va ko'rsatish ──
+   ⚠️ `#pdp` ochilganda katalog `hidden` bo'ladi, o'chirilmaydi: kartochkalar
+   DOM'da qolishi SHART, chunki savat, saralanganlar, narx va "o'xshash
+   matolar" hammasi o'sha `data-*` atributlaridan o'qiydi (`product()`). */
+function renderPdp() {
+  const box = document.getElementById('pdp');
+  if (!box || !pdpId) return;
+  const html = pdpHtml(pdpId);
+  if (!html) { closePdp(); return; }
+
+  box.innerHTML = html;
+  box.hidden = false;
+  document.body.classList.add('pdp-on');
+  pdpTitle(pdpId);
+  // Galereya nuqtalari va o'xshash matolar HTML bilan kelmaydi — tugunlar
+  // DOM'da bo'lgandan keyin ulanadi (`mountAddrMap` bilan bir xil sabab).
+  mountPdMedia();
+  pdpMountSimilar();
+  // Mobil nav'dagi "Katalog" faol emas: foydalanuvchi katalogda EMAS.
+  mNavActive('');
+}
+
+/* ── Sahifa sarlavhasi ──
+   Mahsulot endi o'z manzilida yashaydi, ya'ni u brauzer TARIXIGA ham,
+   xatcho'pga ham alohida yozuv bo'lib tushadi. Sarlavha o'zgarmasa
+   o'nta ochiq ilova oynasi ham, tarixdagi o'nta qator ham BIR XIL
+   ("LolaMarket — ulgurji matolar bozori…") bo'lib qolardi.
+   ⚠️ Asl sarlavha bir marta eslab qolinadi va katalogga qaytilganda
+   TIKLANADI: qattiq yozilsa `index.html` dagi matn bilan ikki nusxa
+   bo'lardi va biri o'zgarganda ikkinchisi jimgina eskirardi. */
+const PDP_TITLE_ASL = document.title;
+
+function pdpTitle(id) {
+  const p = id ? product(id) : null;
+  document.title = p ? `${p.name} — LolaMarket` : PDP_TITLE_ASL;
+}
+
+/** Faqat sotib olish tugmasi — galereya va video tegilmaydi */
+function renderPdpAct() {
+  const box = document.getElementById('pdp-act');
+  if (box && pdpId) box.innerHTML = pdpActHtml(pdpId);
+}
+
+/** Faqat sharhlar bo'limi */
+function renderPdpReviews() {
+  const box = document.getElementById('pdp-revs');
+  if (box && pdpId) box.innerHTML = pdpReviewsHtml(pdpId);
+}
+
+/** Faqat AI bloki */
+function renderPdpAi() {
+  const box = document.getElementById('pdp-ai');
+  if (box && pdpId) box.innerHTML = aiSection(pdpId);
+}
+
+function showAllReviews() {
+  pdpAllReviews = true;
+  renderPdpReviews();
+}
+
+/* Havolani nusxalash. Manba — MANZIL QATORINING O'ZI (`location.href`),
+   qo'lda yig'ilgan satr emas: yig'ilsa u manzil sxemasi o'zgargan kuni
+   jimgina eskirib, ishlamaydigan havola berardi (aynan shu sxema bugun
+   hash'dan haqiqiy yo'lga ko'chdi).
+   ⚠️ Muvaffaqiyat JIMGINA taxmin qilinmaydi: `copyText()` yiqilsa xaridorga
+   AYTILADI — "nusxalandi" deb yolg'on gapirgandan ko'ra. */
+function copyProductLink() {
+  copyText(location.href).then((ok) => {
+    showToast(ok ? t('pdpLinkCopied') : t('pdpLinkCopyErr'));
+  });
+}
+
+/* ── Rasmni kattalashtirish ──
+   Mato sotilayotganda TEKSTURA mahsulotning o'zi, ya'ni kattalashtirish
+   bezak emas. Telefonda qo'shimcha kod KERAK EMAS: saytda
+   `user-scalable=no` YO'Q (`index.html` viewport'i tekshirildi), ya'ni
+   to'liq ekrandagi rasmni barmoq bilan kattalashtirish brauzerning o'zida
+   ishlaydi. Bu Mini App'dan farq qiladi — u yerda sahifa umuman
+   skrollamaydi va shuning uchun o'z zoom'i bor (CLAUDE.md).
+   Sichqonchada esa pinch yo'q, shuning uchun bosilganda 2x ga o'tadi va
+   bosilgan NUQTA markazda qoladi. */
+function openZoom(src) {
+  if (!src) return;
+  document.getElementById('zoom')?.remove();
+  const box = document.createElement('div');
+  box.className = 'zoom';
+  box.id = 'zoom';
+  box.innerHTML = `
+    <button class="zoom-x" data-action="closeZoom" aria-label="${esc(t('myAddrClose'))}">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+    <img class="zoom-img" src="${esc(src)}" alt="" />`;
+
+  box.addEventListener('click', (e) => {
+    const rasm = e.target.closest('.zoom-img');
+    if (!rasm) { closeZoom(); return; }   // fon bosilsa — yopiladi
+    const kattami = rasm.classList.toggle('is-2x');
+    if (!kattami) { rasm.style.transformOrigin = ''; return; }
+    // Bosilgan nuqta markazda qolsin — aks holda 2x har doim rasmning
+    // o'rtasini ko'rsatib, xaridor qaragan joy ekrandan chiqib ketardi.
+    const r = rasm.getBoundingClientRect();
+    rasm.style.transformOrigin =
+      `${((e.clientX - r.left) / r.width * 100).toFixed(1)}% ${((e.clientY - r.top) / r.height * 100).toFixed(1)}%`;
+  });
+
+  document.body.appendChild(box);
+  document.body.style.overflow = 'hidden';
+}
+
+function closeZoom() {
+  document.getElementById('zoom')?.remove();
+  // ⚠️ Skroll faqat BOSHQA oyna ochiq bo'lmasa tiklanadi: savat panelidan
+  // ochilgan bo'lsa uni ham qulfdan chiqarib yuborardi.
+  if (!isOpen()) document.body.style.overflow = '';
+}
+
+/** Sotuvchi nomi bo'yicha katalogni filtrlash — "do'kon sahifasi" YO'Q,
+    shuning uchun mavjud qidiruv ishlatiladi (`applyFilter` `data-supplier`
+    ni ham qidiradi). Ishlamaydigan havola qo'yishdan ko'ra shu. */
+function sellerProducts(nom) {
+  closePdp();
+  const inp = document.getElementById('search-inp');
+  if (inp) { inp.value = nom; onSearch(nom); }
+  document.getElementById('katalog')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function closePdp() {
+  const box = document.getElementById('pdp');
+  pdpId = null;
+  pdpAllReviews = false;
+  if (box) { box.hidden = true; box.innerHTML = ''; }
+  document.body.classList.remove('pdp-on');
+  pdpTitle(null);
+  mNavActive('catalog');
+  // Manzil qatorida mahsulot yo'li qolib ketmasin — qolsa sahifa
+  // yangilanganda katalog o'rniga o'sha mahsulot ochilardi.
+  if (pdpFromUrl()) history.pushState({}, '', '/' + location.search);
+}
+
+/* ── Manzil qatori ──
+   Mahsulot HAQIQIY yo'lda yashaydi: `lolamarket.uz/mahsulot/<id>`.
+
+   Ilgari (2026-08-16 ning birinchi yarmida) bu yerda hash turardi
+   (`#/mahsulot/<id>`) va sababi shu edi: hash serverga UMUMAN yuborilmaydi,
+   ya'ni nginx'ga tegmaslik mumkin. Lekin o'sha xususiyatning O'ZI narx ham
+   edi — server qaysi mato so'ralganini BILMAYDI, ya'ni Telegramga havola
+   tashlanganda oldindan ko'rish har doim umumiy sayt tavsifini ko'rsatardi
+   va Google mahsulotni hech qachon indekslamasdi.
+
+   O'LCHANDI (2026-08-16), taxmin qilinmadi:
+     `/mahsulot/ik-1402`  → `200 text/html` (nginx allaqachon index.html
+       qaytaradi, ya'ni marshrutlash uchun nginx'ga TEGISH SHART EMAS);
+     `/mahsulot/style.css` → `200 text/html` — 🔴 nisbiy yo'l shu yerda
+       JIMGINA sinardi. Shuning uchun `index.html` dagi HAMMA yo'l mutlaqqa
+       o'tkazildi (`/style.css`, `/Photo/…`) va `pwa.js` `/sw.js` ga.
+   ⚠️ Yangi nisbiy yo'l qo'shilsa u AYNAN shu tuzoqqa tushadi — qorovul:
+   `server/test.js` → Test 38. */
+const PDP_PATH = '/mahsulot/';
+
+/** Eski hash havolalari (`#/mahsulot/x`) — tarqab ketgan bo'lishi mumkin */
+const PDP_HASH = '#/mahsulot/';
+
+function pdpPush(id) {
+  const yangi = PDP_PATH + encodeURIComponent(id);
+  if (location.pathname === yangi) return;
+  history.pushState({ pdp: id }, '', yangi);
+}
+
+/** Manzildan mahsulot id'sini oladi; mahsulot sahifasi bo'lmasa `null` */
+function pdpFromUrl() {
+  const p = location.pathname || '';
+  if (p.indexOf(PDP_PATH) !== 0) return null;
+  const xom = p.slice(PDP_PATH.length);
+  if (!xom) return null;
+  try { return decodeURIComponent(xom); } catch (_) { return xom; }
+}
+
+/* Eski hash havolasi kelsa — YANGI manzilga ko'chiriladi (`replaceState`,
+   `push` EMAS: aks holda "orqaga" tugmasi o'sha hash'ga qaytib, cheksiz
+   aylanib qolardi). Tarqalgan havola o'lmasin degan yagona sabab bilan
+   turadi; yangi havola hech qachon hash bilan yasalmaydi. */
+function pdpMigrateHash() {
+  const h = location.hash || '';
+  if (h.indexOf(PDP_HASH) !== 0) return;
+  let id = h.slice(PDP_HASH.length);
+  try { id = decodeURIComponent(id); } catch (_) { /* xom holicha */ }
+  if (!id) return;
+  history.replaceState({ pdp: id }, '', PDP_PATH + encodeURIComponent(id));
+}
+pdpMigrateHash();
+
+/* Brauzerning "orqaga"/"oldinga" tugmasi. `pushState` bilan qo'yilgan holat
+   shu yerda o'qiladi — aks holda orqaga bosgan foydalanuvchi manzil
+   o'zgarganini ko'rar, ekran esa o'zgarmasdi. */
+window.addEventListener('popstate', () => {
+  const id = pdpFromUrl();
+  if (!id) { if (pdpId) closePdp(); return; }
+  if (id === pdpId) return;
+  if (!product(id)) { closePdp(); return; }
+  pdpId = id;
+  pdpAllReviews = false;
+  renderPdp();
+  loadReviews(id);
+  window.scrollTo(0, 0);
+});
+
 function addFromDetail(id) {
   addToCart(id);
-  if (drawerView === 'detail') renderDrawer();
+  renderPdpAct();
 }
 
 function setQtyDetail(id, d) {
   setQty(id, d);
-  if (drawerView === 'detail') renderDrawer();
+  renderPdpAct();
 }
 
 /* ── data-action uchun ingichka o'ramlar ──
@@ -3785,46 +4363,56 @@ function addToCart(id) {
   // (`routes/orders.js` → `decrementStock`). Bu yerdagi tekshiruv xaridor
   // butun checkout'ni to'ldirib bo'lib "tugagan" xatosini ko'rmasligi uchun.
   if (soldOutIds.has(id)) { showToast("Bu mato hozircha tugagan"); return; }
-  cart[id] = (cart[id] || 0) + 1;
+  // Birinchi qo'shishda darrov MOQ dan boshlanadi — 1 dan boshlanib,
+  // keyin "nega 5 ta bo'ldi" degan savol tug'ilmasin va checkout'da
+  // kutilmagan rad javobi chiqmasin.
+  const eng = moqOf(id);
+  cart[id] = cart[id] ? cart[id] + 1 : eng;
   saveCart();
   updateBadge();
   renderCardAction(id);
   if (isOpen() && (drawerView === 'cart' || drawerView === 'fav')) renderDrawer();
 }
 
+/* ⚠️ Kartochka SAHIFADA BIR NECHTA joyda turishi mumkin (2026-08-16):
+   katalogda va mahsulot sahifasidagi "o'xshash matolar" da AYNI kartochka
+   ko'rinadi. Shuning uchun bu ikki funksiya `getElementById` dan
+   `querySelectorAll` ga o'tkazildi va belgi `id` dan `data-*` ga ko'chdi:
+   `id` hujjatda YAGONA bo'lishi shart, ya'ni ikkinchi nusxa jimgina
+   yangilanmay qolardi — savatga qo'shilgan mato bir joyda "1 dona",
+   ikkinchisida "Savatga" bo'lib turardi va qaysi biri haqiqat ekani
+   ko'rinmasdi. */
+function cardBoxes(attr, id) {
+  return document.querySelectorAll(`[data-${attr}="${CSS.escape(id)}"]`);
+}
+
 /** Kartadagi tanlagich: qty 0 bo'lsa "Savatga", aks holda − N dona + */
 function renderCardAction(id) {
-  const box = document.getElementById('act-' + id);
-  if (!box) return;
+  const boxes = cardBoxes('act', id);
+  if (!boxes.length) return;
   const qty = cart[id] || 0;
 
   // Zaxira tugagan — "Savatga" o'rniga o'chirilgan holat. Miqdor tanlagichi
   // ham chizilmaydi: savatda turgan mahsulot tugab qolsa "+" bosish
   // xaridorni serverdagi xatoga olib borardi.
-  if (soldOutIds.has(id)) {
-    box.innerHTML = `<button class="add-btn is-out" type="button" disabled>${esc(stockTxt('out'))}</button>`;
-    return;
-  }
+  const html = soldOutIds.has(id)
+    ? `<button class="add-btn is-out" type="button" disabled>${esc(stockTxt('out'))}</button>`
+    : !qty
+    ? `<button class="add-btn" data-action="addToCart" data-arg="${esc(id)}">
+         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+         Savatga
+       </button>`
+    : `<div class="qty-row">
+         <button class="qty-circle qty-minus" data-action="qtyStep" data-arg="${esc(id)}|-1" aria-label="${t('decrease')}">
+           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 12h14"/></svg>
+         </button>
+         <span class="qty-num">${qty} dona</span>
+         <button class="qty-circle qty-plus" data-action="qtyStep" data-arg="${esc(id)}|1" aria-label="${t('increase')}">
+           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+         </button>
+       </div>`;
 
-  if (!qty) {
-    box.innerHTML = `
-      <button class="add-btn" data-action="addToCart" data-arg="${esc(id)}">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
-        Savatga
-      </button>`;
-    return;
-  }
-
-  box.innerHTML = `
-    <div class="qty-row">
-      <button class="qty-circle qty-minus" data-action="qtyStep" data-arg="${esc(id)}|-1" aria-label="${t('decrease')}">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 12h14"/></svg>
-      </button>
-      <span class="qty-num">${qty} dona</span>
-      <button class="qty-circle qty-plus" data-action="qtyStep" data-arg="${esc(id)}|1" aria-label="${t('increase')}">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
-      </button>
-    </div>`;
+  boxes.forEach((box) => { box.innerHTML = html; });
 }
 
 /** Barcha kartalarni savat holatiga moslash */
@@ -3846,23 +4434,39 @@ function toggleFav(id) {
   if (i === -1) favs.push(id); else favs.splice(i, 1);
   saveFavs();
   renderFavBtn(id, i === -1);
+  renderPdpFav(id);
   updateFavBadge();
   if (drawerView === 'fav' && isOpen()) renderDrawer();
 }
 
-/** Kartadagi yurakcha holati; `pulse` — endigina qo'shilganda urib qo'yadi */
-function renderFavBtn(id, pulse) {
-  const btn = document.getElementById('fav-' + id);
-  if (!btn) return;
+/* Mahsulot sahifasidagi yurakcha — kartochkanikidan ALOHIDA yangilanadi.
+   Sabab texnik: kartochkadagi tugma `id="fav-<id>"` bilan yashaydi va
+   sahifada ikkinchi marta shu `id` ni ishlatib bo'lmaydi (`getElementById`
+   birinchisini topib, ikkinchisi jimgina yangilanmay qolardi). */
+function renderPdpFav(id) {
+  const btn = document.getElementById('pdp-fav');
+  if (!btn || pdpId !== id) return;
   const on = isFav(id);
   btn.classList.toggle('on', on);
   btn.setAttribute('aria-pressed', on ? 'true' : 'false');
-  btn.setAttribute('aria-label', on ? "Saralanganlardan olib tashlash" : "Saralanganlarga qo'shish");
-  if (pulse) {
-    btn.classList.remove('pulse');
-    void btn.offsetWidth; // animatsiyani qayta ishga tushirish
-    btn.classList.add('pulse');
-  }
+  const txt = btn.querySelector('.pdp-fav-txt');
+  if (txt) txt.textContent = on ? t('pdpFavOn') : t('pdpFavAdd');
+}
+
+/** Kartadagi yurakcha holati; `pulse` — endigina qo'shilganda urib qo'yadi.
+    Kartochka bir nechta joyda turishi mumkin — `cardBoxes()` izohiga qara. */
+function renderFavBtn(id, pulse) {
+  const on = isFav(id);
+  cardBoxes('fav', id).forEach((btn) => {
+    btn.classList.toggle('on', on);
+    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    btn.setAttribute('aria-label', on ? "Saralanganlardan olib tashlash" : "Saralanganlarga qo'shish");
+    if (pulse) {
+      btn.classList.remove('pulse');
+      void btn.offsetWidth; // animatsiyani qayta ishga tushirish
+      btn.classList.add('pulse');
+    }
+  });
 }
 
 function renderAllFavBtns() {
@@ -3887,9 +4491,27 @@ function favToCart(id) {
   if (drawerView === 'fav') renderDrawer();
 }
 
+/* Mahsulotning eng kam buyurtmasi (MOQ). Manba — BAZA (`/api/products`);
+   kelmagan bo'lsa 1, ya'ni cheklov "bor" deb TAXMIN qilinmaydi.
+   ⚠️ Bu YAGONA tekshiruv emas: server ham har buyurtmada mustaqil
+   tekshiradi (`routes/orders.js` — `qty < moq` bo'lsa rad etadi). Bu
+   yerdagisi xaridor butun checkout'ni to'ldirib bo'lib, oxirida rad
+   javobini olmasligi uchun. */
+function moqOf(id) {
+  const m = catalogMeta ? catalogMeta[id] : null;
+  const n = m ? Number(m.moq) : 1;
+  return Number.isFinite(n) && n > 1 ? n : 1;
+}
+
 function setQty(id, delta) {
   if (!cart[id]) return;
   cart[id] += delta;
+  // MOQ dan pastga tushirilmaydi: "−" bilan 1 ga tushirib bo'lgan xaridor
+  // buyurtma yuborganda serverdan rad javobini olardi va sababi faqat
+  // o'sha yerda ko'rinardi. Chegaradan pastga bosilsa qator butunlay
+  // olib tashlanadi — 3 dona MOQ da "2 dona" degan holat MAVJUD EMAS.
+  const eng = moqOf(id);
+  if (cart[id] < eng) delete cart[id];
   if (cart[id] < 1) delete cart[id];
   saveCart();
   updateBadge();
@@ -3922,6 +4544,9 @@ function updateBadge() {
 function mNav(what) {
   if (what === 'catalog') {
     closeCart();
+    // Mahsulot sahifasi ochiq bo'lsa "Katalog" AVVAL uni yopadi — aks holda
+    // tugma bosilar, ekran esa o'zgarmasdi (katalog sahifa ortida yashirin).
+    if (pdpId) closePdp();
     document.getElementById('katalog')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   } else if (what === 'fav')   openFav();
   else if (what === 'cart')    openCart();
@@ -3969,12 +4594,19 @@ function closeCart() {
   document.body.style.overflow = '';
   // muvaffaqiyat ekranidan keyin savat ko'rinishiga qaytamiz
   if (drawerView === 'done') drawerView = 'cart';
-  // Panel yopilgach mobil nav'da "Katalog" yana faol bo'ladi
-  mNavActive('catalog');
+  // Panel yopilgach mobil nav'da "Katalog" yana faol bo'ladi — LEKIN ostida
+  // mahsulot sahifasi turgan bo'lsa emas: u yerda foydalanuvchi katalogda
+  // emas va yonib turgan "Katalog" qaerdaligi haqida yolg'on gapirardi.
+  mNavActive(pdpId ? '' : 'catalog');
 }
 
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && isOpen()) closeCart();
+  if (e.key !== 'Escape') return;
+  // Tartib MUHIM: kattalashtirilgan rasm eng USTDA turadi, ya'ni Escape
+  // avval uni yopadi. Aks holda ostidagi savat yopilib, rasm ekranda
+  // osilib qolardi.
+  if (document.getElementById('zoom')) { closeZoom(); return; }
+  if (isOpen()) closeCart();
 });
 
 /* ── Drawer render ── */
@@ -4039,15 +4671,10 @@ function renderDrawer() {
     return;
   }
 
-  if (drawerView === 'detail') {
-    title.textContent = t('product');
-    body.innerHTML = detailHtml(detailId);
-    foot.hidden = true;
-    // Galereya nuqtalari HTML bilan kelmaydi — tugun DOM'da bo'lgandan
-    // keyin ulanadi (`mountAddrMap` bilan bir xil sabab).
-    mountPdMedia();
-    return;
-  }
+  /* `detail` ko'rinishi bu yerda ATAYLAB YO'Q: mahsulot 2026-08-16 dan
+     to'liq sahifada ochiladi (`#pdp`), oynada emas. Ikkalasi qoldirilsa
+     bitta narsaning ikki nusxasi bo'lardi va vaqt o'tib ular ajralib
+     ketardi — CLAUDE.md dagi «ikkinchi yo'l» qoidasi. */
 
   // Sotuvchi kabineti (2026-08-13, C2). Uchta ko'rinish bitta oynada —
   // saytda alohida sahifa yo'q, savat/checkout/profil bilan bir xil naqsh.

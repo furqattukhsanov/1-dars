@@ -203,6 +203,53 @@ cd server && npm run check:live
 Bu skript router'dagi **har bir** yo'lni production'da sinaydi va serverga
 yetib bormaganini ko'rsatadi. Yashil bo'lsa — nginx to'g'ri sozlangan.
 
+## Mahsulot havolasi uchun `og:` meta (IXTIYORIY, 2026-08-16)
+
+Mahsulot 2026-08-16 dan o'z manzilida yashaydi: `lolamarket.uz/mahsulot/<id>`.
+nginx bu yo'lni **allaqachon** `index.html` bilan javob beradi (o'lchandi:
+`200 text/html`), ya'ni **sahifa ishlashi uchun quyidagi qadam SHART EMAS**.
+
+Bu qadam faqat BITTA narsani beradi: Telegramga havola tashlanganda oldindan
+ko'rishda **mato nomi, surati va narxi** chiqadi. Usiz umumiy sayt tavsifi
+ko'rinadi. Sabab — oldindan ko'rish roboti HTML ni O'QIYDI, JS ni
+bajarmaydi, ya'ni buni frontendda qilib bo'lmaydi.
+
+```nginx
+# lolamarket.uz server blokida, `location /` DAN OLDIN
+location ^~ /mahsulot/ {
+    proxy_pass http://127.0.0.1:3000;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+
+    # ⚠️ ZAXIRA YO'LI — SHU IKKI QATOR ENG MUHIMI.
+    # Usiz backend yiqilgan paytda katalogdagi HAR BIR mato 502 ga aylanardi,
+    # ya'ni ixtiyoriy funksiya butun katalogni yiqitadigan bog'liqlikka
+    # aylanardi. Bu bilan esa backend o'lsa ham sahifa statik holda ochiladi.
+    proxy_intercept_errors on;
+    error_page 500 502 503 504 = @static_index;
+}
+location @static_index {
+    root /var/www/lolamarket;
+    try_files /index.html =404;
+}
+```
+
+`.env` ga (ikkalasi ham ixtiyoriy, standart qiymatlari to'g'ri):
+
+```
+WEB_ROOT=/var/www/lolamarket
+SITE_ORIGIN=https://lolamarket.uz
+```
+
+`WEB_ROOT` da `index.html` topilmasa server **qichqiradi** va funksiya
+o'chadi (`config.js` → `webRoot()`), ya'ni jimgina noto'g'ri ishlamaydi.
+
+Tekshirish:
+
+```bash
+curl -s https://lolamarket.uz/mahsulot/ik-1402 | grep -o 'og:title[^>]*'
+```
+
 ## Serverdagi fayl egaligi
 
 Hozirgi holat (2026-07-30 dagi tozalashdan keyin):

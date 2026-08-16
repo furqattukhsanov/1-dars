@@ -420,6 +420,12 @@ function productRowToVM(r) {
     name: { uz: r.name_uz, ru: r.name_ru },
     supplier: { uz: r.business_name_uz, ru: r.business_name_ru },
     city: { uz: r.city_uz, ru: r.city_ru },
+    // Sotuvchi reytingi — `recalcRating()` hisoblab yozadigan HOSILA ustun
+    // (`routes/reviews.js`). Mahsulot reytingi bilan bir xil qoida:
+    // sharh bo'lmasa `NULL`, ya'ni "baholanmagan" — nol EMAS. Mahsulot
+    // sahifasidagi sotuvchi kartochkasi `null` bo'lganda reyting qatorini
+    // umuman chizmaydi.
+    sellerRating: r.seller_rating == null ? null : Number(r.seller_rating),
     comp: { uz: r.comp_uz, ru: r.comp_ru },
     badge: r.badge_uz ? { uz: r.badge_uz, ru: r.badge_ru } : null,
     // Media galereya: 1-slayd rasm, 2-slayd video (founder qarori,
@@ -437,7 +443,8 @@ async function handleGetProducts(req, res, ip) {
              p.vid_r2_key, p.vid_poster_r2_key, p.vid_seconds, p.vid_bytes,
              p.rating, p.reviews, p.stock_key, p.stock, p.badge_tone, p.width, p.weight,
              p.name_uz, p.name_ru, p.comp_uz, p.comp_ru, p.badge_uz, p.badge_ru,
-             s.business_name_uz, s.business_name_ru, s.city_uz, s.city_ru, s.is_verified
+             s.business_name_uz, s.business_name_ru, s.city_uz, s.city_ru, s.is_verified,
+             s.rating AS seller_rating
       FROM products p
       LEFT JOIN sellers s ON s.id = p.seller_id
       WHERE p.status = 'published'

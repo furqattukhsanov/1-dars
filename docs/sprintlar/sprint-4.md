@@ -34,10 +34,16 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
   Reyting 2026-07-31 da HAQIQIYga aylantirildi — soxta seed sonlari o'chirildi,
   reyting endi faqat sharhlardan hisoblanadi (pastdagi yozuvga qarang)
 - [x] Mahsulot detail sahifasi: to'liq ma'lumot + "Buyurtma berish" tugmasi
-  — **Mini App'da bor** (`openProduct(id)` → `S.screen='detail'`), **landing'da ham
-  bor** (2026-07-31 da qurildi — founder "albatta kerak" dedi): `openDetail(id)`,
-  drawer'ning yangi ko'rinishi. Alohida sahifa ATAYLAB qurilmadi — marshrutlash,
-  yangi HTML fayl va CI `source` ro'yxati tuzog'i kerak bo'lmasin
+  — **Mini App'da bor** (`openProduct(id)` → `S.screen='detail'`), **saytda esa
+  2026-08-16 da DRAWER'DAN TO'LIQ SAHIFAGA o'tdi** (`#pdp`, `/mahsulot/<id>`).
+  ⚠️ **Bu banddagi eski yozuv 2026-08-16 gacha shunday turardi:** «Alohida sahifa
+  ATAYLAB qurilmadi — marshrutlash, yangi HTML fayl va CI `source` ro'yxati
+  tuzog'i kerak bo'lmasin». Qaror founder referensi bilan qayta ko'rildi va
+  **sabablarning faqat BITTASI haqiqiy chiqdi:** yangi HTML fayl haqiqatan ham
+  CI tuzog'i bo'lardi — shuning uchun sahifa `index.html` ICHIDA qoldi va
+  `deploy.yml` ga tegilmadi. Marshrutlash esa tuzoq emas ekan: nginx
+  `/mahsulot/<id>` ga allaqachon `index.html` beradi (o'lchandi). Ya'ni eski
+  qaror uchta sababdan ikkitasi tekshirilmagan holda saqlanib turgan edi
 
 ### Buyurtma oqimi
 - [x] Rulon soni tanlash (minimum 1)
@@ -124,6 +130,107 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
 ---
 
 ## Qilingan ishlar
+
+- [2026-08-16] **MAHSULOT DETALI DRAWER'DAN TO'LIQ SAHIFAGA O'TDI — VA
+  ENG QIMMAT NUQSONNI FOUNDER TOPDI, TEST EMAS** (bugungi BESHINCHI commit).
+  Ish FAQAT SAYTGA tegdi — Mini App'ga tegilmadi, bu founder sharti edi.
+
+  **1) DRAWER O'RNIGA SAHIFA** (`#pdp`, founder Uzum referensini berdi).
+  Eski `drawerView === 'detail'` ko'rinishi **OLIB TASHLANDI** — ikkinchi yo'l
+  qoldirilmadi (CLAUDE.md: «mavjud funksiyaning ustiga ikkinchi yo'l
+  qo'shilsa — avval so'raladi»; bu yerda javob «eskisi ketsin» bo'ldi).
+  Tarkib: galereya (eskiz + strelka + nuqta), nom/reyting/tasdiqlangan
+  nishoni, qadalgan sotib olish qutisi, kafolat, sotuvchi kartochkasi,
+  tavsif jadvali, AI bloki, sharhlar, o'xshash matolar.
+  ⚠️ **Sahifa `index.html` ICHIDA yashaydi, yangi HTML fayl EMAS** — aks
+  holda uni `deploy.yml` `source` ro'yxatiga QO'LDA qo'shish kerak bo'lardi
+  va unutilsa nginx `try_files` tufayli **HTTP 200 + HTML** qaytarib,
+  nosozlik sog'lom ko'rinardi (CLAUDE.md dagi soft-200 tuzog'i).
+  ⚠️ Referensdagi **chegirma, taymer, bo'lib to'lash va «307 kishi oldi»
+  QO'YILMADI** — bunday ma'lumot bazada YO'Q. «Panelda o'ylab topilgan raqam
+  ko'rsatilmasin» qoidasi mahsulot sahifasiga ham tegishli: referensni
+  ko'chirish uchun raqam TO'QIB chiqarilmaydi.
+
+  **2) MANZIL HASH'DAN HAQIQIY YO'LGA:** `#/mahsulot/x` → `/mahsulot/x`.
+  Eski hash havolalari `replaceState` bilan ko'chiriladi — tarqalgani
+  o'lmasin. 🔴 **VA SHU YERDA SOFT-200 TUZOG'I QAYTA CHIQDI:** o'lchandi —
+  `/mahsulot/ik-1402` → `200 text/html` (nginx allaqachon beradi, ya'ni
+  sahifa ishlashi uchun server qadami SHART EMAS), LEKIN
+  `/mahsulot/style.css` → **`200 text/html`**. Ya'ni sahifa endi bir pog'ona
+  ichkarida ochilgani uchun har bir NISBIY yo'l HTML olib kelardi va HTTP
+  kodi SOG'LOM ko'rinardi. Shuning uchun `index.html` dagi **hamma** nisbiy
+  yo'l mutlaqqa o'tkazildi va `pwa.js` `/sw.js` ga (`scope: '/'` bilan —
+  aks holda service worker qamrovi `/mahsulot/` bo'lib qolib **bosh sahifa
+  SW'siz** qolardi). `document.title` ham mahsulot nomini oladi.
+
+  **3) YANGI `server/routes/pdp.js` — `og:` meta** (Telegram oldindan
+  ko'rishi). Robot HTML ni O'QIYDI, JS ni bajarmaydi — ya'ni buni
+  frontendda qilib bo'lmaydi. 🔴 **Modul IXTIYORIY va shunday qolishi
+  kerak:** nginx yo'naltirmasa sayt avvalgidek TO'LIQ ishlaydi, faqat
+  oldindan ko'rish umumiy bo'ladi. Mahsulot sahifasini backend'ga bog'lab
+  qo'yish xato bo'lardi — backend yiqilsa katalogdagi **har bir mato 502**
+  ga aylanardi. nginx snippet'i `server/README.md` ga zaxira yo'li bilan
+  yozildi (`error_page 502 = @static_index`). `WEB_ROOT` shakl bo'yicha
+  tekshiriladi — papkada `index.html` HAQIQATAN turganiga qaraladi, «bo'sh
+  emas» yetarli emas (`ALERT_CHAT_ID` darsi); topilmasa QICHQIRIB o'chadi.
+  `index.html` har so'rovda diskdan o'qiladi, keshlanmaydi: deploy statik
+  faylni almashtiradi-yu servisni qayta ishga tushirmaydi, ya'ni kesh
+  qo'yilsa yangi deploy'dan keyin **eski HTML faqat mahsulot sahifalarida**
+  tarqalib turardi.
+
+  **4) QOLGANLARI:** rasmni kattalashtirish (to'liq ekran, desktopda 2x
+  bosish; telefonda brauzerning o'z pinch'i — saytda `user-scalable=no`
+  YO'Q); havolani nusxalash tugmasi (mavjud `copyText()`, yiqilsa AYTADI);
+  **o'xshash matolar uch pog'ona bo'ldi** — toifa → sotuvchi → narx
+  yaqinligi, sabab O'LCHOV: jonli katalogda `jun 1 · ikat 1`, ya'ni ilgari
+  o'sha ikki matoda bo'lim UMUMAN chizilmasdi; **MOQ** endi savatga
+  qo'shishda darrov MOQ dan boshlanadi va «−» undan pastga tushirmaydi
+  (bugun zarari NOL — 24 mahsulotda ham `moq=1` — lekin sotuvchi 5 qo'ygan
+  kuni tishlardi); `sellerRating` `/api/products` ga qo'shildi (bazada BOR
+  edi, hech qayerda ko'rsatilmasdi — `NULL` bo'lsa qator chizilmaydi).
+
+  **5) KARTOCHKA `id` DAN `data-*` GA:** `act-<id>`/`fav-<id>` →
+  `data-act`/`data-fav`. Sabab: «o'xshash matolar» katalog kartochkasini
+  `cloneNode` bilan NUSXALAYDI (founder: «kartochka o'zgarmasin, qanday
+  holatda bo'lsa»), ya'ni bitta kartochka sahifada ikki joyda turadi va
+  `id` TAKRORLANARDI.
+
+  **TUZATILGAN NUQSONLAR — UCHALASI HAM O'LCHOV BILAN TOPILDI:**
+  (a) o'xshash kartochka rasmi `aspect-ratio` ni yo'qotib har birida boshqa
+  balandlik olardi (kutilgan 136px, o'lchangan **242/290/323**) — rasm
+  oqimdan chiqarildi; (b) nusxalangan kartochkalar `opacity:0` da qotib
+  qolardi (IntersectionObserver nusxaga otilmaydi) — ⚠️ **DOM tekshiruvi
+  YASHIL edi, nuqson faqat RASMDA ko'rindi**; (c) 🔴 **UCHINCHISINI FOUNDER
+  TOPDI:** 1000px kenglikda qadalgan sotib olish qutisi «o'xshash matolar»
+  ustida SUZARDI (o'lchandi: quti 668→968, pastki qator 32→968 — 300px
+  kesishma). **Sabab `sticky` da EMAS, MAYDON TUZILMASIDA edi:** tor
+  ekranda pastki qator ikkala ustunni egallaydi, ya'ni qadalgan quti o'z
+  ustunidan CHIQIB ketardi.
+
+  **YANGI QOROVULLAR:** **Test 37** — qadalgan quti ostidan qator o'tmasin:
+  `grid-template-areas` ni MATRITSA qilib yoyadi va «`side` turgan ustunda
+  boshqa qatorda `below` bormi» deb so'raydi; media bloklari orasidagi
+  MEROSNI ham hisoblaydi (aynan shu nuqson edi — media bloki maydonlarni
+  almashtirib `position` ni qoldirgan). 3 mutatsiya, 3 tasi ushlandi.
+  **Test 38** — `index.html` da nisbiy yo'l qolmasin (izohlar tahlildan
+  oldin tashlanadi — Test 3f da IZOH qorovulni aldagan edi) + `pwa.js`
+  `/sw.js` ni MUTLAQ yo'l bilan ro'yxatdan o'tkazsin. 2 mutatsiya, ikkalasi
+  ham ushlandi.
+  ⚠️ **Test 37 «ko'z bilan qarash yetarli emas» oilasidan:** nuqson faqat
+  SKROLL qilinganda va faqat MA'LUM kenglikda ko'rinadi — konsolda xato
+  yo'q, `overflow` yo'q, o'lchamlar «to'g'ri».
+
+  **SINALGANI: 77 TEST YASHIL** (hisobotchi mustaqil qayta yurgizdi va
+  sanadi). ⚠️ Ish yozuvida **78** deb kelgan edi — farq shundan: `test.js`
+  oxirida «Hammasi PASS» degan YAKUNIY ✅ qator ham chiqadi, ya'ni `✅`
+  belgisini sanash testni emas, **test + yakun** ni sanaydi. Tekshirildi:
+  oldingi commit 75 ta edi, bugun 2 ta qo'shildi → 77. Bu «hujjatdagi
+  raqam — tekshirilmagan da'vo» qoidasining aynan o'zi va u bir marta
+  allaqachon tishlagan («32 test» → aslida 33 ta).
+  Kesh: `style.css` v58 → **v60**, `script.js` v47 → **v49**, `pwa.js`
+  v2 → **v3**, Test 16 jadvalidagi `sha256` lar birga; `admin/index.html`
+  dagi `style.css` ham v60 ga ko'tarildi (u AYNI faylni chaqiradi —
+  2026-08-06 da bu 15 versiya orqada qolib ketgan edi)
 
 - [2026-08-16] **MINI APP TAFSILOTLAR JADVALIDA `null` SO'ZI TURARDI — VA
   SAYTDA BU ALLAQACHON TO'G'RI EDI** (`telegram-app/app.js`). Bazadan
@@ -2836,6 +2943,43 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
 ---
 
 ## Qarorlar
+
+- [2026-08-16] Qaror: **mahsulot detali saytda TO'LIQ SAHIFA, drawer emas —
+  va eski ko'rinish OLIB TASHLANDI.** Founder Uzum referensini berdi. Ikkala
+  yo'l qoldirilsa ayni mahsulot ikki xil ko'rinishda ochilardi va har
+  o'zgarish ikki joyda takrorlanardi. ⚠️ Qaror FAQAT SAYTGA tegishli —
+  **Mini App'ga tegilmadi va bu founder sharti edi**: u yerda mahsulot
+  allaqachon o'z ekranida yashaydi, ya'ni ko'chiriladigan narsa yo'q
+  (2026-08-13 dagi «shunday qilgin» darsi — ikkinchi yuzda muammo yo'q
+  bo'lsa, shaklni ko'chirish ortiqcha ish tug'diradi)
+
+- [2026-08-16] Qaror: **sahifa `index.html` ICHIDA, yangi HTML fayl
+  OCHILMADI.** Sabab texnik va aniq: CI faqat `deploy.yml` `source`
+  ro'yxatidagi fayllarni chiqaradi, yangi ildiz fayli QO'LDA qo'shilishi
+  shart va unutilsa nginx `try_files` tufayli **HTTP 200 + HTML** qaytarib
+  nosozlikni sog'lom ko'rsatardi. Eski banddagi boshqa ikki sabab
+  (marshrutlash murakkabligi) esa TEKSHIRILGANDA yiqildi
+
+- [2026-08-16] Qaror: **`og:` meta uchun server yo'li IXTIYORIY qoladi.**
+  nginx `/mahsulot/` ni backend'ga yo'naltirmasa sayt TO'LIQ ishlaydi,
+  faqat oldindan ko'rish umumiy bo'ladi. Sabab: mahsulot sahifasini
+  backend'ga bog'lash butun katalogni bitta yiqilish nuqtasiga
+  ulardi — hozir faqat `/api/*` yiqiladi, sahifa esa ochilaveradi.
+  Shu naqsh R2 va brend tasmasi bandlarida ham qo'llanilgan: **qo'shimcha
+  qulaylik asosiy yo'lni yiqitmasin**
+
+- [2026-08-16] Qaror: **referensdagi chegirma, taymer, bo'lib to'lash va
+  «307 kishi oldi» KO'CHIRILMADI.** Bunday ma'lumot bazada yo'q, ya'ni uni
+  ko'rsatish TO'QISH bo'lardi. «Panelda o'ylab topilgan raqam
+  ko'rsatilmasin» qoidasi paneldan tashqarida ham amal qiladi: referens
+  raqamning MANBAINI keltirmaydi, faqat SHAKLINI
+
+- [2026-08-16] Qaror: **kartochka `id` dan `data-*` ga o'tdi.** «O'xshash
+  matolar» katalog kartochkasini `cloneNode` bilan nusxalaydi (founder:
+  «kartochka o'zgarmasin»), ya'ni bitta kartochka sahifada ikki joyda
+  turadi. `id` global va TAKROR bo'lolmaydi — `getElementById` ikkinchi
+  nusxani ko'rmasdi. Nusxalash o'rniga kartochkani qayta chizish varianti
+  rad etildi: o'shanda kartochka MANTIG'I ikki joyda yashardi
 
 - [2026-08-16] Qaror: **qiymati yo'q tafsilot qatori CHIZILMAYDI —
   «—» ham, «0» ham qo'yilmaydi.** «Muddat aytilmagan» va «muddat nol» ikki

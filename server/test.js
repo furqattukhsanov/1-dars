@@ -1382,9 +1382,11 @@ function testAssetVersionsAreFresh() {
     // Shuning uchun versiya ikkala tomonnikidan ham YUQORI olinadi — teng
     // yoki past raqam qaytib kelgan foydalanuvchida keshdagi YARIM
     // (bir tomonlama) faylni qoldirardi.
-    'style.css': { v: 58, hash: 'd127d2ecd8f2' },
-    'script.js': { v: 47, hash: 'bbad6bd6acfb' },
-    'pwa.js': { v: 2, hash: 'f46683d58662' },
+    // 2026-08-16: mahsulot detali drawer'dan TO'LIQ SAHIFAGA o'tdi (`#pdp`) —
+    // ikkala fayl ham sezilarli o'zgardi.
+    'style.css': { v: 60, hash: '761828abe28b' },
+    'script.js': { v: 49, hash: '2cba09affc92' },
+    'pwa.js': { v: 3, hash: 'dce9fcfee6cb' },
     // ⚠️ IKKINCHI BIRLASHTIRISH (2026-08-14): ikkala tomon panel.js ni 24,
     // app.js ni 87 ga ko'targan — AYNI raqamlar, TARKIB esa har xil.
     // Birlashgan tarkib ikkalasidan ham farq qiladi, ya'ni raqam yana
@@ -1397,7 +1399,7 @@ function testAssetVersionsAreFresh() {
     // YUQORIGA suriladi: teng raqam qaytib kelgan foydalanuvchida keshdagi
     // BIR TOMONLAMA faylni qoldirardi — sevimlilar yoki chiqish tuzatishining
     // faqat bittasi bo'lgan `app.js`.
-    'panel.js': { v: 41, hash: 'f112f808d0e6' },
+    'panel.js': { v: 42, hash: 'd9f0498fad2c' },
     'admin/admin.css': { v: 18, hash: '15b0bc977b85' },
     'admin/admin.js': { v: 25, hash: '08fae1bb61dc' },
     'telegram-app/styles.css': { v: 36, hash: '570a2450c3a4' },
@@ -4555,6 +4557,154 @@ function testMapsConfigValidation() {
   console.log(`✅ Test 22b: Karta sozlamasi shakli — PASS (${yomon.length} yaroqsiz rad etildi)`);
 }
 
+// ============ TEST 37: QADALGAN QUTI OSTIDAN QATOR O'TMASIN (2026-08-16) ============
+// Mahsulot sahifasining o'ng ustuni (`.pdp-aside` — narx, "Savatga",
+// kafolat, sotuvchi) `position: sticky`. Bu KENG ekranda to'g'ri: u yerda
+// pastki bo'limlar faqat 1–2-ustunda yotadi (`"below below side"`), ya'ni
+// qadalgan quti O'Z ustunida turadi va hech narsani yopmaydi.
+//
+// 🔴 TOR ekranda esa tuzilma boshqacha (`"below below"` — pastki qator
+// IKKALA ustunni egallaydi) va o'shanda qadalish NUQSONGA aylanadi:
+// "o'xshash matolar" kartochkalari qutining TAGIDAN surilib o'tadi, quti
+// esa ularning ustida suzib turadi. Founder skrinshot yubordi
+// (1000px kenglik): quti 668→968, pastki qator 32→968 — 300px kesishma.
+//
+// ⚠️ Nuqson JIMGINA edi: konsolda xato yo'q, `overflow` yo'q, o'lchamlar
+// "to'g'ri", DOM tekshiruvi yashil. U faqat SKROLL QILGANDA va faqat
+// MA'LUM kenglikda ko'rinadi — ya'ni bir marta ko'z bilan qarash uni
+// ushlamaydi. Shuning uchun qoida testga bog'landi.
+//
+// Tekshiruv MA'NOSINI o'qiydi, qatorni emas: `grid-template-areas` matritsa
+// qilib yoyiladi va "qaysi ustunda `side` bor, o'sha ustunda boshqa qatorda
+// `below` ham bormi" deb so'raladi. Bor bo'lsa — o'sha media blokida
+// `.pdp-aside` `sticky` BO'LMASLIGI shart.
+function testStickyAsideHasNoRowBeneath() {
+  const fs = require('fs');
+  const path = require('path');
+  const css = fs.readFileSync(path.join(__dirname, '..', 'style.css'), 'utf8');
+
+  // CSS ni bloklarga ajratamiz: `@media (...) { ... }` va ildiz.
+  // Har blok ichida `.pdp-grid` ning maydonlari va `.pdp-aside` ning
+  // `position` i qidiriladi.
+  const bloklar = [];
+  const mediaRe = /@media([^{]+)\{([\s\S]*?)\n\}/g;
+  let m;
+  let ildiz = css;
+  while ((m = mediaRe.exec(css)) !== null) {
+    bloklar.push({ nom: '@media' + m[1].trim(), src: m[2] });
+    ildiz = ildiz.replace(m[0], '');
+  }
+  bloklar.unshift({ nom: 'ildiz (media blokisiz)', src: ildiz });
+
+  // Oxirgi e'lon ustun bo'ladi, shuning uchun holat blokdan blokka
+  // KO'CHADI: media bloki maydonlarni almashtirsa-yu `position` ni
+  // qoldirsa, u ildizdagi `sticky` ni MEROS qilib oladi — aynan shu
+  // nuqson bo'lgan edi.
+  let joriyMaydon = null;
+  let joriyPos = null;
+  let tekshirilgan = 0;
+
+  bloklar.forEach((b) => {
+    const maydonM = b.src.match(/\.pdp-grid\s*\{[\s\S]*?grid-template-areas:\s*([\s\S]*?);/);
+    if (maydonM) {
+      joriyMaydon = (maydonM[1].match(/"[^"]*"/g) || []).map((r) => r.replace(/"/g, '').trim().split(/\s+/));
+    }
+    const posM = b.src.match(/\.pdp-aside\s*\{[\s\S]*?position:\s*([a-z-]+)/);
+    if (posM) joriyPos = posM[1];
+
+    if (!joriyMaydon || !joriyMaydon.length) return;
+    tekshirilgan++;
+
+    // `side` qaysi ustunlarda turadi?
+    const sideUstun = new Set();
+    joriyMaydon.forEach((qator) => qator.forEach((nom, i) => { if (nom === 'side') sideUstun.add(i); }));
+    // O'sha ustunlarda `below` ham bormi?
+    let ostidanOtadi = false;
+    joriyMaydon.forEach((qator) => qator.forEach((nom, i) => {
+      if (nom === 'below' && sideUstun.has(i)) ostidanOtadi = true;
+    }));
+
+    if (ostidanOtadi) {
+      assert.notStrictEqual(joriyPos, 'sticky',
+        `${b.nom}: pastki bo'lim (\`below\`) o'ng ustun (\`side\`) ostidan o'tadi, ` +
+        "lekin `.pdp-aside` hamon `position: sticky`. Skroll qilinganda sotib olish " +
+        "qutisi \"o'xshash matolar\" kartochkalarining USTIDA suzib qoladi " +
+        '(2026-08-16 da founder aynan shuni ko\'rgan).\n' +
+        `→ Shu blokda \`.pdp-aside { position: static; }\` qo'ying, ` +
+        'yoki maydonlarni qutining ostidan qator o\'tmaydigan qilib qayta tuzing.\n' +
+        `→ Hozirgi maydonlar: ${joriyMaydon.map((r) => '"' + r.join(' ') + '"').join(' ')}`);
+    }
+  });
+
+  assert.ok(tekshirilgan >= 2,
+    '`.pdp-grid` maydonlari topilmadi — test qaraydigan narsa qolmagan ' +
+    `(faqat ${tekshirilgan} ta blok ko'rildi). Selektor o'zgargan bo'lsa test ham yangilansin.`);
+
+  console.log(`✅ Test 37: Qadalgan quti ostidan qator o'tmaydi — PASS (${tekshirilgan} ta tuzilma tekshirildi)`);
+}
+
+// ============ TEST 38: SAHIFA ILDIZDA EMAS — YO'LLAR MUTLAQ (2026-08-16) ============
+// `index.html` endi IKKI manzilda ochiladi: `/` va `/mahsulot/<id>`.
+// Ikkinchisida NISBIY yo'l bir pog'ona pastdan qidiriladi — `style.css`
+// `/mahsulot/style.css` ga aylanadi.
+//
+// 🔴 VA U YERDA FAYL YO'Q, LEKIN XATO HAM YO'Q. Jonli o'lchandi (2026-08-16):
+//   `/style.css`           → `200 text/css`
+//   `/mahsulot/style.css`  → `200 text/html`   ← nginx `try_files … /index.html`
+// Ya'ni brauzer CSS o'rniga HTML oladi, HTTP kod esa SOG'LOM. Bu CLAUDE.md
+// dagi soft-200 tuzog'ining aynan o'zi: `curl -w %{http_code}` bilan
+// tekshirsangiz hammasi joyidek ko'rinadi.
+//
+// Shuning uchun `index.html` da nisbiy yo'l QOLMASLIGI kerak. Yangi rasm
+// yoki skript qo'shgan odam buni eslab qolishi shart emas — test aytadi.
+function testRootPathsAreAbsolute() {
+  const fs = require('fs');
+  const path = require('path');
+  const ildiz = path.join(__dirname, '..');
+  const src = fs.readFileSync(path.join(ildiz, 'index.html'), 'utf8');
+
+  // Izohlar tashlanadi: izohdagi namuna yo'l qorovulni bekorga qizartirardi
+  // (Test 3f da IZOH aynan shunday aldagan edi).
+  const toza = src.replace(/<!--[\s\S]*?-->/g, '');
+
+  const yomon = [];
+  for (const m of toza.matchAll(/(src|href|srcset)="([^"]+)"/g)) {
+    const [, atr, qiymat] = m;
+    // `srcset` ichida vergul bilan ajratilgan bir NECHTA manzil bo'ladi
+    const manzillar = atr === 'srcset'
+      ? qiymat.split(',').map((s) => s.trim().split(/\s+/)[0])
+      : [qiymat];
+    manzillar.forEach((u) => {
+      if (!u) return;
+      if (/^(https?:)?\/\//.test(u)) return;   // tashqi domen
+      if (/^(#|\/|data:|mailto:|tel:)/.test(u)) return;  // mutlaq yoki sxema
+      yomon.push(`${atr}="${u}"`);
+    });
+  }
+
+  assert.deepStrictEqual(yomon, [],
+    '`index.html` da NISBIY yo\'l qoldi. Sahifa `/mahsulot/<id>` da ham ' +
+    'ochiladi, ya\'ni bu yo\'llar `/mahsulot/...` ostidan qidiriladi va nginx ' +
+    'u yerga **HTML + HTTP 200** qaytaradi — fayl sinadi, lekin holat kodi ' +
+    'sog\'lom ko\'rinadi.\n' +
+    `→ Boshiga \`/\` qo'ying. Topilganlar: ${yomon.join(', ')}`);
+
+  // Service worker ham AYNI tuzoqda: nisbiy `sw.js` mahsulot sahifasida
+  // `/mahsulot/sw.js` bo'lib, noto'g'ri TUR bilan qaytadi va ro'yxatdan
+  // o'tish jimgina yiqiladi (offline rejim o'chadi).
+  const pwa = fs.readFileSync(path.join(ildiz, 'pwa.js'), 'utf8')
+    .replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+  const reg = pwa.match(/serviceWorker\.register\(\s*(['"])([^'"]+)\1/);
+  assert.ok(reg, 'pwa.js da `serviceWorker.register(...)` topilmadi — test eskirgan');
+  assert.strictEqual(reg[2].charAt(0), '/',
+    `pwa.js service worker'ni \`${reg[2]}\` bilan ro'yxatdan o'tkazyapti — ` +
+    'yo\'l MUTLAQ bo\'lsin (`/sw.js`), aks holda mahsulot sahifasida ' +
+    '`/mahsulot/sw.js` so\'raladi va offline rejim jimgina o\'chadi.');
+
+  console.log('✅ Test 38: Sahifa ildizda emas — yo\'llar mutlaq — PASS '
+    + `(${[...toza.matchAll(/(?:src|href|srcset)="/g)].length} ta havola, sw: ${reg[2]})`);
+}
+
 // ============ TEST 22c: BTS RO'YXATI IKKI YUZDA BIR XIL (2026-08-13) ============
 // `BTS_POINTS` sayt va Mini App'da ALOHIDA yashaydi — bu BILIB QILINGAN
 // vaqtinchalik qaror (BTS API ulanmagan, uchinchi manba yo'q). Lekin
@@ -4864,6 +5014,8 @@ async function runTests() {
     testPickupPointIdShape();
     testMapsConfigValidation();
     testBtsListsStayInSync();
+    testStickyAsideHasNoRowBeneath();
+    testRootPathsAreAbsolute();
 
     console.log('\n✅ Hammasi PASS — pul hisobi, imzo, route jadvali, xato alerti, buyurtma tarixi va AI rasmi joyida\n');
     process.exit(0);
