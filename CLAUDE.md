@@ -337,6 +337,37 @@
   faqat o'qilganda ko'rinadi. Bu "yozilgan qoida himoya emas" oilasidan
   **istisno**: bu yerda test yozib bo'lmaydi, shuning uchun qadam qo'lda
   bajariladi.
+- **QAYTA URINISH SO'ROVNI O'ZGARTIRSIN — aks holda u qayta urinish EMAS**
+  (2026-08-16, jonli Gemini API'da o'lchandi). `IMAGE_OTHER` — HTTP 200,
+  xato yo'q, javobda rasm yo'q. Uch o'lchov sababni ko'rsatdi:
+  to'liq prompt + manba surat → **0/5**; SODDA prompt + AYNI surat → **5/5**;
+  to'liq prompt, SURATSIZ → **5/5**. Ya'ni na rasm, na prompt alohida
+  aybdor — ikkalasi BIRGA kelganda model talablarni bajara olmay javobni
+  bo'sh qaytaradi. 17 banddan **sakkiztasini** birma-bir olib tashlash rasmni
+  qaytardi: prompt CHEGARAGA tirab qo'yilgan, ya'ni qaysi talab olinishi
+  emas, YUKNI kamaytirish muhim. **Uzunlik sabab EMAS** — yiqilganlar
+  o'rtacha 1957 belgi, o'tganlari 1988 (yiqilganlari hatto qisqaroq).
+  🔴 **Nosozlik TASODIFIY emas — TANLOVGA bog'liq va QAT'IY takrorlanadi:**
+  9 kombinatsiyadan 6 tasi HAR SAFAR yiqildi, 3 tasi HAR SAFAR o'tdi. Ya'ni
+  jonli ~30% "ba'zan ishlamaydi" degani emas, **"ba'zi tanlovlar hech qachon
+  ishlamaydi"** degani — o'rtacha foiz aynan shuni yashirib turgan edi.
+  ⚠️ **Eng qimmat dars kodda IZOH bo'lib turgan edi:** «prompt determinstik
+  bo'lsa ham qayta urinish foydali, chunki ayni prompt ayni javobni
+  BERMAYDI». O'lchov buni rad etdi (5/5 bir xil javob). Jurnal ham uch kun
+  shuni aytib turgandi — «qayta urinish yordam berdi» yozuvi **bir marta
+  ham** chiqmagan, ya'ni tsikl bo'sh javobni uch marta qayta SOTIB OLARDI.
+  Endi har urinish promptni yengillashtiradi (`PROMPT_DARAJA_MAX`,
+  `lib/ai.js`): 0 — to'liq, 1 — fasonsiz, 2 — sahnasiz. O'lchandi: **3/9 → 9/9**.
+  ⚠️ **`ODOB` hech qaysi darajada tashlanmaydi** — u sifat emas, TALAB:
+  odobsiz rasm chiqqandan ko'ra rasm chiqmagani yaxshi.
+  ⚠️ **0-daraja bugungi promptning AYNAN o'zi** bo'lishi shart, aks holda
+  `PROMPT_VERSION` oshishi va bazadagi butun rasm keshi bekorga eskirishi
+  kerak bo'lardi.
+  Qorovul: `server/test.js` → **Test 14q, 7-band** (3 mutatsiya bilan
+  sinaldi, uchtasi ham ushlandi). Bu "yozilgan qoida himoya emas" oilasidan:
+  qayta urinish tsikli BOR edi, testlari YASHIL edi va shunga qaramay hech
+  qachon foyda keltirmagan — chunki testlar "qayta urinildimi" ni
+  tekshirardi, "qayta urinishning MA'NOSI bormi" ni emas.
 - **MAVJUD funksiyaning ustiga IKKINCHI YO'L qo'shilsa — AVVAL SO'RALADI**
   (2026-08-13, qo'shilgan funksiya bir kunda olib tashlangandan keyin yozildi).
   Yangi tugma, qator yoki havola qo'shilayotganda birinchi savol: **ortidagi
@@ -542,6 +573,11 @@ LolaMarket — O'zbekistonda to'qima materiallar uchun B2B web platforma.
   ⚠️ `secret_token` server `.env` dagi `WEBHOOK_SECRET` bilan MOS bo'lsin — mos kelmasa webhook ro'yxatda TURADI, lekin server har xabarni 401 bilan rad etadi va nosozlik ayni shaklda qaytadi. Tekshirish belgisi — `getWebhookInfo` javobida `last_error_message` YO'Q bo'lishi.
   ⚠️ Webhook yo'q paytda `getUpdates` CHAQIRILMASIN: u navbatdagi yangilanishlarni yeb yuboradi va ular serverga hech qachon yetmaydi. Tashxis uchun faqat `getWebhookInfo` — u hech narsani o'zgartirmaydi.
 - **Zaxira (backup):** serverda `/opt/lolamarket-notify/pg-backup.sh`, cron `30 3 * * *`. Nusxa ikki joyda: serverda `/opt/lolamarket-backups/` (7 kun) va **Telegram'da** (`sendDocument`, chat — `.env` dagi `BACKUP_CHAT_ID`, bo'lmasa `ADMIN_CHAT_ID`; 2026-08-01 dan). Sabab: nusxalar bazaning o'zi bilan bitta diskda edi. Skript repoda YO'Q — serverda yashaydi va tokenni `.env` dan o'qiydi, shuning uchun `server/README.md` dagi rsync exclude ro'yxatida turishi shart. ⚠️ **Zaxira ichida mijoz ma'lumoti bor** — `BACKUP_CHAT_ID` chatidagi har kim butun bazani yuklab olishi mumkin
+- 🔴 **`server/` NI RSYNC QILGANDA `--no-owner --no-group` SHART** (2026-08-16 da o'lchandi). `rsync -a` ichida `-o -g` bor va root nomidan yurganda u **lokal macOS egaligini RAQAM bo'yicha** serverga bosadi: mahalliy `uid 501` serverda MAVJUD EMAS. Natijada `lib/`, `routes/`, `assets/` papkalari serverda `501:50` ga tegishli, rejimi `755` bo'lib qolgan edi — ya'ni serverda o'sha uid bilan foydalanuvchi paydo bo'lsa u **`routes/*.js` ni ALMASHTIRA olardi**, servis esa o'sha kodni ishga tushirardi.
+  ⚠️ **`server/README.md` dagi 4b `chown` qadami buni QOPLAMAYDI** va aynan shu uni ko'rinmas qilgan: u `-name '*.js' -o -name '*.json' -o -name 'version.txt'` bo'yicha yuradi, ya'ni FAYLLARGA tegadi, **PAPKALARGA emas**. Papkalar esa yozish huquqini beradigan joy.
+  Tuzatish (`chown -R` EMAS — u sirlarni ham qamrardi, 2026-07-30 darsi):
+  `find /opt/lolamarket-notify -uid 501 -not -path "*/node_modules/*" -exec chown root:root {} +`
+  ⚠️ **EGALIKNI `ls -ld` BILAN O'QIMANG — `ls -ldn` bilan o'qing.** Nom ustuni chalg'itadi: gid `50` serverda `staff` deb ko'rinadi va bu macOS'ning `staff` guruhiga o'xshab ketadi. 2026-08-16 da aynan shu tufayli papka egasi noto'g'ri o'qilgan, founder'ga noto'g'ri sabab aytilgan va **bo'sh amal bajaradigan tuzatish tavsiya qilingan** edi (papka allaqachon `root:root` edi). Yozish huquqi esa egalikdan emas, TAJRIBADAN aniqlanadi: `sudo -u www-data test -w <papka>`.
 - **Nginx konfiguratsiyasi CI/CD tomonidan boshqarilmaydi** — deploy workflow faqat statik fayllarni rsync qiladi. (2026-07-22 gacha workflow nginx'ni qayta yozib, `/api/` proxy bloklarini o'chirib yuborardi va Telegram bildirishnomalarini ishdan chiqarardi.)
 - **Papka nomlari farqi:** repo'dagi `telegram-app/` serverda `mini-app/` deb ataladi — landing HTML'idan `telegram-app/...` yo'liga ishora qilmang, 404 bo'ladi. CI'da u ALOHIDA qadam bilan ko'chiriladi (`strip_components: 1`) — birinchi ro'yxatga qo'shib bo'lmaydi
 - **CI faqat `deploy.yml` dagi `source` ro'yxatidagi fayllarni chiqaradi** (2026-07-30). Ro'yxat aynan sanaydi: **repoda yangi ildiz fayli paydo bo'lsa, uni qo'lda qo'shish SHART**, aks holda u serverga umuman chiqmaydi. Buni sezish qiyin — nginx yo'q faylga `try_files ... /index.html` bilan HTML va **HTTP 200** qaytaradi, ya'ni `curl -w %{http_code}` bilan tekshirsangiz hammasi joyidek ko'rinadi. Shuning uchun deploy tekshiruvi HTTP kodiga emas, javob **TURIga** (`Content-Type`) qaraydi.

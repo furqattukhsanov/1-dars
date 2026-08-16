@@ -1397,11 +1397,11 @@ function testAssetVersionsAreFresh() {
     // YUQORIGA suriladi: teng raqam qaytib kelgan foydalanuvchida keshdagi
     // BIR TOMONLAMA faylni qoldirardi — sevimlilar yoki chiqish tuzatishining
     // faqat bittasi bo'lgan `app.js`.
-    'panel.js': { v: 40, hash: 'a666294c284b' },
+    'panel.js': { v: 41, hash: 'f112f808d0e6' },
     'admin/admin.css': { v: 18, hash: '15b0bc977b85' },
     'admin/admin.js': { v: 25, hash: '08fae1bb61dc' },
     'telegram-app/styles.css': { v: 36, hash: '570a2450c3a4' },
-    'telegram-app/app.js': { v: 97, hash: '93fe0b47fd98' },
+    'telegram-app/app.js': { v: 98, hash: 'cb41f8bb732b' },
     'telegram-app/pwa.js': { v: 6, hash: '798ab85e1cde' },
   };
 
@@ -1840,11 +1840,14 @@ async function testEmptyImageResponseRetries() {
     // holatini yozib bo'lmasdi (tsikl chegarasi noma'lum).
     const oxirgi = navbat[navbat.length - 1];
     let soni = 0;
-    const post = async () => {
+    // Har urinishda kelgan PROMPT DARAJASI yozib boriladi (7-band).
+    const darajalar = [];
+    const post = async (_p, _m, _c, daraja) => {
       soni++;
+      darajalar.push(daraja);
       return { status: 200, body: JSON.stringify(navbat.length ? navbat.shift() : oxirgi) };
     };
-    return { post, kut: async () => {}, budjet, soni: () => soni };
+    return { post, kut: async () => {}, budjet, soni: () => soni, darajalar };
   }
 
   // Qayta urinish KO'RINISHINI o'lchash uchun `console.error` ushlanadi
@@ -1928,7 +1931,57 @@ async function testEmptyImageResponseRetries() {
   assert.strictEqual(chaqiruv[1].split(',').length, 3,
     'production generateImage ni UCH argument bilan chaqirsin — sinov teshigi uzatilmasin');
 
-  console.log(`✅ Test 14q: Bo'sh javob qayta uriniladi — PASS (${BOSH_JAVOB_URINISH + 1} urinish, rad etishda 1)`);
+  // ---- 7. QAYTA URINISH PROMPTNI O'ZGARTIRSIN (2026-08-16) ----
+  // ⚠️ Bu band 1–2 bandlardan BOSHQA narsani qo'riqlaydi va u eng qimmati:
+  // ular "qayta urinildimi" ni tekshiradi, bu esa "qayta urinishning MA'NOSI
+  // bormi" ni. 2026-08-13 dan 2026-08-16 gacha tsikl AYNI promptni qayta
+  // yuborardi va bu jonli o'lchovda 0/5 — ya'ni u bo'sh javobni uch marta
+  // sotib olardi. Jurnalda «yordam berdi» yozuvi bir marta ham chiqmagan.
+  //
+  // O'lchov (2026-08-16, jonli Gemini, bir xil mato surati, 9 kombinatsiya):
+  //   faqat 0-daraja  → 3/9 rasm
+  //   pog'ona 0→1→2   → 9/9 rasm  (3 tasi d0, 3 tasi d1, 3 tasi d2)
+  const { buildImagePrompt, PROMPT_DARAJA_MAX } = require('./lib/ai');
+
+  // ⚠️ ALOHIDA tanlov obyekti: yuqoridagi `javoblar` soxta `post` uchun yozilgan
+  // va u `normalizeChoices` dan O'TMAYDI (`uslub: 'neoklassika'` — aslida bu
+  // `dizayn` qiymati). Tsikl testlarida bu ko'rinmasdi, chunki soxta `post`
+  // promptni umuman qurmaydi. Bu yerda esa prompt HAQIQATAN quriladi.
+  const tanlov = { kiyim: 'koylak', uslub: 'bayram', dizayn: 'zamonaviy', rang: 'oq', qoshimcha: 'yoq' };
+
+  const sPog = yurit([bosh('IMAGE_OTHER')]);
+  await tutib(() => assert.rejects(() => generateImage(mahsulot, manba, javoblar, sPog), /IMAGE_OTHER/));
+  assert.deepStrictEqual(sPog.darajalar, [0, 1, 2],
+    'har bo\'sh javobdan keyin prompt DARAJASI oshsin — aks holda qayta urinish '
+    + 'ayni bo\'sh javobni qayta sotib oladi (2026-08-16 da o\'lchandi: 0/5)');
+
+  // 0-daraja bugungi promptning AYNAN o'zi bo'lsin. Aks holda `PROMPT_VERSION`
+  // oshirilishi kerak bo'lardi va bazadagi butun rasm keshi bekorga eskirardi.
+  assert.strictEqual(buildImagePrompt(mahsulot, tanlov, 0), buildImagePrompt(mahsulot, tanlov),
+    '0-daraja — o\'zgarishsiz prompt bo\'lsin (kesh kaliti PROMPT_VERSION ga bog\'liq)');
+
+  const d0 = buildImagePrompt(mahsulot, tanlov, 0);
+  const d1 = buildImagePrompt(mahsulot, tanlov, 1);
+  const d2 = buildImagePrompt(mahsulot, tanlov, 2);
+  assert.ok(/Cut and construction/.test(d0) && !/Cut and construction/.test(d1),
+    '1-darajada fason bandi tashlansin');
+  assert.ok(/stands naturally in/.test(d1) && !/stands naturally in/.test(d2),
+    '2-darajada sahna bandi ham tashlansin');
+  assert.ok(d2.length < d1.length && d1.length < d0.length, 'har daraja prompt yukini kamaytirsin');
+
+  // ⚠️ ENG MUHIM SHART: kiyinish odobi HECH QAYSI darajada tushib qolmasin.
+  // Pog'onaning maqsadi — rasm CHIQISHI, lekin talab evaziga emas: odobsiz
+  // rasm chiqqandan ko'ra rasm chiqmagani yaxshi. Bu ro'yxat qo'lda emas,
+  // `PROMPT_DARAJA_MAX` dan yuriladi — yangi daraja qo'shilsa avtomatik qamraladi.
+  for (let d = 0; d <= PROMPT_DARAJA_MAX; d++) {
+    const t = buildImagePrompt(mahsulot, tanlov, d);
+    assert.ok(/modest but elegant/.test(t), `${d}-darajada ham kiyinish odobi qolsin`);
+    assert.ok(/covered neckline/.test(t) && /long sleeves/.test(t),
+      `${d}-darajada odobning TAFSILOTI ham qolsin (gap qisqartirilmasin)`);
+  }
+
+  console.log(`✅ Test 14q: Bo'sh javob qayta uriniladi — PASS (${BOSH_JAVOB_URINISH + 1} urinish, `
+    + `prompt darajasi 0→${PROMPT_DARAJA_MAX}, rad etishda 1)`);
 }
 
 // ============ TEST 24: Sotuvchi kabineti founder ro'yxatida (2026-08-13) ==

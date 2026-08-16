@@ -875,6 +875,14 @@ function vm(p) {
   return {
     ...p,
     name: esc(p.name[L]), supplier: esc(p.supplier[L]), city: esc(p.city[L]), comp: esc(p.comp[L]),
+    // ⚠️ `width`/`weight` ham SHU chegarada — ilgari ular `...p` bilan XOM
+    // o'tib, tafsilotlar jadvalida to'g'ridan-to'g'ri `innerHTML` ga
+    // tushardi. Bugun ularni yozadigan endpoint YO'Q (faqat qo'lda SQL),
+    // ya'ni hujum yo'li ochilmagan edi — lekin himoya "kim yozadi" ga emas,
+    // QAYERGA chiqadi ga qarab qo'yiladi: e'lon shakliga bu maydonlar
+    // qo'shilgan kuni bu yerni eslab qolish kerak bo'lardi.
+    // `esc(null)` → `''`, ya'ni bo'sh qiymat qatorni ham o'chiradi.
+    width: esc(p.width), weight: esc(p.weight),
     badge: p.badge ? esc(p.badge[L]) : null,
     bg: PATTERNS[p.pattern] || PATTERNS.plain,
     bgSize: pSize(p.pattern),
@@ -893,7 +901,13 @@ function vm(p) {
     unitLabel: '/' + uShort(p.unit),
     perUnitLabel: STR[L].perUnit,
     moqLabel: num(p.moq) + ' ' + uShort(p.unit),
-    leadLabel: p.lead + ' ' + STR[L].day,
+    // ⚠️ `null` TEKSHIRUVI SHART: bazada `lead_days` bo'sh bo'lishi MUMKIN
+    // (`routes/catalog.js` uni ataylab `null` qaytaradi) va tekshiruvsiz bu
+    // yerda "null kun" degan satr hosil bo'lardi. `null` qaytadi — chizish
+    // joyi qatorni butunlay tashlaydi, "—" yoki "0 kun" QO'YILMAYDI:
+    // "muddat aytilmagan" ≠ "muddat nol" (`NULL` reyting qoidasi bilan
+    // bitta oila).
+    leadLabel: p.lead == null ? null : p.lead + ' ' + STR[L].day,
     stockTxt: stockView(p).txt,
     stockCol: stockView(p).col,
     soldOut: stockView(p).soldOut,
@@ -902,7 +916,11 @@ function vm(p) {
     liked: !!S.liked[p.id],
     heartFill: S.liked[p.id] ? 'var(--color-primary)' : 'none',
     heartStroke: S.liked[p.id] ? 'var(--color-primary)' : 'var(--text-body)',
-    meta: esc(p.city[L]) + ' · MOQ ' + num(p.moq) + uShort(p.unit) + ' · ' + p.lead + ' ' + STR[L].day,
+    // ⚠️ Hozir HECH QAYERDA chizilmaydi (kartochka o'z qatorlarini o'zi
+    // yig'adi) — lekin `lead` bo'sh bo'lganda "null kun" beradigan holida
+    // qoldirilmadi: ishlatilgan kuni nuqson tayyor holda kutib turardi.
+    meta: esc(p.city[L]) + ' · MOQ ' + num(p.moq) + uShort(p.unit)
+          + (p.lead == null ? '' : ' · ' + p.lead + ' ' + STR[L].day),
   };
 }
 
@@ -1927,16 +1945,30 @@ function renderDetail() {
         </button>
       </div>
 
+      ${(() => {
+        // Tafsilot QATORI faqat qiymati bo'lganda chiziladi (2026-08-16).
+        // Ilgari ro'yxat xom chizilardi va bazadan `null` kelgan mahsulotda
+        // ekranda "Zichlik null", "Yetkazish muddati null kun" turardi —
+        // ya'ni bo'sh joy MA'LUMOT bo'lib ko'rinardi. Bu CLAUDE.md ning
+        // "ma'lumot bazadan kelmasa, blok umuman ko'rsatilmaydi" qoidasi.
+        // ⚠️ Saytda (`script.js` → `specs`) bu ALLAQACHON to'g'ri edi va
+        // izohi ham yozilgan — qoida bir yuzda o'rganilib, ikkinchisiga
+        // tarqalmagan (`authUser()` naqshi bilan bitta oila).
+        const rows = [[T.width, p.width], [T.weight, p.weight], [T.comp, p.comp],
+                      [T.leadTime, p.leadLabel], [T.minOrder, p.moqLabel]].filter(([, v]) => v);
+        if (!rows.length) return '';
+        return `
       <div>
         <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--pom-700);margin-bottom:10px">${T.specs}</div>
         <div style="border:1px solid var(--border-hair);border-radius:var(--radius-md);overflow:hidden">
-          ${[[T.width, p.width],[T.weight, p.weight],[T.comp, p.comp],[T.leadTime, p.leadLabel],[T.minOrder, p.moqLabel]].map(([k,v],i) => `
+          ${rows.map(([k,v],i) => `
           <div style="display:flex;justify-content:space-between;padding:11px 14px;background:${i%2===0?'#fff':'#F8F5F3'};${i>0?'border-top:1px solid var(--border-hair)':''}" >
             <span style="font-size:13px;color:var(--text-muted)">${k}</span>
             <span style="font-family:var(--font-mono);font-size:13px;font-weight:600;color:var(--text-strong);text-align:right">${v}</span>
           </div>`).join('')}
         </div>
-      </div>
+      </div>`;
+      })()}
 
       <div class="pd-panel" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px">
         <span style="font-size:14px;font-weight:700;color:var(--text-strong)">${T.qty}</span>

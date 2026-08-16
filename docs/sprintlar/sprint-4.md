@@ -125,6 +125,33 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
 
 ## Qilingan ishlar
 
+- [2026-08-16] **MINI APP TAFSILOTLAR JADVALIDA `null` SO'ZI TURARDI — VA
+  SAYTDA BU ALLAQACHON TO'G'RI EDI** (`telegram-app/app.js`). Bazadan
+  qiymati bo'sh kelgan mahsulotda (masalan `#lm1`) ekranda **«Zichlik null»,
+  «Yetkazish muddati null kun»** va bo'sh «Tarkibi» qatori chizilardi.
+  Endi qiymati yo'q qator **umuman chizilmaydi**, hamma qator bo'sh bo'lsa
+  esa butun «Xususiyatlar» bloki tushib qoladi — bu CLAUDE.md ning
+  «ma'lumot bazadan kelmasa, blok umuman ko'rsatilmaydi» qoidasi va
+  `NULL` reyting bandi bilan bitta oila: **«aytilmagan» ≠ «nol»**, shuning
+  uchun o'rniga «—» ham, «0 kun» ham QO'YILMADI.
+  🔴 **Eng qimmat qismi — nuqsonning O'ZI emas, TARQALMAGANI:** saytda
+  (`script.js` → `specs`) ayni tekshiruv allaqachon bor edi va **izohi ham
+  yozilgan** edi. Ya'ni qoida bir yuzda o'rganilib, ikkinchisiga
+  ko'chirilmagan — bu `authUser()` va avatar CSP naqshlari bilan bitta
+  oila: **bir yuzda ishlab, ikkinchisida ishlamaydigan** nuqson.
+  ⚠️ **Yo'l-yo'lakay:** `width` va `weight` `vm()` ning `esc()`
+  chegarasidan CHETDA qolgan va xom holda `innerHTML` ga tushardi. Bugun
+  ularni yozadigan endpoint YO'Q (faqat qo'lda SQL), ya'ni hujum yo'li
+  ochilmagan edi — lekin himoya «kim yozadi» ga emas, **QAYERGA chiqadi**
+  ga qarab qo'yiladi: e'lon shakliga bu maydonlar qo'shilgan kuni bu joyni
+  eslab qolish kerak bo'lardi. Endi ikkalasi ham chegara ichida
+  (`esc(null)` → `''`, ya'ni bo'sh qiymat qatorni ham o'chiradi).
+  ⚠️ `meta` satri hozir HECH QAYERDA chizilmaydi (kartochka o'z qatorlarini
+  o'zi yig'adi), lekin u ham tuzatildi: «ishlatilmayapti» degan sabab
+  nuqsonni tayyor holda kutib turishga aylanardi.
+  Kesh: `telegram-app/app.js?v=97 → v98`, Test 16 jadvalidagi versiya va
+  `sha256` birga yangilandi
+
 - [2026-08-16] **XARIDOR STATISTIKASI 50 TALIK OYNADAN CHIQDI — VA
   `orders` JADVALIDA XARIDOR INDEKSI UMUMAN YO'Q EKAN.** Bu **bugungi
   UCHINCHI commit** (birinchisi `6d8b56d`, ikkinchisi `8600362` — ikkalasi
@@ -2809,6 +2836,19 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
 ---
 
 ## Qarorlar
+
+- [2026-08-16] Qaror: **qiymati yo'q tafsilot qatori CHIZILMAYDI —
+  «—» ham, «0» ham qo'yilmaydi.** «Muddat aytilmagan» va «muddat nol» ikki
+  xil fakt; o'rniga belgi qo'yish bo'shliqni MA'LUMOTGA aylantiradi.
+  ⚠️ Qoida allaqachon saytda bajarilardi va Mini App'da bajarilmasdi —
+  shuning uchun bu qaror emas, **TARQATISH**: «bir yuzda o'rganilgan qoida
+  ikkinchi yuzda ham qidirilsin» (`authUser()` naqshi bilan bitta oila)
+
+- [2026-08-16] Qaror: **`esc()` chegarasi «kim yozadi» ga emas, «qayerga
+  chiqadi» ga qarab qo'yiladi.** `width`/`weight` ni bugun hech kim
+  yozmaydi, ya'ni hujum yo'li ochilmagan — lekin ular `innerHTML` ga
+  boradi, demak chegara ichida bo'lishi kerak. Aks holda himoya kelajakdagi
+  e'lon shakliga qarzga qolardi
 
 - [2026-08-16] Qaror: **xaridor statistikasi BAZADAN, umr bo'yi — klientdagi
   ro'yxatdan EMAS.** Sabab: ro'yxat `LIMIT 50` bilan keladi, ya'ni undan

@@ -2013,9 +2013,156 @@ SAFAR rad etiladi, bo'sh javob esa keyingi urinishda rasm beradi.
    urinish endi alert yuboradi (yuqoridagi yozuv), ya'ni hodisa sodir
    bo'lsa Telegram'da ko'rinadi. Band hamon OCHIQ: asbob tayyor, o'lchov
    esa hali olinmagan va deploy ham qilinmagan
+   🔴 **2026-08-16: O'LCHOV OLINDI VA JAVOB «YO'Q» BO'LDI.** Mezon
+   bajarilmadi — «qayta urinish yordam berdi» alerti asbob qo'yilganidan
+   beri **bir marta ham** chiqmagan. Ya'ni band «hali sinalmagan» emas,
+   **SINALGAN va tsikl foyda bermagan** edi: u ayni promptni qayta yuborib,
+   ayni bo'sh javobni qayta sotib olardi. Tuzatish quyidagi bo'limda —
+   endi band shu yerda YOPILADI, chunki uning savoli («qayta urinish
+   ishlaydimi») javob oldi
 2. ✅ **YOPILDI (2026-08-14)** — ilgari bu yerda «qayta urinish necha marta
    bo'lganini jurnalga yozmaydi» deb turgandi. Endi yozadi: har urinish
    `console.log` ga sabab bilan tushadi, yordam bergani esa alertga. Ya'ni
    «bo'sh javob qanchalik tez-tez bo'ladi» degan savolga javob beradigan
    ma'lumot to'plana boshlaydi. ⚠️ Sarflangan VAQT hamon o'lchanmaydi —
    kerak bo'lsa alohida band, lekin hozircha ehtiyoj isbotlanmagan
+
+---
+
+## 2026-08-16 — `IMAGE_OTHER` SABABI TOPILDI: qayta urinish endi SO'ROVNI o'zgartiradi
+
+Founder shikoyati: Mini App'da mahsulot sahifasida «Hozir generatsiya qilib
+bo'lmadi» chiqadi, Telegram'ga esa `aiImage xatosi: javobda rasm yo'q
+(IMAGE_OTHER)` alerti keladi. Bu 2026-08-13 da «yopilgan» bandning AYNAN
+o'zi — ya'ni tuzatish qo'yilgan, nosozlik esa qolgan.
+
+**Ish taxmindan emas, IKKI O'LCHOVDAN boshlandi** («hujjatdagi raqam —
+tekshirilmagan da'vo» qoidasi):
+
+**1. Jonli jurnal** (nginx `access.log` + `journalctl`, 7–16 avgust):
+
+| Natija | Soni |
+|---|---|
+| Muvaffaqiyat (HTTP 200) | **126** |
+| Nosozlik (503) | **89** |
+| Rad etish (422 — prompt bloklandi) | 14 |
+| Kvota (429) | 4 |
+
+`IMAGE_OTHER` 7-avgustda **1 ta**, 9-avgustdan keyin **kuniga 2–21 ta** —
+ya'ni nosozlik funksiya bilan birga tug'ilmagan, u O'SGAN.
+
+**2. Boshqariladigan tajriba** jonli Gemini API'da (~73 so'rov, ≈$1.3
+kredit — o'lchovning narxi ataylab yozildi):
+
+| Nima yuborildi | Natija |
+|---|---|
+| To'liq prompt + mato surati | **0/5** ❌ |
+| SODDA prompt + AYNI surat | **5/5** ✅ |
+| To'liq prompt, SURATSIZ | **5/5** ✅ |
+
+Ya'ni **na rasm, na prompt alohida aybdor** — ikkalasi BIRGA kelganda model
+talablarni bajara olmay javobni bo'sh qaytaradi.
+
+**Rad etilgan gipotezalar** (yozib qo'yilishi shart — ular bo'lmasa keyingi
+odam ayni yo'ldan qayta yurardi):
+- `generationConfig.imageConfig.aspectRatio: '3:4'` — **RAD ETILDI**: 3:4
+  bilan ham, 3:4 siz ham 0/5
+- **Uzunlik** — **RAD ETILDI**: yiqilgan promptlar o'rtacha **1957** belgi,
+  o'tganlari **1988** (ya'ni yiqilganlari hatto QISQAROQ)
+- **Tasodifiylik** — **RAD ETILDI**: to'qqizta kombinatsiyadan **oltitasi
+  HAR SAFAR** yiqildi, **uchtasi HAR SAFAR** o'tdi. Jonli ~30% aynan
+  shundan: bu «ba'zan ishlamaydi» emas, **«ba'zi tanlovlar HECH QACHON
+  ishlamaydi»** — o'rtacha foiz aynan shuni yashirib turgan edi
+
+17 banddan **sakkiztasini** birma-bir olib tashlash rasmni qaytardi, ya'ni
+prompt **CHEGARAGA tirab qo'yilgan**: qaysi talab olinishi muhim emas,
+YUKNI kamaytirish muhim.
+
+### Yo'l-yo'lakay topilgan IKKINCHI nuqson — va u eng qimmati
+
+2026-08-13 da qo'shilgan qayta urinish tsikli **AYNI promptni** qayta
+yuborardi. Kodda esa shunday izoh turardi: «prompt determinstik bo'lsa ham
+qayta urinish foydali, chunki tasodifiylik MODEL tomonda — ayni prompt ayni
+javobni BERMAYDI». **O'lchov buni RAD ETDI** (ayni prompt + ayni surat →
+5/5 bir xil `IMAGE_OTHER`).
+
+🔴 **Jurnal ham uch kun shuni aytib turgan edi va u O'QILMAGAN:** «qayta
+urinish yordam berdi» yozuvi asbob qo'yilganidan beri **bir marta ham**
+chiqmagan. Ya'ni tsikl bor edi, testlari yashil edi, jurnalga yozardi — va
+hech qachon foyda keltirmasdi, chunki u bo'sh javobni uch marta qayta SOTIB
+OLARDI (vaqt + kredit).
+
+### Qilingan ishlar
+
+- [2026-08-16] **`PROMPT_DARAJA_MAX = 2` — har qayta urinish promptni
+  YENGILLASHTIRADI** (`server/lib/ai.js` → `buildImagePrompt(p, choices,
+  daraja)`). Daraja tartibi bisekt natijasidan olingan: **1** — `Cut and
+  construction` (fason) tashlanadi, dizayn yo'nalishi QOLADI; **2** — ustiga
+  sahna ham tashlanadi (fon neytral bo'ladi, «fon yumshoq va fokusdan
+  tashqarida» bandi o'z kuchida qoladi). O'lchandi: **3/9 → 9/9** (3 tasi
+  0-darajada, 3 tasi 1-darajada, 3 tasi 2-darajada keldi)
+- [2026-08-16] ⚠️ **`ODOB` (kiyinish odobi) HECH QAYSI darajada
+  tashlanmaydi** — u sifat emas, **TALAB**: odobsiz rasm chiqqandan ko'ra
+  rasm chiqmagani yaxshi
+- [2026-08-16] ⚠️ **0-daraja — bugungi promptning BAYT-MA-BAYT o'zi**, ya'ni
+  `PROMPT_VERSION` OSHIRILMADI va bazadagi butun rasm keshi tegilmadi.
+  Aks holda tuzatish o'zi bilan birga kesh eskirishini olib kelardi
+- [2026-08-16] **Provayder bandligi (503) darajani OSHIRMAYDI** — u yerda
+  prompt aybdor emas, daraja faqat BO'SH javobdan keyin ko'tariladi
+- [2026-08-16] **Jurnal yozuvlariga daraja qo'shildi** — «qayta urinish
+  yordam berdi» alertida va urinishlar orasidagi `console.log` da endi
+  qaysi darajada rasm kelgani ko'rinadi. Kalit BARQAROR qoldi (Test 10c
+  qoidasi: o'zgaruvchan qism ikkinchi argumentda)
+- [2026-08-16] **Test 14q ga 7-band qo'shildi** (`server/test.js`) va u
+  qolgan bandlardan BOSHQA narsani qo'riqlaydi: ular «qayta urinildimi» ni
+  tekshiradi, bu esa **«qayta urinishning MA'NOSI bormi»** ni. To'rt shart:
+  (1) darajalar ketma-ketligi `[0, 1, 2]`; (2) 0-daraja o'zgarishsiz prompt
+  (kesh kafolati); (3) har daraja yukni kamaytiradi va aynan aytilgan band
+  tushadi; (4) **`ODOB` hamma darajada qoladi** — ro'yxat qo'lda emas,
+  `PROMPT_DARAJA_MAX` dan yuriladi, ya'ni yangi daraja qo'shilsa avtomatik
+  qamraladi. **3 mutatsiya bilan sinaldi, uchtasi ham ushlandi**
+- [2026-08-16] ⚠️ **Testda ALOHIDA tanlov obyekti kerak bo'ldi:** tsikl
+  testlaridagi soxta `post` promptni umuman qurmaydi, shuning uchun
+  u yerdagi tanlovda `uslub: 'neoklassika'` (aslida bu `dizayn` qiymati)
+  yillar davomida ko'rinmay yotardi. Prompt HAQIQATAN quriladigan bandda u
+  darrov ochildi
+- [2026-08-16] `CLAUDE.md` — yangi qoida: **«QAYTA URINISH SO'ROVNI
+  O'ZGARTIRSIN — aks holda u qayta urinish EMAS»**
+
+### Qarorlar
+
+- [2026-08-16] Qaror: **qayta urinish so'rovni O'ZGARTIRADI, kutishni emas.**
+  O'zgarmagan so'rovni takrorlash — qayta urinish emas, ayni javobni qayta
+  sotib olish. Bu «tekshirilmagan da'vo» oilasidan: da'vo **kodda izoh
+  bo'lib** turgani uni to'g'ri qilmagan, va u da'vo noto'g'ri qarorni
+  **OQLAB ham turgan** edi (2026-08-13 da tsikl aynan shu izohga tayanib
+  yozilgan)
+- [2026-08-16] Qaror: **yengillashtirish TALABGA tegmaydi.** Pog'onaning
+  maqsadi — rasm CHIQISHI, lekin sifat evaziga emas: `ODOB` va matoning
+  haqiqiy rangi qoladi, tashlanadigan narsa faqat KO'RINISH tafsiloti
+  (fason, sahna)
+- [2026-08-16] Qaror: **0-daraja o'zgarmaydi, ya'ni kesh saqlanadi.**
+  Tuzatish bir vaqtning o'zida ikkita narsani buzmasin — nuqsonni yopish
+  bilan birga bazadagi barcha rasmni eskirtirish alohida va kerak
+  bo'lmagan zarar bo'lardi
+- [2026-08-16] **Dars: o'rtacha foiz nosozlikning SHAKLINI yashiradi.**
+  «Uchdan biri ishlamaydi» degan raqam «har uchinchi urinish» degan xulosaga
+  olib boradi, aslida esa «ba'zi tanlovlar hech qachon» edi. Farq amaliy:
+  birinchisida qayta urinish yechim, ikkinchisida — bo'sh sarf
+- [2026-08-16] **Dars: jurnal savolga javob berib turgan edi.** Uch kun
+  davomida «yordam berdi» yozuvi chiqmagani tsikl foydasizligini AYTIB
+  turgan; asbob 2026-08-14 da ataylab qo'yilgan va o'qilmagan. Asbob
+  qo'yish yetarli emas — undan KELGAN raqamni ko'radigan qadam ham kerak
+
+### Ochiq qolgani
+
+1. 🔴 **Production'da hali sinalmagan** — `server/` CI orqali chiqmaydi,
+   qo'lda rsync (⚠️ `--no-owner --no-group` bilan) va servis restarti
+   kerak. Yopilish mezoni: `IMAGE_OTHER` alerti kelgandan keyin
+   **«qayta urinish yordam berdi, prompt darajasi N»** yozuvi jurnalda
+   ko'rinishi. ⚠️ Mezon bu safar BAJARIB bo'ladigan holda: asbob 2026-08-14
+   da qo'yilgan va endi u darajani ham yozadi
+2. **Nima uchun aynan bu prompt chegaraga tiralgani NOMA'LUM** — o'lchov
+   «yuk kamaysa rasm keladi» ni ko'rsatdi, lekin modelning ichki chegarasi
+   qayerdaligini emas. Prompt kelajakda kengaytirilsa bu band qaytadi:
+   yangi band qo'shish avtomatik ravishda 0-darajani chegaraga yaqinlashtiradi

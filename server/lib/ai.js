@@ -658,7 +658,35 @@ function comboSentence(c) {
     'the fabric from the photo must stay the dominant material of the garment.';
 }
 
-function buildImagePrompt(p, choices) {
+// ============ PROMPT DARAJASI — QAYTA URINISH UCHUN (2026-08-16) ============
+// `daraja = 0` — bugungi promptning AYNAN o'zi (shuning uchun `PROMPT_VERSION`
+// oshirilmaydi va bazadagi kesh eskirmaydi). Yuqori darajalar faqat QAYTA
+// URINISHDA ishlatiladi va har biri bittadan TALABNI olib tashlaydi.
+//
+// ⚠️ NIMA UCHUN KERAK — O'LCHANGAN, taxmin emas (2026-08-16, jonli API):
+//   to'liq prompt + manba surat   → 0/5   (IMAGE_OTHER ×5)
+//   SODDA prompt + AYNI surat     → 5/5   ✅
+//   to'liq prompt, SURATSIZ       → 5/5   ✅
+// Ya'ni na rasm, na prompt alohida aybdor — ikkalasi BIRGA kelganda model
+// talablarni bajara olmay, javobni BO'SH qaytaradi. 17 banddan sakkiztasini
+// birma-bir olib tashlash rasmni qaytardi, ya'ni prompt CHEGARAGA tirab
+// qo'yilgan: qaysi talab olinishi muhim emas, YUKNI kamaytirish muhim.
+// Uzunlik sabab EMAS — yiqilgan promptlar o'rtacha 1957 belgi, o'tganlari
+// 1988 (ya'ni yiqilganlari hatto QISQAROQ).
+//
+// ⚠️ Nosozlik TASODIFIY emas, TANLOVGA bog'liq va QAT'IY takrorlanadi:
+// to'qqizta kombinatsiyadan oltitasi HAR SAFAR yiqildi, uchtasi HAR SAFAR
+// o'tdi. Jonli 30% aynan shundan — "ba'zan ishlamaydi" emas, "ba'zi
+// tanlovlar HECH QACHON ishlamaydi".
+//
+// Daraja tartibi bisekt natijasidan olingan (ikkalasi ham rasmni qaytardi):
+//   1 — `Cut and construction` (fason) tashlanadi; dizayn yo'nalishi QOLADI
+//   2 — ustiga sahna ham tashlanadi (fon neytral bo'ladi)
+// ⚠️ `ODOB` HECH QACHON tashlanmaydi: u kiyinish odobi qoidasi, ya'ni
+// sifat emas, TALAB. Undan voz kechgandan ko'ra rasmsiz qolgan yaxshi.
+const PROMPT_DARAJA_MAX = 2;
+
+function buildImagePrompt(p, choices, daraja = 0) {
   const c = normalizeChoices(choices);
   const tur = p.cat_key ? ` (${p.cat_key})` : '';
   const kiyim = IMAGE_CHOICES.kiyim[c.kiyim];
@@ -684,7 +712,7 @@ function buildImagePrompt(p, choices) {
     // Tartib muhim: u `dizayn` dan KEYIN turadi, chunki dizayn umumiy
     // yo'nalish, fason esa aniq konstruksiya — model oxirgi va aniqroq
     // ko'rsatmaga ko'proq og'irlik beradi.
-    `Cut and construction: ${fason}.`,
+    daraja >= 1 ? '' : `Cut and construction: ${fason}.`,
     c.dizayn === 'combo' ? comboSentence(c) : '',
     // ---- XARIDORNING ERKIN MATNI — DEVOR ICHIDA ----
     // Shakl tekshiruvi `cleanComboText` da o'tgan (qavs, tirnoq, yangi qator
@@ -704,7 +732,9 @@ function buildImagePrompt(p, choices) {
     // eslab qolish kerak bo'lardi (db/014 darsi).
     FASON_OQLARI[c.kiyim].includes('bogla') ? '' : KADR_SOCH,
     // Sahna — har rasmda boshqa (yuqoridagi `SAHNA` izohiga qara).
-    `The person stands naturally in ${sahna}.`,
+    // 2-darajada tashlanadi: pastdagi "fon yumshoq va fokusdan tashqarida"
+    // bandi o'z kuchida qoladi, ya'ni rasm fonsiz emas — NEYTRAL fonli.
+    daraja >= 2 ? '' : `The person stands naturally in ${sahna}.`,
     // ⚠️ Fon KELDI, lekin rasmning MAQSADI o'zgarmadi: bu — matoning haqiqiy
     // rangi. Rangli yorug'lik (masalan qizil neon yoki quyoshbotar) matoni
     // BOSHQA rangga bo'yab qo'yardi va image-to-image ning butun sababi
@@ -838,11 +868,19 @@ function kut(ms) { return new Promise((r) => setTimeout(r, ms)); }
 // bizning tomondagi nosozlik ham emas: model shunchaki bu safar rasm
 // chizmadi.
 //
-// ⚠️ Prompt DETERMINISTIK (`sceneFor`/`fasonFor` kesh kalitidan urug' oladi),
-// ya'ni qayta urinish AYNI promptni yuboradi. Shunga qaramay u foydali,
-// chunki tasodifiylik prompt tomonda emas, MODEL tomonda: ayni prompt
-// ayni javobni BERMAYDI. Rad etishdan farqi aynan shu — rad etilgan prompt
-// har safar rad etiladi, bo'sh javob esa keyingi urinishda rasm beradi.
+// ⚠️ BU YERDA YOZILGAN DA'VO NOTO'G'RI EDI va o'lchov uni RAD ETDI
+// (2026-08-16). Ilgari shunday deyilgandi: «prompt determinstik bo'lsa ham
+// qayta urinish foydali, chunki tasodifiylik MODEL tomonda — ayni prompt
+// ayni javobni BERMAYDI». Jonli API bilan tekshirilganda ayni prompt +
+// ayni surat **5/5 IMAGE_OTHER** berdi, ya'ni javob aynan TAKRORLANADI.
+// Jurnal ham shuni aytardi va u O'QILMAGAN edi: qayta urinish 2026-08-13 da
+// qo'shilganidan beri «yordam berdi» yozuvi **bir marta ham** chiqmagan.
+// Ya'ni tsikl bor edi, ishlardi, jurnalga yozardi — va HECH QACHON foyda
+// keltirmasdi, chunki u har safar AYNI bo'sh javobni qayta sotib olardi.
+//
+// Endi har urinish PROMPTNI YENGILLASHTIRADI (`PROMPT_DARAJA_MAX` izohiga
+// qara) — o'zgaradigan narsa kutish emas, SO'ROVNING O'ZI. Bu «tekshirilmagan
+// da'vo» oilasidan: da'vo kodda izoh bo'lib turgani uni to'g'ri qilmagan.
 //
 // ⚠️ Kutish 503 dagidan QISQA va bu ataylab: 503 — provayder bandligi
 // (kutish kerak), bo'sh javob esa bandlik belgisi emas. Uzun kutish faqat
@@ -880,9 +918,12 @@ async function generateImage(product, source, choices, sinov = null) {
   const boshlandi = Date.now();
 
   for (let bosh = 0; ; bosh++) {
+    // Prompt darajasi = nechanchi BO'SH javobdan keyin turganimiz. Provayder
+    // bandligi (503) darajani OSHIRMAYDI — u yerda prompt aybdor emas.
+    const daraja = Math.min(bosh, PROMPT_DARAJA_MAX);
     let r;
     for (let urinish = 0; ; urinish++) {
-      r = await post(product, source, choices);
+      r = await post(product, source, choices, daraja);
       if (!QAYTA_URINILADI.has(r.status) || urinish >= RETRY_KUTISH_MS.length) break;
       await uxla(jitter(RETRY_KUTISH_MS[urinish]));
     }
@@ -928,7 +969,7 @@ async function generateImage(product, source, choices, sinov = null) {
       if (bosh > 0) {
         console.error(
           'AI rasm: qayta urinish yordam berdi (kuzatuv, nuqson emas):',
-          `${bosh + 1}-urinishda rasm keldi`
+          `${bosh + 1}-urinish, prompt darajasi ${daraja} — rasm keldi`
         );
       }
       return { ...img, model: `${AI_PROVIDER}:${AI_IMAGE_MODEL}` };
@@ -942,7 +983,8 @@ async function generateImage(product, source, choices, sinov = null) {
       // Tafsilot jurnalga — bu yerda alert YUBORILMAYDI: urinish hali
       // tugamagan va natija noma'lum. Alert faqat natija ma'lum bo'lganda
       // ketadi: yordam bersa yuqorida, bermasa chaqiruvchi xatoni yozadi.
-      console.log(`AI rasm: bo'sh javob (${e.message}) — ${bosh + 2}-urinish`);
+      console.log(`AI rasm: bo'sh javob (${e.message}) — ${bosh + 2}-urinish, `
+        + `prompt darajasi ${Math.min(bosh + 1, PROMPT_DARAJA_MAX)}`);
       await uxla(jitter(BOSH_JAVOB_KUTISH_MS));
     }
   }
@@ -967,7 +1009,7 @@ async function generateImage(product, source, choices, sinov = null) {
 // olib tashlash.
 const IMAGE_ASPECT_RATIO = '3:4';
 
-function postImageRequest(product, source, choices) {
+function postImageRequest(product, source, choices, daraja = 0) {
   return postJson({
     hostname: 'generativelanguage.googleapis.com',
     path: `/v1beta/models/${encodeURIComponent(AI_IMAGE_MODEL)}:generateContent`,
@@ -976,7 +1018,7 @@ function postImageRequest(product, source, choices) {
       contents: [{
         parts: [
           { inlineData: { mimeType: source.mime || 'image/jpeg', data: source.buf.toString('base64') } },
-          { text: buildImagePrompt(product, choices) },
+          { text: buildImagePrompt(product, choices, daraja) },
         ],
       }],
       generationConfig: { imageConfig: { aspectRatio: IMAGE_ASPECT_RATIO } },
@@ -991,5 +1033,5 @@ module.exports = {
   IMAGE_CHOICES, COMBO_CHOICES, normalizeChoices, choicesHash, joriyJavobmi, aiClientConfig,
   SAHNA, sceneFor, PROMPT_VERSION, cleanComboText, COMBO_TEXT_MAX,
   FASON, FASON_OQLARI, fasonFor, VARIANT_MAX, IMAGE_ASPECT_RATIO,
-  BOSH_JAVOB_URINISH, RASM_BUDJET_MS,
+  BOSH_JAVOB_URINISH, RASM_BUDJET_MS, PROMPT_DARAJA_MAX,
 };
