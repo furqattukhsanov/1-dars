@@ -214,22 +214,39 @@ ko'rishda **mato nomi, surati va narxi** chiqadi. Usiz umumiy sayt tavsifi
 ko'rinadi. Sabab — oldindan ko'rish roboti HTML ni O'QIYDI, JS ni
 bajarmaydi, ya'ni buni frontendda qilib bo'lmaydi.
 
+Fayl: `/etc/nginx/sites-available/lolamarket` (`sites-enabled/lolamarket` —
+o'sha faylga symlink). Blok `location / { try_files ... }` **dan OLDIN**
+qo'yiladi — nginx prefiksni uzunligi bo'yicha tanlaydi, lekin `^~` bilan
+tartib ham o'qishga qulay bo'lsin.
+
+⚠️ **PORT `3001`** — `3000` EMAS (2026-08-16 da o'lchandi: `.env` da
+`PORT=3001`, `ss -lntp` ham `127.0.0.1:3001` ko'rsatdi, mavjud `location
+^~ /api/` bloki ham shu portga boradi). Bu yerda bir marta `3000` deb
+yozilgan edi — zaxira yo'li tufayli sayt yiqilmasdi, lekin `og:` meta
+HECH QACHON ishlamasdi va sababi hech qayerda ko'rinmasdi.
+
 ```nginx
-# lolamarket.uz server blokida, `location /` DAN OLDIN
+# `location / { try_files ... }` DAN OLDIN.
+# `root` server blokida allaqachon e'lon qilingan (/var/www/lolamarket),
+# shuning uchun bu yerda takrorlanmaydi — ikki joyda turgan yo'l biri
+# o'zgarganda ikkinchisi jimgina eskirardi.
 location ^~ /mahsulot/ {
-    proxy_pass http://127.0.0.1:3000;
-    proxy_set_header Host $host;
-    proxy_set_header X-Real-IP $remote_addr;
+    proxy_pass http://127.0.0.1:3001;
+    proxy_http_version 1.1;
+    proxy_set_header Host              $host;
+    proxy_set_header X-Real-IP         $remote_addr;
+    proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_read_timeout 15s;
 
     # ⚠️ ZAXIRA YO'LI — SHU IKKI QATOR ENG MUHIMI.
     # Usiz backend yiqilgan paytda katalogdagi HAR BIR mato 502 ga aylanardi,
-    # ya'ni ixtiyoriy funksiya butun katalogni yiqitadigan bog'liqlikka
+    # ya'ni IXTIYORIY funksiya butun katalogni yiqitadigan bog'liqlikka
     # aylanardi. Bu bilan esa backend o'lsa ham sahifa statik holda ochiladi.
     proxy_intercept_errors on;
     error_page 500 502 503 504 = @static_index;
 }
 location @static_index {
-    root /var/www/lolamarket;
     try_files /index.html =404;
 }
 ```

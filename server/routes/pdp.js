@@ -19,7 +19,12 @@
 const fs = require('fs');
 const path = require('path');
 
-const pool = require('../db');
+// ⚠️ `{ pool }` — DESTRUKTURIZATSIYA bilan. `db.js` `module.exports = { pool }`
+// qiladi, ya'ni butun modul olinsa `pool.query` MAVJUD BO'LMAYDI.
+// 2026-08-16 da aynan shu xato production'ga chiqdi: sahifa ochilardi
+// (xato ushlangan), lekin og: teglari hech qachon qo'yilmasdi. Qorovul:
+// `server/test.js` → Test 39.
+const { pool } = require('../db');
 const { WEB_ROOT, SITE_ORIGIN, OG_ENABLED } = require('../config');
 const { rateLimited } = require('../lib/http');
 const { escapeHtml, money } = require('../lib/format');

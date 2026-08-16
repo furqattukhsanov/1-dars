@@ -4705,6 +4705,77 @@ function testRootPathsAreAbsolute() {
     + `(${[...toza.matchAll(/(?:src|href|srcset)="/g)].length} ta havola, sw: ${reg[2]})`);
 }
 
+// ============ TEST 39: MODUL IMPORTI SHAKLI TO'G'RI (2026-08-16) ============
+// `db.js` `module.exports = { pool }` qiladi. Butun modul olinsa
+// (`const pool = require('../db')`) `pool.query` MAVJUD BO'LMAYDI.
+//
+// 🔴 BU PRODUCTION'GA CHIQDI (2026-08-16, `routes/pdp.js`). Nuqson JIMGINA
+// edi va buning ikkita sababi bor, ikkalasi ham o'ziga xos:
+//   (1) chaqiruv `try` ichida edi va xato YUTILMASDI, lekin sahifa BARIBIR
+//       ochilardi (og: teglarisiz) — ya'ni tashqi belgi bo'yicha hammasi
+//       joyida ko'rinardi: `200 text/html`, sahifa chiziladi, sayt tirik;
+//   (2) lint buni KO'RA OLMAYDI — `require()` qaytargan qiymat shakli
+//       statik tahlilda noma'lum.
+// Uni oxir-oqibat Telegram'dagi alert ko'rsatdi, ya'ni FOUNDER ko'rdi.
+//
+// Test statik: har bir `routes/*.js` va `lib/*.js` da `require('../db')`
+// DESTRUKTURIZATSIYA bilan olinganini tekshiradi. Yangi modul qo'shilsa
+// avtomatik qamraladi — ro'yxat qo'lda yozilmaydi.
+function testDbImportShape() {
+  const fs = require('fs');
+  const path = require('path');
+  const ildiz = path.join(__dirname);
+
+  // `db.js` HAQIQATAN nima eksport qilishini O'QIYMIZ — "shunday deb
+  // o'ylaymiz" yetarli emas. Eksport bir kun yalang'och `pool` ga
+  // o'zgarsa, bu test qoidani TESKARISIGA aylantirishi kerak.
+  const db = fs.readFileSync(path.join(ildiz, 'db.js'), 'utf8');
+  assert.ok(/module\.exports\s*=\s*\{[^}]*\bpool\b/.test(db),
+    '`db.js` endi `{ pool }` eksport qilmayapti — bu test o\'sha shaklga ' +
+    'tayanadi, ya\'ni eksport o\'zgargan bo\'lsa test ham yangilansin.');
+
+  const papkalar = ['routes', 'lib'];
+  const yomon = [];
+  let korilgan = 0;
+
+  papkalar.forEach((p) => {
+    const dir = path.join(ildiz, p);
+    if (!fs.existsSync(dir)) return;
+    fs.readdirSync(dir).filter((f) => f.endsWith('.js')).forEach((f) => {
+      /* ⚠️ IZOHNI TOZALASH TARTIBI — AVVAL QATOR, KEYIN BLOK. Va import
+         QATOR BOSHIDAN qidiriladi (`^` + `m`).
+
+         Bu ikkalasi ham sinovda topildi (2026-08-16) va birinchi variant
+         nuqsonni UMUMAN ushlamagan edi: blok izoh birinchi tozalanganda
+         regex `/*` ni QATOR IZOHI ICHIDAN topib yuboradi — bu faylda
+         izohda `/api/*` deb yozilgan, ya'ni "blok izoh boshlandi" deb
+         o'ylab, keyingi `*​/` gacha bo'lgan HAMMA NARSANI, importlar bilan
+         birga yutgan. Natijada test tekshiradigan matn bo'sh qolib,
+         "hammasi joyida" degan YASHIL javob bergan.
+         Ya'ni qorovul o'zi qo'riqlayotgan nuqsonni ko'rmasdi. */
+      const src = fs.readFileSync(path.join(dir, f), 'utf8')
+        .replace(/^\s*\/\/.*$/gm, '')
+        .replace(/\/\*[\s\S]*?\*\//g, '');
+      for (const m of src.matchAll(/^const\s+([^=]+?)\s*=\s*require\((['"])\.\.\/db\2\)/gm)) {
+        korilgan++;
+        const chap = m[1].trim();
+        if (chap.charAt(0) !== '{') yomon.push(`${p}/${f}: const ${chap} = require('../db')`);
+      }
+    });
+  });
+
+  assert.deepStrictEqual(yomon, [],
+    "`db.js` `{ pool }` eksport qiladi — uni DESTRUKTURIZATSIYA bilan oling.\n" +
+    '→ Noto\'g\'ri: `const pool = require(\'../db\')` — `pool.query` mavjud bo\'lmaydi ' +
+    'va xato faqat ISHLASH paytida, chaqiruv joyida chiqadi (lint ko\'rmaydi).\n' +
+    `→ To'g'ri: \`const { pool } = require('../db')\`\n→ Topilganlar: ${yomon.join(', ')}`);
+
+  assert.ok(korilgan >= 5,
+    `\`require('../db')\` chaqiruvlari topilmadi (${korilgan} ta) — regex eskirgan bo'lishi mumkin`);
+
+  console.log(`✅ Test 39: Baza importi shakli to'g'ri — PASS (${korilgan} ta import)`);
+}
+
 // ============ TEST 22c: BTS RO'YXATI IKKI YUZDA BIR XIL (2026-08-13) ============
 // `BTS_POINTS` sayt va Mini App'da ALOHIDA yashaydi — bu BILIB QILINGAN
 // vaqtinchalik qaror (BTS API ulanmagan, uchinchi manba yo'q). Lekin
@@ -5016,6 +5087,7 @@ async function runTests() {
     testBtsListsStayInSync();
     testStickyAsideHasNoRowBeneath();
     testRootPathsAreAbsolute();
+    testDbImportShape();
 
     console.log('\n✅ Hammasi PASS — pul hisobi, imzo, route jadvali, xato alerti, buyurtma tarixi va AI rasmi joyida\n');
     process.exit(0);
