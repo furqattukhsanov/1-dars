@@ -1390,7 +1390,7 @@ function testAssetVersionsAreFresh() {
     // 2026-08-16 (kechqurun, 2-tahrir): qator chiqqanda header yuqoriga
     // suriladi — ikkita qadalgan qator birga turmaydi.
     'style.css': { v: 64, hash: 'e9718d3f4f24' },
-    'script.js': { v: 53, hash: '56c2bb8fe403' },
+    'script.js': { v: 55, hash: '16a658091ff9' },
     'pwa.js': { v: 3, hash: 'dce9fcfee6cb' },
     // ⚠️ IKKINCHI BIRLASHTIRISH (2026-08-14): ikkala tomon panel.js ni 24,
     // app.js ni 87 ga ko'targan — AYNI raqamlar, TARKIB esa har xil.
@@ -1404,11 +1404,11 @@ function testAssetVersionsAreFresh() {
     // YUQORIGA suriladi: teng raqam qaytib kelgan foydalanuvchida keshdagi
     // BIR TOMONLAMA faylni qoldirardi — sevimlilar yoki chiqish tuzatishining
     // faqat bittasi bo'lgan `app.js`.
-    'panel.js': { v: 46, hash: '06fdb624ab9c' },
+    'panel.js': { v: 47, hash: '1165def86832' },
     'admin/admin.css': { v: 18, hash: '15b0bc977b85' },
-    'admin/admin.js': { v: 25, hash: '08fae1bb61dc' },
+    'admin/admin.js': { v: 26, hash: 'b19364fd8d4a' },
     'telegram-app/styles.css': { v: 36, hash: '570a2450c3a4' },
-    'telegram-app/app.js': { v: 99, hash: 'fb9d4156f105' },
+    'telegram-app/app.js': { v: 100, hash: 'c5e4e0fbf5fc' },
     'telegram-app/pwa.js': { v: 6, hash: '798ab85e1cde' },
   };
 
@@ -3403,17 +3403,39 @@ function testTranslationKeys() {
 // Migratsiya fayli QO'LDA ko'rsatilmaydi — `db/` dagi cheklovni belgilaydigan
 // ENG KATTA raqamli fayl topiladi. Kelajakda `db/031` ro'yxatni qayta yozsa,
 // test avtomatik o'shanga qaraydi va bu yerni tahrirlash kerak bo'lmaydi.
+// ⚠️ IZOHLAR AVVAL OLIB TASHLANADI (2026-08-18). Fayl tanlash SO'ZGA qarab
+// bo'ladi, ya'ni `admin_actions_kind_check` ni shunchaki ESLATGAN migratsiya
+// ham "ro'yxat manbai" bo'lib qolardi. Bu nazariy emas: `db/028_traffic.sql`
+// o'z izohida aynan shu darsni keltirgan va o'zining `CHECK (kind IN
+// ('view','cart'))` i bilan eng katta raqamli fayl bo'lib chiqib, testni
+// QIZIL qilgan — kod esa mutlaqo to'g'ri edi. Xuddi shu tuzoq Test 3f da
+// ham bo'lgan (CLAUDE.md: «IZOHDAGI `requestUser()` so'zi qorovulni
+// aldardi»), ya'ni naqsh takrorlandi.
+function sqlSofi(src) {
+  // `--` dan qator oxirigacha — LEKIN tirnoq ichidagisi kod (masalan
+  // `'a--b'`). Tirnoq juftligi sanaladi: toq bo'lsa `--` matn ichida.
+  return src.split('\n').map((qator) => {
+    let tirnoq = 0;
+    for (let i = 0; i < qator.length; i++) {
+      if (qator[i] === "'") tirnoq++;
+      else if (qator[i] === '-' && qator[i + 1] === '-' && tirnoq % 2 === 0) return qator.slice(0, i);
+    }
+    return qator;
+  }).join('\n');
+}
+
 function testAdminActionKinds() {
   const fs = require('fs');
   const path = require('path');
   const dbDir = path.join(__dirname, '..', 'db');
+  const oqi = (f) => sqlSofi(fs.readFileSync(path.join(dbDir, f), 'utf8'));
   const fayllar = fs.readdirSync(dbDir)
-    .filter((f) => f.endsWith('.sql') && /admin_actions_kind_check/.test(fs.readFileSync(path.join(dbDir, f), 'utf8')))
-    .filter((f) => /CHECK \(kind IN/.test(fs.readFileSync(path.join(dbDir, f), 'utf8')))
+    .filter((f) => f.endsWith('.sql') && /admin_actions_kind_check/.test(oqi(f)))
+    .filter((f) => /CHECK \(kind IN/.test(oqi(f)))
     .sort();
   assert.ok(fayllar.length, 'admin_actions_kind_check ni belgilaydigan migratsiya topilmadi');
   const oxirgi = fayllar[fayllar.length - 1];
-  const sql = fs.readFileSync(path.join(dbDir, oxirgi), 'utf8');
+  const sql = oqi(oxirgi);
 
   const m = sql.match(/CHECK \(kind IN \(([^)]*)\)\)/);
   assert.ok(m, `${oxirgi}: CHECK (kind IN (...)) o'qib bo'lmadi`);
@@ -5211,6 +5233,165 @@ function testProfileCardTrustsServer() {
     + 'kimlik brauzerdan emas — PASS (4 band)');
 }
 
+// ============ TEST 42: TRAFIK O'LCHOVI (2026-08-18) ============
+// Trafik hisobi panelda RAQAM ko'rsatadi, ya'ni u jimgina noto'g'ri bo'lishi
+// mumkin bo'lgan eng xavfli turdagi kod: nol bo'lsa "hech kim kelmadi" deb
+// o'qiladi, shishgan bo'lsa reklama byudjeti noto'g'ri kanalga ketadi.
+// Shuning uchun bu yerda TA'RIFLAR emas, XATTI-HARAKAT sinaladi.
+//
+// Yetti band. Ro'yxatlarning HECH BIRI qo'lda yozilmagan — ikkala frontend
+// va migratsiya faylining O'ZIDAN yig'iladi, ya'ni yangi ekran qo'shilsa
+// test uni avtomatik qamraydi.
+function testTrafficMeasurement() {
+  const fs = require('fs');
+  const path = require('path');
+  const ildiz = path.join(__dirname, '..');
+  const traffic = require('./lib/traffic');
+
+  // ── 1-band: hodisa va yuz ro'yxati SQL bilan bir xil ──
+  // `db/028` dagi CHECK va koddagi massiv IKKI ro'yxat. CLAUDE.md dagi
+  // `admin_actions_kind_check` darsi aynan shundan: 2026-08-03 da SQL da
+  // `review_hide` yo'q edi va sharh yashirish PRODUCTION'DA butunlay
+  // ishlamasdi. Bu yerda ular harfma-harf solishtiriladi.
+  const migratsiya = path.join(ildiz, 'db', '028_traffic.sql');
+  assert.ok(fs.existsSync(migratsiya),
+    'db/028_traffic.sql topilmadi — jadval migratsiyasiz qolsa endpoint har '
+    + 'so\'rovda 500 qaytaradi va panel blokni umuman ko\'rsatmaydi.');
+  const sql = sqlSofi(fs.readFileSync(migratsiya, 'utf8'));
+
+  for (const [ustun, kutilgan] of [['kind', traffic.KINDS], ['face', traffic.FACES]]) {
+    const m = sql.match(new RegExp(`CHECK \\(${ustun} IN \\(([^)]*)\\)\\)`));
+    assert.ok(m, `db/028: \`CHECK (${ustun} IN (...))\` o'qib bo'lmadi`);
+    const sqlda = [...m[1].matchAll(/'([a-z]+)'/g)].map((x) => x[1]);
+    assert.deepStrictEqual(sqlda.slice().sort(), kutilgan.slice().sort(),
+      `\`${ustun}\` ro'yxati IKKI joyda har xil — SQL: [${sqlda}], `
+      + `lib/traffic.js: [${kutilgan}]. Kodda bor-u SQL da yo'q qiymat `
+      + 'production\'da CHECK da yiqiladi va hodisa JIMGINA yozilmay qoladi.');
+  }
+
+  // ── 2-band: ikkala yuzdagi HAMMA ekran ro'yxatda bormi ──
+  // Ro'yxat manbadan yig'iladi: sayt — `drawerView` qiymatlari, Mini App —
+  // `render()` xaritasining kalitlari. Yangi ekran qo'shilib `SCREENS` ga
+  // yozilmasa u jimgina `other` ga tushardi va panelda "hech kim ochmagan"
+  // bo'lib ko'rinardi.
+  const siteSrc = fs.readFileSync(path.join(ildiz, 'script.js'), 'utf8');
+  const saytEkran = new Set([...siteSrc.matchAll(/drawerView === '([a-z-]+)'/g)].map((m) => m[1]));
+  assert.ok(saytEkran.size >= 10,
+    `saytdan ekran nomlari topilmadi (${saytEkran.size} ta) — regex eskirgan bo'lishi mumkin.`);
+
+  const miniSrc = fs.readFileSync(path.join(ildiz, 'telegram-app', 'app.js'), 'utf8');
+  const xarita = miniSrc.match(/const map = \{([\s\S]*?)\n  \};/);
+  assert.ok(xarita, 'Mini App `render()` xaritasi topilmadi — shakl o\'zgarganmi?');
+  const miniEkran = new Set([...xarita[1].matchAll(/'?([a-z-]+)'?:\s*render/g)].map((m) => m[1]));
+  assert.ok(miniEkran.size >= 10,
+    `Mini App'dan ekran nomlari topilmadi (${miniEkran.size} ta) — regex eskirgan bo'lishi mumkin.`);
+
+  const yoq = [...saytEkran, ...miniEkran].filter((e) => !traffic.SCREENS.has(e));
+  assert.deepStrictEqual(yoq, [],
+    `Bu ekranlar frontendda BOR, lekin \`lib/traffic.js\` → SCREENS da YO'Q: ${yoq.join(', ')}. `
+    + 'Ular serverda `other` ga tushadi, ya\'ni panelda alohida ko\'rinmaydi.');
+
+  // ── 3-band: tashrifchi belgisi — IP EMAS va KUNGA bog'langan ──
+  // 🔴 Bu bandning ikkala da'vosi ham maxfiylik va'dasi: birinchisi "IP
+  // saqlanmaydi" (zaxira nusxasi Telegram'ga ketadi), ikkinchisi "odam
+  // kunlar bo'ylab kuzatilmaydi". Va'da kod bilan tekshirilmasa, u
+  // hujjatdagi tekshirilmagan da'voga aylanardi.
+  const a1 = traffic.visitorBelgisi('1.2.3.4', 'Mozilla/5.0', '2026-08-18');
+  const a2 = traffic.visitorBelgisi('1.2.3.4', 'Mozilla/5.0', '2026-08-18');
+  const b1 = traffic.visitorBelgisi('1.2.3.4', 'Mozilla/5.0', '2026-08-19');
+  const c1 = traffic.visitorBelgisi('9.9.9.9', 'Mozilla/5.0', '2026-08-18');
+  assert.strictEqual(a1, a2, 'Ayni odam ayni kunda IKKI xil belgi oldi — kunlik tashrifchi soni shishardi.');
+  assert.notStrictEqual(a1, b1,
+    'Belgi KUNDAN qat\'i nazar bir xil — bu barqaror identifikator, ya\'ni odamni '
+    + 'oylar bo\'ylab kuzatib boradigan yozuv. `visitorBelgisi` ichida kun bo\'lsin.');
+  assert.notStrictEqual(a1, c1, 'Ikki xil IP bitta belgi oldi — tashrifchilar birlashib ketardi.');
+  assert.ok(/^[0-9a-f]{16}$/.test(a1), `Belgi shakli buzuq: ${a1}`);
+  assert.ok(!a1.includes('1.2.3.4'), 'Belgi ichida XOM IP bor.');
+
+  // ── 4-band: yozuv yo'lida IP ustuni umuman yo'q ──
+  // Yuqoridagi band funksiyani sinadi; bu band esa YOZUVNI: kimdir keyin
+  // `ip` ustunini "diagnostika uchun" qo'shib qo'ysa, hash bilan himoya
+  // ma'nosini yo'qotardi.
+  const trackSrc = kodSofi(fs.readFileSync(path.join(__dirname, 'routes', 'track.js'), 'utf8'));
+  const insert = trackSrc.match(/INSERT INTO traffic_events \(([^)]*)\)/);
+  assert.ok(insert, 'routes/track.js da `INSERT INTO traffic_events` topilmadi');
+  const ustunlar = insert[1].split(',').map((s) => s.trim());
+  assert.ok(!ustunlar.includes('ip') && !ustunlar.includes('user_agent'),
+    `Trafik yozuvida xom IP/user-agent ustuni paydo bo'lgan: [${ustunlar}]. `
+    + 'Baza zaxirasi Telegram chatiga ketadi — u yerdagi har kim buni o\'qiy oladi.');
+  assert.ok(trackSrc.includes('visitorBelgisi('),
+    '`visitorBelgisi()` ishlatilmayapti — tashrifchi belgisi qayerdan kelyapti?');
+
+  // ── 5-band: beacon KIMLIK SO'RAMAYDI (ataylab) ──
+  // Test 3f "sayt chaqirgan endpoint kimlikni to'g'ri oladimi" ni tekshiradi;
+  // bu yerda TESKARISI qulflanadi: bu endpointga kimlik QO'SHILMASIN.
+  // Qo'shilsa (a) kirmagan mehmon o'lchanmay qolardi, (b) bazada "kim qaysi
+  // sahifani ochdi" degan yozuv paydo bo'lardi.
+  assert.ok(!trackSrc.includes('authUser(') && !trackSrc.includes('requestUser('),
+    'routes/track.js kimlik so\'rayapti. Trafik beacon\'i ANONIM bo\'lishi kerak: '
+    + 'kimlik so\'ralsa kirmagan mehmon o\'lchanmay qoladi va bazada kuzatuv yozuvi paydo bo\'ladi.');
+  // Klient tomonda ham: cookie yubormaslik — va'daning ikkinchi yarmi.
+  for (const [fayl, src] of [['script.js', siteSrc], ['telegram-app/app.js', miniSrc]]) {
+    const tana = src.match(/fetch\('\/api\/track', \{([\s\S]*?)\}\)/);
+    assert.ok(tana, `${fayl}: \`/api/track\` chaqiruvi topilmadi`);
+    assert.ok(/credentials:\s*'omit'/.test(tana[1]),
+      `${fayl}: beacon cookie yuboryapti (\`credentials: 'omit'\` yo'q). `
+      + 'Anonimlik VA\'DA bo\'lib qolardi — kod bilan tasdiqlansin.');
+  }
+
+  // ── 6-band: tortmaning BIRINCHI ochilishi ham sanaladi ──
+  // 🔴 Bu band HAQIQIY nuqsondan tug'ildi (2026-08-18, brauzerda o'lchandi).
+  // O'lchov faqat `renderDrawer()` da turgan edi va u "tortma ochiqmi" deb
+  // tekshirardi — `openCart()` esa AVVAL chizadi, `.open` klassini KEYIN
+  // qo'yadi. Ya'ni savat ekrani faqat ALLAQACHON ochiq tortmada ko'rinish
+  // almashtirilgandagina yozilardi va "Savat" panelda muntazam kam
+  // ko'rinardi. Kod to'g'ri ko'rinardi, testlar yashil edi.
+  const drawerOch = siteSrc.match(/function openDrawerEl\(\)\s*\{([\s\S]*?)\n\}/);
+  assert.ok(drawerOch, 'script.js da `openDrawerEl()` topilmadi');
+  assert.ok(/track\('view'/.test(drawerOch[1]),
+    '`openDrawerEl()` ko\'rishni yozmayapti. `renderDrawer()` dagi o\'lchov YETARLI EMAS: '
+    + 'u chizish paytida ishlaydi, tortma esa SHUNDAN KEYIN ochiladi — birinchi ochilish '
+    + 'jimgina yo\'qoladi.');
+  // Yopilganda takror qorovuli bo'shatilsin, aks holda savatni yopib qayta
+  // ochish umuman sanalmasdi.
+  const yopish = siteSrc.match(/function closeCart\(\)\s*\{([\s\S]*?)\n\}/);
+  assert.ok(yopish && /trackOxirgi = ''/.test(yopish[1]),
+    '`closeCart()` takror qorovulini bo\'shatmayapti — ayni ekranga qayta kirish sanalmay qoladi.');
+
+  // ── 7-band: bot yozilmaydi, chegara bor ──
+  assert.ok(traffic.botmi('TelegramBot (like TwitterBot)'), 'Telegram havola roboti bot deb tanilmadi');
+  assert.ok(traffic.botmi('curl/8.4.0'), 'curl bot deb tanilmadi');
+  assert.ok(!traffic.botmi('Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15'),
+    'Haqiqiy iPhone brauzeri bot deb rad etildi — trafikning katta qismi yo\'qolardi.');
+  assert.ok(/rateLimited\(`track:/.test(trackSrc),
+    'routes/track.js da tezlik chegarasi yo\'q — bitta skript raqamni cheksiz shishira olardi.');
+
+  // ── 8-band: panel NOL CHIZMAYDI ──
+  // Bu sahifada ilgari O'YLAB TOPILGAN tashrif raqamlari turgan va aynan
+  // shuning uchun olib tashlangan (CLAUDE.md). Nol ko'rsatish ham xuddi
+  // shunday yolg'on: "o'lchanmadi" bilan "hech kim kelmadi" bir xil
+  // ko'rinardi.
+  const adminSrc = kodSofi(fs.readFileSync(path.join(ildiz, 'admin', 'admin.js'), 'utf8'));
+  const rt = adminSrc.match(/function renderTraffic\(\)\s*\{([\s\S]*?)\n\}/);
+  assert.ok(rt, 'admin.js da `renderTraffic()` topilmadi');
+  assert.ok(/if \(!t \|\| !t\.total\)/.test(rt[1]) && /hidden = true/.test(rt[1]),
+    '`renderTraffic()` ma\'lumot bo\'lmaganda blokni YASHIRMAYAPTI — panel nol '
+    + 'ko\'rsatib, "hech kim kelmadi" degan yolg\'on xulosaga olib borardi.');
+
+  // Admin endpointi tokensiz ochiq qolmasin va `days` SQL ga satr bo'lib
+  // tushmasin (parametr bilan berilsin).
+  const adminRoute = kodSofi(fs.readFileSync(path.join(__dirname, 'routes', 'admin.js'), 'utf8'));
+  const ht = adminRoute.match(/async function handleAdminTraffic\([\s\S]*?\n\}/);
+  assert.ok(ht, 'routes/admin.js da `handleAdminTraffic` topilmadi');
+  assert.ok(ht[0].includes('adminPanelAuth(req, res)'),
+    '`handleAdminTraffic` panel tokenini tekshirmayapti — trafik statistikasi hammaga ochiq bo\'lardi.');
+  assert.ok(!/interval '\$\{/.test(ht[0]) && ht[0].includes('$1::int'),
+    '`days` so\'rovga satr bo\'lib qo\'yilgan — u butun songa aylantirilib parametr bilan berilsin.');
+
+  console.log(`✅ Test 42: Trafik o'lchovi — IP saqlanmaydi, kun bilan ajraladi, panel nol chizmaydi — `
+    + `PASS (8 band, ${traffic.SCREENS.size} ekran, ${saytEkran.size} sayt + ${miniEkran.size} Mini App)`);
+}
+
 async function runTests() {
   console.log('\n🧪 LolaMarket Server Testlari\n');
 
@@ -5298,6 +5479,7 @@ async function runTests() {
     testBuyButtonBoxesStayInSync();
     testRootPathsAreAbsolute();
     testDbImportShape();
+    testTrafficMeasurement();
 
     console.log('\n✅ Hammasi PASS — pul hisobi, imzo, route jadvali, xato alerti, buyurtma tarixi va AI rasmi joyida\n');
     process.exit(0);

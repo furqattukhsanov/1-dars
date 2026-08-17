@@ -1194,6 +1194,54 @@ function apiJson(path, opts) {
     .then((r) => r.json().catch(() => null));
 }
 
+// ============ TRAFIK O'LCHOVI (2026-08-18) ============
+// Qaysi ekran ochilgani va qaysi mato ko'rilgani serverga yoziladi
+// (`POST /api/track` → `traffic_events`, db/028). Panelda shundan
+// "eng ko'p ko'rilgan mato" va "ko'rish → savat → buyurtma" chiqadi.
+//
+// ⚠️ `credentials: 'omit'` — ATAYLAB, `apiJson` dan farqi shu. Beacon
+// kimlikni bilishi SHART EMAS, ya'ni cookie ham yubormasin: shunda
+// "bu endpoint kimligingizni yozmaydi" degan gap kod bilan TASDIQLANADI,
+// va'da bo'lib qolmaydi.
+//
+// ⚠️ `keepalive: true` — sahifa yopilayotganda ham so'rov yetib boradi.
+// Busiz oxirgi ko'rish (odam matoni ochib, keyin chiqib ketsa) yo'qolardi
+// va bu aynan eng qiziq hodisa.
+//
+// ⚠️ Xato JIM yutiladi va bu YAGONA joy: o'lchov vositasi o'lchayotgan
+// narsani sindirmasin. Server tomonda esa xato KO'RINADI (`console.error`
+// → alert), ya'ni nosozlik ko'zdan qolmaydi.
+const TRACK_SRC = (new URLSearchParams(location.search).get('src') || '').slice(0, 32);
+let trackOxirgi = '';
+
+function track(kind, screen, product) {
+  // Bir xil ko'rinish qayta chizilsa (savatda son o'zgardi, sharh keldi)
+  // BU YANGI KO'RISH EMAS. Shusiz raqam qayta chizish soniga aylanib,
+  // eng ko'p tahrirlangan ekran eng ommabop bo'lib ko'rinardi.
+  const kalit = `${kind}|${screen}|${product || ''}`;
+  if (kind === 'view') {
+    if (kalit === trackOxirgi) return;
+    trackOxirgi = kalit;
+  }
+  try {
+    fetch('/api/track', {
+      method: 'POST',
+      credentials: 'omit',
+      keepalive: true,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        kind,
+        screen,
+        product: product || null,
+        face: 'web',
+        // Tashqi havola — serverda faqat HOSTi saqlanadi (db/028).
+        ref: document.referrer || null,
+        src: TRACK_SRC || null,
+      }),
+    }).catch(() => {});
+  } catch (e) { /* eski brauzer — o'lchov yo'q, sayt ishlayveradi */ }
+}
+
 function onLogin() {
   if (me) {
     drawerView = 'profile';
@@ -4072,6 +4120,12 @@ function renderPdp() {
   pdpBarSync();
   // Mobil nav'dagi "Katalog" faol emas: foydalanuvchi katalogda EMAS.
   mNavActive('');
+  // ⚠️ O'lchov AYNAN shu yerda, `openDetail()` da EMAS: brauzerning
+  // "orqaga/oldinga" tugmasi PDP ni `openDetail` ni CHETLAB o'tib chizadi
+  // (`popstate` ishlovchisi `renderPdp()` ni to'g'ridan-to'g'ri chaqiradi),
+  // ya'ni o'sha yerga qo'yilganda tarixdan qaytgan ko'rishlar yo'qolardi.
+  // `track()` ning o'zi takrorni ushlaydi.
+  track('view', 'product', pdpId);
 }
 
 /* ── Sahifa sarlavhasi ──
@@ -4197,6 +4251,10 @@ function closePdp() {
   document.body.classList.remove('pdp-bar-on');
   pdpTitle(null);
   mNavActive('catalog');
+  // Takror qorovuli bo'shatiladi (`closeCart()` dagi bilan bitta sabab):
+  // matoni yopib qayta ochish — YANGI ko'rish, va aynan shu takrorlanuvchi
+  // qiziqish "eng ko'p ko'rilgan mato" raqamining ma'nosi.
+  trackOxirgi = '';
   // Manzil qatorida mahsulot yo'li qolib ketmasin — qolsa sahifa
   // yangilanganda katalog o'rniga o'sha mahsulot ochilardi.
   if (pdpFromUrl()) history.pushState({}, '', '/' + location.search);
@@ -4747,6 +4805,11 @@ function addToCart(id) {
   updateBadge();
   renderCardAction(id);
   if (isOpen() && (drawerView === 'cart' || drawerView === 'fav')) renderDrawer();
+  // Voronkaning ikkinchi pog'onasi. ⚠️ FAQAT birinchi qo'shish emas, HAR
+  // qo'shish yoziladi — panel baribir TASHRIFCHI bo'yicha noyoblaydi
+  // (`routes/admin.js` → `handleAdminTraffic` → voronka izohi), ya'ni bu
+  // yerda saralash qilish o'lchovni ikki joyga bo'lib yuborardi.
+  track('cart', 'cart', id);
 }
 
 /* ⚠️ Kartochka SAHIFADA BIR NECHTA joyda turishi mumkin (2026-08-16):
@@ -4956,6 +5019,16 @@ function openDrawerEl() {
   d.classList.add('open');
   d.setAttribute('aria-hidden', 'false');
   document.body.style.overflow = 'hidden';
+  // ⚠️ IKKINCHI o'lchov nuqtasi va u SHART. `openCart()` avval
+  // `renderDrawer()` ni chaqiradi, `.open` klassi esa SHU YERDA qo'yiladi —
+  // ya'ni chizish paytida tortma hali YOPIQ va u yerdagi tekshiruv
+  // hodisani tashlab yuborardi. Natijada tortmaning BIRINCHI ochilishi
+  // hech qachon sanalmasdi: "Savat" ekrani faqat ochiq tortma ichida
+  // ko'rinish almashtirilgandagina yozilardi. Nuqson brauzerda o'lchab
+  // topildi (2026-08-18) — kod "to'g'ri" ko'rinardi.
+  // Takrorni `track()` ning o'zi to'sadi, ya'ni ikkita nuqta ikki marta
+  // yozmaydi.
+  track('view', drawerView, null);
 }
 
 function closeCart() {
@@ -4967,6 +5040,9 @@ function closeCart() {
   s.classList.remove('show');
   setTimeout(() => { s.hidden = true; }, 240);
   document.body.style.overflow = '';
+  // Takror qorovulini bo'shatamiz: savatni yopib QAYTA ochish — YANGI
+  // ko'rish. Bo'shatilmasa ayni ekranga qayta kirish umuman sanalmasdi.
+  trackOxirgi = '';
   // muvaffaqiyat ekranidan keyin savat ko'rinishiga qaytamiz
   if (drawerView === 'done') drawerView = 'cart';
   // Panel yopilgach mobil nav'da "Katalog" yana faol bo'ladi — LEKIN ostida
@@ -4991,6 +5067,16 @@ function renderDrawer() {
   const foot = document.getElementById('drawer-foot');
   const title = document.getElementById('drawer-title');
   if (!body || !foot || !title) return;
+
+  // ⚠️ O'lchov shu yerda, `drawerView = '...'` yozilgan 25 ta joyda EMAS:
+  // ro'yxatni qo'lda yuritish kerak bo'lardi va yangi ko'rinish qo'shilganda
+  // u jimgina o'lchanmay qolardi. `renderDrawer` — hammasi o'tadigan yagona
+  // nuqta (`lib/auth.js` → `requestUser` bilan bitta mulohaza).
+  //
+  // ⚠️ Tortma YOPIQ bo'lsa hisoblanmaydi: u fon holatida ham qayta
+  // chiziladi (savat soni o'zgarganda), ya'ni odam ko'rmagan ekran
+  // "ko'rilgan" bo'lib yozilardi.
+  if (isOpen()) track('view', drawerView, null);
 
   if (drawerView === 'done') {
     title.textContent = t('orderAccepted');
@@ -5486,6 +5572,13 @@ updateBadge();
 renderAllCardActions();
 updateFavBadge();
 renderAllFavBtns();
+
+/* ── Birinchi ko'rish ──
+   ⚠️ Havola TO'G'RIDAN-TO'G'RI matoga kelgan bo'lsa (`/mahsulot/<id>`)
+   "katalog" YOZILMAYDI: odam katalogni ko'rmagan, va yozilsa har bir
+   ulashilgan havola katalogga bittadan soxta ko'rish qo'shib borardi.
+   Mato ko'rishini `renderPdp()` o'zi yozadi. */
+if (!pdpFromUrl()) track('view', 'katalog', null);
 
 /* Kartochka endi bosiladigan element — klaviatura bilan ham ochilsin.
    Atributlar HTML'da 12 marta takrorlanmaydi: kartochka qo'shilganda

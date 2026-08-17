@@ -533,6 +533,40 @@ const CF_PURGE_ENABLED = !!(CF_API_TOKEN && CF_ZONE_ID);
   }
 }
 
+// ============ TRAFIK O'LCHOVI UCHUN SIR (2026-08-18) ============
+// `db/028` dagi `traffic_events.visitor` — `sha256(ip|user-agent|SIR|KUN)`.
+// SIR shu yerdan keladi va uning YAGONA vazifasi: bazani ko'rgan odam
+// ma'lum IP ni HISOBLAB topa olmasin. Sirsiz hash foydasiz bo'lardi —
+// O'zbekistondagi IP fazosi kichik, ya'ni hammasini birma-bir hash qilib
+// solishtirish arzon ish (rainbow table).
+//
+// ⚠️ IXTIYORIY va `process.exit` QILINMAYDI (R2/AI/karta bilan bitta naqsh):
+// berilmasa BOT_TOKEN dan hosila olinadi. Zaxira ATAYLAB bor — sir yo'qligi
+// trafik o'lchovini butunlay o'chirib qo'yса, funksiya jimgina o'lik turardi
+// va buni hech narsa ko'rsatmasdi (`ALERT_CHAT_ID` darsi).
+//
+// ⚠️ ZAXIRANING NARXI AYTILADI: BOT_TOKEN almashtirilsa (2026-08-13 da bir
+// marta bo'lgan) hosila ham o'zgaradi va O'SHA KUNGI tashrifchi soni bir oz
+// oshib ketadi — bitta odam token almashuvidan oldin va keyin ikki xil belgi
+// oladi. "Ko'rishlar" soniga TEGMAYDI. Shuning uchun `.env` da o'z qiymatini
+// qo'yish afzal: `TRAFFIC_SALT=$(openssl rand -hex 32)`.
+function trafficSalt(raw) {
+  const v = String(raw || '').trim();
+  if (!v) return '';
+  // Kamida 16 belgi — kaliti kalta sir sirning o'zi emas. Yuqori chegara
+  // yo'q. Shakl tor emas: bu qiymat hech qayerga yuborilmaydi, faqat hash
+  // ichiga kiradi, ya'ni belgilar to'plami muhim emas — UZUNLIGI muhim.
+  if (v.length < 16) {
+    // Birinchi argument — alert guruhlash kaliti (CLAUDE.md, Test 10c).
+    // Sirning O'ZI jurnalga chiqmaydi — faqat uzunligi.
+    console.error('TRAFFIC_SALT juda kalta, BOT_TOKEN hosilasiga qaytildi:', `uzunlik=${v.length}`);
+    return '';
+  }
+  return v;
+}
+const TRAFFIC_SALT = trafficSalt(process.env.TRAFFIC_SALT)
+  || require('crypto').createHash('sha256').update(`lolamarket-traffic|${BOT_TOKEN}`).digest('hex');
+
 if (!BOT_TOKEN || !ADMIN_CHAT_ID) {
   console.error('BOT_TOKEN yoki ADMIN_CHAT_ID .env da topilmadi');
   process.exit(1);

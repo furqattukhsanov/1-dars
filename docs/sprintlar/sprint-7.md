@@ -41,6 +41,103 @@ Founder sifatida platformani to'liq nazorat qilish: ishlab chiqaruvchilarni tasd
 
 ## Qilingan ishlar
 
+- [2026-08-18] **Sayt va Mini App trafigi endi O'LCHANADI va panelda ko'rinadi —
+  yangi «Trafik» sahifasi (`db/028_traffic.sql`).** Band `users.src` (2026-08-13)
+  ochib qoldirgan savolni yopadi: o'shanda odam QAYSI kanaldan kelgani
+  o'lchanardi, **kelgandan keyin nima qilgani** esa umuman yo'q edi. Yangi
+  `traffic_events` jadvali ikki hodisani yozadi — `view` (ekran ochildi) va
+  `cart` (savatga qo'shildi); buyurtma ATAYLAB yozilmaydi, u `orders` da
+  yashaydi va u yerda pulga bog'langan (nusxa ikki xil son berardi).
+
+  🔴 **AVVAL TEKSHIRILDI VA ESKIRGAN DA'VO TOPILDI — ISH SHUNDAN BOSHLANDI:**
+  panelning O'ZIDA «loyihada veb-analitika ulanmagan» deb yozilib turgandi
+  (2026-07-27 qarori, pastda). Amalda **Cloudflare Web Analytics beacon'i
+  2026-08-02 dan beri IKKALA yuzda ishlab turibdi**. Hisobotchi buni
+  MUSTAQIL ikkinchi usul bilan qayta tasdiqladi (`curl`, brauzer
+  sarlavhalari bilan): `static.cloudflareinsights.com/beacon.min.js`,
+  token `6acaeab5…`, `lolamarket.uz/` va `lolamarket.uz/mini-app/` da AYNI
+  token, `script-src` da host RUXSAT ETILGAN, beacon esa `/cdn-cgi/rum` ga
+  — ya'ni O'Z originimizga — yozadi, shuning uchun `connect-src 'self'`
+  ham to'sib qo'ymaydi. Ya'ni tekshirilmaganda **allaqachon o'lchanayotgan
+  narsa ikkinchi marta qurilardi** (2026-08-13 dagi «`/start` hisoblagichi
+  yo'q» darsining aynan takrori).
+  ⚠️ **YO'L-YO'LAKAY TUZOQ, KELAJAKDA QAYTA TEKSHIRADIGAN ODAM UCHUN:**
+  **oddiy `curl` beacon'ni KO'RSATMAYDI** — Cloudflare uni faqat so'rov
+  brauzerga o'xshaganda (`Accept: text/html…`, `Sec-Fetch-Dest: document`)
+  qo'shadi. Sarlavhasiz `curl` bo'sh javob beradi va u **«beacon yo'q»**
+  degan YOLG'ON xulosaga olib keladi (bu ish paytida aynan shunday bo'ldi,
+  ikkinchi urinishda ochildi).
+
+  **Ikkalasi bir narsani o'lchamaydi va shuning uchun ikkinchi yo'l ochildi**
+  (CLAUDE.md — «mavjud funksiya ustiga ikkinchi yo'l» qoidasi: ortiqchalik
+  SANALDI): Cloudflare biladi — necha kishi keldi, qaysi mamlakat, qaysi
+  havola, lekin **qaysi MATO ko'rilganini bilmaydi** (bizning `products.id`
+  unga noma'lum) va ko'rish→savat konversiyasini hisoblay olmaydi. Ustiga
+  Cloudflare raqami 7 kundan keyin ~10% ga siyraklashadi (namunaviy),
+  bizniki esa har hodisaning o'zi (aniq).
+
+  **Backend:** yangi `server/lib/traffic.js` (sof mantiq — ekran ro'yxati,
+  bot filtri, tashrifchi belgisi, ref host, yuz aniqlash), yangi
+  `server/routes/track.js` (`POST /api/track` — anonim, rate-limit, 400
+  kunlik tozalash), `server/routes/admin.js` → `handleAdminTraffic`
+  (`GET /api/admin/traffic?days=`, 7 so'rov: kunlik qator, yuz, ekranlar,
+  mahsulotlar, referrer, voronka, o'lchov boshlangan sana), `server.js` da
+  ikkita marshrut, `config.js` da `TRAFFIC_SALT`.
+  ⚠️ **Endpoint kimlikni UMUMAN so'ramaydi va bu e'tibordan qolgan joy
+  emas, QAROR:** `authUser()` ham, `requestUser()` ham chaqirilmaydi —
+  kirmagan mehmon trafikning katta qismi, kimlik so'ralsa u butunlay
+  o'lchanmasdi; ustiga bazada «kim qaysi sahifani ochdi» degan yozuv paydo
+  bo'lardi. Klient `credentials: 'omit'` yuboradi, ya'ni «bu endpoint
+  kimligingizni yozmaydi» degan gap va'da emas, KOD bilan tasdiqlangan.
+  ⚠️ **Trafik `/api/admin/summary` ga QO'SHILMADI** — u panelning eng issiq
+  so'rovi (har ochilishda va har amaldan keyin qayta yuklanadi), trafik esa
+  vaqt oralig'i bilan so'raladi va og'irroq.
+
+  **Frontend:** `script.js` va `telegram-app/app.js` da bir xil beacon
+  (`keepalive: true` — sahifa yopilayotganda ham yetib boradi; xato JIM
+  yutiladi, chunki o'lchov vositasi o'lchayotgan narsani sindirmasin, lekin
+  SERVER tomonda xato ko'rinadi). `admin/index.html` + `admin/admin.js` —
+  yangi «Trafik» sahifasi: 4 KPI, kunlik ustunlar, top matolar, ekranlar,
+  ikki yuz, referrer, voronka. Statistika sahifasidagi eskirgan
+  «veb-analitika ulanmagan» izohi almashtirildi.
+
+  🔴 **BRAUZERDA O'LCHASH NUQSON TOPDI — VA U KOD O'QIGANDA KO'RINMASDI:**
+  o'lchov avval faqat `renderDrawer()` da edi va «tortma ochiqmi» deb
+  tekshirardi, `openCart()` esa AVVAL chizadi, `.open` klassini KEYIN
+  qo'yadi — ya'ni **tortmaning birinchi ochilishi hech qachon sanalmasdi**
+  va «Savat» ekrani faqat ochiq tortma ichida ko'rinish almashtirilgandagina
+  yozilardi. Kod to'g'ri ko'rinardi, konsolda xato yo'q edi, testlar yashil
+  edi (`flex: none` va `<picture>` qoidalari bilan bitta oila). Endi
+  o'lchov `openDrawerEl()` da, takrorni `track()` ning o'zi to'sadi.
+
+  **Sinov:** `node server/test.js` — **81 test PASS, 0 xato** (hisobotchi
+  MUSTAQIL yurgizdi va `^✅ Test` satrlarini sanadi; 80 → 81, chunki Test 42
+  yangi raqam). **Test 42** — 8 band, **13 mutatsiya bilan sinaldi, 13 tasi
+  ham ushlandi**; ekran ro'yxati qo'lda yozilmaydi, ikkala frontend
+  manbasidan yig'iladi (28 ekran, 15 sayt + 15 Mini App).
+  ⚠️ **Yo'l-yo'lakay QOROVULNING O'ZIDA teshik topildi:** Test 23 `db/`
+  dagi eng katta raqamli faylni SO'ZGA qarab tanlardi va `db/028` IZOHIDA
+  `admin_actions_kind_check` eslatilgani uchun uni «ro'yxat manbai» deb
+  qabul qilib QIZIL bo'ldi — kod esa mutlaqo to'g'ri edi. Endi SQL izohlari
+  tahlildan oldin olib tashlanadi (`sqlSofi`). Bu Test 3f dagi «izohdagi
+  `requestUser()` qorovulni aldardi» darsining AYNAN takrori: **qorovul
+  matnni emas, KODNI o'qishi kerak.**
+
+  **Kesh:** `script.js` 53 → 55, `admin/admin.js` 25 → 26,
+  `telegram-app/app.js` 99 → 100, `panel.js` 46 → 47 (Test 16 jadvali birga).
+
+  🔴 **HALI BAJARILMAGAN — ISH TUGALLANMAGAN HISOBLANADI:** (1) `db/028`
+  haqiqiy Postgres'da HALI ishlamagan (lokalda baza yo'q — `pglite` AYNI
+  dvigatel emas) va u backenddan **OLDIN** qo'llanishi SHART, aks holda
+  `/api/track` va `/api/admin/traffic` birdan yiqiladi (27-iyul insidenti
+  naqshi); (2) `server/` rsync qilinmagan va servis restart qilinmagan
+  (`--no-owner --no-group` SHART — 2026-08-16 darsi); (3) frontend
+  push/deploy qilinmagan; (4) **panel bloki JONLI ma'lumot bilan hech
+  qachon ko'rilmagan** — bugungi hamma ekran bo'sh holatda sinaldi;
+  (5) `TRAFFIC_SALT` serverdagi `.env` ga qo'yilmagan (qo'yilmasa
+  `BOT_TOKEN` hosilasi ishlatiladi — ishlaydi, lekin token almashsa o'sha
+  kungi TASHRIFCHI soni bir oz shishadi).
+
 - [2026-08-14] **Manba belgisi endi JIMGINA rad etilmaydi — noto'g'ri havola
   ALERTGA chiqadi** (`server/routes/webhook.js` → yangi `manbaAniqla()`).
   🔴 **Band «`src` hech qachon yozilmagan — nuqson» deb ochilgandi va
@@ -155,6 +252,52 @@ Founder sifatida platformani to'liq nazorat qilish: ishlab chiqaruvchilarni tasd
 
 ## Qarorlar
 
+- [2026-08-18] Qaror: **o'z trafik jadvalimiz Cloudflare Web Analytics ning
+  O'RNINI BOSMAYDI — u ATAYLAB ikkinchi yo'l.** Ortiqchalik CLAUDE.md
+  qoidasi bo'yicha oldin SANALDI va farq aniq bo'lgani uchun yo'l ochildi:
+  Cloudflare mahsulot darajasini bera OLMAYDI (`products.id` unga noma'lum)
+  va ko'rish→savat konversiyasini hisoblay olmaydi, chunki bizning
+  jadvallarimiz bilan bir bazada emas. 🔴 **Panelda ikkalasi YONMA-YON
+  QO'YILMAYDI:** Cloudflare raqami namunaviy (7 kundan keyin ~10%),
+  bizniki har hodisaning o'zi — mos kelmagan ikki raqam «biri buzuq»
+  degan yolg'on nosozlik tug'dirardi
+
+- [2026-08-18] Qaror: **xom IP hech qachon saqlanmaydi** — `visitor` =
+  `sha256(ip|user-agent|sir|KUN)` ning 16 belgisi. **Kun HASH ICHIDA
+  turadi**, ya'ni odam kunlar bo'ylab kuzatilmaydi. Bu qulaylik emas,
+  maxfiylik qarori: baza zaxirasi Telegram chatiga ketadi
+  (`BACKUP_CHAT_ID` bandi — o'sha chatdagi har kim butun bazani yuklab
+  oladi), ya'ni xom IP bo'lsa u TARQARDI. Sir serverda yashaydi, aks holda
+  O'zbekiston IP fazosi kichik bo'lgani uchun hammasini birma-bir hash
+  qilib solishtirish arzon ish bo'lardi
+
+- [2026-08-18] Qaror: **«ko'rishlar» ANIQ, «tashrifchi» TAXMINIY — va buni
+  PANELNING O'ZI aytadi**, hujjat emas. Bitta odam wifi'dan 4G'ga o'tsa ikki
+  marta sanaladi, bitta ofisdagi bir necha kishi ko'pincha ajraladi (har xil
+  user-agent). ⚠️ **Kunlik tashrifchilarni QO'SHIB BO'LMAYDI** (belgi
+  kunlik) — panel o'rtachani ko'rsatadi; yig'indi «30 kunda 900 kishi keldi»
+  degan yolg'onni tug'dirardi. Bu 2026-08-08 dagi «yorliq raqamdan
+  muhimroq» qarori bilan bitta oilada
+
+- [2026-08-18] Qaror: **ma'lumot bo'lmasa panel NOL emas, SABAB ko'rsatadi.**
+  Sabab shu sahifaning O'Z tarixi: 2026-07-27 da bu yerdan aynan o'ylab
+  topilgan tashrif raqamlari olib tashlangan edi — nol ham xuddi shunday
+  yolg'on, chunki «o'lchanmadi» ≠ «hech kim kelmadi» (`NULL` reyting va
+  `ALERT_CHAT_ID` oilasi)
+
+- [2026-08-18] Qaror: trafik hodisasi endpointi **kimlikni UMUMAN
+  so'ramaydi** — `authUser()` ham, `requestUser()` ham chaqirilmaydi va
+  klient `credentials: 'omit'` bilan yuboradi. Sabab ikkitalik: kimlik
+  so'ralsa kirmagan mehmon (trafikning katta qismi) o'lchanmasdi, ustiga
+  bazada «kim qaysi sahifani ochdi» degan yozuv paydo bo'lardi. CLAUDE.md
+  dagi `requestUser()` qoidasi «kimlik olinsa BITTA nuqtadan olinsin»
+  deydi — bu yerda kimlik umuman olinmaydi, ya'ni qoidaga zid emas
+
+- [2026-08-18] Qaror: `GET /api/admin/traffic` **`/api/admin/summary` dan
+  ALOHIDA endpoint.** Sabab: `summary` panel har ochilganda va har amaldan
+  keyin qayta yuklanadi, trafik esa vaqt oralig'i bilan so'raladi va
+  og'irroq — bittaga qo'shilsa panelning eng issiq so'rovi sekinlashardi
+
 - [2026-08-14] Qaror (founder): **manba belgisining shakli QAT'IY qoladi —
   kengaytirilmaydi, LEKIN rad etish endi QICHQIRADI.** Telegram katta harf
   va chiziqchaga ruxsat bergani uchun ikki yo'l bor edi: (a) shaklni
@@ -199,7 +342,7 @@ Founder sifatida platformani to'liq nazorat qilish: ishlab chiqaruvchilarni tasd
 - [2026-07-27] Qaror: bahs dalili (rasm/video) Telegram bot orqali yig'iladi — bizda faqat `file_id` saqlanadi, fayl Telegram serverida qoladi. Sabab: loyihada fayl yuklash mexanizmi umuman yo'q edi; bu yo'l disk boshqaruvi, hajm/tur validatsiyasi va zaxira nusxa muammosini butunlay chetlab o'tadi. Panelda rasm ko'rsatish uchun server proksi qiladi va havola `file_id` dan HMAC bilan imzolanadi — bot tokeni hech qachon brauzerga chiqmaydi
 - [2026-07-27] Qaror: bahs ochilganda buyurtma holati O'ZGARMAYDI — buyurtma o'z logistika holatida qoladi (`shipped` / `delivered`), bahs esa alohida kuzatiladi. Sabab: holatni `disputed` ga o'tkazish avvalgi haqiqiy holatni yo'qotardi. Ochiq bahsli buyurtma panelda ⚖️ belgisi bilan ajratiladi va "Pul o'tkazish" tugmasi unda ko'rinmaydi
 - [2026-07-27] Qaror: refund hozircha faqat buxgalteriya yozuvi — Payme/Click ulanmagani uchun pul o'tkazmasi qo'lda bajariladi, tizim faqat faktni qayd etadi va xaridorga xabar beradi. Bu Telegram tasdiq xabarida ham ochiq yozilgan
-- [2026-07-27] Qaror: Statistika sahifasidan sayt tashriflari, xaridorlar dinamikasi va konversiya ko'rsatkichlari olib tashlanadi — loyihada veb-analitika ulanmagan, o'sha raqamlar to'liq o'ylab topilgan edi. Panel faqat bazadan keladigan raqamni ko'rsatadi
+- [2026-07-27] Qaror: Statistika sahifasidan sayt tashriflari, xaridorlar dinamikasi va konversiya ko'rsatkichlari olib tashlanadi — loyihada veb-analitika ulanmagan, o'sha raqamlar to'liq o'ylab topilgan edi. Panel faqat bazadan keladigan raqamni ko'rsatadi. **⚠️ QISMAN ESKIRGAN (2026-08-18):** «veb-analitika ulanmagan» qismi endi NOTO'G'RI — Cloudflare Web Analytics 2026-08-02 dan beri ikkala yuzda ishlab turibdi va tekshirilganda topildi, ya'ni panelning O'ZIDA eskirgan da'vo yozilib turgan edi. Tashrif/konversiya raqamlari **QAYTDI, lekin boshqa asosda**: endi ular o'ylab topilmaydi, `traffic_events` jadvalidan keladi va ma'lumot bo'lmasa nol emas, SABAB ko'rsatiladi. «Panel faqat bazadan keladigan raqamni ko'rsatadi» qismi o'z kuchida — u aslida buzilmadi, chunki yangi raqam ham bazadan keladi
 
 - [2026-07-26] Qaror: sidebar foni OQ bo'ladi, faol nav band esa to'ldirilgan anor gradient + oq matn bilan ajratiladi (founder: "rangini oq qilaylik backgroundni, panellar bosilganda esa asosiy rang bilan chiqsin"). Shu bilan oldingi to'q anor sidebar (`#85180f`→`#3d0a04`) va logotip fonidan olingan mat `#510100` variantlari bekor qilindi
 - [2026-07-26] Qaror: admin panelning butun kontent foni to'liq oq (`#FFFFFF`) — krem fon olib tashlandi. Natijada karta chegarasi uchun oq `--glass-edge` ishlamay qoldi; barcha kartalarda yumshoq issiq hairline `rgba(133,24,15,.11)` ishlatiladi

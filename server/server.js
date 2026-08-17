@@ -14,7 +14,9 @@ const {
 } = require('./routes/web-auth');
 const {
   handleAdminSummary, handleAdminActionRequest, handleAdminActionStatus,
+  handleAdminTraffic,
 } = require('./routes/admin');
+const { handleTrack } = require('./routes/track');
 const {
   handleCreateDispute, handleGetDisputes, handleSellerDisputeReply,
   handleAdminDisputes, handleDisputePhoto, scanStaleDisputes, DISPUTE_REMINDER_MS,
@@ -107,6 +109,15 @@ function routeRequest(req, res) {
     return handleWebMyOrders(req, res, ip);
   }
 
+  /* Trafik hodisasi — ANONIM va ATAYLAB kimliksiz (`routes/track.js` izohi).
+     Sayt ham, Mini App ham shu yerga yozadi; javob kutilmaydi. */
+  if (path === '/api/track') {
+    cors(res, 'POST, OPTIONS');
+    if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
+    if (req.method !== 'POST') return fail(res, 'method not allowed', 405);
+    return handleTrack(req, res, ip);
+  }
+
   if (path === '/api/products') {
     cors(res, 'GET, POST, OPTIONS');
     if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
@@ -128,6 +139,17 @@ function routeRequest(req, res) {
     if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
     if (req.method !== 'GET') return fail(res, 'method not allowed', 405);
     return handleAdminSummary(req, res, ip);
+  }
+
+  /* Trafik statistikasi — `summary` dan ALOHIDA. Sabab: u vaqt oralig'i
+     bilan so'raladi (`?days=`) va og'irroq, `summary` esa panel har
+     ochilganda va har amaldan keyin qayta yuklanadi. Bittaga qo'shilsa
+     panelning eng issiq so'rovi sekinlashardi. */
+  if (path === '/api/admin/traffic') {
+    cors(res, 'GET, OPTIONS');
+    if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
+    if (req.method !== 'GET') return fail(res, 'method not allowed', 405);
+    return handleAdminTraffic(req, res, ip);
   }
 
   // Paneldan so'ralgan yozuv amali — Telegram'da tasdiqlanadi

@@ -308,6 +308,145 @@ async function handleAdminSummary(req, res, ip) {
   }
 }
 
+// ============ /api/admin/traffic — SAYT VA MINI APP TRAFIGI (2026-08-18) ============
+// Manba — `traffic_events` (db/028). Har qator bitta hodisa, ya'ni bu yerdagi
+// "ko'rishlar" soni ANIQ (namuna emas, taxmin emas).
+//
+// ⚠️ CLOUDFLARE BILAN SOLISHTIRILMASIN. Cloudflare Web Analytics ham shu
+// saytni o'lchaydi, lekin uning raqami 7 kundan keyin ~10% ga siyraklashadi
+// va GraphQL javobi dinamik namuna bilan keladi. Ikki raqam YONMA-YON
+// qo'yilsa "biri buzuq" degan yolg'on xulosa tug'ilardi — ular boshqa-boshqa
+// narsani o'lchaydi (db/028 sarlavhasidagi jadval).
+//
+// ⚠️ O'LCHOV BOSHLANGAN SANA ALOHIDA QAYTARILADI (`since`). Sababi CLAUDE.md
+// dagi `src IS NULL` darsi bilan bitta: o'lchov boshlanishidan OLDINGI kunlar
+// "nol tashrif" emas, "O'LCHANMAGAN". Grafikda nol chizilsa panel o'sish
+// bo'lmagan joyda o'sish ko'rsatardi.
+async function handleAdminTraffic(req, res, ip) {
+  if (rateLimited(`admintraffic:${ip}`, 30)) return fail(res, 'too many requests', 429);
+  if (!adminPanelAuth(req, res)) return;
+
+  // Oraliq — 7..90 kun. Qiymat SO'ROVGA to'g'ridan-to'g'ri qo'yilmaydi
+  // (`interval` parametr bilan ishlamaydi), shuning uchun avval BUTUN SONGA
+  // aylantiriladi va chegaralanadi — ya'ni satr sifatida hech qachon
+  // o'tmaydi.
+  const xom = parseInt(new URL(req.url, 'http://x').searchParams.get('days'), 10);
+  const days = Number.isInteger(xom) ? Math.min(90, Math.max(7, xom)) : 30;
+
+  try {
+    const [dailyRes, faceRes, screenRes, productRes, refRes, funnelRes, sinceRes] = await Promise.all([
+      // ---- Kunlik qator. `generate_series` bo'sh kunlarni ham beradi (GMV
+      // grafigidagi bilan bitta naqsh) — aks holda tashrifsiz kun grafikdan
+      // tushib qolib, chiziq uzilardi.
+      pool.query(`
+        SELECT d::date AS day,
+               count(t.id) FILTER (WHERE t.kind = 'view')::int AS views,
+               count(DISTINCT t.visitor)::int                  AS visitors
+          FROM generate_series(date_trunc('day', now()) - ($1::int - 1) * interval '1 day',
+                               date_trunc('day', now()), interval '1 day') d
+          LEFT JOIN traffic_events t
+                 ON t.at >= d AND t.at < d + interval '1 day'
+         GROUP BY d ORDER BY d`, [days]),
+
+      // ---- Yuz bo'yicha. Sayt va Mini App ALOHIDA: ular bitta raqamga
+      // qo'shilsa "sayt o'sdi" degan xulosa aslida Mini App o'sishi bo'lib
+      // chiqishi mumkin edi.
+      pool.query(`
+        SELECT face,
+               count(*) FILTER (WHERE kind = 'view')::int AS views,
+               count(DISTINCT visitor)::int               AS visitors
+          FROM traffic_events
+         WHERE at >= now() - ($1::int * interval '1 day')
+         GROUP BY face`, [days]),
+
+      pool.query(`
+        SELECT screen, count(*)::int AS views
+          FROM traffic_events
+         WHERE kind = 'view' AND at >= now() - ($1::int * interval '1 day')
+         GROUP BY screen ORDER BY views DESC LIMIT 15`, [days]),
+
+      // ---- Eng ko'p ko'rilgan matolar. AYNAN SHU savolga Cloudflare javob
+      // BERA OLMAYDI — u bizning mahsulot id'imizni bilmaydi.
+      // `LEFT JOIN` — mahsulot o'chirilgan bo'lsa ham qator yo'qolmasin
+      // (db/028 da tashqi kalit ataylab yo'q).
+      pool.query(`
+        SELECT t.product_id, p.name_uz AS name,
+               count(*)::int                  AS views,
+               count(DISTINCT t.visitor)::int AS visitors
+          FROM traffic_events t
+          LEFT JOIN products p ON p.id = t.product_id
+         WHERE t.kind = 'view' AND t.product_id IS NOT NULL
+           AND t.at >= now() - ($1::int * interval '1 day')
+         GROUP BY t.product_id, p.name_uz
+         ORDER BY views DESC LIMIT 15`, [days]),
+
+      pool.query(`
+        SELECT ref, count(*)::int AS views
+          FROM traffic_events
+         WHERE ref IS NOT NULL AND at >= now() - ($1::int * interval '1 day')
+         GROUP BY ref ORDER BY views DESC LIMIT 10`, [days]),
+
+      // ---- Voronka. Uchala pog'ona ham TASHRIFCHI bo'yicha sanaladi,
+      // hodisa bo'yicha emas: bitta odam matoni 10 marta ochsa konversiya
+      // 10 barobar yaxshi ko'rinib qolardi.
+      //
+      // ⚠️ Buyurtma soni `orders` dan olinadi, `traffic_events` dan EMAS.
+      // Sabab: buyurtma — pulga bog'langan HAQIQAT va uning yagona manbai
+      // `orders`. Ikkinchi joyga nusxalansa ikki raqam ikki xil bo'lardi
+      // (reyting hosila qoidasi bilan bitta oila).
+      pool.query(`
+        SELECT (SELECT count(DISTINCT visitor) FROM traffic_events
+                 WHERE kind = 'view' AND product_id IS NOT NULL
+                   AND at >= now() - ($1::int * interval '1 day'))::int AS viewed,
+               (SELECT count(DISTINCT visitor) FROM traffic_events
+                 WHERE kind = 'cart'
+                   AND at >= now() - ($1::int * interval '1 day'))::int AS carted,
+               (SELECT count(*) FROM orders
+                 WHERE created_at >= now() - ($1::int * interval '1 day')
+                   AND status NOT IN ('cancelled','refunded'))::int     AS ordered`, [days]),
+
+      // ---- O'lchov QACHON boshlangan. Jadval bo'sh bo'lsa `NULL` — panel
+      // shunda blokni UMUMAN ko'rsatmaydi (nol chizmaydi).
+      pool.query(`SELECT min(at) AS since, count(*)::int AS total FROM traffic_events`),
+    ]);
+
+    const face = (n) => faceRes.rows.find((r) => r.face === n) || { views: 0, visitors: 0 };
+    const f = funnelRes.rows[0];
+
+    ok(res, {
+      days,
+      // O'lchov boshlangan payt — panel "bundan oldingi kunlar o'lchanmagan"
+      // deb AYTISHI uchun. `null` bo'lsa hali birorta hodisa yo'q.
+      since: sinceRes.rows[0].since ? new Date(sinceRes.rows[0].since).toISOString() : null,
+      total: sinceRes.rows[0].total,
+
+      daily: dailyRes.rows.map((r) => ({
+        day: r.day instanceof Date ? r.day.toISOString().slice(0, 10) : String(r.day),
+        views: r.views,
+        visitors: r.visitors,
+      })),
+
+      faces: {
+        web: { views: face('web').views, visitors: face('web').visitors },
+        miniapp: { views: face('miniapp').views, visitors: face('miniapp').visitors },
+      },
+
+      screens: screenRes.rows.map((r) => ({ screen: r.screen, views: r.views })),
+      products: productRes.rows.map((r) => ({
+        id: r.product_id, name: r.name, views: r.views, visitors: r.visitors,
+      })),
+      refs: refRes.rows.map((r) => ({ ref: r.ref, views: r.views })),
+
+      funnel: { viewed: f.viewed, carted: f.carted, ordered: f.ordered },
+    });
+  } catch (e) {
+    // ⚠️ Jadval hali yaratilmagan bo'lsa (migratsiya o'tkazilmagan) bu yerga
+    // tushadi va panel blokni ko'rsatmaydi — sayt esa ishlayveradi.
+    console.error('adminTraffic xatosi:', e.message);
+    fail(res, 'server error', 500);
+  }
+}
+
 // ============ ADMIN AMALLARI: panel so'raydi → Telegram tasdiqlaydi ============
 //
 // Nega ikki bosqich (2026-07-27 founder qarori):
@@ -843,4 +982,7 @@ async function handleAdminActionCallback(cq) {
   await notify(ADMIN_CHAT_ID, resultText);
 }
 
-module.exports = { handleAdminSummary, handleAdminActionRequest, handleAdminActionStatus, handleAdminActionCallback };
+module.exports = {
+  handleAdminSummary, handleAdminTraffic,
+  handleAdminActionRequest, handleAdminActionStatus, handleAdminActionCallback,
+};

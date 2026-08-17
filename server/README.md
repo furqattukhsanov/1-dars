@@ -318,6 +318,7 @@ holatda kod www-data'ga tegishli, ya'ni bu himoya hali yo'q.
 | `R2_BUCKET` | Bucket nomi (`lolamarket-storage`). URL YO'LIGA qo'yiladi, nomlash qoidasi tekshiriladi |
 | `R2_PUBLIC_BASE` | Ommaviy manzil (`https://cdn.lolamarket.uz`). **Yuklashdan ALOHIDA sozlama:** yuklash ishlashi rasmning ommaviy ko'rinishini bildirmaydi. Berilmasa yuklash ishlayveradi, URL esa eski Telegram proksisidan beriladi |
 | `YANDEX_MAPS_KEY` | Profildagi "Mening manzilim" kartasi uchun Yandex Maps JS API kaliti. Shakli tekshiriladi (`<key>` namunasi qolib ketsa karta o'chadi). **Berilmasa server TO'XTAMAYDI** — nuqta ro'yxatdan tanlanadi va manzil bo'limi to'liq ishlayveradi |
+| `TRAFFIC_SALT` | Trafik o'lchovidagi tashrifchi belgisi uchun sir (`db/028`). Kamida 16 belgi: `openssl rand -hex 32`. **Berilmasa server TO'XTAMAYDI** — `BOT_TOKEN` dan hosila olinadi, lekin token almashtirilsa o'sha kungi tashrifchi soni bir oz oshib ketadi (ko'rishlar soniga tegmaydi) |
 
 **Sotuvchi kabineti kimga ochiq (2026-08-13, founder qarori).** Kabinet IKKI
 shartda ochiladi: (1) Telegram ID `SELLER_TG_IDS` da, (2) bazada
@@ -554,3 +555,60 @@ curl -s -o /dev/null -w '%{http_code}\n' https://lolamarket.uz/api/web/orders
 
 Keyin saytda "Kirish" tugmasini bosing — Telegram ochilib "Boshlash" bosilgandan
 keyin sahifa o'zi profilingizga o'tishi kerak.
+
+## Trafik o'lchovi deploy qadamlari (2026-08-18)
+
+Sayt va Mini App ekran ochilishini serverga yozadi, panel esa "Trafik"
+bo'limida ko'rsatadi. Manba — `traffic_events` jadvali (`db/028`).
+
+⚠️ **Bu Cloudflare Web Analytics'ning o'rnini bosmaydi.** Cloudflare beacon'i
+2026-08-02 dan beri ikkala yuzda ishlab turibdi va u umumiy tashrifni
+o'lchaydi. Bu yerdagi jadval boshqa savolga javob beradi: **qaysi mato**
+ko'rildi va **ko'rish → savat → buyurtma** yo'li qanday. Cloudflare bizning
+mahsulot id'imizni bilmaydi, shuning uchun buni u yerdan olib bo'lmaydi.
+
+```bash
+# 1. Migratsiya (jadval + indekslar + o'z-o'zini tekshirish)
+scp db/028_traffic.sql root@65.21.180.44:/tmp/
+ssh root@65.21.180.44 "sudo -u postgres psql -d lolamarket -f /tmp/028_traffic.sql"
+#    Oxirida `NOTICE: Tekshiruv OK — ...` chiqishi SHART. Chiqmasa jadval
+#    yaratilgan bo'lsa ham qorovullari ishlamayapti demakdir.
+
+# 2. Sir (ixtiyoriy, lekin tavsiya etiladi — qiymat yozishmaga CHIQMASIN)
+ssh root@65.21.180.44 "grep -q TRAFFIC_SALT /opt/lolamarket-notify/.env || \
+  echo \"TRAFFIC_SALT=\$(openssl rand -hex 32)\" >> /opt/lolamarket-notify/.env"
+
+# 3. Kodni ko'chirish va restart (yuqoridagi odatdagi Deploy bo'limi)
+#    Frontend (script.js, admin/, telegram-app/) CI orqali push bilan chiqadi.
+```
+
+### Nginx
+
+Yangi blok **KERAK EMAS**: `/api/track` va `/api/admin/traffic` mavjud
+`/api/` proxy bloki ostiga tushadi. CSP ham o'zgarmaydi — so'rov o'z
+domenimizga ketadi, ya'ni `connect-src 'self'` yetadi (2026-08-13 dagi
+"mavjud ruxsat yetganda yangi ruxsat ochilmaydi" qoidasi).
+
+### Deploydan keyin tekshirish
+
+```bash
+# Hodisa qabul qilinadimi (200 + {"ok":true} bo'lishi kerak)
+curl -s -X POST https://lolamarket.uz/api/track \
+  -H 'Content-Type: application/json' \
+  -d '{"kind":"view","screen":"katalog","face":"web"}'
+
+# Bot YOZILMAYDI, lekin 200 oladi — quyidagi so'rov jadvalga qator QO'SHMASLIGI kerak
+curl -s -X POST https://lolamarket.uz/api/track -A 'curl/8.4.0' \
+  -H 'Content-Type: application/json' -d '{"kind":"view","screen":"katalog"}'
+
+# Tokensiz statistika 401 bo'lishi SHART
+curl -s -o /dev/null -w '%{http_code}\n' https://lolamarket.uz/api/admin/traffic
+
+# Bazada nima yozilgani (xom IP YO'Qligini ko'z bilan tasdiqlang)
+ssh root@65.21.180.44 "sudo -u postgres psql -d lolamarket -c \
+  'SELECT kind, face, screen, product_id, left(visitor,6) AS belgi, ref, src, at FROM traffic_events ORDER BY at DESC LIMIT 5'"
+```
+
+Keyin admin panelda **Trafik** bo'limini oching. Jadval bo'sh bo'lsa sahifa
+raqam emas, SABAB ko'rsatadi — bu ataylab: nol ko'rsatish "hech kim kelmadi"
+degan yolg'on xulosaga olib borardi.

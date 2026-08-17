@@ -456,6 +456,45 @@
   ⚠️ **`src IS NULL` = "o'lchanmagan", "to'g'ridan-to'g'ri keldi" EMAS** —
   panelda kanallar ro'yxatidan TASHQARIDA turadi, aks holda eng katta "kanal"
   o'lchanmagan qatorlar bo'lib chiqardi (`NULL` reyting qoidasi bilan bitta oila).
+- **Trafik ikki joyda o'lchanadi va ular BIR XIL RAQAM BERMAYDI** (2026-08-18,
+  db/028). Cloudflare Web Analytics beacon'i **2026-08-02 dan beri ikkala
+  yuzda ishlab turibdi** (o'lchandi: `cdn-cgi/rum` so'rovi otiladi) — ya'ni
+  "bizda analitika yo'q" degan gap noto'g'ri edi va admin panelda AYNAN shu
+  jumla yozilib turgandi. Bizning `traffic_events` jadvalimiz uning O'RNINI
+  BOSMAYDI, boshqa savolga javob beradi:
+  Cloudflare → necha kishi keldi, qaysi mamlakat, qaysi havola (raqam
+  **namunaviy**: 7 kundan keyin ~10%); biz → **qaysi mato** ko'rildi va
+  **ko'rish→savat→buyurtma** (raqam **aniq**, chunki har hodisa alohida qator).
+  Mahsulot darajasini Cloudflare'dan olib bo'lmaydi — u bizning `products.id`
+  ni bilmaydi. 🔴 **Panelda ikkalasi yonma-yon qo'yilmasin** — mos kelmagan
+  ikki raqam "biri buzuq" degan yolg'on xulosa beradi.
+  ⚠️ **XOM IP SAQLANMAYDI:** `visitor` = `sha256(ip|user-agent|sir|KUN)` ning
+  16 belgisi. Kun HASH ICHIDA turadi, ya'ni odam kunlar bo'ylab kuzatilmaydi —
+  bu qulaylik emas, QAROR (baza zaxirasi Telegram chatiga ketadi, `BACKUP_CHAT_ID`
+  bandi). Shuning uchun **"ko'rishlar" ANIQ, "tashrifchi" TAXMINIY** va panel
+  buni AYTADI: bir odam wifi'dan 4G'ga o'tsa ikki marta sanaladi.
+  ⚠️ Kunlik tashrifchilarni **QO'SHIB BO'LMAYDI** (belgi kunlik) — panel
+  o'rtachani ko'rsatadi. Yig'indi "30 kunda 900 kishi keldi" degan yolg'onni
+  tug'dirardi.
+  ⚠️ Ma'lumot bo'lmasa panel **NOL EMAS, SABAB** ko'rsatadi: bu sahifada
+  ilgari o'ylab topilgan tashrif raqamlari turgan va shuning uchun olib
+  tashlangan edi — nol ham xuddi shunday yolg'on ("o'lchanmadi" ≠ "hech kim
+  kelmadi").
+  🔴 **CHIZIB BO'LGANDAN KEYIN OCHILADIGAN element o'lchovni yutadi.**
+  O'lchov avval faqat `renderDrawer()` da edi va u "tortma ochiqmi" deb
+  tekshirardi, `openCart()` esa AVVAL chizadi, `.open` klassini KEYIN qo'yadi —
+  ya'ni tortmaning **birinchi ochilishi hech qachon sanalmasdi**. Kod to'g'ri
+  ko'rinardi, testlar yashil edi; nuqson faqat **brauzerda o'lchaganda**
+  chiqdi (`flex: none` va `<picture>` qoidalari bilan bitta oila).
+  Qorovul: `server/test.js` → **Test 42** (8 band, 13 mutatsiya bilan sinaldi,
+  13 tasi ham ushlandi). Ekran ro'yxati qo'lda yozilmaydi — ikkala frontend
+  manbasidan yig'iladi.
+  ⚠️ **Yo'l-yo'lakay topilgan tuzoq:** Test 23 `db/` dagi eng katta raqamli
+  faylni SO'ZGA qarab tanlardi va `db/028` izohida `admin_actions_kind_check`
+  eslatilgani uchun uni "ro'yxat manbai" deb qabul qilib QIZIL bo'ldi — kod
+  esa mutlaqo to'g'ri edi. Endi SQL izohlari tahlildan oldin olib tashlanadi
+  (`sqlSofi`). Bu Test 3f dagi «izohdagi `requestUser()` qorovulni aldardi»
+  darsining AYNAN takrori: **qorovul matnni emas, KODNI o'qishi kerak.**
 - **Hujjatdagi raqam — TEKSHIRILMAGAN DA'VO** (2026-08-06). Optimizatsiya yoki
   tuzatish bandi ochilganda **bazaviy raqamning O'ZI qayta o'lchansin**, undan
   ish boshlanmasin. Sabab: raqam bandning kattaligini va navbatdagi o'rnini

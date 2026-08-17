@@ -73,6 +73,10 @@
           <svg viewBox="0 0 24 24"><rect x="2.6" y="9.5" width="4.2" height="11" rx="1.8"/><rect x="9.9" y="3.5" width="4.2" height="17" rx="1.8"/><rect x="17.2" y="12.5" width="4.2" height="8" rx="1.8"/></svg>
           <span>Statistika</span>
         </button>
+        <button class="nav-item" data-page="traffic">
+          <svg viewBox="0 0 24 24"><path d="M3.6 15.4l5-5.2 3.4 3.4 5.2-5.9 1.5 1.3-6.6 7.5-3.4-3.4-3.6 3.7-1.5-1.4z"/><rect x="2.6" y="18.6" width="18.8" height="2" rx="1"/></svg>
+          <span>Trafik</span>
+        </button>
         <button class="nav-item" data-page="planfakt">
           <svg viewBox="0 0 24 24"><path fill-rule="evenodd" d="M6.2 3h9.3l-2 2H6.2a1.2 1.2 0 00-1.2 1.2v11.6A1.2 1.2 0 006.2 19h11.6a1.2 1.2 0 001.2-1.2v-5.3l2-2v7.3A3.2 3.2 0 0117.8 21H6.2A3.2 3.2 0 013 17.8V6.2A3.2 3.2 0 016.2 3zM8.3 10.3l3.7 3.7 8-8-1.5-1.4L12 11.1 9.7 8.9l-1.4 1.4z"/></svg>
           <span>Reja/Fakt</span>
@@ -422,9 +426,124 @@
           </div>
 
           <div class="sample-note">
-            Sayt tashriflari va konversiya ko'rsatkichlari bu yerda YO'Q — loyihada hali
-            veb-analitika ulanmagan. Ilgari bu sahifada turgan raqamlar o'ylab topilgan edi,
-            shuning uchun olib tashlandi. Barcha qolgan raqamlar bazadan keladi.
+            Sayt tashriflari va konversiya ko'rsatkichlari endi <b>Trafik</b> bo'limida
+            (<b>2026-08-18</b> dan). Ilgari bu sahifada turgan tashrif raqamlari o'ylab
+            topilgan edi va o'shanda olib tashlangan — bugungilari esa bazadan keladi.
+            <a class="panel-link" data-page="traffic">Trafik →</a>
+          </div>
+        </section>
+
+        <!-- ═══ Trafik page ═══ -->
+        <section id="page-traffic" class="page">
+
+          <!-- ⚠️ Butun sahifa `hidden` bo'lib tug'iladi va FAQAT server
+               haqiqiy javob berganda ochiladi (`renderTraffic`). Nol
+               ko'rsatib turish eng yomon variant bo'lardi: migratsiya
+               o'tkazilmagan holat "hech kim kelmadi" bo'lib ko'rinardi. -->
+          <div id="trafficEmpty" class="sample-note">
+            Trafik ma'lumoti hali yo'q. Sabab ikkitadan biri: <b>db/028_traffic.sql</b>
+            migratsiyasi o'tkazilmagan, yoki o'lchov endi yoqilgan va birinchi
+            tashrif hali kelmagan.
+          </div>
+
+          <div id="trafficBody" hidden>
+            <div class="stats-grid">
+              <div class="stat-card glass tone-pom">
+                <div class="stat-top">
+                  <div class="stat-icon pom"><svg viewBox="0 0 24 24"><path d="M12 5c-5 0-8.6 4.2-9.6 6.4a1.4 1.4 0 000 1.2C3.4 14.8 7 19 12 19s8.6-4.2 9.6-6.4a1.4 1.4 0 000-1.2C20.6 9.2 17 5 12 5zm0 11.4a4.4 4.4 0 110-8.8 4.4 4.4 0 010 8.8zm0-2.2a2.2 2.2 0 100-4.4 2.2 2.2 0 000 4.4z"/></svg></div>
+                </div>
+                <div class="stat-number" id="trViews">–</div>
+                <div class="stat-label">Ko'rishlar</div>
+                <div class="stat-foot" id="trViewsFoot">–</div>
+              </div>
+
+              <div class="stat-card glass">
+                <div class="stat-top">
+                  <div class="stat-icon teal"><svg viewBox="0 0 24 24"><circle cx="9" cy="7.8" r="3.7"/><path d="M9 13c3.7 0 6.7 3 6.7 6.7a1 1 0 01-1 1H3.3a1 1 0 01-1-1C2.3 16 5.3 13 9 13z"/><circle cx="17.4" cy="8.4" r="2.9"/><path d="M17.4 13.2c2.9 0 5.3 2.4 5.3 5.3a1 1 0 01-1 1h-3.5c.1-.3.1-.6.1-.9 0-2.2-.8-4.2-2.2-5.7.4-.1.9-.1 1.3-.1z"/></svg></div>
+                </div>
+                <div class="stat-number" id="trVisitors">–</div>
+                <div class="stat-label">Tashrifchi (taxminiy)</div>
+                <div class="stat-foot" id="trVisitorsFoot">–</div>
+              </div>
+
+              <div class="stat-card glass tone-saffron">
+                <div class="stat-top">
+                  <div class="stat-icon saffron"><svg viewBox="0 0 24 24"><path d="M4 4h2.2l.7 3h13.4a1 1 0 01.97 1.24l-1.7 6.5A1 1 0 0118.6 15H8.4l.35 1.5H19v2H7.9a1 1 0 01-.97-.77L4.2 6H4V4z"/><circle cx="9.5" cy="20" r="1.5"/><circle cx="17.5" cy="20" r="1.5"/></svg></div>
+                </div>
+                <div class="stat-number" id="trCarts">–</div>
+                <div class="stat-label">Savatga qo'shildi</div>
+                <div class="stat-foot" id="trCartsFoot">–</div>
+              </div>
+
+              <div class="stat-card glass">
+                <div class="stat-top">
+                  <div class="stat-icon teal"><svg viewBox="0 0 24 24"><path d="M3.6 15.4l5-5.2 3.4 3.4 5.2-5.9 1.5 1.3-6.6 7.5-3.4-3.4-3.6 3.7-1.5-1.4z"/><rect x="2.6" y="18.6" width="18.8" height="2" rx="1"/></svg></div>
+                </div>
+                <div class="stat-number" id="trConv">–</div>
+                <div class="stat-label">Ko'rgan → savat</div>
+                <div class="stat-foot" id="trConvFoot">–</div>
+              </div>
+            </div>
+
+            <div class="panel glass">
+              <div class="panel-head">
+                <div>
+                  <div class="panel-title">Kunlik ko'rishlar</div>
+                  <div class="stat-foot" id="trChartFoot">–</div>
+                </div>
+              </div>
+              <div class="chart-grid" id="trChart"></div>
+            </div>
+
+            <div class="dash-grid dash-grid-even">
+              <div class="panel glass">
+                <div class="panel-head">
+                  <div class="panel-title">Eng ko'p ko'rilgan matolar</div>
+                </div>
+                <div class="cat-list" id="trProducts"></div>
+              </div>
+
+              <div class="panel glass">
+                <div class="panel-head">
+                  <div class="panel-title">Ekranlar</div>
+                </div>
+                <div class="cat-list" id="trScreens"></div>
+              </div>
+            </div>
+
+            <div class="dash-grid dash-grid-even">
+              <div class="panel glass">
+                <div class="panel-head">
+                  <div class="panel-title">Ikki yuz</div>
+                </div>
+                <div class="status-dist" id="trFaces"></div>
+              </div>
+
+              <div class="panel glass">
+                <div class="panel-head">
+                  <div class="panel-title">Qayerdan kelishgan</div>
+                </div>
+                <div class="cat-list" id="trRefs"></div>
+              </div>
+            </div>
+
+            <div class="panel glass">
+              <div class="panel-head">
+                <div class="panel-title">Voronka: ko'rish → savat → buyurtma</div>
+              </div>
+              <div class="status-dist" id="trFunnel"></div>
+            </div>
+
+            <div class="sample-note" id="trafficNote">
+              <b>Ko'rishlar</b> — aniq son, har hodisa alohida yoziladi.
+              <b>Tashrifchi</b> — <u>taxminiy</u>: belgi IP va qurilma turidan kunlik
+              tuzlangan hash bilan yasaladi (IP saqlanmaydi), ya'ni bir odam wifi'dan
+              mobil internetga o'tsa ikki marta sanaladi.
+              ⚠️ Reklama bloklovchi yoki JS o'chirilgan brauzer umuman o'lchanmaydi.
+              ⚠️ Cloudflare paneli ham shu saytni o'lchaydi, lekin uning raqami
+              <b>namunaviy</b> (7 kundan keyin ~10%) va mahsulot darajasini bilmaydi —
+              shuning uchun ikki raqam bir xil chiqmaydi va solishtirilmasin.
+            </div>
           </div>
         </section>
 
@@ -516,6 +635,6 @@
     </div>
   </div>
 
-  <script src="admin.js?v=25"></script>
+  <script src="admin.js?v=26"></script>
 </body>
 </html>

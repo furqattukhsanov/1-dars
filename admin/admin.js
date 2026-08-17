@@ -120,6 +120,7 @@ const state = {
   summary: null,
   disputes: [],
   daily: [],     // { date:Date, gmv, plan, orders, commission }
+  traffic: null, // null — o'lchanmagan/kelmagan (nol EMAS, `renderTraffic` izohi)
 };
 
 /* ═══════════════════════ API ═══════════════════════ */
@@ -140,6 +141,8 @@ async function api(path, opts = {}) {
 
 const fetchSummary  = () => api('/api/admin/summary');
 const fetchDisputes = () => api('/api/admin/disputes');
+// Oraliq — 30 kun. `summary` dan alohida endpoint (`server.js` izohi).
+const fetchTraffic  = () => api('/api/admin/traffic?days=30');
 
 /* ═══════════════════════ Kirish ═══════════════════════ */
 
@@ -189,13 +192,18 @@ function showDashboard() {
 }
 
 async function loadAll() {
-  // Bahslar alohida endpoint — u yiqilsa ham qolgan panel ishlashi kerak
-  const [summary, disputes] = await Promise.all([
+  // Bahslar alohida endpoint — u yiqilsa ham qolgan panel ishlashi kerak.
+  // ⚠️ Trafik ham SHU sababdan `catch` bilan: migratsiya (`db/028`) hali
+  // o'tkazilmagan serverda endpoint 500 qaytaradi va butun panel qorong'i
+  // bo'lib qolardi. `null` kelsa Trafik sahifasi o'zi sababni yozadi.
+  const [summary, disputes, traffic] = await Promise.all([
     fetchSummary(),
     fetchDisputes().catch(() => []),
+    fetchTraffic().catch(() => null),
   ]);
   state.summary = summary;
   state.disputes = disputes;
+  state.traffic = traffic;
   state.daily = (summary.daily || []).map((d) => {
     const date = new Date(d.day + 'T00:00:00');
     return { date, gmv: d.gmv, orders: d.orders, commission: d.commission, plan: planSomForDate(date) };
@@ -332,6 +340,7 @@ function renderAll() {
   renderTopSellers();
   renderUsers();
   renderGrowth();
+  renderTraffic();
   renderPlanFakt();
 
   updateNavBadges(d);
@@ -933,6 +942,163 @@ function renderGrowth() {
   `).join('');
 }
 
+/* ─── Trafik (2026-08-18) ───
+   Manba — `/api/admin/traffic` (`traffic_events`, db/028).
+
+   ⚠️ SAHIFA HECH QACHON NOL CHIZMAYDI. Server javob bermasa yoki jadval
+   bo'sh bo'lsa butun tana yashiriladi va o'rniga SABAB yoziladi. Bu
+   panelning eng qadimgi qoidasi (CLAUDE.md — "o'ylab topilgan raqam
+   ko'rsatilmasin"): bu sahifada ilgari AYNAN o'ylab topilgan tashrif
+   raqamlari turgan va shuning uchun olib tashlangan edi. Nol ko'rsatish
+   ham xuddi shunday yolg'on bo'lardi — "hech kim kelmadi" bilan
+   "o'lchamadik" bir xil ko'rinardi.
+
+   ⚠️ EKRAN NOMLARI TARJIMASI shu yerda va faqat KO'RINISH uchun. Nom
+   topilmasa xom kalit chiziladi — jimgina "boshqa" ga qo'shilmaydi, aks
+   holda yangi ekran paneldan g'oyib bo'lardi. */
+const SCREEN_LABELS = {
+  katalog: 'Katalog (sayt)', product: 'Mahsulot (sayt)', home: 'Bosh sahifa',
+  detail: 'Mahsulot', cart: 'Savat', checkout: 'Rasmiylashtirish',
+  orders: 'Buyurtmalar', profile: 'Profil', login: 'Kirish', fav: 'Saralangan',
+  saved: 'Saralangan', search: 'Qidiruv', ai: 'AI rasm', done: 'Buyurtma qabul',
+  success: 'Buyurtma qabul', address: 'Manzil', contact: 'Bog\'lanish',
+  info: 'Ma\'lumot', dispute: 'Bahs', review: 'Sharh',
+  notifications: 'Bildirishnomalar',
+  'seller-form': 'Sotuvchi: e\'lon', 'seller-products': 'Sotuvchi: e\'lonlar',
+  'seller-orders': 'Sotuvchi: buyurtmalar',
+  's-form': 'Sotuvchi: e\'lon', 's-products': 'Sotuvchi: e\'lonlar',
+  's-orders': 'Sotuvchi: buyurtmalar', 's-profile': 'Sotuvchi: profil',
+  other: 'Boshqa',
+};
+
+/* Ro'yxatli panel — nom + tasma + son. `renderCatList` bilan AYNI shakl. */
+function trafficRows(elId, qatorlar, bosh) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  if (!qatorlar.length) {
+    el.innerHTML = `<div class="empty-panel">${esc(bosh)}</div>`;
+    return;
+  }
+  const max = Math.max(...qatorlar.map((r) => r.n), 1);
+  el.innerHTML = qatorlar.map((r, i) => `
+    <div class="cat-row">
+      <span class="cat-swatch" style="background:${CAT_COLORS[i % CAT_COLORS.length]}"></span>
+      <div class="cat-info">
+        <div class="cat-name">${esc(r.name)}</div>
+        <div class="cat-bar-wrap"><div class="cat-bar" style="width:${Math.round((r.n / max) * 100)}%;background:${CAT_COLORS[i % CAT_COLORS.length]}"></div></div>
+      </div>
+      <span class="cat-count">${fmtNum(r.n)}</span>
+    </div>
+  `).join('');
+}
+
+function renderTraffic() {
+  const bosh = document.getElementById('trafficEmpty');
+  const tana = document.getElementById('trafficBody');
+  if (!bosh || !tana) return;
+
+  const t = state.traffic;
+  // `total` nol bo'lsa ham tana YOPIQ qoladi: jadval bor, lekin hali birorta
+  // hodisa yo'q — bu "nol tashrif" emas, "o'lchov endi boshlandi".
+  if (!t || !t.total) {
+    tana.hidden = true;
+    bosh.hidden = false;
+    return;
+  }
+  bosh.hidden = true;
+  tana.hidden = false;
+
+  const kunlar = t.daily || [];
+  const views = kunlar.reduce((s, d) => s + d.views, 0);
+  const bugun = kunlar.length ? kunlar[kunlar.length - 1] : { views: 0, visitors: 0 };
+
+  // ⚠️ Kunlik "tashrifchi" larni QO'SHIB BO'LMAYDI — bir odam uch kun kelsa
+  // uchta belgi oladi (belgi kunlik, `lib/traffic.js` izohi). Shuning uchun
+  // bu yerda O'RTACHA ko'rsatiladi, yig'indi emas: yig'indi jimgina
+  // "30 kunda 900 kishi keldi" degan yolg'onni tug'dirardi.
+  const ortacha = kunlar.length ? Math.round(kunlar.reduce((s, d) => s + d.visitors, 0) / kunlar.length) : 0;
+
+  const f = t.funnel || { viewed: 0, carted: 0, ordered: 0 };
+  const konv = f.viewed ? Math.round((f.carted / f.viewed) * 100) : null;
+
+  document.getElementById('trViews').textContent = fmtNum(views);
+  document.getElementById('trViewsFoot').textContent = `${fmtNum(bugun.views)} bugun · ${t.days} kun`;
+  document.getElementById('trVisitors').textContent = fmtNum(ortacha);
+  document.getElementById('trVisitorsFoot').textContent = `kuniga o'rtacha · bugun ${fmtNum(bugun.visitors)}`;
+  document.getElementById('trCarts').textContent = fmtNum(f.carted);
+  document.getElementById('trCartsFoot').textContent = `${fmtNum(f.viewed)} mato ko'rgan`;
+  // Konversiya HISOBLAB bo'lmasa chiziqcha — nol foiz DEYILMAYDI.
+  document.getElementById('trConv').textContent = konv === null ? '–' : `${konv}%`;
+  document.getElementById('trConvFoot').textContent = konv === null
+    ? 'hali mato ko\'rilmagan' : `${fmtNum(f.ordered)} buyurtma`;
+
+  // ---- Kunlik ustunlar. Oxirgi 14 kun — 30 tasi telefon ekranida qisilib
+  // o'qib bo'lmas holga kelardi (sana yorlig'i sig'maydi).
+  const oxirgi = kunlar.slice(-14);
+  const maxV = Math.max(...oxirgi.map((d) => d.views), 1);
+  document.getElementById('trChart').innerHTML = oxirgi.map((d) => `
+    <div class="chart-item">
+      <div class="chart-bar-wrap">
+        <div class="chart-bar" style="height:${Math.round((d.views / maxV) * 100)}%"></div>
+      </div>
+      <div class="chart-num">${d.views}</div>
+      <div class="chart-label">${esc(d.day.slice(8) + '.' + d.day.slice(5, 7))}</div>
+    </div>
+  `).join('');
+
+  // ⚠️ O'lchov boshlangan sana AYTILADI: undan oldingi kunlar grafikda nol
+  // bo'lib turadi va ular "tashrif bo'lmagan" emas, "O'LCHANMAGAN"
+  // (`users.src` dagi "noma'lum" bilan bitta oila).
+  const since = t.since ? new Date(t.since) : null;
+  document.getElementById('trChartFoot').textContent = since
+    ? `O'lchov ${since.toISOString().slice(0, 10)} dan boshlangan — undan oldingi kunlar o'lchanmagan`
+    : '';
+
+  trafficRows('trProducts', (t.products || []).map((p) => ({
+    // Mahsulot o'chirilgan bo'lsa nom yo'q — xom id ko'rsatiladi
+    // (server `LEFT JOIN` qiladi, db/028 da tashqi kalit yo'q).
+    name: p.name || `${p.id} (o'chirilgan)`, n: p.views,
+  })), 'Hali birorta mato ochilmagan');
+
+  trafficRows('trScreens', (t.screens || []).map((s) => ({
+    name: SCREEN_LABELS[s.screen] || s.screen, n: s.views,
+  })), 'Ma\'lumot yo\'q');
+
+  trafficRows('trRefs', (t.refs || []).map((r) => ({ name: r.ref, n: r.views })),
+    'Tashqi havoladan kelgan yo\'q');
+
+  // ---- Ikki yuz ----
+  const yuz = t.faces || { web: { views: 0 }, miniapp: { views: 0 } };
+  const yuzQator = [
+    { text: 'Sayt', n: yuz.web.views, color: '#119DAB' },
+    { text: 'Mini App', n: yuz.miniapp.views, color: '#D98E0C' },
+  ];
+  const maxYuz = Math.max(...yuzQator.map((x) => x.n), 1);
+  document.getElementById('trFaces').innerHTML = yuzQator.map((x) => `
+    <div class="status-dist-row">
+      <span class="status-dist-label">${x.text}</span>
+      <div class="status-dist-bar-wrap"><div class="status-dist-bar" style="width:${Math.round((x.n / maxYuz) * 100)}%;background:${x.color}"></div></div>
+      <span class="status-dist-val">${fmtNum(x.n)}</span>
+    </div>
+  `).join('');
+
+  // ---- Voronka. Uchala pog'ona ham eng kengiga nisbatan chiziladi, ya'ni
+  // tasmalar UZUNLIGI konversiyani ko'rsatadi.
+  const vQator = [
+    { text: 'Mato ko\'rgan', n: f.viewed, color: '#119DAB' },
+    { text: 'Savatga qo\'shgan', n: f.carted, color: '#D98E0C' },
+    { text: 'Buyurtma bergan', n: f.ordered, color: '#7a140d' },
+  ];
+  const maxV2 = Math.max(...vQator.map((x) => x.n), 1);
+  document.getElementById('trFunnel').innerHTML = vQator.map((x) => `
+    <div class="status-dist-row">
+      <span class="status-dist-label">${x.text}</span>
+      <div class="status-dist-bar-wrap"><div class="status-dist-bar" style="width:${Math.round((x.n / maxV2) * 100)}%;background:${x.color}"></div></div>
+      <span class="status-dist-val">${fmtNum(x.n)}</span>
+    </div>
+  `).join('');
+}
+
 /* ─── Moderatsiya navbati ─── */
 
 function renderModQueue() {
@@ -1196,6 +1362,7 @@ const PAGE_META = {
   moderation: { title: 'Moderatsiya', subtitle: 'Nashr navbati' },
   disputes:   { title: 'Bahslar',     subtitle: 'Xaridor shikoyatlari va moderator qarori' },
   stats:      { title: 'Statistika',  subtitle: 'Savdo, komissiya va kategoriya tahlili' },
+  traffic:    { title: 'Trafik',      subtitle: "Sayt va Mini App tashriflari, ko'rish → savat → buyurtma" },
   planfakt:   { title: 'Reja/Fakt',   subtitle: '12 oylik savdo rejasi va haqiqiy natija' },
 };
 

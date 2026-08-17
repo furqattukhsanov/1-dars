@@ -976,6 +976,9 @@ function addToCart(id, qty) {
   if (line) line.qty += qty;
   else S.cart.push({ id, qty });
   showToast(STR[S.lang].added);
+  // Voronkaning ikkinchi pog'onasi — saytdagi bilan AYNI hodisa nomi
+  // (`kind: 'cart'`), aks holda panel ikki yuzni qo'sha olmasdi.
+  track('cart', 'cart', id);
   render();
 }
 function incCart(id) {
@@ -4607,6 +4610,8 @@ function render() {
   };
   const fn = map[S.screen];
   const wrap = document.getElementById('screen-wrap');
+  // Ekran HAQIQATAN chizildimi — trafik o'lchovi shunga qaraydi (pastda).
+  let chizildi = false;
   if (fn && wrap) {
     // `updateHeader()` va `updateNav()` ALLAQACHON yangi ekranni ko'rsatib
     // bo'ldi. Agar chizish funksiyasi xato tashlasa, `innerHTML` yangilanmay
@@ -4615,6 +4620,7 @@ function render() {
     // deb tushunadi va nuqson hech qayerda ko'rinmaydi (2026-08-02).
     try {
       wrap.innerHTML = fn();
+      chizildi = true;
     } catch (e) {
       console.error('render() xatosi, ekran:', S.screen, e);
       wrap.innerHTML = `
@@ -4653,6 +4659,12 @@ function render() {
   if (S.screen !== 'home') S.priceSheet = false;
   if (S.screen !== 'detail') S.photoView = null;
   paintSheet();
+
+  // ⚠️ FAQAT chizilgan ekran yoziladi. Chizish yiqilsa `catch` xato ekranini
+  // ko'rsatadi va ijro SHU YERGACHA yetib keladi — ya'ni tekshiruvsiz
+  // "Ekranni ochib bo'lmadi" degan holat ham "ko'rilgan mahsulot" bo'lib
+  // yozilardi va panel eng NOSOZ ekranni eng ommabop qilib ko'rsatardi.
+  if (chizildi) track('view', S.screen, S.screen === 'detail' ? S.selectedId : null);
 }
 
 // ============ TELEGRAM ORQALI RO'YXATDAN O'TISH ============
@@ -4733,6 +4745,48 @@ async function loadProductsFromServer() {
 }
 // Telegram imzolangan initData (auth uchun). Telegram tashqarisida bo'sh.
 function tgInitData() { return window.Telegram?.WebApp?.initData || ''; }
+
+// ============ TRAFIK O'LCHOVI (2026-08-18) ============
+// Saytdagi bilan AYNI endpoint (`POST /api/track` → `traffic_events`,
+// db/028), shuning uchun panelda ikkala yuz bitta o'lchov bilan
+// solishtiriladi.
+//
+// ⚠️ `initData` ATAYLAB YUBORILMAYDI — `sellerFetch` ishlatilmaganining
+// sababi shu. U har so'rovga imzolangan kimlikni qo'shadi, ya'ni bazada
+// "qaysi Telegram foydalanuvchisi qaysi ekranni ochdi" degan yozuv paydo
+// bo'lardi. Bizga faqat SON kerak. Kimlik so'ralmasa — u saqlanmaydi ham.
+//
+// ⚠️ `face` yuboriladi, lekin server unga TAYANMAYDI: u `Referer` yo'lidan
+// (`/mini-app/`) o'zi aniqlaydi (`lib/traffic.js` → `yuzAniqla`). Bu qator
+// nusxalanib yangilanmay qolsa ham raqam to'g'ri qoladi.
+const TRACK_SRC = String(window.Telegram?.WebApp?.initDataUnsafe?.start_param || '').slice(0, 32);
+let trackOxirgi = '';
+
+function track(kind, screen, product) {
+  const kalit = `${kind}|${screen}|${product || ''}`;
+  if (kind === 'view') {
+    // `render()` qayta chizish uchun ham chaqiriladi (savatga qo'shildi,
+    // son o'zgardi) — u YANGI ko'rish emas.
+    if (kalit === trackOxirgi) return;
+    trackOxirgi = kalit;
+  }
+  try {
+    fetch('/api/track', {
+      method: 'POST',
+      credentials: 'omit',
+      keepalive: true,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        kind, screen, product: product || null, face: 'miniapp',
+        // Mini App'da tashqi havola tushunchasi yo'q — kirish faqat
+        // Telegram'dan. Manba esa deep-link payload'idan keladi
+        // (`t.me/<bot>?start=guruh_ipak`) va `users.src` bilan AYNI shakl.
+        ref: null,
+        src: TRACK_SRC || null,
+      }),
+    }).catch(() => {});
+  } catch (e) { /* o'lchov yiqilsa ilova ishlayveradi */ }
+}
 
 // Telegram orqali server tomonda kirish — foydalanuvchini bazaga yozadi/topadi.
 async function loginTelegram() {
