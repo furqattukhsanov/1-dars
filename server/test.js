@@ -1406,7 +1406,7 @@ function testAssetVersionsAreFresh() {
     // faqat bittasi bo'lgan `app.js`.
     'panel.js': { v: 47, hash: '1165def86832' },
     'admin/admin.css': { v: 18, hash: '15b0bc977b85' },
-    'admin/admin.js': { v: 26, hash: 'b19364fd8d4a' },
+    'admin/admin.js': { v: 27, hash: '2d949d600182' },
     'telegram-app/styles.css': { v: 36, hash: '570a2450c3a4' },
     'telegram-app/app.js': { v: 100, hash: 'c5e4e0fbf5fc' },
     'telegram-app/pwa.js': { v: 6, hash: '798ab85e1cde' },
@@ -5377,6 +5377,19 @@ function testTrafficMeasurement() {
   assert.ok(/if \(!t \|\| !t\.total\)/.test(rt[1]) && /hidden = true/.test(rt[1]),
     '`renderTraffic()` ma\'lumot bo\'lmaganda blokni YASHIRMAYAPTI — panel nol '
     + 'ko\'rsatib, "hech kim kelmadi" degan yolg\'on xulosaga olib borardi.');
+
+  // Yangi bo'lim ESKI sahifalarni qulatmasin: `renderTraffic()` `renderAll()`
+  // ning OXIRIDA va o'z `try` si bilan turishi shart. Ilgari u
+  // `renderPlanFakt()` dan oldin edi — xato tashlasa Reja/Fakt va menyu
+  // belgilari umuman chizilmasdi va bu "sahifa yo'qoldi" bo'lib ko'rinardi.
+  const rAll = adminSrc.match(/function renderAll\(\)\s*\{([\s\S]*?)\n\}/);
+  assert.ok(rAll, 'admin.js da `renderAll()` topilmadi');
+  assert.ok(rAll[1].indexOf('renderTraffic()') > rAll[1].indexOf('renderPlanFakt()')
+    && rAll[1].indexOf('renderTraffic()') > rAll[1].indexOf('updateNavBadges('),
+    '`renderTraffic()` `renderAll()` da eski chizuvchilardan OLDIN turibdi — u xato '
+    + 'tashlasa Reja/Fakt sahifasi va menyu belgilari umuman chizilmaydi.');
+  assert.ok(/try\s*\{\s*renderTraffic\(\);/.test(rAll[1]),
+    '`renderTraffic()` `try` bilan o\'ralmagan — yangi bo\'lim yiqilsa butun panel bilan ketardi.');
 
   // Admin endpointi tokensiz ochiq qolmasin va `days` SQL ga satr bo'lib
   // tushmasin (parametr bilan berilsin).

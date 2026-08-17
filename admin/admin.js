@@ -340,10 +340,23 @@ function renderAll() {
   renderTopSellers();
   renderUsers();
   renderGrowth();
-  renderTraffic();
   renderPlanFakt();
 
   updateNavBadges(d);
+
+  /* ⚠️ Trafik ENG OXIRIDA va O'Z `try` si bilan — ataylab.
+     Ilgari u `renderPlanFakt()` dan OLDIN turardi: `renderTraffic()` xato
+     tashlasa Reja/Fakt sahifasi va menyu belgilari UMUMAN chizilmasdi, ya'ni
+     eng yangi bo'lim eng eski sahifalarni o'zi bilan qulatardi. Bu Mini App
+     `render()` dagi bilan bitta dars (2026-08-02): chizuvchi yiqilsa
+     foydalanuvchi buni "sahifa yo'qoldi" deb ko'radi va sabab hech qayerda
+     ko'rinmaydi.
+     Xato YUTILMAYDI — konsolga chiqadi. */
+  try {
+    renderTraffic();
+  } catch (e) {
+    console.error('renderTraffic xatosi:', e.message);
+  }
 }
 
 const sum = (arr, k) => arr.reduce((s, x) => s + (x[k] || 0), 0);
