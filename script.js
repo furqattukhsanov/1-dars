@@ -27,7 +27,7 @@ const STR = {
     // ---- Header / navigatsiya ----
     searchPh: 'Mato yoki ishlab chiqaruvchi',
     clear: 'Tozalash',
-    priceFilterAria: "Narx bo'yicha filtr",
+    priceFilterAria: "Saralash va narx filtri",
     login: 'Kirish',
     profile: 'Profil',
     favorites: 'Saralanganlar',
@@ -37,7 +37,16 @@ const STR = {
     priceLabel: "Narx, so'm / rulon",
     priceMin: 'Eng kam',
     priceMax: "Eng ko'p",
-    apply: "Qo'llash",
+    priceBad: "Eng kam narx eng ko'pdan katta bo'lmasin",
+    // ---- Saralash varag'i (referens: Shop "Sort by") ----
+    sortTitle: 'Saralash',
+    sortRec: 'Tavsiya etilgan',
+    sortNew: 'Eng yangi',
+    sortAsc: 'Arzondan → qimmatga',
+    sortDesc: 'Qimmatdan → arzonga',
+    sheetReset: 'Tozalash',
+    sheetDone: 'Tayyor',
+    close: 'Yopish',
     nothingFound: 'Hech narsa topilmadi',
     nothingFoundSub: "Boshqa so'z bilan qidiring yoki filtrni o'zgartiring.",
     catAll: 'Barchasi',
@@ -295,7 +304,7 @@ const STR = {
   ru: {
     searchPh: 'Ткань или производитель',
     clear: 'Очистить',
-    priceFilterAria: 'Фильтр по цене',
+    priceFilterAria: 'Сортировка и фильтр по цене',
     login: 'Войти',
     profile: 'Профиль',
     favorites: 'Избранное',
@@ -304,7 +313,15 @@ const STR = {
     priceLabel: 'Цена, сум / рулон',
     priceMin: 'От',
     priceMax: 'До',
-    apply: 'Применить',
+    priceBad: 'Минимум не может быть больше максимума',
+    sortTitle: 'Сортировка',
+    sortRec: 'Рекомендуемые',
+    sortNew: 'Сначала новые',
+    sortAsc: 'От дешёвых → к дорогим',
+    sortDesc: 'От дорогих → к дешёвым',
+    sheetReset: 'Сбросить',
+    sheetDone: 'Готово',
+    close: 'Закрыть',
     nothingFound: 'Ничего не найдено',
     nothingFoundSub: 'Попробуйте другой запрос или измените фильтр.',
     catAll: 'Все',
@@ -601,6 +618,10 @@ function applyLang() {
     if (kod) kod.textContent = LANG === 'ru' ? 'RU' : 'UZ';
   }
   refreshAuthUi();
+  // Saralash chipi `t()` dan yozilgan — til almashganda u ham yangilansin.
+  // ⚠️ Birinchi chaqiruv (pastda, sahifa ochilganda) `sortKey`/`priceMin`
+  // e'lonidan KEYIN turadi — undan oldinga ko'chirilsa `let` TDZ xatosi.
+  paintPriceState();
 }
 
 /* ── data-action delegatsiyasi ──
@@ -893,97 +914,191 @@ function parsePriceInput(v) {
 
 function somGroup(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ' '); }
 
-function applyPrice() {
+/* ====================================================
+   SARALASH (2026-08-17)
+
+   Referens — Shop ilovasining "Sort by" varag'i: Recommended · Newest ·
+   Lowest → Highest Price · Highest → Lowest Price, pastda Reset · Done.
+   Bizda: `rec` — katalogning o'z tartibi (HTML/`sort_order`, ya'ni
+   sotuvchi/adminning "tavsiya" tartibi), `new` — "Yangi" belgili
+   mahsulotlar oldinda (`/api/products` `created_at` QAYTARMAYDI, shuning
+   uchun boshqa manba yo'q — o'ylab topilmaydi), `asc`/`desc` — narx.
+
+   Tartib CSS `order` bilan beriladi, DOM ko'chirilmaydi: kartochkalar
+   ustidagi kuzatuvchilar (`fade-up`), savat/saralangan tugmalari va
+   `productEl()` qidiruvi tegilmaydi. `rec` da `order` bo'shatiladi —
+   HTML tartibi o'z-o'zidan qaytadi.
+   ==================================================== */
+const SORT_KEYS = ['rec', 'new', 'asc', 'desc'];
+let sortKey = 'rec';
+
+function cardIsNew(card) {
+  const b = card.querySelector('.badge-pill');
+  if (!b) return false;
+  return b.dataset.badgeKey === 'bYangi' || b.textContent.trim() === BADGE_UZ.bYangi;
+}
+
+function applySort() {
+  if (!grid) return;
+  const cards = Array.from(grid.querySelectorAll('.product-card'));
+  if (sortKey === 'rec') { cards.forEach((c) => { c.style.order = ''; }); return; }
+
+  const idx = cards.map((card, i) => {
+    const price = Number(card.dataset.price);
+    const p = Number.isFinite(price) ? price : null;
+    return { card, i, p, isNew: cardIsNew(card) };
+  });
+  idx.sort((a, b) => {
+    if (sortKey === 'new') return (b.isNew - a.isNew) || (a.i - b.i);
+    // Narxi noma'lum kartochka ikkala yo'nalishda ham OXIRIDA — u "eng
+    // arzon" ham, "eng qimmat" ham emas.
+    if (a.p === null && b.p === null) return a.i - b.i;
+    if (a.p === null) return 1;
+    if (b.p === null) return -1;
+    return (sortKey === 'asc' ? a.p - b.p : b.p - a.p) || (a.i - b.i);
+  });
+  idx.forEach((x, n) => { x.card.style.order = String(n + 1); });
+}
+
+function sortLabel(key) {
+  return { rec: t('sortRec'), new: t('sortNew'), asc: t('sortAsc'), desc: t('sortDesc') }[key] || '';
+}
+
+function clearSort() {
+  sortKey = 'rec';
+  applySort();
+  paintPriceState();
+}
+
+/* ── Varaq (bottom-sheet): ochish / yopish / qo'llash ──
+   Varaq — QORALAMA: radio va inputlar unda o'zgaradi, katalog esa faqat
+   "Tayyor" bosilganda yangilanadi (Mini App'dagi narx varag'i bilan bitta
+   qoida — yozayotganda ro'yxat har harfda sakramaydi). Ochilganda qoralama
+   qo'llangan holatdan to'ldiriladi, ya'ni yopib qaytganda o'zgartirilmagan
+   tanlov ko'rinadi. */
+function openSortSheet() {
+  const sh = document.getElementById('sort-sheet');
+  const s = document.getElementById('sort-scrim');
+  if (!sh || !s) return;
+  const radio = sh.querySelector(`input[name="sort"][value="${sortKey}"]`);
+  if (radio) radio.checked = true;
+  const lo = document.getElementById('price-min');
+  const hi = document.getElementById('price-max');
+  if (lo) lo.value = priceMin === null ? '' : somGroup(priceMin);
+  if (hi) hi.value = priceMax === null ? '' : somGroup(priceMax);
+  const err = document.getElementById('price-err');
+  if (err) err.textContent = '';
+
+  s.hidden = false;
+  requestAnimationFrame(() => s.classList.add('show'));
+  sh.classList.add('open');
+  sh.setAttribute('aria-hidden', 'false');
+  document.body.style.overflow = 'hidden';
+  paintFilterBtn();
+}
+
+function closeSortSheet() {
+  const sh = document.getElementById('sort-sheet');
+  const s = document.getElementById('sort-scrim');
+  if (!sh || !s) return;
+  sh.classList.remove('open');
+  sh.setAttribute('aria-hidden', 'true');
+  s.classList.remove('show');
+  setTimeout(() => { s.hidden = true; }, 240);
+  document.body.style.overflow = '';
+  paintFilterBtn();
+}
+
+function sortSheetOpen() {
+  return !!document.getElementById('sort-sheet')?.classList.contains('open');
+}
+
+// "Tayyor" — qoralamani qo'llaydi va yopadi
+function applySortSheet() {
   const lo = parsePriceInput(document.getElementById('price-min')?.value ?? '');
   const hi = parsePriceInput(document.getElementById('price-max')?.value ?? '');
   const err = document.getElementById('price-err');
 
   if (lo !== null && hi !== null && lo > hi) {
-    if (err) err.textContent = "Eng kam narx eng ko'pdan katta bo'lmasin";
+    if (err) err.textContent = t('priceBad');
     return;
   }
   if (err) err.textContent = '';
 
+  const picked = document.querySelector('#sort-sheet input[name="sort"]:checked')?.value;
+  sortKey = SORT_KEYS.includes(picked) ? picked : 'rec';
   priceMin = lo;
   priceMax = hi;
   applyFilter();
+  applySort();
   paintPriceState();
+  closeSortSheet();
 }
 
+// "Tozalash" — hammasini boshlang'ich holatga qaytaradi va yopadi
+// (Mini App'dagi `clearPriceFilter` bilan bitta xulq).
+function resetSortSheet() {
+  sortKey = 'rec';
+  priceMin = null;
+  priceMax = null;
+  applyFilter();
+  applySort();
+  paintPriceState();
+  closeSortSheet();
+}
+
+// Chipdagi × — faqat narxni olib tashlaydi (saralash qoladi)
 function clearPrice() {
   priceMin = null;
   priceMax = null;
-  const lo = document.getElementById('price-min');
-  const hi = document.getElementById('price-max');
-  if (lo) lo.value = '';
-  if (hi) hi.value = '';
-  const err = document.getElementById('price-err');
-  if (err) err.textContent = '';
   applyFilter();
   paintPriceState();
 }
 
-// Header'dagi filtr ikonkasi — narx maydoniga olib boradi.
-// Qadalgan header balandligi hisobga olinadi, aks holda maydon uning ostida qoladi
-/* ── Narx paneli: yopiq turadi, filtr tugmasi ochadi (2026-08-13) ──
-   Ilgari panel DOIM ko'rinardi va katalogni pastga surib turardi, tugma esa
-   `pointer-events: none` bilan bosilmasdi — ya'ni "filtr" belgisi bor edi,
-   filtr esa allaqachon ochiq turardi va tugma hech narsa qilmasdi.
-
-   ⚠️ Filtr YOQILGAN bo'lsa panel YOPILMAYDI (`paintPriceState`). Sabab:
-   yoqilgan filtrni ko'rsatadigan chip (`#price-chip`) shu blok ICHIDA
-   turadi — blok yopilsa xaridor natijalar nega kamayganini ko'rmasdi.
-   Bu "jimgina yolg'on" oilasidan: filtr ishlab turibdi, izi esa yo'q. */
-function togglePriceFilter() {
-  const box = document.getElementById('price-filter');
-  if (!box) return;
-  const ochilyapti = box.hidden;
-  box.hidden = !ochilyapti;
-  paintFilterBtn();
-  if (!ochilyapti) return;
-
-  const inp = document.getElementById('price-min');
-  if (!inp) return;
-  const head = document.getElementById('nav');
-  const top = inp.getBoundingClientRect().top + window.scrollY - (head?.offsetHeight || 0) - 20;
-  window.scrollTo({ top, behavior: 'smooth' });
-  inp.focus({ preventScroll: true });
-}
-
-// Tugmaning holati: panel ochiq YOKI filtr yoqilgan bo'lsa yoniq ko'rinadi.
+// Tugmaning holati: varaq ochiq YOKI biror filtr/saralash yoqilgan bo'lsa
+// yoniq ko'rinadi.
 function paintFilterBtn() {
   const btn = document.getElementById('filter-btn');
-  const box = document.getElementById('price-filter');
-  if (!btn || !box) return;
-  const ochiq = !box.hidden;
-  btn.classList.toggle('is-on', ochiq || priceMin !== null || priceMax !== null);
+  if (!btn) return;
+  const ochiq = sortSheetOpen();
+  btn.classList.toggle('is-on', ochiq || priceMin !== null || priceMax !== null || sortKey !== 'rec');
   btn.setAttribute('aria-expanded', ochiq ? 'true' : 'false');
 }
 
-// Yoqilgan filtrni ko'rsatuvchi chip — yoqilmagan bo'lsa umuman ko'rinmaydi
+/* Faol holat chiplari (chiplar ostida): narx oralig'i + saralash.
+   Bittasi ham yo'q bo'lsa blok umuman ko'rinmaydi; bor bo'lsa blok
+   MAJBURAN ochiladi — varaq yopiq turganda xaridor natijalar nega
+   kamayganini yoki tartib nega boshqacha ekanini ko'rishi kerak
+   ("jimgina yolg'on" oilasidan: filtr ishlab turibdi, izi esa yo'q). */
 function paintPriceState() {
+  const box = document.getElementById('price-filter');
   const chip = document.getElementById('price-chip');
   const label = document.getElementById('price-chip-label');
+  const sChip = document.getElementById('sort-chip');
+  const sLabel = document.getElementById('sort-chip-label');
   paintFilterBtn();
-  if (!chip || !label) return;
+  if (!box || !chip || !label) return;
 
-  if (priceMin === null && priceMax === null) { chip.hidden = true; return; }
+  const priceOn = priceMin !== null || priceMax !== null;
+  const sortOn = sortKey !== 'rec';
 
-  // ⚠️ Filtr yoqilgan bo'lsa panel MAJBURAN ochiladi: chip shu blok ichida
-  // yashaydi va yopiq panelda xaridor filtr ishlab turganini ko'rmasdi.
-  // (Sahifa qayta yuklanganda filtr saqlanadigan bo'lsa ham shu yo'l
-  // ishlaydi — holat bitta joydan chiziladi.)
-  const box = document.getElementById('price-filter');
-  if (box && box.hidden) { box.hidden = false; paintFilterBtn(); }
-
-  if (priceMin !== null && priceMax !== null) {
-    label.textContent = `${somGroup(priceMin)} – ${somGroup(priceMax)} so'm`;
-  } else if (priceMin !== null) {
-    label.textContent = `${somGroup(priceMin)} so'mdan yuqori`;
-  } else {
-    label.textContent = `${somGroup(priceMax)} so'mgacha`;
+  if (priceOn) {
+    if (priceMin !== null && priceMax !== null) {
+      label.textContent = `${somGroup(priceMin)} – ${somGroup(priceMax)} so'm`;
+    } else if (priceMin !== null) {
+      label.textContent = `${somGroup(priceMin)} so'mdan yuqori`;
+    } else {
+      label.textContent = `${somGroup(priceMax)} so'mgacha`;
+    }
   }
-  chip.hidden = false;
+  chip.hidden = !priceOn;
+
+  if (sChip && sLabel) {
+    if (sortOn) sLabel.textContent = sortLabel(sortKey);
+    sChip.hidden = !sortOn;
+  }
+
+  box.hidden = !(priceOn || sortOn);
 }
 
 if (chipsWrap) {
@@ -4866,6 +4981,7 @@ document.addEventListener('keydown', (e) => {
   // avval uni yopadi. Aks holda ostidagi savat yopilib, rasm ekranda
   // osilib qolardi.
   if (document.getElementById('zoom')) { closeZoom(); return; }
+  if (sortSheetOpen()) { closeSortSheet(); return; }
   if (isOpen()) closeCart();
 });
 

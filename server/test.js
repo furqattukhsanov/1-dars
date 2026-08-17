@@ -1389,8 +1389,8 @@ function testAssetVersionsAreFresh() {
     // esa butun kenglikda ikki qator bo'lib terildi.
     // 2026-08-16 (kechqurun, 2-tahrir): qator chiqqanda header yuqoriga
     // suriladi — ikkita qadalgan qator birga turmaydi.
-    'style.css': { v: 63, hash: '63ba1801d7f7' },
-    'script.js': { v: 52, hash: 'e5d30b00651e' },
+    'style.css': { v: 64, hash: 'e9718d3f4f24' },
+    'script.js': { v: 53, hash: '56c2bb8fe403' },
     'pwa.js': { v: 3, hash: 'dce9fcfee6cb' },
     // ⚠️ IKKINCHI BIRLASHTIRISH (2026-08-14): ikkala tomon panel.js ni 24,
     // app.js ni 87 ga ko'targan — AYNI raqamlar, TARKIB esa har xil.
@@ -1404,11 +1404,11 @@ function testAssetVersionsAreFresh() {
     // YUQORIGA suriladi: teng raqam qaytib kelgan foydalanuvchida keshdagi
     // BIR TOMONLAMA faylni qoldirardi — sevimlilar yoki chiqish tuzatishining
     // faqat bittasi bo'lgan `app.js`.
-    'panel.js': { v: 45, hash: '3e7834a1ff08' },
+    'panel.js': { v: 46, hash: '06fdb624ab9c' },
     'admin/admin.css': { v: 18, hash: '15b0bc977b85' },
     'admin/admin.js': { v: 25, hash: '08fae1bb61dc' },
     'telegram-app/styles.css': { v: 36, hash: '570a2450c3a4' },
-    'telegram-app/app.js': { v: 98, hash: 'cb41f8bb732b' },
+    'telegram-app/app.js': { v: 99, hash: 'fb9d4156f105' },
     'telegram-app/pwa.js': { v: 6, hash: '798ab85e1cde' },
   };
 

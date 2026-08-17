@@ -74,6 +74,9 @@ const STR = {
     verifiedMills: "28 tasdiqlangan fabrika · xavfsiz to'lov", catalog: "Katalog", filter: "Filtr", sort: "Saralash",
     priceT: "Narx oralig'i", priceMinPh: "Eng kam", priceMaxPh: "Eng ko'p", priceUnit: "so'm / rulon",
     priceApply: "Qo'llash", priceClear: "Tozalash", priceRangeHint: "Katalogdagi narxlar",
+    // Saralash varag'i (2026-08-17, referens: Shop "Sort by") — sayt bilan bir xil so'zlar
+    sortRec: "Tavsiya etilgan", sortNew: "Eng yangi", sortAsc: "Arzondan → qimmatga", sortDesc: "Qimmatdan → arzonga",
+    sheetDone: "Tayyor", sortRemove: "Saralashni olib tashlash",
     priceBad: "Eng kam narx eng ko'pdan katta bo'lmasin", noProductsPrice: "Bu narx oralig'ida mato yo'q",
     somU: "so'm", priceFrom: "dan yuqori", priceTo: "gacha", priceRemove: "Narx filtrini olib tashlash",
     day: "kun", addCart: "Savatga qo'shish", order: "Buyurtma berish", specs: "Tafsilotlar", width: "Eni", weight: "Zichlik",
@@ -264,6 +267,8 @@ const STR = {
     verifiedMills: "28 проверенных фабрик · безопасная оплата", catalog: "Каталог", filter: "Фильтр", sort: "Сортировка",
     priceT: "Диапазон цены", priceMinPh: "Минимум", priceMaxPh: "Максимум", priceUnit: "сум / рулон",
     priceApply: "Применить", priceClear: "Сбросить", priceRangeHint: "Цены в каталоге",
+    sortRec: "Рекомендуемые", sortNew: "Сначала новые", sortAsc: "От дешёвых → к дорогим", sortDesc: "От дорогих → к дешёвым",
+    sheetDone: "Готово", sortRemove: "Убрать сортировку",
     priceBad: "Минимум не может быть больше максимума", noProductsPrice: "В этом диапазоне тканей нет",
     somU: "сум", priceFrom: "и выше", priceTo: "и ниже", priceRemove: "Убрать фильтр по цене",
     day: "дн.", addCart: "В корзину", order: "Оформить заказ", specs: "Характеристики", width: "Ширина", weight: "Плотность",
@@ -624,6 +629,12 @@ const S = {
   priceDraftMin: '',
   priceDraftMax: '',
   priceErr: '',
+  // — Saralash (2026-08-17) — narx bilan BITTA varaqda, o'sha qoralama qoidasi:
+  // `sortDraft` varaqda o'zgaradi, `sortKey` faqat "Tayyor" bosilganda.
+  // rec — katalogning o'z tartibi, new — "Yangi" belgililar oldinda
+  // (PRODUCTS da qo'shilgan sana YO'Q, o'ylab topilmaydi), asc/desc — narx.
+  sortKey: 'rec',
+  sortDraft: 'rec',
   pay: 'payme',
   btsPoint: loadBtsPoint(),   // oxirgi tanlangan nuqta eslab qolinadi
   btsRegion: 'tas',
@@ -1320,12 +1331,19 @@ function renderHome() {
   // foydalanuvchiga hech narsa bermasdi, lekin pastki paneldan bitta joy
   // yeb turardi — o'sha joy endi AI bo'limiga berildi.
   const byCat = S.cat === 'all' ? PRODUCTS : PRODUCTS.filter(p => p.catKey === S.cat);
-  const prods = byCat.filter(inPriceRange).map(vm);
+  const prods = sortProducts(byCat.filter(inPriceRange)).map(vm);
   const priceOn = S.priceMin !== null || S.priceMax !== null;
+  const sortOn = S.sortKey !== 'rec';
+  // Filtr tugmasi "yoniq" — narx YOKI saralash qo'llangan bo'lsa.
+  // Shu holatda reklama banneri ham CHIZILMAYDI (founder, 2026-08-17:
+  // "filtr qo'llanganda bannerlar ko'rinishi shart emas") — foydalanuvchi
+  // aniq narsa qidiryapti, banner natijani pastga surib qo'yardi.
+  // `mountAdBanner()` banner yo'qligini o'zi ko'radi va taymerni to'xtatadi.
+  const filterOn = priceOn || sortOn;
   // Filtr yoki kategoriya tanlanmagan bo'lsa — "Tavsiya etiladi" bloki.
   // Tanlangan bo'lsa u YASHIRILADI: foydalanuvchi aniq narsa qidirayotganda
   // tavsiya faqat natijani pastga surib qo'yardi.
-  const sof = S.cat === 'all' && !priceOn;
+  const sof = S.cat === 'all' && !filterOn;
   const picked = FEATURED_IDS.map(byId).filter(Boolean);
   const filler = PRODUCTS.filter(p => !picked.includes(p));
   const featured = picked.concat(filler).slice(0, 4).map(vm);
@@ -1347,20 +1365,18 @@ function renderHome() {
            narx filtrini SHU YERNING O'ZIDA ochadi. Yoqilgan filtr tugmaning
            rangidan ko'rinadi — aks holda foydalanuvchi filtr ishlayotganini
            unutib, "mahsulotlar yo'qolibdi" deb o'ylardi. -->
-      <button data-action="openPriceSheet" aria-label="${T.filter}" style="flex:none;width:48px;height:48px;border-radius:var(--radius-md);background:${priceOn ? 'var(--pom-100)' : 'linear-gradient(150deg,var(--pom-700),var(--pom-800))'};border:1px solid ${priceOn ? 'rgba(122,20,13,.35)' : 'rgba(255,229,210,.25)'};box-shadow:0 6px 16px -6px rgba(81,1,0,.6),inset 0 1px 0 rgba(255,229,210,.22);display:flex;align-items:center;justify-content:center;color:${priceOn ? 'var(--pom-700)' : '#ffe5d2'};position:relative">
+      <button data-action="openPriceSheet" aria-label="${T.filter}" style="flex:none;width:48px;height:48px;border-radius:var(--radius-md);background:${filterOn ? 'var(--pom-100)' : 'linear-gradient(150deg,var(--pom-700),var(--pom-800))'};border:1px solid ${filterOn ? 'rgba(122,20,13,.35)' : 'rgba(255,229,210,.25)'};box-shadow:0 6px 16px -6px rgba(81,1,0,.6),inset 0 1px 0 rgba(255,229,210,.22);display:flex;align-items:center;justify-content:center;color:${filterOn ? 'var(--pom-700)' : '#ffe5d2'};position:relative">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M4 6h16M7 12h10M10 18h4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
-        ${priceOn ? '<span style="position:absolute;top:9px;right:9px;width:7px;height:7px;border-radius:50%;background:var(--pom-700)"></span>' : ''}
+        ${filterOn ? '<span style="position:absolute;top:9px;right:9px;width:7px;height:7px;border-radius:50%;background:var(--pom-700)"></span>' : ''}
       </button>
     </div>
 
-    ${priceOn ? `<div style="display:flex;align-items:center;gap:8px;align-self:flex-start;max-width:100%;height:34px;padding:0 6px 0 13px;border-radius:999px;background:var(--pom-100);border:1px solid rgba(122,20,13,.25)">
-      <span style="font-size:12.5px;font-weight:600;color:var(--pom-700);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${priceFilterLabel()}</span>
-      <button data-action="clearPriceFilter" aria-label="${T.priceRemove}" style="flex:none;width:24px;height:24px;border-radius:50%;border:none;background:rgba(122,20,13,.12);color:var(--pom-700);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
-      </button>
+    ${filterOn ? `<div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px">
+      ${sortOn ? filterChipHtml(sortLabel(S.sortKey), 'clearSort', T.sortRemove) : ''}
+      ${priceOn ? filterChipHtml(priceFilterLabel(), 'clearPriceOnly', T.priceRemove) : ''}
     </div>` : ''}
 
-    ${adBannerHtml()}
+    ${filterOn ? '' : adBannerHtml()}
 
     <!-- Kategoriya chiplari — "ostki chiziq" (2026-08-14, founder tanlovi).
          Uslub styles.css dagi .cat-chip/.cat-line da. Chiziq ::after emas,
@@ -1444,6 +1460,63 @@ function priceFilterLabel() {
   return `${priceNum(hi)} ${T.somU} ${T.priceTo}`;
 }
 
+// ============ SARALASH (2026-08-17) ============
+// Sayt (`script.js` → `applySort`) bilan bitta qoida: `rec` — massivning o'z
+// tartibi, `new` — "Yangi" belgililar oldinda (barqaror), `asc`/`desc` —
+// narx; narxi noma'lum mahsulot ikkala yo'nalishda ham OXIRIDA.
+const SORT_KEYS = ['rec', 'new', 'asc', 'desc'];
+
+function sortProducts(list) {
+  if (S.sortKey === 'rec') return list;
+  const idx = list.map((p, i) => {
+    const n = Number(p.price);
+    return { p, i, price: Number.isFinite(n) ? n : null, isNew: !!(p.badge && p.badge.uz === 'Yangi') };
+  });
+  idx.sort((a, b) => {
+    if (S.sortKey === 'new') return (b.isNew - a.isNew) || (a.i - b.i);
+    if (a.price === null && b.price === null) return a.i - b.i;
+    if (a.price === null) return 1;
+    if (b.price === null) return -1;
+    return (S.sortKey === 'asc' ? a.price - b.price : b.price - a.price) || (a.i - b.i);
+  });
+  return idx.map(x => x.p);
+}
+
+function sortLabel(key) {
+  const T = STR[S.lang];
+  return { rec: T.sortRec, new: T.sortNew, asc: T.sortAsc, desc: T.sortDesc }[key] || '';
+}
+
+// Qo'llangan holat chipi (saralash / narx) — ikkalasi bitta shaklda
+function filterChipHtml(label, clearAction, ariaLabel) {
+  return `<div style="display:flex;align-items:center;gap:8px;max-width:100%;height:34px;padding:0 6px 0 13px;border-radius:999px;background:var(--pom-100);border:1px solid rgba(122,20,13,.25)">
+      <span style="font-size:12.5px;font-weight:600;color:var(--pom-700);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(label)}</span>
+      <button data-action="${clearAction}" aria-label="${esc(ariaLabel)}" style="flex:none;width:24px;height:24px;border-radius:50%;border:none;background:rgba(122,20,13,.12);color:var(--pom-700);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+      </button>
+    </div>`;
+}
+
+// Varaqdagi radio — faqat QORALAMA o'zgaradi, katalog "Tayyor" gacha turadi
+function pickSort(key) {
+  S.sortDraft = SORT_KEYS.includes(key) ? key : 'rec';
+  paintSheet();
+}
+// Chipdagi × — faqat saralashni olib tashlaydi (narx qoladi)
+function clearSort() {
+  S.sortKey = 'rec';
+  S.sortDraft = 'rec';
+  paintHome();
+}
+// Chipdagi × — faqat narxni olib tashlaydi (saralash qoladi)
+function clearPriceOnly() {
+  S.priceMin = null;
+  S.priceMax = null;
+  S.priceDraftMin = '';
+  S.priceDraftMax = '';
+  paintHome();
+}
+
 // Faqat raqam qoldiradi (foydalanuvchi "700 000" yoki "700000" yozishi mumkin);
 // bo'sh bo'lsa null = chegara yo'q
 function parsePrice(v) {
@@ -1456,6 +1529,7 @@ function parsePrice(v) {
 function openPriceSheet() {
   S.priceDraftMin = S.priceMin === null ? '' : String(S.priceMin);
   S.priceDraftMax = S.priceMax === null ? '' : String(S.priceMax);
+  S.sortDraft = S.sortKey;
   S.priceErr = '';
   S.priceSheet = true;
   paintSheet();
@@ -1494,15 +1568,19 @@ function applyPriceFilter() {
   }
   S.priceMin = lo;
   S.priceMax = hi;
+  S.sortKey = S.sortDraft;
   S.priceSheet = false;
   paintSheet();
   paintHome();
 }
+// "Tozalash" — narx HAM, saralash HAM boshlang'ich holatga (sayt bilan bir xil)
 function clearPriceFilter() {
   S.priceMin = null;
   S.priceMax = null;
   S.priceDraftMin = '';
   S.priceDraftMax = '';
+  S.sortKey = 'rec';
+  S.sortDraft = 'rec';
   S.priceErr = '';
   S.priceSheet = false;
   paintSheet();
@@ -2859,7 +2937,13 @@ function renderBtsSheet() {
   </div>`;
 }
 
-// ============ NARX ORALIG'I (bottom-sheet) ============
+// ============ SARALASH VA NARX ORALIG'I (bottom-sheet) ============
+// Referens — Shop ilovasining "Sort by" varag'i (2026-08-17, founder
+// ko'rsatdi): sarlavha + yopish, radio ro'yxat, pastda "Reset · Done".
+// Bizda: Saralash · Tozalash / Tayyor, asosiy tugma anor gradientida.
+// Karta MUALLAQ turadi — pastki chetga yopishmaydi, to'rt burchagi
+// yumaloq (founder: "tagi referensdagidek muallaq tursin"). Sayt
+// (`index.html` → `#sort-sheet`) bilan bir xil tuzilma va so'zlar.
 function renderPriceSheet() {
   const T = STR[S.lang];
   // Yo'l-yo'riq raqami KATALOGDAN olinadi, o'ylab topilmaydi — mahsulot bo'lmasa
@@ -2868,36 +2952,52 @@ function renderPriceSheet() {
   const lo = prices.length ? Math.min(...prices) : null;
   const hi = prices.length ? Math.max(...prices) : null;
 
-  const inputBox = 'flex:1;min-width:0;display:flex;flex-direction:column;gap:5px';
-  const inputSt = "width:100%;height:48px;padding:0 14px;border-radius:var(--radius-md);border:1px solid rgba(255,255,255,.8);background:rgba(255,255,255,.7);outline:none;font-family:var(--font-sans);font-size:16px;font-weight:600;color:var(--text-strong);box-shadow:var(--shadow-sm)";
-  const lblSt = 'font-size:11.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--text-muted);padding-left:2px';
+  const inputSt = "flex:1;min-width:0;width:100%;height:48px;padding:0 14px;border-radius:var(--radius-md);border:1px solid rgba(23,26,48,.1);background:var(--surface-solid);outline:none;font-family:var(--font-sans);font-size:16px;font-weight:600;color:var(--text-strong)";
+  const lblSt = 'font-size:11.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--text-muted)';
+
+  // Radio qatori — haqiqiy <input type=radio> emas, tugma: butun qator
+  // bosiladi, tanlov `S.sortDraft` da, belgisi CSS emas inline (sheet
+  // to'liq inline uslubda chiziladi).
+  const optHtml = (key, label) => {
+    const on = S.sortDraft === key;
+    return `<button type="button" role="radio" aria-checked="${on}" data-action="pickSort" data-arg="${key}" style="display:flex;align-items:center;justify-content:space-between;gap:14px;width:100%;min-height:54px;padding:0 12px;border:none;border-radius:var(--radius-md);background:none;font-family:var(--font-sans);font-size:16px;font-weight:500;color:var(--text-strong);text-align:left;cursor:pointer">
+      <span>${label}</span>
+      <span aria-hidden="true" style="flex:none;width:24px;height:24px;border-radius:50%;border:1.5px solid ${on ? 'var(--pom-700)' : 'var(--ink-300)'};display:flex;align-items:center;justify-content:center;transition:border-color var(--dur-fast)">
+        <span style="width:12px;height:12px;border-radius:50%;background:var(--pom-700);transform:scale(${on ? 1 : 0});transition:transform var(--dur-fast) var(--ease-spring)"></span>
+      </span>
+    </button>`;
+  };
 
   return `
   <div data-action="closePriceSheet" style="position:absolute;inset:0;background:rgba(23,26,48,.34);z-index:60;animation:fade var(--dur-base) var(--ease-out)"></div>
-  <div style="position:absolute;left:0;right:0;bottom:0;z-index:61;display:flex;flex-direction:column;border-radius:var(--radius-xl) var(--radius-xl) 0 0;padding:10px 14px calc(18px + env(safe-area-inset-bottom));backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);background:var(--glass-tint);box-shadow:var(--glass-spec),0 -12px 40px -8px rgba(81,1,0,.28);animation:sheetUp var(--dur-base) var(--ease-out)">
-    <div style="width:38px;height:4px;border-radius:99px;background:var(--ink-200);margin:0 auto 12px;flex:none"></div>
-    <div style="font-family:var(--font-display);font-size:17px;font-weight:800;color:var(--text-strong);letter-spacing:-.02em;margin-bottom:4px">${T.priceT}</div>
-    <div style="font-size:12px;color:var(--text-muted);margin-bottom:13px">${T.priceUnit}</div>
-
-    <div style="display:flex;gap:10px;align-items:flex-end">
-      <label style="${inputBox}">
-        <span style="${lblSt}">${T.priceMinPh}</span>
-        <input id="price-min" type="text" inputmode="numeric" value="${S.priceDraftMin}" data-input="priceDraftInput" data-arg="min" placeholder="${lo === null ? '' : priceNum(lo)}" style="${inputSt}">
-      </label>
-      <div style="flex:none;height:48px;display:flex;align-items:center;color:var(--text-muted);font-weight:700">–</div>
-      <label style="${inputBox}">
-        <span style="${lblSt}">${T.priceMaxPh}</span>
-        <input id="price-max" type="text" inputmode="numeric" value="${S.priceDraftMax}" data-input="priceDraftInput" data-arg="max" placeholder="${hi === null ? '' : priceNum(hi)}" style="${inputSt}">
-      </label>
+  <div role="dialog" aria-modal="true" aria-label="${T.sort}" style="position:absolute;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));z-index:61;display:flex;flex-direction:column;border-radius:var(--radius-xl);padding:20px 18px 18px;background:#FFFDFB;box-shadow:0 18px 60px -20px rgba(23,26,48,.5),0 2px 8px rgba(23,26,48,.08);animation:sheetUp var(--dur-base) var(--ease-out)">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px">
+      <div style="flex:1;font-family:var(--font-display);font-size:21px;font-weight:800;color:var(--text-strong);letter-spacing:-.02em">${T.sort}</div>
+      <button type="button" data-action="closePriceSheet" aria-label="${T.pvClose}" style="flex:none;width:34px;height:34px;border-radius:50%;border:1px solid rgba(23,26,48,.08);background:none;color:var(--text-body);display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
     </div>
 
-    <div id="price-err" style="min-height:17px;margin-top:7px;font-size:12px;font-weight:600;color:var(--danger-500)">${S.priceErr}</div>
+    <div role="radiogroup" aria-label="${T.sort}" style="display:flex;flex-direction:column;margin:0 -6px">
+      ${optHtml('rec', T.sortRec)}
+      ${optHtml('new', T.sortNew)}
+      ${optHtml('asc', T.sortAsc)}
+      ${optHtml('desc', T.sortDesc)}
+    </div>
 
-    ${lo === null ? '' : `<div style="font-size:12px;color:var(--text-muted);margin-bottom:14px">${T.priceRangeHint}: ${priceNum(lo)} – ${priceNum(hi)} ${T.somU}</div>`}
+    <div style="display:flex;flex-direction:column;gap:8px;margin-top:6px;padding-top:14px;border-top:1px solid rgba(23,26,48,.08)">
+      <span style="${lblSt}">${T.priceT} · ${T.priceUnit}</span>
+      <div style="display:flex;gap:10px;align-items:center">
+        <input id="price-min" type="text" inputmode="numeric" value="${S.priceDraftMin}" data-input="priceDraftInput" data-arg="min" placeholder="${T.priceMinPh}" aria-label="${T.priceMinPh}" style="${inputSt}">
+        <div style="flex:none;color:var(--text-muted);font-weight:700">–</div>
+        <input id="price-max" type="text" inputmode="numeric" value="${S.priceDraftMax}" data-input="priceDraftInput" data-arg="max" placeholder="${T.priceMaxPh}" aria-label="${T.priceMaxPh}" style="${inputSt}">
+      </div>
+      <div id="price-err" style="min-height:17px;font-size:12px;font-weight:600;color:var(--danger-500)">${S.priceErr}${!S.priceErr && lo !== null ? `<span style="color:var(--text-muted);font-weight:500">${T.priceRangeHint}: ${priceNum(lo)} – ${priceNum(hi)} ${T.somU}</span>` : ''}</div>
+    </div>
 
-    <div style="display:flex;gap:10px">
-      <button data-action="clearPriceFilter" style="flex:none;padding:0 18px;height:50px;border-radius:var(--radius-md);border:1px solid rgba(122,20,13,.3);background:none;color:var(--pom-700);font-family:var(--font-sans);font-size:15px;font-weight:600;cursor:pointer">${T.priceClear}</button>
-      <button data-action="applyPriceFilter" style="flex:1;height:50px;border:none;border-radius:var(--radius-md);background:linear-gradient(135deg,var(--pom-600),var(--pom-800));color:#ffe9db;font-family:var(--font-sans);font-size:15px;font-weight:600;cursor:pointer;box-shadow:var(--shadow-sm)">${T.priceApply}</button>
+    <div style="display:flex;gap:10px;margin-top:4px;padding-top:12px;border-top:1px solid rgba(23,26,48,.08)">
+      <button data-action="clearPriceFilter" style="flex:0 0 42%;height:52px;border-radius:var(--radius-md);border:1.5px solid rgba(122,20,13,.28);background:var(--surface-solid);color:var(--pom-700);font-family:var(--font-sans);font-size:15.5px;font-weight:700;cursor:pointer">${T.priceClear}</button>
+      <button data-action="applyPriceFilter" style="flex:1;height:52px;border:none;border-radius:var(--radius-md);background:linear-gradient(135deg,var(--pom-600),var(--pom-800));color:var(--pom-100);font-family:var(--font-sans);font-size:15.5px;font-weight:700;cursor:pointer;box-shadow:0 10px 26px -10px rgba(81,1,0,.6),inset 0 1px 0 rgba(255,229,210,.22)">${T.sheetDone}</button>
     </div>
   </div>`;
 }

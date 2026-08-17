@@ -27,8 +27,11 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
   bo'ldi), landing'da qidiruv ham bor. **Narx oralig'i shu kuni qo'shildi** — Mini App'da
   bottom-sheet (`openPriceSheet`), landing'da chiplar ostidagi "dan – gacha" maydonlari;
   uchala filtr (kategoriya + qidiruv + narx) kesishib ishlaydi. Pastdagi "Qilingan
-  ishlar"ga qarang. ⚠️ Mini App'dagi **"Saralash" tugmasi hamon o'lik** — u bu bandga
-  kirmaydi, alohida ish sifatida ochiq qoladi
+  ishlar"ga qarang. ⚠️ ~~Mini App'dagi **"Saralash" tugmasi hamon o'lik** — u bu bandga
+  kirmaydi, alohida ish sifatida ochiq qoladi~~ — **2026-08-17 da SARALASH IKKALA
+  YUZDA qo'shildi** (bottom-sheet: Tavsiya etilgan / Eng yangi / arzon→qimmat /
+  qimmat→arzon + narx oralig'i bitta varaqda). ⚠️ «Eng yangi» hozircha «Yangi»
+  belgisi bo'yicha — `/api/products` `created_at` qaytarmaydi (ochiq band)
 - [x] Mahsulot kartochkasi: rasm, kategoriya, narx/rulon, rulon soni, ishlab chiqaruvchi
   reytingi — hammasi bor (zaxira soni 2026-07-30 da qo'shilgan `stockView(p)` bilan).
   Reyting 2026-07-31 da HAQIQIYga aylantirildi — soxta seed sonlari o'chirildi,
@@ -130,6 +133,111 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
 ---
 
 ## Qilingan ishlar
+
+- [2026-08-17] **SARALASH VA NARX VARAG'I (BOTTOM-SHEET) — IKKALA YUZDA, VA
+  PRODUCTION'DA HECH QACHON ISHLAMAGAN ESKI NUQSON TUZATILDI** (bugungi
+  BIRINCHI commit — `git log --since="2026-08-17"` bo'sh edi, o'lchandi).
+  Ish IKKALA yuzga tegdi: sayt (`index.html` / `script.js` / `style.css`) va
+  Mini App (`telegram-app/app.js`).
+
+  **NAMUNA VA MANBA:** founder Shop ilovasining «Sort by» varag'ini referens
+  qilib berdi va «so'zlari bilan bizga moslab» dedi. Header'dagi filtr
+  tugmasi (`data-action="openSortSheet"`) endi VARAQ ochadi: sarlavha
+  «Saralash» + ×, to'rt radio (Tavsiya etilgan · Eng yangi · Arzondan →
+  qimmatga · Qimmatdan → arzonga), pastda narx oralig'i (min–max), footer
+  «Tozalash» (chegarali) / «Tayyor» (anor gradient). Narx inputlari ILGARI
+  chiplar ostidagi qatorda edi — varaqqa KO'CHDI; chiplar ostida endi faqat
+  qo'llangan holat IZI turadi: `#sort-chip` va `#price-chip`, har birida ×.
+
+  ⚠️ **QORALAMA QOIDASI IKKALA YUZDA BIR XIL:** varaqdagi tanlov (radio,
+  inputlar) katalogni DARHOL o'zgartirmaydi — faqat «Tayyor» bosilganda
+  qo'llanadi (saytda `applySortSheet`, Mini App'da `S.sortDraft` →
+  `S.sortKey`). × yoki Escape bilan yopilsa qoralama tashlanadi. Mini
+  App'dagi narx varag'i 2026-07-31 dan shunday ishlardi — sayt UNGA
+  tenglashtirildi, yangi qoida o'ylab topilmadi.
+
+  **SARALASH SAYTDA CSS `order` BILAN — DOM KO'CHIRILMAYDI** (`applySort`,
+  `script.js`): kartochkalar joyida qoladi, ya'ni `productEl()` qidiruvi,
+  filtr va boshqa kod tegilmaydi; `rec` da `order` bo'shatiladi. `rec` —
+  katalogning O'Z tartibi (HTML / `sort_order`); `new` — «Yangi» belgili
+  kartochkalar oldinda; narxi noma'lum kartochka IKKALA yo'nalishda ham
+  OXIRIDA (u «eng arzon» ham, «eng qimmat» ham emas). Mini App'da esa
+  ro'yxat `sortProducts()` bilan chizishdan oldin tartiblanadi (u yerda
+  DOM baribir har safar qayta chiziladi).
+
+  ⚠️ **«ENG YANGI» — HALOL CHEKLOV, O'YLAB TOPILMADI:** `/api/products`
+  `created_at` QAYTARMAYDI, shuning uchun «yangi» faqat «Yangi» belgisi
+  bo'yicha, haqiqiy sana bo'yicha EMAS. Kodga izoh yozildi, sana o'ylab
+  topilmadi («o'ylab topilgan raqam» qoidasi). Haqiqiy sana bilan ishlashi
+  uchun API'ga `created_at` qo'shish kerak — «Qarorlar» da ochiq band.
+
+  **MINI APP:** mavjud `renderPriceSheet` referens shakliga o'tdi (Saralash
+  sarlavhasi, radio qatorlar `data-action="pickSort"`, narx bo'limi,
+  Tozalash/Tayyor). Yangi holat `S.sortKey` / `S.sortDraft`, yangi
+  funksiyalar `sortProducts()`, `filterChipHtml()`, `clearSort()`,
+  `clearPriceOnly()`. Filtr tugmasi saralash yoqilganda ham «yoniq»
+  ko'rinadi (`filterOn = priceOn || sortOn`). ⚠️ `T.sort` kaliti HEAD da
+  BOR edi, lekin uni ishlatadigan tugma YO'Q edi (`grep` bilan tekshirildi:
+  faqat lug'atda) — ya'ni yuqoridagi «Mini App'dagi Saralash tugmasi hamon
+  o'lik» yozuvi endi eskirdi; band yangilandi.
+  🔴 **FOUNDER QARORI: filtr yoki saralash qo'llanganda REKLAMA BANNERI
+  CHIZILMAYDI** (`filterOn ? '' : adBannerHtml()`; `mountAdBanner()`
+  banner yo'qligini o'zi ko'radi va taymerni to'xtatadi — osilib qolgan
+  interval yo'q). Sabab founder tomonidan alohida aytilmadi — qaror
+  sifatida yozildi, oqlash o'ylab topilmadi.
+
+  **VARAQ IKKALA YUZDA MUALLAQ KARTA** (founder: «tagi referensdagidek
+  muallaq tursin») — pastki chetga yopishmaydi, 12px havo
+  (`calc(12px + env(safe-area-inset-bottom))`), to'rt burchak 28px;
+  desktopda 520px markazda, 24px pastdan. Sayt va Mini App'da bir xil
+  o'lchov — 375px ekranda ikkalasi ham `[12, 363, …, 800]` (ish
+  jarayonida brauzer panelida o'lchangan; hisobotchi bu o'lchovni QAYTA
+  OLMADI — kod va testlarni tekshirdi).
+
+  **WEBDA VARAQNING PASTKI QISMI** (founder: «oppoq bo'lib ozgina
+  ko'rinmayapti») — footer krem fon (`--pom-50`) + ustida hairline;
+  «Tozalash» anor chegara va anor matn (`--pom-700`).
+
+  **QIDIRUV QUTISI FONDAN AJRALDI** (founder: «poisk background bilan
+  birlashib ketgan») — `.search-box` fon `rgba(255,255,255,.92)`, chegara
+  `rgba(23,26,48,.12)` (ilgari `--glass-border` — «shisha» oq chegara oq
+  header'da yo'qolardi), soya yaqinroq. ⚠️ **× tugmasi avvalgidek DOIM
+  turadi — founder qarori.** Ish jarayonida u yashirilgan edi va QAYTARILDI:
+  «shunday qil» degan gapdan tashqarida o'zboshimchalik bilan olib tashlangan
+  narsa foundersiz qaytarilmadi.
+
+  🔴 **TOPILGAN ESKI NUQSON — 2026-08-13 QARORI PRODUCTION'DA HECH QACHON
+  ISHLAMAGAN.** `.price-filter { display: flex }` `hidden` ATRIBUTIDAN
+  KUCHLI edi (UA `[hidden] { display: none }` muallif qoidasidan yutqazadi),
+  ya'ni «narx paneli yopiq tursin, tugma bilan ochilsin» qarori qabul
+  qilingan kundan beri panel DOIM OCHIQ turgan. Hisobotchi jonli saytda
+  QAYTA TEKSHIRDI: `curl https://lolamarket.uz/style.css?v=63` → 686-qator
+  `.price-filter { display: flex; ... }`, `index.html` → `id="price-filter"
+  hidden` — ikkalasi birga, ya'ni nuqson HAQIQIY va HOZIR HAM jonli. Endi
+  `.price-filter[hidden] { display: none }` alohida qator bilan. Bu «yozilgan
+  qoida himoya emas» oilasidan: qaror sprintga yozilgan, kod «to'g'ri»
+  ko'ringan, testlar yashil — faqat KO'Z bilan ko'rilmagan.
+
+  **IKKI TIL:** saytda 9 yangi kalit (uz+ru: `sortTitle`, `sortRec`,
+  `sortNew`, `sortAsc`, `sortDesc`, `sheetReset`, `sheetDone`, `priceBad`,
+  `close`), `apply` kaliti OLIB TASHLANDI (endi «Qo'llash» tugmasi yo'q).
+  Test 20 sanadi: **271 → 279** (net +8 — hisobotchi HEAD bilan
+  solishtirib o'lchadi, `git stash` bilan). Mini App'da `sortRec/New/Asc/
+  Desc`, `sheetDone`, `sortRemove` (uz+ru). Til almashganda chip yozuvi
+  yangilanadi (`applyLang` → `paintPriceState`).
+
+  **SINALGANI: 80 TEST YASHIL** — hisobotchi mustaqil yurgizdi, `^✅ Test`
+  takrorsiz sanaldi, ❌ soni 0. ⚠️ **Son O'ZGARMADI va bu KAMCHILIK:** bu
+  ishga YANGI QOROVUL QO'SHILMADI (varaq / saralash / `[hidden]` qoidasi
+  test bilan qulflanmagan). Aynan bugun topilgan `[hidden]` nuqsoni «test
+  bo'lmasa qoida ishlamaydi» ning yangi misoli — qarz «Qarorlar» da.
+
+  🔴 **Jonli saytda hali ko'rilmagan — DEPLOY QILINMAGAN.**
+  **DEPLOY: faqat STATIK** — server kodiga tegilmadi (`server/test.js` faqat
+  Test 16 jadvali), servis restarti va migratsiya kerak emas. Kesh:
+  `style.css` 63→**64** (`index.html` va `admin/index.html` BIRGA),
+  `script.js` 52→**53**, `telegram-app/app.js` 98→**99**, Test 16 jadvali
+  birga (v + hash tekshirildi).
 
 - [2026-08-16] **SAYTNING TAGIGA TO'LIQ FOOTER QO'SHILDI — HAVOLALARI SAHIFA
   EMAS, OYNA OCHADI** (bugungi TO'QQIZINCHI commit, `git log --since` bilan
@@ -3228,6 +3336,53 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
 ---
 
 ## Qarorlar
+
+- [2026-08-17] Qaror: **saralash va narx oralig'i BITTA varaqda, va varaq
+  faqat «Tayyor» bilan qo'llanadi.** Founder Shop ilovasining «Sort by»
+  varag'ini referens berdi va «so'zlari bilan bizga moslab» dedi —
+  referensda saralash va narx bitta varaqda, shakl shundan olindi.
+  Ilgari saytda narx inputlari chiplar ostidagi qatorda edi — endi
+  varaqda; chiplar ostida faqat qo'llangan holat izi qoladi. Qoralama
+  qoidasi (tanlov darhol qo'llanmaydi) IKKALA yuzda bir xil — Mini App'dagi
+  narx varag'i shunday ishlardi, sayt unga tenglashtirildi, teskarisi emas
+
+- [2026-08-17] Qaror: **«Eng yangi» — «Yangi» belgisi bo'yicha, sana
+  O'YLAB TOPILMADI.** `/api/products` `created_at` qaytarmaydi, shuning
+  uchun «yangi» faqat kartochkadagi «Yangi» belgisi bo'yicha va bu kodga
+  izoh bilan yozildi. Boshqa maydonni «sana» o'rnida ishlatish
+  qilinmadi — u haqiqiy sana emas va «eng yangi» deb ko'rsatilgan narsa
+  yolg'on bo'lardi («o'ylab topilgan raqam» qoidasi). 🟠 **OCHIQ:** haqiqiy tartib uchun
+  `/api/products` ga `created_at` qo'shish kerak — server tomonida bir
+  ustun, klientda `new` tarmog'i o'zgaradi
+
+- [2026-08-17] Qaror (founder): **filtr yoki saralash qo'llanganda Mini
+  App'da reklama banneri CHIZILMAYDI.** Foydalanuvchi aniq narsa
+  qidiryapti — banner o'sha paytda halaqit. Texnik tomoni: `adBannerHtml()`
+  chaqirilmaydi, `mountAdBanner()` esa banner yo'qligini o'zi ko'radi va
+  aylanish taymerini to'xtatadi (osilib qolgan interval qolmaydi)
+
+- [2026-08-17] Qaror (founder): **qidiruv qutisidagi × DOIM turadi.** Ish
+  jarayonida u yashirilgan edi va QAYTARILDI — «qidiruv fondan ajralsin»
+  degan gap × ni olib tashlashga ruxsat emas edi. Dars: tuzatish so'ralgan
+  joyning YONIDAGI narsaga tegilsa, u alohida qaror va alohida so'raladi
+
+- [2026-08-17] Qaror: **`.price-filter[hidden] { display: none }` — muallif
+  `display` qoidasi bo'lgan har bir yashiriladigan blokka shu qator SHART.**
+  Sabab: 2026-08-13 dagi «narx paneli yopiq tursin» qarori production'da
+  hech qachon ishlamagan — `display: flex` `hidden` atributidan kuchli edi va
+  panel doim ochiq turgan (jonli `style.css?v=63` da o'lchandi). Bu jimgina
+  nuqson: konsolda xato yo'q, `hidden` atributi DOM'da bor, faqat KO'Z
+  ko'radi. `<picture>` va flex `flex: none` qoidalari bilan bitta oila —
+  «element bor, o'lchamlari to'g'ri ko'rinadi, natija esa boshqa»
+
+- [2026-08-17] 🟠 **OCHIQ QOLDI: bu ishga qorovul test qo'shilmadi** (80 test
+  yashil, soni HEAD dagidek). Qamrovsiz joylar: (1) varaq `data-action`
+  nomlari (`openSortSheet`, `applySortSheet`, `resetSortSheet`, `pickSort`,
+  `clearSort`, `clearPriceOnly`) — funksiya qayta nomlansa tugma jim o'lik;
+  (2) `.price-filter[hidden] { display: none }` qatori — o'chirilsa nuqson
+  aynan shu shaklda jimgina qaytadi; (3) `SORT_KEYS` ro'yxati bilan
+  varaqdagi radio `value` lari mos-nomosligi. Footer ishidagi qarz bilan
+  bitta ro'yxatda turadi; yopilishi founder qaroriga qoldi
 
 - [2026-08-16] Qaror: **footer havolalari SAHIFA emas, OYNA ochadi.** Sayt
   bitta sahifadan iborat, ya'ni `/vakansiyalar` kabi manzil yo'q va oddiy

@@ -39,7 +39,7 @@
        ko'p uchraydigan xatosi shu. -->
   <link rel="preconnect" href="https://telegram.org">
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@24,600..800&family=Hanken+Grotesk:wght@400..700&family=Geist+Mono:wght@600..700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/style.css?v=63" />
+  <link rel="stylesheet" href="/style.css?v=64" />
   <!-- DIQQAT: uchala skript ham `defer` — TARTIB shu sababli saqlanadi
        (telegram → script.js → pwa.js). Bittasidan `defer` olib tashlansa,
        u tananing ichida parse paytida ishlaydi va DEFER'liklardan OLDIN
@@ -72,9 +72,9 @@
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
           </button>
         </div>
-        <button class="filter-btn" id="filter-btn" type="button" data-action="togglePriceFilter"
-                aria-expanded="false" aria-controls="price-filter"
-                data-i18n-aria="priceFilterAria" aria-label="Narx bo'yicha filtr">
+        <button class="filter-btn" id="filter-btn" type="button" data-action="openSortSheet"
+                aria-expanded="false" aria-controls="sort-sheet"
+                data-i18n-aria="priceFilterAria" aria-label="Saralash va narx filtri">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M4 6h16M7 12h10M10 18h4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
         </button>
       </div>
@@ -237,26 +237,20 @@ berish</span><span class="ad-tag" data-i18n="ad3tag">Ilk 3 ta buyurtma</span></h
       <button class="chip" data-cat="linen"><span data-i18n="catLinen">Zig'ir</span><span class="chip-line"></span></button>
     </div>
 
-    <!-- ⚠️ Boshlang'ich holat — YOPIQ (founder qarori 2026-08-13: "filtr
-         ikonkasini bosganda eski joyida chiqsin, ungacha ko'rinmasin").
-         JOYI o'zgarmadi — chiplar bilan katalog orasida, ya'ni ochilganda
-         aynan o'sha yerda paydo bo'ladi.
-         `fade-up` OLIB TASHLANDI: u `IntersectionObserver` bilan ishlaydi
-         va `hidden` element hech qachon ko'rinmaydi, ya'ni ochilganda blok
-         `opacity: 0` da qotib qolardi — jimgina bo'sh joy. -->
+    <!-- FAOL FILTR IZI — narx oralig'i va saralash chiplari.
+         2026-08-17 gacha bu blokda inputlar + "Qo'llash" ham turardi; endi
+         ular pastdagi VARAQDA (`#sort-sheet`, referens: Shop ilovasining
+         "Sort by" varag'i). Bu yerda faqat qo'llangan holat ko'rinadi —
+         blok yopiq panelda xaridor filtr ishlab turganini ko'rmasligi
+         uchun (jimgina yolg'on oilasidan) `paintPriceState` uni majburan
+         ochadi. Chip yo'q bo'lsa blok umuman ko'rinmaydi. -->
     <div class="price-filter" id="price-filter" hidden>
-      <span class="price-filter-label" data-i18n="priceLabel">Narx, so'm / rulon</span>
-      <div class="price-filter-row">
-        <input id="price-min" class="price-inp" type="text" inputmode="numeric" autocomplete="off"
-               data-i18n-ph="priceMin" placeholder="Eng kam" data-i18n-aria="priceMin" aria-label="Eng kam narx"
-               data-enter="applyPrice" />
-        <span class="price-dash">–</span>
-        <input id="price-max" class="price-inp" type="text" inputmode="numeric" autocomplete="off"
-               data-i18n-ph="priceMax" placeholder="Eng ko'p" data-i18n-aria="priceMax" aria-label="Eng ko'p narx"
-               data-enter="applyPrice" />
-        <button class="price-apply" type="button" data-action="applyPrice" data-i18n="apply">Qo'llash</button>
+      <div id="sort-chip" class="price-chip" hidden>
+        <span id="sort-chip-label"></span>
+        <button class="price-chip-x" type="button" data-action="clearSort" aria-label="Saralashni olib tashlash">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+        </button>
       </div>
-      <div id="price-err" class="price-err" role="alert"></div>
       <div id="price-chip" class="price-chip" hidden>
         <span id="price-chip-label"></span>
         <button class="price-chip-x" type="button" data-action="clearPrice" aria-label="Narx filtrini olib tashlash">
@@ -647,6 +641,67 @@ berish</span><span class="ad-tag" data-i18n="ad3tag">Ilk 3 ta buyurtma</span></h
        sahifa tekshiruvda SOG'LOM ko'rinardi (CLAUDE.md, soft-200 tuzog'i). -->
   <main class="pdp" id="pdp" hidden></main>
 
+  <!-- ===== SARALASH VA NARX VARAG'I (bottom-sheet) =====
+       Referens: Shop ilovasining "Sort by" varag'i (2026-08-17, founder
+       ko'rsatdi) — sarlavha + yopish, radio ro'yxat, pastda "Reset · Done".
+       Bizga moslab: Saralash · Tozalash / Tayyor, asosiy tugma anor
+       gradientida (referensda qora). Narx oralig'i ham SHU varaqda —
+       2026-08-13 dagi founder qarori ("filtr ikonkasi narxni ochsin")
+       saqlanadi, faqat joyi qator emas, varaq bo'ldi.
+       Ochish/yopish: `openSortSheet` / `closeSortSheet` (script.js). -->
+  <div class="drawer-scrim sheet-scrim" id="sort-scrim" data-action="closeSortSheet" hidden></div>
+
+  <section class="sheet" id="sort-sheet" role="dialog" aria-modal="true" aria-labelledby="sort-title" aria-hidden="true">
+    <header class="sheet-head">
+      <h2 class="sheet-title" id="sort-title" data-i18n="sortTitle">Saralash</h2>
+      <button class="drawer-x" type="button" data-action="closeSortSheet" data-i18n-aria="close" aria-label="Yopish">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </header>
+
+    <div class="sort-list" role="radiogroup" aria-labelledby="sort-title">
+      <label class="sort-opt">
+        <span data-i18n="sortRec">Tavsiya etilgan</span>
+        <input type="radio" name="sort" value="rec" checked />
+        <span class="sort-radio" aria-hidden="true"></span>
+      </label>
+      <label class="sort-opt">
+        <span data-i18n="sortNew">Eng yangi</span>
+        <input type="radio" name="sort" value="new" />
+        <span class="sort-radio" aria-hidden="true"></span>
+      </label>
+      <label class="sort-opt">
+        <span data-i18n="sortAsc">Arzondan → qimmatga</span>
+        <input type="radio" name="sort" value="asc" />
+        <span class="sort-radio" aria-hidden="true"></span>
+      </label>
+      <label class="sort-opt">
+        <span data-i18n="sortDesc">Qimmatdan → arzonga</span>
+        <input type="radio" name="sort" value="desc" />
+        <span class="sort-radio" aria-hidden="true"></span>
+      </label>
+    </div>
+
+    <div class="sheet-sec">
+      <span class="price-filter-label" data-i18n="priceLabel">Narx, so'm / rulon</span>
+      <div class="price-filter-row">
+        <input id="price-min" class="price-inp" type="text" inputmode="numeric" autocomplete="off"
+               data-i18n-ph="priceMin" placeholder="Eng kam" data-i18n-aria="priceMin" aria-label="Eng kam narx"
+               data-enter="applySortSheet" />
+        <span class="price-dash">–</span>
+        <input id="price-max" class="price-inp" type="text" inputmode="numeric" autocomplete="off"
+               data-i18n-ph="priceMax" placeholder="Eng ko'p" data-i18n-aria="priceMax" aria-label="Eng ko'p narx"
+               data-enter="applySortSheet" />
+      </div>
+      <div id="price-err" class="price-err" role="alert"></div>
+    </div>
+
+    <footer class="sheet-foot">
+      <button class="sheet-reset" type="button" data-action="resetSortSheet" data-i18n="sheetReset">Tozalash</button>
+      <button class="sheet-done" type="button" data-action="applySortSheet" data-i18n="sheetDone">Tayyor</button>
+    </footer>
+  </section>
+
   <!-- ===== SAVAT / CHECKOUT ===== -->
   <div class="drawer-scrim" id="scrim" data-action="closeCart" hidden></div>
 
@@ -771,7 +826,7 @@ berish</span><span class="ad-tag" data-i18n="ad3tag">Ilk 3 ta buyurtma</span></h
     </button>
   </nav>
 
-  <script defer src="/script.js?v=52"></script>
+  <script defer src="/script.js?v=53"></script>
   <script defer src="/pwa.js?v=3"></script>
 </body>
 </html>

@@ -547,6 +547,17 @@
   ⚠️ `apple-touch-icon` esa kvadrat bo'lib QOLADI — uy ekranidagi nishon
   fonsiz bo'lsa iOS uni oq fonga qo'yadi va belgi rangsiz ko'rinardi.
   **Ikki nishon ikki xil ish qiladi, bir xillashtirilmasin.**
+- **`hidden` atributi muallif `display` qoidasidan KUCHSIZ** (2026-08-17).
+  Blokka CSS'da `display: flex` / `grid` / `block` yozilgan bo'lsa, HTML'dagi
+  `hidden` atributi uni YASHIRMAYDI — brauzerning `[hidden] { display: none }`
+  qoidasi muallif qoidasidan yutqazadi. Shunday har bir blok uchun
+  `.blok[hidden] { display: none }` qatori ALOHIDA yozilsin. Sabab:
+  2026-08-13 dagi «narx paneli yopiq tursin» qarori production'da HECH QACHON
+  ishlamagan — `.price-filter { display: flex }` panelni doim ochiq ushlab
+  turgan (jonli `style.css?v=63` da o'lchandi). Nuqson JIMGINA: `hidden` DOM'da
+  bor, konsolda xato yo'q, testlar yashil — faqat ko'z ko'radi. `<picture>` va
+  flex `flex: none` qoidalari bilan bitta oila. Qorovul yo'q (ochiq qarz,
+  `sprint-4.md` → Qarorlar).
 - **Rasmni `<picture>` ga o'rasangiz, konteynerini CSS ro'yxatiga qo'shing**
   (2026-08-05). `<picture>` rasm bilan uni o'rab turgan quti ORASIGA kiradi va
   u odatda `display: inline`, balandligi `auto`. Shuning uchun `img { height:
