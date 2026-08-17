@@ -591,15 +591,34 @@ domenimizga ketadi, ya'ni `connect-src 'self'` yetadi (2026-08-13 dagi
 
 ### Deploydan keyin tekshirish
 
+🔴 **`curl` NI UA SIZ ISHLATMANG — tekshiruv YOLG'ON gapiradi.** Bot filtri
+`curl` ni tanib, hodisani YOZMASDAN `200 {"ok":true}` qaytaradi. Ya'ni UA siz
+buyruq jadval umuman mavjud bo'lmasa ham "hammasi joyida" deb ko'rsatadi —
+2026-08-18 da aynan shu bo'ldi: bu yerdagi buyruq 200 berdi, jonli sayt esa
+har tashrifda yiqilardi.
+
 ```bash
-# Hodisa qabul qilinadimi (200 + {"ok":true} bo'lishi kerak)
-curl -s -X POST https://lolamarket.uz/api/track \
+UA='Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/126 Safari/537.36'
+
+# 1. Hodisa HAQIQATAN yozilyaptimi — 200 bo'lsa jadval bor VA egaligi to'g'ri.
+#    500 → jadval yo'q yoki `permission denied` (pastdagi egalik tekshiruvi).
+curl -s -A "$UA" -X POST https://lolamarket.uz/api/track \
   -H 'Content-Type: application/json' \
   -d '{"kind":"view","screen":"katalog","face":"web"}'
 
-# Bot YOZILMAYDI, lekin 200 oladi — quyidagi so'rov jadvalga qator QO'SHMASLIGI kerak
+# 2. Yaroqsiz tana 400 bo'lishi shart (UA SIZ bu ham 200 bo'lib ko'rinadi)
+curl -s -A "$UA" -X POST https://lolamarket.uz/api/track \
+  -H 'Content-Type: application/json' -d '{"kind":"yolgon"}'
+
+# 3. Bot YOZILMAYDI, lekin 200 oladi
 curl -s -X POST https://lolamarket.uz/api/track -A 'curl/8.4.0' \
   -H 'Content-Type: application/json' -d '{"kind":"view","screen":"katalog"}'
+
+# 4. EGALIK — `lola` bo'lishi shart. `postgres` bo'lsa ilova yoza olmaydi
+#    va har tashrif `permission denied` beradi (Test 43 shu naqshni
+#    qo'riqlaydi, lekin u SQL ni bajarmaydi — jonli tekshiruv shu).
+ssh root@65.21.180.44 "sudo -u postgres psql -d lolamarket -c \
+  \\\"SELECT tablename, tableowner FROM pg_tables WHERE schemaname='public' AND tableowner <> 'lola'\\\""
 
 # Tokensiz statistika 401 bo'lishi SHART
 curl -s -o /dev/null -w '%{http_code}\n' https://lolamarket.uz/api/admin/traffic

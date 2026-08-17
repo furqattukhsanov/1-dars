@@ -119,6 +119,26 @@ CREATE INDEX IF NOT EXISTS idx_traffic_at ON traffic_events (at DESC);
 CREATE INDEX IF NOT EXISTS idx_traffic_product ON traffic_events (product_id, at DESC)
   WHERE product_id IS NOT NULL;
 
+-- ============ EGALIK — SHU QATORLARSIZ JADVAL O'LIK ============
+-- 🔴 2026-08-18 da production'da AYNAN SHU tushib qolgan edi: jadval
+-- yaratildi, backend deploy bo'ldi, panel 401/200 to'g'ri javob berdi —
+-- lekin har bir tashrif `permission denied for table traffic_events` bilan
+-- yiqilardi va alert tomiga chiqardi.
+--
+-- SABAB: migratsiya `sudo -u postgres psql` bilan bajariladi (README dagi
+-- buyruq shunday), ya'ni jadval `postgres` EGALIGIDA tug'iladi. Ilova esa
+-- `lola` foydalanuvchisi bilan ulanadi va boshqa odamning jadvaliga yozish
+-- huquqi yo'q. `015`–`019` migratsiyalarida bu qatorlar BOR, `026` va
+-- bu faylda esa yo'q edi — ya'ni naqsh allaqachon ma'lum va shunchaki
+-- takrorlanmagan.
+--
+-- ⚠️ SEKVENSIYA ALOHIDA: `BIGSERIAL` yashirin `..._id_seq` yaratadi va u
+-- jadval bilan birga o'tmaydi. Faqat jadval berilsa `INSERT` yana yiqiladi,
+-- xato matni esa bu safar sekvensiyani ko'rsatadi — ya'ni nuqson yarim
+-- tuzatilgan holda qaytadi.
+ALTER TABLE traffic_events OWNER TO lola;
+ALTER SEQUENCE traffic_events_id_seq OWNER TO lola;
+
 -- ============ TEKSHIRUV ============
 -- "Migratsiya o'tdi" ≠ "jadval to'g'ri ishlaydi" (db/025 dagi naqsh).
 -- Bu yerda AYNAN maxfiylik va aniqlik da'volari sinaladi, chunki panelning

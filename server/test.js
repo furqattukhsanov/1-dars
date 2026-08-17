@@ -5392,6 +5392,79 @@ function testTrafficMeasurement() {
     + `PASS (8 band, ${traffic.SCREENS.size} ekran, ${saytEkran.size} sayt + ${miniEkran.size} Mini App)`);
 }
 
+// ============ TEST 43: YANGI JADVAL EGALIGI (2026-08-18) ============
+// 🔴 BU TEST PRODUCTION NOSOZLIGIDAN TUG'ILDI. `db/028` deploy qilindi, jadval
+// yaratildi, backend ko'tarildi, `/api/admin/traffic` to'g'ri 401 berdi —
+// va HAR BIR tashrif `permission denied for table traffic_events` bilan
+// yiqilardi. Nuqson faqat alert tomida ko'rindi.
+//
+// SABAB: migratsiya `sudo -u postgres psql` bilan bajariladi (README dagi
+// buyruq), ya'ni jadval `postgres` EGALIGIDA tug'iladi; ilova esa `lola`
+// bilan ulanadi. `015`–`019` da `ALTER TABLE ... OWNER TO lola` BOR edi,
+// `026` va `028` da esa yo'q — ya'ni yechim ma'lum edi, shunchaki
+// takrorlanmagan. Bu loyihaning eng qadimgi darsi: **yozilgan qoida himoya
+// emas — uni tekshiradigan test himoya.**
+//
+// ⚠️ Nima uchun bu nuqsonni boshqa hech narsa ushlamaydi: `server/test.js`
+// SQL ni BAJARMAYDI (`sql-tekshirish-pglite` yozuvi), Test 4 esa route
+// javobiga qaraydi — endpoint esa TIRIK, faqat yozuvi o'lgan.
+function testNewTablesAreOwnedByApp() {
+  const fs = require('fs');
+  const path = require('path');
+  const dbDir = path.join(__dirname, '..', 'db');
+
+  // Konvensiya `015` dan boshlangan. Undan OLDINGI fayllar o'sha paytda
+  // `lola` nomidan bajarilgan va ularning jadvallari yillar davomida
+  // ishlab kelyapti — ular ATAYLAB qamrab olinmaydi. Ro'yxat YOPIQ: yangi
+  // fayl bu yerga QO'SHILMASIN, aks holda test ma'nosini yo'qotadi.
+  const MEROS = new Set([
+    '001_schema.sql', '004_seller_applications.sql', '005_sprint7_admin.sql',
+    '007_web_auth.sql', '012_reviews.sql', '013_commission_12.sql',
+  ]);
+
+  const fayllar = fs.readdirSync(dbDir).filter((f) => f.endsWith('.sql')).sort();
+  assert.ok(fayllar.length >= 20, `db/ da migratsiya topilmadi (${fayllar.length} ta)`);
+
+  const yomon = [];
+  let tekshirilgan = 0;
+
+  for (const f of fayllar) {
+    if (MEROS.has(f)) continue;
+    const sql = sqlSofi(fs.readFileSync(path.join(dbDir, f), 'utf8'));
+
+    for (const m of sql.matchAll(/CREATE TABLE (?:IF NOT EXISTS )?([a-z_]+)\s*\(([\s\S]*?)\n\);/g)) {
+      const jadval = m[1];
+      const tana = m[2];
+      tekshirilgan++;
+
+      if (!new RegExp(`ALTER TABLE\\s+${jadval}\\s+OWNER TO\\s+lola`).test(sql)) {
+        yomon.push(`${f}: \`ALTER TABLE ${jadval} OWNER TO lola;\` yo'q`);
+      }
+
+      // `BIGSERIAL`/`SERIAL` yashirin sekvensiya yaratadi va u jadval bilan
+      // BIRGA o'tmaydi — alohida berilishi shart. Aks holda nuqson yarim
+      // tuzatilgan holda qaytadi (xato matni sekvensiyani ko'rsatadi).
+      if (/\b(BIG)?SERIAL\b/i.test(tana)) {
+        if (!new RegExp(`ALTER SEQUENCE\\s+${jadval}_id_seq\\s+OWNER TO\\s+lola`).test(sql)) {
+          yomon.push(`${f}: \`ALTER SEQUENCE ${jadval}_id_seq OWNER TO lola;\` yo'q (jadvalda SERIAL bor)`);
+        }
+      }
+    }
+  }
+
+  assert.ok(tekshirilgan >= 4,
+    `konvensiyadan keyingi jadval topilmadi (${tekshirilgan} ta) — regex eskirgan bo'lishi mumkin`);
+
+  assert.deepStrictEqual(yomon, [],
+    'Migratsiya jadval yaratyapti, lekin EGALIGINI bermayapti. Bunday jadval '
+    + 'production\'da yaratiladi-yu, ilova unga yoza OLMAYDI: har so\'rov '
+    + '`permission denied` bilan yiqiladi, endpoint esa tirik ko\'rinadi '
+    + `(2026-08-18 da aynan shu bo'ldi):\n  ${yomon.join('\n  ')}`);
+
+  console.log(`✅ Test 43: Yangi jadval ilovaga tegishli — PASS `
+    + `(${tekshirilgan} jadval, ${MEROS.size} meros fayl chetda)`);
+}
+
 async function runTests() {
   console.log('\n🧪 LolaMarket Server Testlari\n');
 
@@ -5480,6 +5553,7 @@ async function runTests() {
     testRootPathsAreAbsolute();
     testDbImportShape();
     testTrafficMeasurement();
+    testNewTablesAreOwnedByApp();
 
     console.log('\n✅ Hammasi PASS — pul hisobi, imzo, route jadvali, xato alerti, buyurtma tarixi va AI rasmi joyida\n');
     process.exit(0);

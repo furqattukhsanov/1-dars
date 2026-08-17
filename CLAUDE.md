@@ -456,6 +456,29 @@
   ⚠️ **`src IS NULL` = "o'lchanmagan", "to'g'ridan-to'g'ri keldi" EMAS** —
   panelda kanallar ro'yxatidan TASHQARIDA turadi, aks holda eng katta "kanal"
   o'lchanmagan qatorlar bo'lib chiqardi (`NULL` reyting qoidasi bilan bitta oila).
+- **YANGI JADVAL `OWNER TO lola` BILAN BERILADI — aks holda u O'LIK tug'iladi**
+  (2026-08-18, production'da sindi). Migratsiya `sudo -u postgres psql` bilan
+  bajariladi (README dagi buyruq), ya'ni jadval **`postgres` egaligida**
+  tug'iladi; ilova esa `lola` bilan ulanadi va boshqa egaga tegishli jadvalga
+  YOZA OLMAYDI. `BIGSERIAL` bo'lsa **sekvensiya ALOHIDA** beriladi
+  (`ALTER SEQUENCE <jadval>_id_seq OWNER TO lola`) — u jadval bilan birga
+  o'tmaydi, ya'ni faqat jadval berilsa nuqson yarim tuzatilgan holda qaytadi.
+  🔴 **NOSOZLIK "MUVAFFAQIYAT" NIQOBIDA KELADI:** jadval yaratildi, backend
+  ko'tarildi, `/api/version` to'g'ri SHA berdi, `/api/admin/traffic` to'g'ri
+  `401` qaytardi — va har bir tashrif `permission denied for table
+  traffic_events` bilan yiqilardi. Faqat **alert tomi** ko'rsatdi.
+  ⚠️ **Yechim ALLAQACHON repoda bor edi** (`015`–`019` da o'sha qatorlar
+  turgan), shunchaki takrorlanmagan — `026` va `028` da tushib qolgan.
+  ⚠️ **Tekshiruv buyrug'ining O'ZI yolg'on gapirdi:** `curl` ni UA siz
+  yuborish bot filtriga tushadi va hodisa YOZILMASDAN `200 {"ok":true}`
+  qaytadi. Ya'ni README dagi tasdiqlash qadami jadval umuman yo'q bo'lganda
+  ham yashil ko'rinardi — `deploy.yml` dagi «HTTP 200 yetarli emas» darsining
+  aynan takrori. Endi buyruqda brauzer UA si bor.
+  Qorovul: `server/test.js` → **Test 43** (4 mutatsiya bilan sinaldi, 4 tasi
+  ham ushlandi). U `db/*.sql` ni skanerlab har `CREATE TABLE` uchun egalik
+  qatorini talab qiladi; `015` dan oldingi fayllar ATAYLAB chetda (ular
+  `lola` nomidan bajarilgan va yillar davomida ishlab kelyapti) va bu ro'yxat
+  **YOPIQ** — yangi fayl unga qo'shilmasin.
 - **Trafik ikki joyda o'lchanadi va ular BIR XIL RAQAM BERMAYDI** (2026-08-18,
   db/028). Cloudflare Web Analytics beacon'i **2026-08-02 dan beri ikkala
   yuzda ishlab turibdi** (o'lchandi: `cdn-cgi/rum` so'rovi otiladi) — ya'ni

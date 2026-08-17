@@ -48,6 +48,19 @@ CREATE TABLE IF NOT EXISTS user_favorites (
 CREATE INDEX IF NOT EXISTS user_favorites_user_idx
   ON user_favorites (tg_user_id, created_at DESC);
 
+-- Egalik: `015`–`019` dagi kabi — ilova `lola` user bilan ulanadi, migratsiya
+-- esa `sudo -u postgres psql` bilan bajariladi, ya'ni jadval `postgres`
+-- egaligida tug'iladi va ilova unga yoza olmaydi.
+--
+-- ⚠️ Bu qator 2026-08-18 da QO'SHILDI (fayl 2026-08-17 da yozilgan). Sabab:
+-- AYNI kamchilik `db/028` da production'ni sindirdi —
+-- `permission denied for table traffic_events`. Bu yerda nuqson KO'RINMAGAN
+-- bo'lishi mumkin, chunki jadval o'sha paytda boshqa yo'l bilan (yoki `lola`
+-- nomidan) yaratilgan bo'lsa egalik allaqachon to'g'ri. Qator IDEMPOTENT:
+-- egalik to'g'ri bo'lsa hech narsa o'zgarmaydi. Yozilishining sababi — TOZA
+-- bazada qayta qurilganda jadval jimgina yozib bo'lmaydigan holda tug'ilmasin.
+ALTER TABLE user_favorites OWNER TO lola;
+
 -- ============ TEKSHIRUV ============
 -- Migratsiya O'ZINI tekshiradi (`db/022` naqshi): yozilgan SQL bajarilgan
 -- SQL degani emas — `server/test.js` SQL'ni ISHGA TUSHIRMAYDI, ya'ni
