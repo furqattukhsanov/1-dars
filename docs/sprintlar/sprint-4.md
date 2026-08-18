@@ -134,6 +134,77 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
 
 ## Qilingan ishlar
 
+- [2026-08-19] **«ENG YANGI» ENDI HAQIQIY SANAGA TAYANADI — TUGMA O'Z NOMINI
+  BAJARADI. 2026-08-17 da ochiq qoldirilgan band YOPILDI.**
+
+  **1. Nima buzuq edi.** «Eng yangi» saralashi «Yangi» YORLIG'I bo'yicha
+  ishlardi (`p.badge.uz === 'Yangi'`), yorliq esa QO'LDA qo'yiladi va sanaga
+  UMUMAN bog'liq emas — ya'ni tugma o'z nomini bajarmasdi. 17-avgustda bu
+  HALOL CHEKLOV sifatida yozilgan edi: sana o'ylab topilmadi, chunki
+  `/api/products` `created_at` qaytarmasdi («o'ylab topilgan raqam»
+  qoidasi).
+
+  **2. Ma'lumot ALLAQACHON bor edi — faqat uzatilmasdi.**
+  `products.created_at` `db/001` da (64-qator, `TIMESTAMPTZ NOT NULL DEFAULT
+  now()`) — ya'ni **yangi migratsiya KERAK EMAS**, ustun yillar davomida
+  to'lib turgan. O'zgargan uch joy: `SELECT` ga `p.created_at`,
+  `productRowToVM` ga `createdAt` (millisekundda), ikkala yuzda `new`
+  tarmog'i sana bo'yicha.
+
+  **3. ⚠️ ZAXIRA ATAYLAB QOLDIRILDI — DEPLOY TARTIBI SHUNI TALAB QILADI.**
+  Statik fayllar CI bilan AVTOMATIK chiqadi, backend esa QO'LDA ko'tariladi
+  — ya'ni oraliqda yangi sayt ESKI serverdan javob oladi va `createdAt`
+  umuman kelmaydi. O'shanda saralash buzilmaydi, eski (yorliq) usuliga
+  qaytadi. Yorliq (`badge`) O'ZI ham QOLADI — u boshqa ish qiladi (ko'zga
+  tashlanadigan belgi), saralash esa endi sanaga qaraydi.
+  ⚠️ **Qaror BUTUN RO'YXAT bo'yicha qabul qilinadi (`some`), juftlik
+  bo'yicha EMAS** — aks holda taqqoslash TRANZITIVLIGI buzilib, tartib
+  tasodifiy bo'lardi (bir juftlikda sana, boshqasida yorliq bilan
+  solishtirish `sort` ni aniqlanmagan holatga olib boradi).
+  Sanasi yo'q kartochka OXIRIDA — u «eng yangi» ham, «eng eski» ham emas
+  (narxi noma'lum kartochka qoidasi bilan bitta oila).
+
+  **4. Test 47 — MATN emas, XATTI-HARAKAT sinovi.** `sortProducts` manbadan
+  ajratib olinib HAQIQIY ro'yxatda yurgiziladi: sana bor / sana yo'q /
+  aralash — uch holat. Satr qidiradigan test bunday nuqsonni tutmasdi:
+  «sana bo'yicha saralayapman» degan kod ham, teskari tartibda saralaydigan
+  kod ham AYNI satrlarni o'z ichiga oladi. Ish jarayonida 7 mutatsiya, 7 tasi
+  ushlangan.
+
+  **5. 🔴 TOPILGAN ESKI NUQSON — KOD YOLG'ON GAPIRARDI (`.search-x`).**
+  Test 45 yozilayotganda ushlandi: `index.html` da `hidden` atributi,
+  `script.js` da `x.hidden = !v` turardi, lekin `.search-x { display: flex }`
+  (`style.css:1348`) ikkalasini ham BEKOR QILARDI — × HECH QACHON
+  yashirilmagan. Founder 2026-08-17 da «x turaversin» degani uchun EKRANDAGI
+  natija to'g'ri edi, faqat KOD boshqa narsani da'vo qilardi. Tuzatish
+  ko'rinishga TEGMADI, kod QARORGA moslashtirildi (`hidden` va `x.hidden`
+  olib tashlandi, sabab izohda). Teskarisi — kodni «tuzatib» `[hidden]`
+  qatorini qo'shish — founder qarorini JIMGINA bekor qilardi.
+
+  **6. Sinalgani va hisobotchi MUSTAQIL o'lchagani.** **82 → 86 test**
+  (`git stash` bilan HEAD da 82, ishchi nusxada 86 — `^✅ Test` satrlari
+  sanaldi). Hisobotchining O'Z **4 mutatsiyasi, 4 tasi ham ushlandi:**
+  M1 `data-action="clearSearch"` → `clearSearchXX` (Test 44 qizil);
+  M2 sayt saralashi eski yorliq usuliga qaytarildi (Test 47 qizil);
+  M3 `SELECT` dan `p.created_at` olib tashlandi (qizil);
+  M4 sanasi yo'q kartochka OXIRIGA emas, BOSHIGA — `return 1` → `return -1`
+  (qizil). M4 muhim: u NOZIK tartib nuqsoni va uni faqat xatti-harakat
+  sinovi tutadi.
+  ⚠️ **Yo'l-yo'lakay hisobotchining O'ZI xato qildi va u yozib qo'yiladi:**
+  mutatsiyani qaytarishda `git checkout index.html` ishlatilgan va u commit
+  QILINMAGAN tahrirni (`hidden` olib tashlash + `?v=57`) o'chirib yuborgan —
+  CLAUDE.md/`sprint-8` da ogohlantirilgan xatoning aynan o'zi. Tahrir qo'lda
+  tiklandi va diff bayt-bayt solishtirildi; qolgan mutatsiyalar scratchpad
+  zaxirasidan qaytarildi. **Dars: zaxira mutatsiyadan OLDIN olinsin, qaytarish
+  esa `git` bilan EMAS, zaxiradan bo'lsin.**
+
+  **Kesh:** `script.js` 55→**57**, `telegram-app/app.js` 100→**101** (Test 16
+  jadvali birga). 🔴 **DEPLOY: statik + BACKEND** —
+  `server/routes/catalog.js` o'zgardi, ya'ni rsync + servis restart TALAB
+  QILINADI (migratsiya KERAK EMAS). Backend ko'tarilmasa «Eng yangi» zaxira
+  rejimda, ya'ni eski yorliq usulida ishlab turaveradi va buni hech narsa
+  ko'rsatmaydi. Hujjat: `docs/sprintlar/sprint-8.md` (Test 44–47).
+
 - [2026-08-17] **SARALASH VA NARX VARAG'I (BOTTOM-SHEET) — IKKALA YUZDA, VA
   PRODUCTION'DA HECH QACHON ISHLAMAGAN ESKI NUQSON TUZATILDI** (bugungi
   BIRINCHI commit — `git log --since="2026-08-17"` bo'sh edi, o'lchandi).
@@ -3337,6 +3408,48 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
 
 ## Qarorlar
 
+- [2026-08-19] Qaror: **«Eng yangi» HAQIQIY sanaga tayanadi, yorliq esa
+  ZAXIRA bo'lib qoladi.** 2026-08-17 dagi ochiq band yopildi — sana o'ylab
+  topilmadi, `products.created_at` (`db/001`) API'ga qo'shildi. Yorliq
+  bo'yicha saralash OLIB TASHLANMADI va bu ataylab: statik fayllar CI bilan
+  avtomatik chiqadi, backend esa qo'lda ko'tariladi, ya'ni oraliqda yangi
+  sayt eski serverdan javob oladi va `createdAt` kelmaydi. ⚠️ Zaxiraga
+  o'tish qarori BUTUN RO'YXAT bo'yicha (`some`), juftlik bo'yicha EMAS —
+  aks holda taqqoslash tranzitivligi buzilib `sort` aniqlanmagan tartib
+  berardi
+
+- [2026-08-19] Qaror: **ko'rinish TO'G'RI, kod YOLG'ON bo'lsa — kod
+  qarorga moslashtiriladi, ko'rinishga tegilmaydi.** `.search-x` da `hidden`
+  atributi va `x.hidden = !v` turardi, `.search-x { display: flex }` esa
+  ikkalasini bekor qilardi — × hech qachon yashirilmagan. Founder qarori
+  «x turaversin» bo'lgani uchun EKRAN to'g'ri edi. Kodni «tuzatib»
+  `[hidden]` qatorini qo'shish founder qarorini JIMGINA bekor qilardi —
+  shuning uchun teskari yo'l tanlandi: o'lik kod olib tashlandi, sabab
+  izohda qoldirildi. Dars: **jimgina o'lik kod jimgina yolg'on bilan bitta
+  oilada** — u keyingi odamni noto'g'ri «tuzatishga» chorlaydi
+
+- [2026-08-19] ✅ **YOPILDI: 2026-08-16 va 2026-08-17 dagi qorovul qarzi.**
+  Uchala qamrovsiz joy endi test ostida — `data-action` nomlari (**Test 44**,
+  244 nishon), `[hidden]` qoidasi + `SORT_KEYS` mosligi (**Test 45**),
+  deep-link `sayt_` prefiksi (**Test 46**). Ustiga «Eng yangi» uchun
+  **Test 47** (xatti-harakat sinovi). 82 → 86 test. Tafsilot
+  `sprint-8.md` → «Qilingan ishlar»
+
+- [2026-08-19] ✅ **YOPILDI: `test.js` dagi izoh tozalash naqshi.** Yetti
+  joyda qo'lda takrorlangan va oltitasida blok izoh birinchi olinardi —
+  Test 39 ni bir marta ko'r qilgan naqsh. Endi bitta `jsSofi` (10 chaqiruv).
+  ⚠️ Yo'l-yo'lakay `jsSofi` ning o'zida REGEX LITERAL nuqsoni topildi va
+  tuzatildi. Dars: **takrorlangan qorovul kodi qorovulning eng zaif joyi** —
+  bitta nusxa tuzatilsa qolgan oltitasi eski nuqson bilan qolaveradi
+
+- [2026-08-19] Qaror: **dinamik `data-action` qorovuli NOMGA emas,
+  TUZILMAGA qaraydi.** Test 44 ning birinchi varianti nom o'xshashligiga
+  qarardi va shovqinli edi — serverga yuboriladigan `action: 'request_image'`
+  va `segTabs` ning tab kaliti `'new'` ni ham «nishon» deb o'qigan. Endi
+  o'ram funksiyaning nechanchi PARAMETRI nishon yozayotgani aniqlanib,
+  chaqiruvdagi aynan o'sha pozitsiyadagi argument olinadi. Sabab: shovqinli
+  qorovul uzoq yashamaydi — u yolg'on qizil beradi va bir kun o'chiriladi
+
 - [2026-08-17] Qaror: **saralash va narx oralig'i BITTA varaqda, va varaq
   faqat «Tayyor» bilan qo'llanadi.** Founder Shop ilovasining «Sort by»
   varag'ini referens berdi va «so'zlari bilan bizga moslab» dedi —
@@ -3354,6 +3467,8 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
   yolg'on bo'lardi («o'ylab topilgan raqam» qoidasi). 🟠 **OCHIQ:** haqiqiy tartib uchun
   `/api/products` ga `created_at` qo'shish kerak — server tomonida bir
   ustun, klientda `new` tarmog'i o'zgaradi
+  — ✅ **YOPILDI 2026-08-19:** `created_at` API'ga qo'shildi, yorliq usuli
+  zaxira bo'lib qoldi, qorovul — Test 47
 
 - [2026-08-17] Qaror (founder): **filtr yoki saralash qo'llanganda Mini
   App'da reklama banneri CHIZILMAYDI.** Foydalanuvchi aniq narsa
@@ -3383,6 +3498,8 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
   aynan shu shaklda jimgina qaytadi; (3) `SORT_KEYS` ro'yxati bilan
   varaqdagi radio `value` lari mos-nomosligi. Footer ishidagi qarz bilan
   bitta ro'yxatda turadi; yopilishi founder qaroriga qoldi
+  — ✅ **YOPILDI 2026-08-19:** (1) → Test 44, (2) va (3) → Test 45, footer
+  qarzi (`sayt_` prefiksi) → Test 46. 82 → 86 test
 
 - [2026-08-16] Qaror: **footer havolalari SAHIFA emas, OYNA ochadi.** Sayt
   bitta sahifadan iborat, ya'ni `/vakansiyalar` kabi manzil yo'q va oddiy

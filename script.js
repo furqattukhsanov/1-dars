@@ -946,10 +946,31 @@ function applySort() {
   const idx = cards.map((card, i) => {
     const price = Number(card.dataset.price);
     const p = Number.isFinite(price) ? price : null;
-    return { card, i, p, isNew: cardIsNew(card) };
+    const c = Number(card.dataset.created);
+    return { card, i, p, c: Number.isFinite(c) ? c : null, isNew: cardIsNew(card) };
   });
+
+  /* «Eng yangi» — HAQIQIY sana bo'yicha (`products.created_at`, serverdan
+     `createdAt` bo'lib keladi). Ilgari u «Yangi» YORLIG'I bo'yicha edi, ya'ni
+     tugma o'z nomini bajarmasdi: yorliq qo'lda qo'yiladi va sanaga bog'liq
+     emas.
+     ⚠️ Zaxira ATAYLAB qoldirilgan: statik fayllar CI bilan avtomatik
+     chiqadi, backend esa QO'LDA ko'tariladi — ya'ni oraliqda yangi sayt eski
+     serverdan javob olishi mumkin va u paytda `createdAt` UMUMAN kelmaydi.
+     O'shanda saralash buzilmaydi, eski (yorliq) usuliga qaytadi.
+     Qaror BUTUN ro'yxat bo'yicha qabul qilinadi, juftlik bo'yicha emas —
+     aks holda taqqoslash tranzitivligi buzilib, tartib tasodifiy bo'lardi. */
+  const sanaBor = idx.some((x) => x.c !== null);
+
   idx.sort((a, b) => {
-    if (sortKey === 'new') return (b.isNew - a.isNew) || (a.i - b.i);
+    if (sortKey === 'new') {
+      if (!sanaBor) return (b.isNew - a.isNew) || (a.i - b.i);
+      // Sanasi yo'q kartochka OXIRIDA — u "eng yangi" ham, "eng eski" ham emas
+      if (a.c === null && b.c === null) return a.i - b.i;
+      if (a.c === null) return 1;
+      if (b.c === null) return -1;
+      return (b.c - a.c) || (a.i - b.i);
+    }
     // Narxi noma'lum kartochka ikkala yo'nalishda ham OXIRIDA — u "eng
     // arzon" ham, "eng qimmat" ham emas.
     if (a.p === null && b.p === null) return a.i - b.i;
@@ -1111,10 +1132,15 @@ if (chipsWrap) {
   });
 }
 
+/* ⚠️ Tozalash (×) tugmasi DOIM turadi — founder qarori 2026-08-17
+   («x turaversin»). Ilgari bu yerda `x.hidden = !v` turardi va HTML'da ham
+   `hidden` atributi bor edi, lekin `.search-x { display: flex }` ikkalasini
+   ham BEKOR QILARDI — ya'ni kod «yashiraman» deb turib hech qachon
+   yashirmasdi. Ko'rinish to'g'ri edi, KOD yolg'on gapirardi: keyingi odam
+   uni «tuzatib» `[hidden]` qatorini qo'shsa, founder qarori jimgina bekor
+   bo'lardi (Test 45 shu tekshiruvda topdi). */
 function onSearch(v) {
   searchQ = v;
-  const x = document.getElementById('search-x');
-  if (x) x.hidden = !v;
   applyFilter();
 }
 
@@ -2387,7 +2413,7 @@ function apiCardHtml(p) {
   const badgeCls = BADGE_TONE[p.badgeTone] || (st.key === 'out' ? 'tone-neutral' : st.key === 'low' ? 'tone-saffron' : 'tone-teal');
 
   return `
-    <article class="product-card fade-up" data-id="${esc(p.id)}" data-name="${esc(name)}" data-price="${esc(String(p.price))}" data-supplier="${esc(supplier)}" data-cat="${esc(p.catKey || '')}">
+    <article class="product-card fade-up" data-id="${esc(p.id)}" data-name="${esc(name)}" data-price="${esc(String(p.price))}" data-supplier="${esc(supplier)}" data-cat="${esc(p.catKey || '')}"${p.createdAt ? ` data-created="${esc(String(p.createdAt))}"` : ''}>
       <div class="product-media"${p.video ? ` data-video="${esc(p.video)}"${p.videoPoster ? ` data-poster="${esc(p.videoPoster)}"` : ''}` : ''}>
         ${img ? `<img src="${esc(img)}" alt="${esc(name)}" loading="lazy" />` : ''}
         ${badgeTxt ? `<span class="badge-pill ${badgeCls}">${esc(badgeTxt)}</span>` : ''}

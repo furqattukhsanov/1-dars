@@ -428,6 +428,12 @@ function productRowToVM(r) {
     sellerRating: r.seller_rating == null ? null : Number(r.seller_rating),
     comp: { uz: r.comp_uz, ru: r.comp_ru },
     badge: r.badge_uz ? { uz: r.badge_uz, ru: r.badge_ru } : null,
+    // Katalogdagi «Eng yangi» saralashi shu maydonga tayanadi. Ilgari u
+    // «Yangi» YORLIG'I bo'yicha saralanardi — ya'ni tugma o'z nomini
+    // bajarmasdi: yorliq qo'lda qo'yiladi va sanaga umuman bog'liq emas.
+    // ⚠️ Yorliq (`badge`) O'ZI QOLADI — u boshqa ish qiladi (ko'zga
+    // tashlanadigan belgi), saralash esa endi HAQIQIY sanaga qaraydi.
+    createdAt: r.created_at ? new Date(r.created_at).getTime() : null,
     // Media galereya: 1-slayd rasm, 2-slayd video (founder qarori,
     // 2026-08-13). `video: null` bo'lsa frontend galereya chizmaydi —
     // bitta rasm uchun nuqta va slayder shovqindan boshqa narsa emas.
@@ -443,6 +449,7 @@ async function handleGetProducts(req, res, ip) {
              p.vid_r2_key, p.vid_poster_r2_key, p.vid_seconds, p.vid_bytes,
              p.rating, p.reviews, p.stock_key, p.stock, p.badge_tone, p.width, p.weight,
              p.name_uz, p.name_ru, p.comp_uz, p.comp_ru, p.badge_uz, p.badge_ru,
+             p.created_at,
              s.business_name_uz, s.business_name_ru, s.city_uz, s.city_ru, s.is_verified,
              s.rating AS seller_rating
       FROM products p

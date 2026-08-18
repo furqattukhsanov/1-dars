@@ -170,6 +170,86 @@ Platformaning barcha funksiyalarini real foydalanuvchilar bilan sinovdan o'tkazi
 
 ## Qilingan ishlar
 
+- [2026-08-19] **UCHTA QOROVUL QARZI YOPILDI (Test 44, 45, 46) VA QOROVULNING
+  O'ZIDAGI LATENT NUQSON TUZATILDI. 82 → 86 test.**
+
+  **1. Qarz qayerdan keldi.** 2026-08-16 (footer) va 2026-08-17 (saralash
+  varag'i) ishlarida test soni O'ZGARMAGAN edi va ikkala hisobotda bu
+  KAMCHILIK deb yozilgandi — qarz `sprint-4.md` → «Qarorlar» da ochiq
+  turardi. Qamrovsiz uch joy sanalgandi: (a) `data-action` nomlari,
+  (b) `[hidden]` qoidasi va `SORT_KEYS` mosligi, (c) deep-link `sayt_`
+  prefiksi. Uchalasi ham JIMGINA sinadigan turdan — konsolda xato yo'q,
+  testlar yashil, faqat foydalanuvchi sezadi.
+
+  **2. Test 44 — `data-action` nishoni TIRIK bo'lsin** (244 nishon, 2 yuz).
+  Tugma `data-action="nom"` bilan yoziladi, dispatcher `window[nom]` ni
+  chaqiradi; nom noto'g'ri bo'lsa `typeof fn !== 'function'` da JIM
+  qaytadi. Aynan shu 2026-08-14 da Mini App'dagi «Hisobdan chiqish» bilan
+  bo'lgan — tugma tug'ilganidan beri o'lik edi. Ro'yxat QO'LDA yozilmaydi,
+  ikkala yuzning HTML+JS manbasidan yig'iladi. Uch qatlam: statik
+  `data-action`/`data-submit`/`data-enter`; obyekt maydoni `action: 'nom'`;
+  **dinamik** `data-action="${X}"` yozadigan o'ramga chaqiruvda uzatilgan
+  nom.
+  ⚠️ **Dinamik qatlam NOM O'XSHASHLIGIGA emas, TUZILMAGA qaraydi:** o'ram
+  funksiyaning nechanchi PARAMETRI nishon yozayotgani aniqlanadi va
+  chaqiruvda AYNAN o'sha pozitsiyadagi argument olinadi. Birinchi variant
+  nomga qarardi va SHOVQINLI edi — serverga yuboriladigan
+  `action: 'request_image'` buyrug'ini va `segTabs` ning tab kaliti `'new'`
+  ni ham «nishon» deb o'qigan. `reloadHome` istisnosi oq ro'yxatda EMAS,
+  DISPATCHER KODIDA tekshiriladi: maxsus ishlov o'chirilsa istisno ham
+  qolmaydi.
+
+  **3. Test 45 — saralash varag'i va YASHIRISH mexanizmi** (6 `hidden`
+  element). `SORT_KEYS` ↔ varaqdagi radio `value` lari ikkala yuzda mos
+  bo'lsin; saytda `hidden` atributi bilan turgan HAR BIR element uchun CSS
+  da `[hidden] { display: none }` qatori TALAB qilinadi; Mini App'da
+  `.hidden { display: none !important }` mavjudligi. Sabab CLAUDE.md da:
+  `hidden` muallif `display` qoidasidan KUCHSIZ va 2026-08-13 dagi «narx
+  paneli yopiq tursin» qarori production'da hech qachon ishlamagan.
+
+  **4. Test 46 — deep-link belgisi SERVERDAN o'tsin** (2 havola). HTML dagi
+  bosiladigan `t.me/...?start=X` havolalari yig'iladi va serverning O'Z
+  `manbaBelgisi()` funksiyasi CHAQIRILADI — qoida testga NUSXALANMAYDI, aks
+  holda server o'zgarganda qorovul eski qoidani qo'riqlab yashil qolardi.
+  Bu 2026-08-16 dagi `sayt_` prefiksi qarzini yopadi (`web_` prefiksli
+  payload server tomonidan JIM rad etiladi va QR «nol odam keltirdi» bo'lib
+  turardi).
+
+  **5. 🔴 TOPILGAN HAQIQIY NUQSON — KOD YOLG'ON GAPIRARDI, KO'RINISH esa
+  TO'G'RI edi.** Test 45 yozilganda `.search-x` (qidiruv × tugmasi) ushlandi:
+  `index.html` da `hidden` atributi bor, `script.js` da `x.hidden = !v`
+  turardi, lekin `.search-x { display: flex }` (`style.css:1348`) IKKALASINI
+  ham bekor qilardi — ya'ni × HECH QACHON yashirilmagan. Founder 2026-08-17
+  da «x turaversin» degani uchun EKRANDAGI natija to'g'ri edi, KOD esa
+  boshqa narsani da'vo qilardi.
+  ⚠️ **Tuzatish yo'nalishi MUHIM:** ko'rinishga TEGILMADI, kod QARORGA
+  moslashtirildi — HTML dagi `hidden` va JS dagi `x.hidden = !v` qatori olib
+  tashlandi, sababi izohda qoldirildi. Teskarisi (kodni «tuzatib»
+  `[hidden]` qatorini qo'shish) founder qarorini JIMGINA bekor qilardi.
+
+  **6. 🔴 QOROVULNING O'ZIDAGI LATENT NUQSON — 7 joyda 6 xil regex.**
+  `server/test.js` da izoh tozalash yetti joyda qo'lda takrorlangan va
+  OLTITASIDA blok izoh (`/* */`) BIRINCHI olinardi — bu Test 39 ni bir marta
+  ko'r qilgan naqshning aynan o'zi (qator izohidagi `/*` blok boshi deb
+  o'qilib, undan keyingi butun kod yutilardi). Hammasi bitta o'tishli holat
+  mashinasiga (`jsSofi`) o'tkazildi, **10 chaqiruv**. Qarz `sprint-4.md` da
+  ochiq band edi.
+  ⚠️ **Yo'l-yo'lakay `jsSofi` ning O'ZIDA nuqson topildi: REGEX LITERAL
+  hisobga olinmagan edi.** `/\/\//g` kabi ifodaning oxiridagi ikki qiya
+  chiziq QATOR IZOHI deb o'qilib, qatorning qolgani yutilardi va undan
+  keyingi haqiqiy izohlar tozalanmay qolardi — bu `telegram-app/app.js` ni
+  YARIM o'qigan va Test 25 ni bekorga qizartirgan edi. Endi regexmi yoki
+  bo'lishmi — oldingi ma'noli belgi hal qiladi.
+  Ta'sirlangan 6 test mutatsiya bilan QAYTA sinaldi: nuqson KODDA bo'lsa
+  qizil, faqat IZOHDA bo'lsa yashil — **6/6 to'g'ri**.
+
+  **7. Sinalgani.** Ish jarayonida **16 mutatsiya**, 16 tasi ham ushlangan.
+  ⚠️ Bu raqam hisobotchi tomonidan QAYTA o'lchanmadi — ish jarayonida
+  olingan. Hisobotchi MUSTAQIL tekshirgani: **82 → 86** (`git stash` bilan
+  HEAD da 82, ishchi nusxada 86 — `^✅ Test` satrlari sanaldi) va **4 ta
+  o'z mutatsiyasi, 4 tasi ham ushlandi** (tafsilot `sprint-4.md` dagi
+  yozuvda).
+
 - [2026-08-07] **Test 17 yozildi — service worker kesh versiyasi endi QOROVUL
   ostida. 5-avgustda ataylab ochiq qoldirilgan qarz YOPILDI.**
 
@@ -837,6 +917,47 @@ Platformaning barcha funksiyalarini real foydalanuvchilar bilan sinovdan o'tkazi
 ---
 
 ## Qarorlar
+
+- [2026-08-19] Qaror: **qorovul QOIDANI NUSXALAMAYDI — manbadagi funksiyani
+  CHAQIRADI.** Test 46 deep-link prefiksini o'zi tekshirmaydi, serverning
+  O'Z `manbaBelgisi()` funksiyasini chaqiradi. Qoida testga ko'chirilsa ikki
+  haqiqat manbai paydo bo'lardi va server o'zgargan kuni qorovul ESKI qoidani
+  qo'riqlab yashil qolaverardi — ya'ni u aynan qoida o'zgargan paytda,
+  eng kerak bo'lgan payt, ko'r bo'lardi. `PRECACHE` va `HISTORY_INVENTORY`
+  qarorlari bilan bitta oila
+
+- [2026-08-19] Qaror: **satr qidiradigan test YETARLI EMAS bo'lgan joyda
+  XATTI-HARAKAT sinaladi.** Test 47 `sortProducts` ni manbadan ajratib olib
+  HAQIQIY ro'yxatda yurgizadi (3 holat). Sabab: «sana bo'yicha saralayapman»
+  degan kod ham, teskari tartibda saralaydigan kod ham AYNI satrlarni o'z
+  ichiga oladi — matn tekshiruvi ikkalasini ham yashil deb o'qirdi. Buni
+  hisobotchining M4 mutatsiyasi tasdiqladi: `return 1` → `return -1`
+  (sanasiz kartochka oxiriga emas, boshiga) — matn O'ZGARMADI, test QIZIL
+
+- [2026-08-19] Qaror: **qorovul kodi TAKRORLANMASIN — bitta funksiyada
+  tursin.** Izoh tozalash `test.js` da yetti joyda qo'lda takrorlangan va
+  oltitasi Test 39 ni ko'r qilgan eski naqshda qolgan edi: nuqson bitta
+  nusxada tuzatilgan, qolgan oltitasi esa tuzatilmagan holda yashab yurgan.
+  Endi bitta `jsSofi`. Dars: **takrorlangan qorovul kodi qorovulning eng
+  zaif joyi** — u yashil bo'lib turadi va qamrov TUYG'USINI beradi
+
+- [2026-08-19] Qaror: **qorovul ro'yxati QO'LDA yozilmaydi va nomga emas,
+  TUZILMAGA qaraydi.** Test 44 nishonlarni ikkala yuzning manbasidan yig'adi
+  (244 ta), dinamik nishonni esa o'ram funksiyaning PARAMETR indeksi orqali
+  topadi. Nomga qaraydigan birinchi variant shovqinli edi — serverga
+  yuboriladigan `action: 'request_image'` va tab kaliti `'new'` ni ham nishon
+  deb o'qigan. Sabab: **shovqinli qorovul uzoq yashamaydi** — yolg'on qizil
+  beradi va bir kun o'chiriladi, ya'ni natija qorovul umuman yo'qligi bilan
+  bir xil bo'lardi
+
+- [2026-08-19] Qaror: **mutatsiyani QAYTARISH `git` bilan EMAS, zaxiradan
+  bo'ladi.** Hisobotchi bugun `git checkout index.html` ishlatib commit
+  QILINMAGAN tahrirni o'chirib yubordi (tiklandi, diff bayt-bayt
+  solishtirildi). Bu 2026-08-07 dagi Test 17 yozuvida ALLAQACHON
+  ogohlantirilgan edi — ya'ni yozilgan ogohlantirish uni bajarilgan
+  qilmadi. Tartib: (1) zaxira mutatsiyadan OLDIN scratchpad'ga,
+  (2) mutatsiya, (3) qaytarish NUSXADAN. `git checkout` ishchi nusxadagi
+  tahrirni tanimaydi — u faqat commit qilinganini biladi
 
 - [2026-08-07] Qaror: **`PRECACHE` ro'yxati testda QO'LDA sanalmaydi — `sw.js`
   ning O'ZIDAN o'qiladi.** Qo'lda yozilgan ro'yxat ikkinchi haqiqat manbai

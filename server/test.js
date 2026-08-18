@@ -1390,7 +1390,7 @@ function testAssetVersionsAreFresh() {
     // 2026-08-16 (kechqurun, 2-tahrir): qator chiqqanda header yuqoriga
     // suriladi — ikkita qadalgan qator birga turmaydi.
     'style.css': { v: 64, hash: 'e9718d3f4f24' },
-    'script.js': { v: 55, hash: '16a658091ff9' },
+    'script.js': { v: 57, hash: 'c724fe599d76' },
     'pwa.js': { v: 3, hash: 'dce9fcfee6cb' },
     // ⚠️ IKKINCHI BIRLASHTIRISH (2026-08-14): ikkala tomon panel.js ni 24,
     // app.js ni 87 ga ko'targan — AYNI raqamlar, TARKIB esa har xil.
@@ -1404,11 +1404,11 @@ function testAssetVersionsAreFresh() {
     // YUQORIGA suriladi: teng raqam qaytib kelgan foydalanuvchida keshdagi
     // BIR TOMONLAMA faylni qoldirardi — sevimlilar yoki chiqish tuzatishining
     // faqat bittasi bo'lgan `app.js`.
-    'panel.js': { v: 47, hash: '1165def86832' },
+    'panel.js': { v: 48, hash: '3223b5679c9b' },
     'admin/admin.css': { v: 19, hash: 'cb8d6c43473d' },
     'admin/admin.js': { v: 30, hash: '23c3705db020' },
     'telegram-app/styles.css': { v: 36, hash: '570a2450c3a4' },
-    'telegram-app/app.js': { v: 100, hash: 'c5e4e0fbf5fc' },
+    'telegram-app/app.js': { v: 101, hash: 'f0203a8eb061' },
     'telegram-app/pwa.js': { v: 6, hash: '798ab85e1cde' },
   };
 
@@ -2055,8 +2055,7 @@ async function testSellerCabinetAllowlist() {
   // ---- 4. Tekshiruv YAGONA nuqtada tursin ----
   // Chaqiruvchilarga tarqalsa yangi chaqiruvchi qo'shilganda uni eslab
   // qolish kerak bo'lardi — `authUser()` naqshi aynan shunday takrorlangan.
-  const auth = fs.readFileSync(path.join(__dirname, 'lib', 'auth.js'), 'utf8')
-    .replace(/\/\/[^\n]*/g, '').replace(/\/\*[\s\S]*?\*\//g, '');
+  const auth = jsSofi(fs.readFileSync(path.join(__dirname, 'lib', 'auth.js'), 'utf8'));
   const tana = auth.slice(auth.indexOf('async function currentSeller'), auth.indexOf('async function requireSeller'));
   assert.ok(/sellerAllowed\(/.test(tana), 'currentSeller sellerAllowed dan o\'tsin');
 
@@ -2175,8 +2174,7 @@ function testImageSchemeAllowedByCsp() {
   // qoida — bu sxemani UMUMAN ishlatmaslik. `media-src` da ham `blob:` yo'q,
   // shuning uchun video uchun ham yaramaydi.
   for (const rel of ['script.js', 'telegram-app/app.js']) {
-    const src = fs.readFileSync(path.join(root, rel), 'utf8')
-      .replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
+    const src = jsSofi(fs.readFileSync(path.join(root, rel), 'utf8'));
     assert.ok(!/createObjectURL/.test(src),
       `\`${rel}\` da URL.createObjectURL ishlatilgan — u \`blob:\` havola yasaydi, ` +
       'CSP dagi `img-src`/`media-src` esa `blob:` ni QAMRAMAYDI va rasm JIMGINA ' +
@@ -2212,8 +2210,7 @@ function testImageSchemeAllowedByCsp() {
   // ishlamasdi — saytda `initData` yo'q, ya'ni `photo_url` ham yo'q.
   // Aynan shu turdagi nuqson CLAUDE.md da ikki marta qayd etilgan
   // (`authUser()` naqshi).
-  const app = fs.readFileSync(path.join(root, 'telegram-app', 'app.js'), 'utf8')
-    .replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
+  const app = jsSofi(fs.readFileSync(path.join(root, 'telegram-app', 'app.js'), 'utf8'));
   assert.ok(!/photo_url/.test(app),
     'telegram-app/app.js da `photo_url` ishlatilgan — u TELEGRAM CDN havolasi va ' +
     'CSP `img-src` uni QAMRAMAYDI (rasm jimgina bloklanadi). Avatar faqat ' +
@@ -3180,15 +3177,12 @@ const IKKI_KANALLI = ['requestUser(', 'webSessionUser('];
 // olib tashlanadi. Qator oxiridagi izoh ham kesiladi — lekin `://` (URL)
 // bo'lgan qatorga tegilmaydi.
 function kodSofi(src) {
-  return src
-    .replace(/\/\*[\s\S]*?\*\//g, '')
-    .split('\n')
-    .map((q) => {
-      const t = q.trim();
-      if (t.startsWith('//') || t.startsWith('*')) return '';
-      return q.includes('://') ? q : q.replace(/\s\/\/.*$/, '');
-    })
-    .join('\n');
+  // ⚠️ 2026-08-19: ilgari bu yerda `/* */` bloklari BIRINCHI olib
+  // tashlanardi va aynan shu naqsh Test 39 ni ko'r qilgan edi — qator
+  // izohidagi `/*` (masalan `// /api/*` ) blok boshi deb o'qilib, undan
+  // keyingi butun kod yutilardi. Endi tozalash BITTA o'tishli holat
+  // mashinasida (`jsSofi`): izoh izoh joyida, satr satr joyida tanaladi.
+  return jsSofi(src);
 }
 
 // Handler tanasi: `function nom(` dan boshlab BIRINCHI ustundagi `}` gacha.
@@ -4086,9 +4080,7 @@ function testAdBannerWiring() {
   // Izohlar OLIB TASHLANADI — aks holda izohdagi `innerHTML = renderHome()`
   // so'zlari qorovulni aldardi. Aynan shu teshik Test 3f da topilgan va
   // o'sha yerda ham shu yo'l bilan yopilgan.
-  const src = xom
-    .replace(/\/\*[\s\S]*?\*\//g, '')
-    .replace(/(^|[^:])\/\/.*$/gm, '$1');
+  const src = jsSofi(xom);
 
   // ---- 1-band: to'g'ridan-to'g'ri chizish qolmagan ----
   // `paintHome()` ning O'ZIDAGI yagona qonuniy chaqiruvni hisobga olamiz.
@@ -4722,8 +4714,7 @@ function testRootPathsAreAbsolute() {
   // Service worker ham AYNI tuzoqda: nisbiy `sw.js` mahsulot sahifasida
   // `/mahsulot/sw.js` bo'lib, noto'g'ri TUR bilan qaytadi va ro'yxatdan
   // o'tish jimgina yiqiladi (offline rejim o'chadi).
-  const pwa = fs.readFileSync(path.join(ildiz, 'pwa.js'), 'utf8')
-    .replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+  const pwa = jsSofi(fs.readFileSync(path.join(ildiz, 'pwa.js'), 'utf8'));
   const reg = pwa.match(/serviceWorker\.register\(\s*(['"])([^'"]+)\1/);
   assert.ok(reg, 'pwa.js da `serviceWorker.register(...)` topilmadi — test eskirgan');
   assert.strictEqual(reg[2].charAt(0), '/',
@@ -4783,9 +4774,7 @@ function testDbImportShape() {
          birga yutgan. Natijada test tekshiradigan matn bo'sh qolib,
          "hammasi joyida" degan YASHIL javob bergan.
          Ya'ni qorovul o'zi qo'riqlayotgan nuqsonni ko'rmasdi. */
-      const src = fs.readFileSync(path.join(dir, f), 'utf8')
-        .replace(/^\s*\/\/.*$/gm, '')
-        .replace(/\/\*[\s\S]*?\*\//g, '');
+      const src = jsSofi(fs.readFileSync(path.join(dir, f), 'utf8'));
       for (const m of src.matchAll(/^const\s+([^=]+?)\s*=\s*require\((['"])\.\.\/db\2\)/gm)) {
         korilgan++;
         const chap = m[1].trim();
@@ -5519,6 +5508,402 @@ function testNewTablesAreOwnedByApp() {
     + `(${tekshirilgan} jadval, ${MEROS.size} meros fayl chetda)`);
 }
 
+/* ── Test 44: `data-action` nishoni TIRIK bo'lsin ─────────────────────────
+   Tugma HTML'da `data-action="nom"` bilan yoziladi, bosilganda delegatsiya
+   `window[nom]` ni chaqiradi. Nom noto'g'ri bo'lsa dispatcher
+   `typeof fn !== 'function'` da JIM QAYTADI: konsolda xato yo'q, ekran
+   joyida, tugma bosiladi va HECH NARSA bo'lmaydi. Aynan shu 2026-08-14 da
+   Mini App'dagi «Hisobdan chiqish» bilan bo'lgan — u tug'ilganidan beri
+   o'lik edi va buni hech narsa ko'rsatmagan.
+
+   Ro'yxat QO'LDA yozilmaydi — ikkala yuzning HTML va JS manbasidan
+   yig'iladi, ya'ni yangi tugma qo'shilsa avtomatik qamraladi. */
+
+/** JS manbasidan izohlarni oladi — qorovul MATNNI emas, KODNI o'qishi kerak
+    (izohda yozilgan `function openSortSheet(` qorovulni aldardi).
+    ⚠️ Blok izohni birinchi olib tashlash TUZOQ (Test 39 darsi): qator
+    izohidagi `/*` blok boshi deb o'qilib, undan keyingi butun kod yutilardi.
+    Shuning uchun bitta o'tishli holat mashinasi. Satr ICHI saqlanadi —
+    `data-action="..."` aynan shablon satrlarda yashaydi. */
+function jsSofi(src) {
+  let out = '';
+  let holat = 'kod';
+  let oxirgi = '';   // oxirgi ma'noli belgi — `/` regexmi yoki bo'lishmi, shu hal qiladi
+  for (let i = 0; i < src.length; i++) {
+    const c = src[i], n = src[i + 1];
+    if (holat === 'kod') {
+      if (c === '/' && n === '/') { holat = 'qator'; i++; continue; }
+      if (c === '/' && n === '*') { holat = 'blok'; i++; continue; }
+      // ⚠️ REGEX LITERAL. Busiz `/\/\//g` kabi ifodaning oxiridagi ikki qiya
+      // chiziq QATOR IZOHI deb o'qilib, qatorning qolgani yutilardi va undan
+      // keyingi HAQIQIY izohlar tozalanmay qolardi — 2026-08-19 da aynan shu
+      // `telegram-app/app.js` ni yarim o'qigan va Test 25 ni bekorga
+      // qizartirgan edi. Regexmi yoki bo'lishmi — oldingi ma'noli belgi
+      // hal qiladi (identifikator/raqam/yopuvchi qavsdan keyin — bo'lish).
+      if (c === '/' && !/[\w)\]]/.test(oxirgi)) { holat = 'regex'; out += c; oxirgi = c; continue; }
+      if (c === "'" || c === '"' || c === '`') holat = c;
+      out += c;
+      if (!/\s/.test(c)) oxirgi = c;
+      continue;
+    }
+    if (holat === 'qator') { if (c === '\n') { holat = 'kod'; out += c; } continue; }
+    if (holat === 'blok') { if (c === '*' && n === '/') { holat = 'kod'; i++; } continue; }
+    out += c;
+    if (c === '\\') { out += src[++i] || ''; continue; }
+    if (holat === 'regex') { if (c === '/' || c === '\n') { holat = 'kod'; oxirgi = '/'; } continue; }
+    if (c === holat) { holat = 'kod'; oxirgi = c; }
+  }
+  return out;
+}
+
+/** `nom(...)` chaqiruvlarining `idx`-inchi argumentini qaytaradi. Qavs
+    balansi sanaladi, ya'ni ichki qavs yoki massivdagi vergul argumentni
+    NOTO'G'RI bo'lib yubormaydi. */
+function chaqiruvArgs(src, nom, idx) {
+  const natija = [];
+  for (const m of src.matchAll(new RegExp('\\b' + nom + '\\(', 'g'))) {
+    let i = m.index + m[0].length;
+    let chuqur = 0, boshi = i, n = 0;
+    for (; i < src.length && i < m.index + 4000; i++) {
+      const c = src[i];
+      if (c === '(' || c === '[' || c === '{') chuqur++;
+      else if (c === ')' && chuqur === 0) { if (n === idx) natija.push(src.slice(boshi, i)); break; }
+      else if (c === ')' || c === ']' || c === '}') chuqur--;
+      else if (c === ',' && chuqur === 0) {
+        if (n === idx) { natija.push(src.slice(boshi, i)); break; }
+        n++; boshi = i + 1;
+      }
+    }
+  }
+  return natija;
+}
+
+function testActionTargetsExist() {
+  const fs = require('fs');
+  const path = require('path');
+  const ildiz = path.join(__dirname, '..');
+
+  // `reloadHome` funksiya EMAS — dispatcher uni o'zi ushlaydi. Istisno oq
+  // ro'yxatda emas, DISPATCHER KODIDA tekshiriladi: maxsus ishlov o'chirilsa
+  // istisno ham qolmaydi va test qizil bo'ladi.
+  const DISPATCHER_ISTISNO = ['reloadHome'];
+
+  const YUZLAR = [
+    { nom: 'sayt',     js: 'script.js',           html: ['index.html'] },
+    { nom: 'Mini App', js: 'telegram-app/app.js', html: ['telegram-app/index.html'] },
+  ];
+
+  const yomon = [];
+  let jami = 0;
+
+  for (const yuz of YUZLAR) {
+    let dinamik = 0;
+    const js = jsSofi(fs.readFileSync(path.join(ildiz, yuz.js), 'utf8'));
+    const html = yuz.html.map((f) => fs.readFileSync(path.join(ildiz, f), 'utf8')).join('\n');
+    const matn = js + '\n' + html;
+
+    const tirikmi = (nom) => new RegExp(
+      '(?:async\\s+)?function\\s+' + nom + '\\s*\\(|(?:const|let|var)\\s+' + nom + '\\s*=|window\\.' + nom + '\\s*='
+    ).test(js);
+
+    const talab = (nom, qayer) => {
+      jami++;
+      if (tirikmi(nom)) return;
+      if (DISPATCHER_ISTISNO.includes(nom)) {
+        if (new RegExp("action\\s*===\\s*'" + nom + "'").test(js)) return;
+        yomon.push(yuz.nom + ': `' + nom + '` (' + qayer + ') — funksiya ham yo\'q, dispatcherdagi maxsus ishlov ham yo\'q');
+        return;
+      }
+      yomon.push(yuz.nom + ': `' + nom + '` (' + qayer + ') — bunday funksiya e\'lon qilinmagan');
+    };
+
+    // (a) statik nishonlar
+    for (const atr of ['data-action', 'data-submit', 'data-enter']) {
+      for (const m of matn.matchAll(new RegExp(atr + '="([^"]*)"', 'g'))) {
+        if (m[1].indexOf('${') >= 0) { dinamik++; continue; }   // dinamik — (b) bandida
+        talab(m[1], atr);
+      }
+    }
+
+    // (b) DINAMIK nishon — `data-action="${X}"`.
+    //     Nom o'xshashligiga QARALMAYDI, TUZILMA o'qiladi: o'ram funksiyaning
+    //     nechanchi parametri nishon yozayotgani aniqlanadi va chaqiruvda
+    //     AYNAN o'sha pozitsiyadagi argument olinadi. Aks holda qorovul
+    //     shovqinli bo'lardi — birinchi variantda serverga yuboriladigan
+    //     `action: 'request_image'` buyrug'i va `segTabs` ning tab kaliti
+    //     `'new'` ham nishon deb o'qilgan edi.
+    let oram = 0;   // dinamik nishon yozadigan o'ramlar soni
+    for (const m of js.matchAll(/function\s+([a-zA-Z_$][\w$]*)\s*\(([^)]*)\)\s*\{/g)) {
+      const nomi = m[1];
+      const params = m[2].split(',').map((x) => x.trim().split(/[\s=]/)[0]).filter(Boolean);
+      const keyingi = js.indexOf('\nfunction ', m.index + 1);
+      const tana = js.slice(m.index, keyingi > 0 ? keyingi : undefined);
+      const ifoda = (tana.match(/data-action="\$\{([a-zA-Z_$][\w$.]*)\}"/) || [])[1];
+      if (!ifoda) continue;
+
+      const bolak = ifoda.split('.');
+      const idx = params.indexOf(bolak[0]);
+      if (idx < 0) continue;   // parametr emas — o'ram tashqi holatdan oladi
+      oram++;
+
+      for (const arg of chaqiruvArgs(js, nomi, idx)) {
+        if (bolak[1]) {
+          const re = new RegExp('\\b' + bolak[1] + ":\\s*'([a-zA-Z_$][\\w$]*)'", 'g');
+          for (const s of arg.matchAll(re)) talab(s[1], nomi + '(…{' + bolak[1] + '})');
+        } else if (/^'[a-zA-Z_$][\w$]*'$/.test(arg.trim())) {
+          talab(arg.trim().slice(1, -1), nomi + '(…)');
+        }
+      }
+    }
+
+    // Dinamik nishon BOR bo'lsa, u tuzilma orqali qamralgan bo'lishi SHART.
+    // Yo'q bo'lsa talab ham yo'q — saytda bugun bitta ham dinamik nishon yo'q.
+    assert.ok(dinamik === 0 || oram >= 1,
+      yuz.nom + ': ' + dinamik + ' ta dinamik `data-action` bor, lekin uni yozadigan o\'ram topilmadi — '
+      + 'tuzilma tahlili eskirgan, ya\'ni bu nishonlar QAMRALMAY qolgan');
+  }
+
+  assert.ok(jami >= 140, 'nishonlar topilmadi (' + jami + ' ta) — yig\'ish regexi eskirgan bo\'lishi mumkin');
+
+  assert.deepStrictEqual(yomon, [],
+    'Tugmada `data-action` bor, ortida esa FUNKSIYA YO\'Q. Bunday tugma bosiladi-yu '
+    + 'hech narsa qilmaydi: konsolda xato yo\'q, testlar yashil, nuqsonni faqat '
+    + 'foydalanuvchi topadi (2026-08-14, «Hisobdan chiqish»):\n  ' + yomon.join('\n  '));
+
+  console.log('✅ Test 44: `data-action` nishonlari tirik — PASS (' + jami + ' nishon, 2 yuz)');
+}
+
+/* ── Test 45: Saralash varag'i va YASHIRISH mexanizmi ─────────────────────
+   Ikki xil nuqson, ikkalasi ham JIMGINA sinaydi:
+   1) varaqdagi radio qiymati `SORT_KEYS` da bo'lmasa — tanlov `rec` ga
+      qaytariladi, ya'ni bosilgan tugma «ishlagandek» ko'rinadi-yu tartib
+      o'zgarmaydi;
+   2) `hidden` atributi muallif `display` qoidasidan KUCHSIZ — 2026-08-13
+      dagi «narx paneli yopiq tursin» qarori production'da HECH QACHON
+      ishlamagan va buni faqat KO'Z ko'rgan (2026-08-17 da o'lchandi). */
+function testSortSheetAndHiddenWork() {
+  const fs = require('fs');
+  const path = require('path');
+  const ildiz = path.join(__dirname, '..');
+  const oqi = (f) => fs.readFileSync(path.join(ildiz, f), 'utf8');
+  const yomon = [];
+
+  // ── 1-band: `SORT_KEYS` ↔ varaqdagi radio qiymatlari (IKKALA yuz) ──
+  for (const yuz of [
+    { nom: 'sayt',     js: 'script.js',           varaq: 'index.html' },
+    { nom: 'Mini App', js: 'telegram-app/app.js', varaq: null },
+  ]) {
+    const js = jsSofi(oqi(yuz.js));
+    const kalitlar = js.match(/const SORT_KEYS = \[([^\]]*)\]/);
+    assert.ok(kalitlar, yuz.nom + ': `SORT_KEYS` topilmadi');
+    const kutilgan = [...kalitlar[1].matchAll(/'([^']+)'/g)].map((m) => m[1]).sort();
+
+    // Saytda varaq HTML'da (`input[name=sort]`), Mini App'da esa JS
+    // shablonida chiziladi va kalit o'ram funksiyaga UZATILADI. Ikkinchisi
+    // Test 44 dagi tuzilma tahlili bilan olinadi — naqsh qo'lda yozilmaydi.
+    let qiymatlar;
+    if (yuz.varaq) {
+      qiymatlar = [...oqi(yuz.varaq).matchAll(/name="sort"[^>]*value="([^"$]+)"|value="([^"$]+)"[^>]*name="sort"/g)]
+        .map((m) => m[1] || m[2]).sort();
+    } else {
+      const o = js.match(/const\s+([a-zA-Z_$][\w$]*)\s*=\s*\(([^)]*)\)\s*=>[\s\S]{0,900}?data-action="pickSort"\s+data-arg="\${([a-zA-Z_$][\w$]*)\}"/);
+      assert.ok(o, yuz.nom + ': `pickSort` qatorini chizadigan o\'ram topilmadi');
+      const idx = o[2].split(',').map((x) => x.trim().split(/[\s=]/)[0]).indexOf(o[3]);
+      assert.ok(idx >= 0, yuz.nom + ': `pickSort` kaliti o\'ram parametridan kelmayapti');
+      qiymatlar = chaqiruvArgs(js, o[1], idx)
+        .map((a) => (a.trim().match(/^'([^']+)'$/) || [])[1]).filter(Boolean).sort();
+    }
+
+    assert.ok(qiymatlar.length >= 4,
+      yuz.nom + ': saralash varag\'ida tanlov qatori topilmadi (' + qiymatlar.length + ' ta) — qidiruv naqshi eskirgan');
+
+    if (JSON.stringify(kutilgan) !== JSON.stringify(qiymatlar)) {
+      yomon.push(yuz.nom + ': varaqdagi qiymatlar [' + qiymatlar + '] `SORT_KEYS` [' + kutilgan + '] bilan mos emas');
+    }
+  }
+
+  // ── 2-band: saytda `hidden` atributi HAQIQATAN yashirsin ──
+  const html = oqi('index.html');
+  const css = oqi('style.css');
+  let tekshirilgan = 0;
+
+  for (const m of html.matchAll(/<[a-z]+\s[^>]*>/g)) {
+    const teg = m[0];
+    if (!/\s(?:hidden)[\s>]/.test(teg.replace(/aria-hidden/g, 'ARIA'))) continue;
+
+    const id = (teg.match(/\sid="([^"]+)"/) || [])[1];
+    const klasslar = ((teg.match(/\sclass="([^"]+)"/) || [])[1] || '').split(/\s+/).filter(Boolean);
+    const nishonlar = (id ? ['#' + id] : []).concat(klasslar.map((k) => '.' + k));
+
+    for (const n of nishonlar) {
+      const esc = n.replace(/[.#]/, '\\$&');
+      if (!new RegExp(esc + '\\s*(?:,[^{]*)?\\{[^}]*display:\\s*(?!none)[a-z-]+').test(css)) continue;
+      tekshirilgan++;
+      if (!new RegExp(esc + '\\[hidden\\]\\s*\\{[^}]*display:\\s*none').test(css)) {
+        yomon.push('sayt: `' + n + '` ga CSS `display` beryapti, lekin `' + n + '[hidden] { display: none }` qatori yo\'q');
+      }
+    }
+  }
+
+  assert.ok(tekshirilgan >= 3,
+    '`hidden` bilan turgan va CSS `display` olgan element topilmadi (' + tekshirilgan + ' ta) — qidiruv naqshi eskirgan');
+
+  // ── 3-band: Mini App'da yashirish KLASS bilan — u kuchli qolsin ──
+  assert.ok(/\.hidden\s*\{[^}]*display:\s*none\s*!important/.test(oqi('telegram-app/styles.css')),
+    'Mini App: `.hidden { display: none !important }` qoidasi yo\'q. `!important` siz u '
+    + '`display: flex` beruvchi klassdan kuchsiz bo\'lib qolishi mumkin va o\'nlab element '
+    + '(orqaga tugmasi, savat belgisi, toast) JIMGINA ko\'rinib qolardi.');
+
+  assert.deepStrictEqual(yomon, [],
+    'Saralash yoki yashirish mexanizmi buzilgan — ikkalasi ham JIMGINA sinaydi '
+    + '(konsolda xato yo\'q, faqat ko\'z ko\'radi):\n  ' + yomon.join('\n  '));
+
+  console.log('✅ Test 45: Saralash varag\'i va yashirish — PASS (2 yuz, ' + tekshirilgan + ' `hidden` element)');
+}
+
+/* ── Test 46: Deep-link belgisi SERVERDAN o'tsin ──────────────────────────
+   `t.me/<bot>?start=<belgi>` havolasidagi payload panelda «bu kanal nechta
+   odam keltirdi» degan raqamga aylanadi. Server uni `manbaBelgisi()` da
+   filtrlaydi: shakl qat'iy (`[a-z0-9_]{2,32}`) va `web_` prefiksi RAD
+   ETILADI — u saytga kirish kodi uchun band.
+
+   🔴 Nuqson JIMGINA keladi: havola ISHLAYDI, odam botga kiradi, faqat manba
+   yozilmaydi va panelda o'sha kanal «nol odam keltirdi» bo'lib turadi —
+   ya'ni raqam yo'q emas, YOLG'ON. 2026-08-17 da footer QR'i uchun aynan
+   `web_footer` taklif qilingan va uni faqat SERVER KODINI o'qish tutgan.
+
+   Qorovul qoidani KO'CHIRMAYDI — serverning O'Z funksiyasini chaqiradi,
+   ya'ni shakl o'zgarsa test o'zi moslashadi. Ro'yxat ham qo'lda emas:
+   bosiladigan havolalar HTML manbasidan yig'iladi. */
+function testDeepLinkTagsPassServer() {
+  const fs = require('fs');
+  const path = require('path');
+  const ildiz = path.join(__dirname, '..');
+  const { manbaBelgisi } = require('./routes/webhook');
+
+  const FAYLLAR = ['index.html', 'telegram-app/index.html', 'script.js', 'telegram-app/app.js'];
+  const yomon = [];
+  let jami = 0;
+
+  for (const f of FAYLLAR) {
+    const src = fs.readFileSync(path.join(ildiz, f), 'utf8');
+    // FAQAT bosiladigan havola (`href="..."`). Yo'riqnoma matnidagi namuna
+    // (`<code>?start=BELGI</code>`, admin panel) ATAYLAB chetda — u havola
+    // emas va hech qachon bosilmaydi.
+    for (const m of src.matchAll(/href="[^"]*t\.me\/[^"]*\?start=([^"&]*)"/g)) {
+      jami++;
+      const belgi = m[1];
+      if (belgi.includes('${')) continue;          // dinamik — kod tomonda
+      if (!manbaBelgisi(belgi)) {
+        yomon.push(`${f}: \`?start=${belgi}\` — server bu belgini RAD ETADI (panelda «nol odam» bo'lib turadi)`);
+      }
+    }
+  }
+
+  assert.ok(jami >= 2, `deep-link havolasi topilmadi (${jami} ta) — qidiruv naqshi eskirgan bo'lishi mumkin`);
+
+  // Qorovulning O'ZI ishlayotganini isbotlaydi: rad etiladigan belgi
+  // haqiqatan rad etilsin (aks holda yuqoridagi tekshiruv har narsani
+  // yashil o'tkazib yuborardi).
+  assert.strictEqual(manbaBelgisi('web_footer'), null, '`web_` prefiksi rad etilishi kerak edi');
+  assert.strictEqual(manbaBelgisi('sayt_footer'), 'sayt_footer', '`sayt_` prefiksi qabul qilinishi kerak edi');
+
+  assert.deepStrictEqual(yomon, [],
+    'Deep-link havolasi bor, lekin server uning belgisini tashlab yuboradi. '
+    + 'Havola ISHLAYDI (odam botga kiradi), manba esa yozilmaydi — panel '
+    + 'o\'sha kanalni «nol odam keltirdi» deb ko\'rsatadi:\n  ' + yomon.join('\n  '));
+
+  console.log(`✅ Test 46: Deep-link belgilari serverdan o'tadi — PASS (${jami} havola)`);
+}
+
+/* ── Test 47: «Eng yangi» HAQIQIY sanaga tayansin ─────────────────────────
+   Tugma «Eng yangi» deb yozilgan, lekin 2026-08-19 gacha u «Yangi»
+   YORLIG'I bo'yicha saralardi — yorliq esa qo'lda qo'yiladi va sanaga
+   umuman bog'liq emas. Ya'ni tugma o'z nomini bajarmasdi va buni hech
+   narsa ko'rsatmasdi: tartib o'zgarardi, «to'g'ri»mi — bilib bo'lmasdi.
+
+   ⚠️ Qorovul MATNNI emas, XATTI-HARAKATNI sinaydi: saralash funksiyasi
+   manbadan ajratib olinadi va haqiqiy ro'yxatda YURGIZILADI. Sabab
+   `manbaAniqla` bilan bir xil — matn tekshiruvidan mutatsiya jimgina
+   o'tib ketishi mumkin. */
+function testNewestSortUsesRealDate() {
+  const fs = require('fs');
+  const path = require('path');
+  const ildiz = path.join(__dirname, '..');
+  const oqi = (f) => jsSofi(fs.readFileSync(path.join(ildiz, f), 'utf8'));
+
+  // ── 1-band: server sanani QAYTARADI ──
+  const katalog = jsSofi(fs.readFileSync(path.join(__dirname, 'routes', 'catalog.js'), 'utf8'));
+  const soro = katalog.slice(katalog.indexOf('async function handleGetProducts'), katalog.indexOf('sendJson(res, 200, rows.map'));
+  assert.ok(/p\.created_at/.test(soro),
+    '`/api/products` so\'rovida `p.created_at` yo\'q — frontend «Eng yangi» ni sanaga qura olmaydi');
+  assert.ok(/createdAt:\s*r\.created_at/.test(katalog),
+    '`productRowToVM` da `createdAt` yo\'q — ustun tanlanadi-yu javobga tushmaydi (jimgina yo\'qoladi)');
+
+  // ── 2-band: XATTI-HARAKAT — Mini App saralashi haqiqiy ro'yxatda ──
+  const app = oqi('telegram-app/app.js');
+  const tana = app.slice(app.indexOf('function sortProducts'), app.indexOf('function sortLabel'));
+  assert.ok(tana.length > 100, '`sortProducts` topilmadi — manbadan ajratish naqshi eskirgan');
+  const yasa = new Function('S', tana + '\nreturn sortProducts;');
+
+  const kun = 86400000;
+  const sortNew = (list) => yasa({ sortKey: 'new' })(list).map((p) => p.id);
+
+  // (a) sana bor — YANGI birinchi, yorliq bunga TA'SIR QILMAYDI
+  assert.deepStrictEqual(
+    sortNew([
+      { id: 'eski',  price: 10, createdAt: 1000 * kun, badge: { uz: 'Yangi' } },
+      { id: 'yangi', price: 20, createdAt: 3000 * kun },
+      { id: 'orta',  price: 30, createdAt: 2000 * kun },
+    ]),
+    ['yangi', 'orta', 'eski'],
+    '«Eng yangi» sana bo\'yicha saralamadi. Yorliqli eski mahsulot tepada qolgan bo\'lsa — '
+    + 'saralash hamon YORLIQQA qarayapti, ya\'ni tugma o\'z nomini bajarmayapti');
+
+  // (b) sana YO'Q (eski server javobi) — zaxira: yorliq bo'yicha, tartib buzilmasin
+  assert.deepStrictEqual(
+    sortNew([
+      { id: 'oddiy1', price: 10 },
+      { id: 'yorliq', price: 20, badge: { uz: 'Yangi' } },
+      { id: 'oddiy2', price: 30 },
+    ]),
+    ['yorliq', 'oddiy1', 'oddiy2'],
+    'Server sanani qaytarmaganda saralash ISHLASHDAN TO\'XTAGAN. Bu holat HAQIQIY: '
+    + 'statik fayllar CI bilan avtomatik chiqadi, backend esa qo\'lda ko\'tariladi — '
+    + 'oradagi vaqtda yangi sayt eski serverdan javob oladi');
+
+  // (c) aralash — sanasizlar OXIRIDA (ular "eng yangi" ham, "eng eski" ham emas)
+  assert.deepStrictEqual(
+    sortNew([
+      { id: 'sanasiz', price: 10, badge: { uz: 'Yangi' } },
+      { id: 'eski',    price: 20, createdAt: 1000 * kun },
+      { id: 'yangi',   price: 30, createdAt: 2000 * kun },
+    ]),
+    ['yangi', 'eski', 'sanasiz'],
+    'Aralash ro\'yxatda tartib noto\'g\'ri — sanasi yo\'q mahsulot oxirida turishi kerak');
+
+  // ── 3-band: sayt AYNI qoidada ──
+  //    Ikkala yuz bir xil javob berishi SHART: bir joyda «eng yangi», ikkinchi
+  //    joyda boshqa tartib — bu foydalanuvchi uchun nuqson, uslub emas.
+  const sayt = oqi('script.js');
+  assert.ok(/data-created="/.test(sayt),
+    'saytda kartochkaga `data-created` yozilmayapti — sana DOM ga umuman yetib bormaydi');
+  const applySort = sayt.slice(sayt.indexOf('function applySort'), sayt.indexOf('function applySortSheet'));
+  assert.ok(/dataset\.created/.test(applySort), 'sayt saralashi `data-created` ni o\'qimayapti');
+  assert.ok(/b\.c\s*-\s*a\.c/.test(applySort), 'sayt saralashi sanani KAMAYUVCHI tartibda ishlatmayapti');
+
+  // ── 4-band: qaror BUTUN ro'yxat bo'yicha, juftlik bo'yicha EMAS ──
+  //    Juftlik bo'yicha qaralsa taqqoslash tranzitivligi buziladi va tartib
+  //    kirish tartibiga qarab TASODIFIY bo'lib qoladi.
+  for (const [nom, src] of [['sayt', applySort], ['Mini App', tana]]) {
+    assert.ok(/\.some\(\(x\)\s*=>\s*x\.c\s*!==\s*null\)/.test(src),
+      `${nom}: sana bor-yo'qligi butun ro'yxat bo'yicha aniqlanmayapti (\`some\`) — `
+      + 'juftlik bo\'yicha solishtirish tartibni tasodifiy qiladi');
+  }
+
+  console.log('✅ Test 47: «Eng yangi» haqiqiy sanada — PASS (3 xatti-harakat sinovi, 2 yuz)');
+}
+
 async function runTests() {
   console.log('\n🧪 LolaMarket Server Testlari\n');
 
@@ -5608,6 +5993,10 @@ async function runTests() {
     testDbImportShape();
     testTrafficMeasurement();
     testNewTablesAreOwnedByApp();
+    testActionTargetsExist();
+    testSortSheetAndHiddenWork();
+    testDeepLinkTagsPassServer();
+    testNewestSortUsesRealDate();
 
     console.log('\n✅ Hammasi PASS — pul hisobi, imzo, route jadvali, xato alerti, buyurtma tarixi va AI rasmi joyida\n');
     process.exit(0);

@@ -1473,10 +1473,30 @@ function sortProducts(list) {
   if (S.sortKey === 'rec') return list;
   const idx = list.map((p, i) => {
     const n = Number(p.price);
-    return { p, i, price: Number.isFinite(n) ? n : null, isNew: !!(p.badge && p.badge.uz === 'Yangi') };
+    const c = Number(p.createdAt);
+    return {
+      p, i,
+      price: Number.isFinite(n) ? n : null,
+      c: Number.isFinite(c) ? c : null,
+      isNew: !!(p.badge && p.badge.uz === 'Yangi'),
+    };
   });
+
+  /* «Eng yangi» — HAQIQIY sana bo'yicha (saytdagi `applySort` bilan AYNI
+     qoida; ikkala yuz bir xil javob berishi shart). Yorliq bo'yicha saralash
+     ZAXIRA bo'lib qoladi: backend qo'lda ko'tariladi, ya'ni oraliqda
+     `createdAt` kelmasligi mumkin. Qaror butun ro'yxat bo'yicha — juftlik
+     bo'yicha bo'lsa taqqoslash tranzitivligi buzilardi. */
+  const sanaBor = idx.some((x) => x.c !== null);
+
   idx.sort((a, b) => {
-    if (S.sortKey === 'new') return (b.isNew - a.isNew) || (a.i - b.i);
+    if (S.sortKey === 'new') {
+      if (!sanaBor) return (b.isNew - a.isNew) || (a.i - b.i);
+      if (a.c === null && b.c === null) return a.i - b.i;
+      if (a.c === null) return 1;
+      if (b.c === null) return -1;
+      return (b.c - a.c) || (a.i - b.i);
+    }
     if (a.price === null && b.price === null) return a.i - b.i;
     if (a.price === null) return 1;
     if (b.price === null) return -1;
