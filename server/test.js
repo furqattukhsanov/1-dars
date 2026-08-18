@@ -1405,8 +1405,8 @@ function testAssetVersionsAreFresh() {
     // BIR TOMONLAMA faylni qoldirardi — sevimlilar yoki chiqish tuzatishining
     // faqat bittasi bo'lgan `app.js`.
     'panel.js': { v: 47, hash: '1165def86832' },
-    'admin/admin.css': { v: 18, hash: '15b0bc977b85' },
-    'admin/admin.js': { v: 29, hash: '62d49a9fd1e6' },
+    'admin/admin.css': { v: 19, hash: 'cb8d6c43473d' },
+    'admin/admin.js': { v: 30, hash: '23c3705db020' },
     'telegram-app/styles.css': { v: 36, hash: '570a2450c3a4' },
     'telegram-app/app.js': { v: 100, hash: 'c5e4e0fbf5fc' },
     'telegram-app/pwa.js': { v: 6, hash: '798ab85e1cde' },

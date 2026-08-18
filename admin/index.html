@@ -11,7 +11,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@24,600..800&family=Hanken+Grotesk:wght@400..700&family=Geist+Mono:wght@600..700&display=swap" rel="stylesheet">
 
   <link rel="stylesheet" href="../style.css?v=64" />
-  <link rel="stylesheet" href="admin.css?v=18" />
+  <link rel="stylesheet" href="admin.css?v=19" />
 </head>
 <body>
 
@@ -485,14 +485,38 @@
               </div>
             </div>
 
-            <div class="panel glass">
-              <div class="panel-head">
-                <div>
-                  <div class="panel-title">Kunlik ko'rishlar</div>
-                  <div class="stat-foot" id="trChartFoot">–</div>
+            <!-- Ikki maydon grafigi (2026-08-18, founder referensi). Ilgari bu
+                 yerda ustunlar turgan; referensda esa silliq chiziq va gradient
+                 to'ldirish bor — tendensiya bir qarashda ko'rinadi.
+                 ⚠️ Referensdagi "↑ +22%" kabi TREND belgilari KO'CHIRILMADI:
+                 ular o'ylab topilgan raqamlar edi. Trend faqat yetarli kun
+                 o'lchanganda va HAQIQIY hisobdan chiqadi (`renderTraffic`). -->
+            <div class="tr-charts">
+              <div class="panel glass tr-chart">
+                <div class="panel-head">
+                  <div>
+                    <div class="panel-title">Ko'rishlar dinamikasi</div>
+                    <div class="tr-big" id="trChartBig">–</div>
+                  </div>
+                  <span class="tr-legend views">Ko'rishlar (kunlik)</span>
                 </div>
+                <div class="tr-area views" id="trChart"></div>
+                <div class="tr-xaxis" id="trChartX"></div>
+                <div class="stat-foot" id="trChartFoot">–</div>
               </div>
-              <div class="chart-grid" id="trChart"></div>
+
+              <div class="panel glass tr-chart">
+                <div class="panel-head">
+                  <div>
+                    <div class="panel-title">Tashrifchilar</div>
+                    <div class="tr-big" id="trVisBig">–</div>
+                  </div>
+                  <span class="tr-legend visitors">Tashrifchi (kunlik)</span>
+                </div>
+                <div class="tr-area visitors" id="trVisChart"></div>
+                <div class="tr-xaxis" id="trVisChartX"></div>
+                <div class="stat-foot" id="trVisFoot">–</div>
+              </div>
             </div>
 
             <div class="dash-grid dash-grid-even">
@@ -635,6 +659,6 @@
     </div>
   </div>
 
-  <script src="admin.js?v=29"></script>
+  <script src="admin.js?v=30"></script>
 </body>
 </html>

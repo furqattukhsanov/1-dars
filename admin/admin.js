@@ -1074,16 +1074,18 @@ function renderTraffic() {
   // ---- Kunlik ustunlar. Oxirgi 14 kun — 30 tasi telefon ekranida qisilib
   // o'qib bo'lmas holga kelardi (sana yorlig'i sig'maydi).
   const oxirgi = kunlar.slice(-14);
-  const maxV = Math.max(...oxirgi.map((d) => d.views), 1);
-  document.getElementById('trChart').innerHTML = oxirgi.map((d) => `
-    <div class="chart-item">
-      <div class="chart-bar-wrap">
-        <div class="chart-bar" style="height:${Math.round((d.views / maxV) * 100)}%"></div>
-      </div>
-      <div class="chart-num">${d.views}</div>
-      <div class="chart-label">${esc(d.day.slice(8) + '.' + d.day.slice(5, 7))}</div>
-    </div>
-  `).join('');
+  document.getElementById('trChart').innerHTML = areaChart(oxirgi.map((d) => d.views), 'views');
+  document.getElementById('trChartX').innerHTML = xaxisHtml(oxirgi);
+  document.getElementById('trChartBig').textContent = `${fmtNum(views)} ko'rish`;
+
+  document.getElementById('trVisChart').innerHTML = areaChart(oxirgi.map((d) => d.visitors), 'vis');
+  document.getElementById('trVisChartX').innerHTML = xaxisHtml(oxirgi);
+  document.getElementById('trVisBig').textContent = `${fmtNum(ortacha)} / kun`;
+  // ⚠️ Bu yerda YIG'INDI yozilmaydi: belgi kunlik, ya'ni bir odam uch kun
+  // kelsa uch marta sanaladi (`lib/traffic.js`). Yig'indi "30 kunda 900 kishi"
+  // degan yolg'onni tug'dirardi.
+  document.getElementById('trVisFoot').textContent =
+    `o'rtacha · bugun ${fmtNum(bugun.visitors)} · belgi kunlik, yig'indi olinmaydi`;
 
   // ⚠️ O'lchov boshlangan sana AYTILADI: undan oldingi kunlar grafikda nol
   // bo'lib turadi va ular "tashrif bo'lmagan" emas, "O'LCHANMAGAN"
@@ -1144,6 +1146,90 @@ function renderTraffic() {
       <span class="status-dist-val">${fmtNum(x.n)}</span>
     </div>
   `).join('');
+}
+
+/* ═══════════════════════ Maydon grafigi (area chart) ═══════════════════════
+   Founder referensi (2026-08-18): silliq chiziq + gradient to'ldirish +
+   oxirgi nuqta belgisi. Ustunlar tendensiyani ko'rsatmasdi — 14 ta alohida
+   raqam bo'lib turardi.
+
+   ⚠️ SILLIQLASH "monotone cubic" (Fritsch–Carlson) usulida, ODDIY Catmull-Rom
+   bilan EMAS. Sabab qiyofa emas, HALOLLIK: oddiy splayn ikki past qiymat
+   orasida NOLDAN PASTGA tushib ketadi va grafik manfiy tashrif chizardi.
+   Bu usul chiziqni ma'lumot oralig'idan chiqarmaydi.
+
+   ⚠️ Rang SVG `fill=` ga YOZILMAYDI — u yerda `var()` ishlamaydi (CLAUDE.md).
+   Shuning uchun `currentColor`: rang CSS klassida (`.tr-area.views`) turadi,
+   gradient ham shundan oziqlanadi. */
+function areaChart(qiymatlar, id) {
+  const W = 600, H = 170, P = 6;          // viewBox; `P` — chiziq qalinligi uchun joy
+  const n = qiymatlar.length;
+  if (!n) return '';
+
+  const max = Math.max(...qiymatlar, 1);
+  const x = (i) => (n === 1 ? W / 2 : (i / (n - 1)) * (W - P * 2) + P);
+  const y = (v) => H - P - (v / max) * (H - P * 2);
+  const nuq = qiymatlar.map((v, i) => [x(i), y(v)]);
+
+  let d;
+  if (n === 1) {
+    d = `M${nuq[0][0]} ${nuq[0][1]}`;
+  } else {
+    // Fritsch–Carlson: qiyaliklar oshib ketmasligi uchun cheklanadi
+    const h = [], del = [];
+    for (let i = 0; i < n - 1; i++) {
+      h.push(nuq[i + 1][0] - nuq[i][0]);
+      del.push((nuq[i + 1][1] - nuq[i][1]) / (nuq[i + 1][0] - nuq[i][0]));
+    }
+    const m = [del[0]];
+    for (let i = 1; i < n - 1; i++) {
+      m.push(del[i - 1] * del[i] <= 0 ? 0 : (del[i - 1] + del[i]) / 2);
+    }
+    m.push(del[n - 2]);
+    for (let i = 0; i < n - 1; i++) {
+      if (del[i] === 0) { m[i] = 0; m[i + 1] = 0; continue; }
+      const a = m[i] / del[i], b = m[i + 1] / del[i];
+      const s = a * a + b * b;
+      if (s > 9) { const tau = 3 / Math.sqrt(s); m[i] = tau * a * del[i]; m[i + 1] = tau * b * del[i]; }
+    }
+    d = `M${nuq[0][0]} ${nuq[0][1]}`;
+    for (let i = 0; i < n - 1; i++) {
+      const c1x = nuq[i][0] + h[i] / 3, c1y = nuq[i][1] + (m[i] * h[i]) / 3;
+      const c2x = nuq[i + 1][0] - h[i] / 3, c2y = nuq[i + 1][1] - (m[i + 1] * h[i]) / 3;
+      d += ` C${c1x.toFixed(1)} ${c1y.toFixed(1)}, ${c2x.toFixed(1)} ${c2y.toFixed(1)}, ${nuq[i + 1][0].toFixed(1)} ${nuq[i + 1][1].toFixed(1)}`;
+    }
+  }
+  const oxir = nuq[n - 1];
+  const tolgan = `${d} L${oxir[0]} ${H} L${nuq[0][0]} ${H} Z`;
+  const gid = `grad-${id}`;
+
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-hidden="true">
+    <defs>
+      <linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="currentColor" stop-opacity=".30"/>
+        <stop offset="100%" stop-color="currentColor" stop-opacity="0"/>
+      </linearGradient>
+    </defs>
+    <path d="${tolgan}" fill="url(#${gid})"/>
+    <path d="${d}" fill="none" stroke="currentColor" stroke-width="2.5"
+          stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="${oxir[0]}" cy="${oxir[1]}" r="4.5" fill="currentColor"/>
+  </svg>`;
+}
+
+/* X o'qi yorliqlari — HTML da, SVG ichida emas: SVG kengaygganda matn ham
+   cho'ziladi va o'qib bo'lmay qoladi. Ko'pi bilan 7 ta yorliq chiziladi. */
+function xaxisHtml(kunlar) {
+  if (!kunlar.length) return '';
+  const qadam = Math.max(1, Math.ceil(kunlar.length / 7));
+  // ⚠️ Sanoq OXIRIDAN yuritiladi: bugungi kun HAR DOIM yorliqli bo'lsin va
+  // oraliq bir tekis qolsin. Boshidan sanalganda oxirgi yorliq zo'rlab
+  // qo'shilardi va u oldingisiga YOPISHIB qolardi (14 kunda "17.08 18.08").
+  const oxirgiIndeks = kunlar.length - 1;
+  return kunlar.map((d, i) => {
+    const korsat = (oxirgiIndeks - i) % qadam === 0;
+    return `<span>${korsat ? esc(d.day.slice(8) + '.' + d.day.slice(5, 7)) : ''}</span>`;
+  }).join('');
 }
 
 /* ─── Moderatsiya navbati ─── */

@@ -1453,3 +1453,62 @@ body { min-height: 100vh; padding-bottom: 0; }
   .dc-row > span { flex: none; }
   .ev-thumb { width: 68px; height: 68px; }
 }
+
+/* ═══════════════ Trafik: maydon grafiklari (2026-08-18) ═══════════════
+   Founder referensi: silliq chiziq + gradient. Rang SHU YERDA turadi va
+   SVG uni `currentColor` orqali oladi — SVG `fill="var(--x)"` ishlamaydi
+   (CLAUDE.md qoidasi, `index.html` da 11 joyda aynan shu tishlagan). */
+.tr-charts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+@media (max-width: 900px) {
+  .tr-charts { grid-template-columns: 1fr; }
+}
+
+.tr-chart .panel-head { align-items: flex-start; }
+
+.tr-big {
+  font-size: 27px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-top: 2px;
+  font-variant-numeric: tabular-nums;
+}
+
+.tr-legend {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12.5px;
+  color: var(--ink-3, #6b7280);
+  white-space: nowrap;
+}
+.tr-legend::before {
+  content: '';
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.tr-legend.views { color: #119DAB; }
+.tr-legend.visitors { color: #D98E0C; }
+
+/* ⚠️ `height: auto` — SVG o'z nisbati bilan o'lchanadi. Flex ustunda
+   `flex: none` kerak bo'lishi mumkin (CLAUDE.md dagi uchinchi tishlash):
+   `.panel` ustun bo'lsa grafik siqilib, kesilib qolardi. */
+.tr-area { flex: none; margin-top: 10px; }
+.tr-area svg { display: block; width: 100%; height: auto; }
+.tr-area.views { color: #119DAB; }
+.tr-area.visitors { color: #D98E0C; }
+
+.tr-xaxis {
+  display: flex;
+  justify-content: space-between;
+  gap: 2px;
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--ink-3, #6b7280);
+  font-variant-numeric: tabular-nums;
+}
+.tr-xaxis span { flex: 1 1 0; text-align: center; min-width: 0; }
