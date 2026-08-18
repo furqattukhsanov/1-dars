@@ -1406,7 +1406,7 @@ function testAssetVersionsAreFresh() {
     // faqat bittasi bo'lgan `app.js`.
     'panel.js': { v: 47, hash: '1165def86832' },
     'admin/admin.css': { v: 18, hash: '15b0bc977b85' },
-    'admin/admin.js': { v: 28, hash: '71572b4688ac' },
+    'admin/admin.js': { v: 29, hash: '62d49a9fd1e6' },
     'telegram-app/styles.css': { v: 36, hash: '570a2450c3a4' },
     'telegram-app/app.js': { v: 100, hash: 'c5e4e0fbf5fc' },
     'telegram-app/pwa.js': { v: 6, hash: '798ab85e1cde' },
@@ -5377,6 +5377,15 @@ function testTrafficMeasurement() {
   assert.ok(/if \(!t \|\| !t\.total\)/.test(rt[1]) && /hidden = true/.test(rt[1]),
     '`renderTraffic()` ma\'lumot bo\'lmaganda blokni YASHIRMAYAPTI — panel nol '
     + 'ko\'rsatib, "hech kim kelmadi" degan yolg\'on xulosaga olib borardi.');
+
+  // Yiqilgan so'rov "ma'lumot yo'q" bilan ARALASHMASIN. `catch(() => null)`
+  // bo'lganda endpoint o'lganda ham panel "o'lchov endi boshlandi" deb
+  // chizardi — ya'ni nosozlik JIMGINA tinch xabarga aylanardi.
+  assert.ok(/fetchTraffic\(\)\.catch\(\(e\) => \(\{ xato:/.test(adminSrc),
+    'Trafik so\'rovi yiqilganda `null` qaytaryapti — panel buni "hech kim kelmadi" '
+    + 'deb ko\'rsatardi (ALERT_CHAT_ID darsi bilan bitta oila).');
+  assert.ok(/t\.xato/.test(rt[1]) && /OLINMADI/.test(rt[1]),
+    '`renderTraffic()` xato holatini alohida aytmayapti.');
 
   // Yangi bo'lim ESKI sahifalarni qulatmasin: `renderTraffic()` `renderAll()`
   // ning OXIRIDA va o'z `try` si bilan turishi shart. Ilgari u

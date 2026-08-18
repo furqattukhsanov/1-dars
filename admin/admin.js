@@ -199,7 +199,12 @@ async function loadAll() {
   const [summary, disputes, traffic] = await Promise.all([
     fetchSummary(),
     fetchDisputes().catch(() => []),
-    fetchTraffic().catch(() => null),
+    // ⚠️ Xato "ma'lumot yo'q" bilan ARALASHMASIN. Ilgari `catch` `null`
+    // qaytarardi va renderTraffic uni "o'lchov endi boshlandi" deb chizardi —
+    // ya'ni endpoint yiqilganda panel JIMGINA "hali hech kim kelmadi" degan
+    // yolg'onni ko'rsatardi. Bu aynan `ALERT_CHAT_ID` va `NULL` reyting
+    // darslarining o'zi: yo'qlik ko'rinadi, yolg'on ko'rinmaydi.
+    fetchTraffic().catch((e) => ({ xato: e.message || 'so\'rov yiqildi' })),
   ]);
   state.summary = summary;
   state.disputes = disputes;
@@ -1011,11 +1016,25 @@ function renderTraffic() {
   if (!bosh || !tana) return;
 
   const t = state.traffic;
+
+  // So'rov yiqilgan bo'lsa SABAB aytiladi — "ma'lumot yo'q" deb ko'rsatilmaydi.
+  // Eng ehtimoli: baza so'rovi xato (migratsiya yoki SQL) — u holda raqam
+  // YO'Q emas, OLINMAGAN.
+  if (bosh.dataset.asl === undefined) bosh.dataset.asl = bosh.textContent;
+  if (t && t.xato) {
+    tana.hidden = true;
+    bosh.hidden = false;
+    bosh.textContent = 'Trafik ma\'lumoti OLINMADI (' + t.xato + '). '
+      + 'Bu "hech kim kelmadi" degani EMAS — server javob bermadi. '
+      + 'Serverdagi xato jurnaliga qarang.';
+    return;
+  }
   // `total` nol bo'lsa ham tana YOPIQ qoladi: jadval bor, lekin hali birorta
   // hodisa yo'q — bu "nol tashrif" emas, "o'lchov endi boshlandi".
   if (!t || !t.total) {
     tana.hidden = true;
     bosh.hidden = false;
+    bosh.textContent = bosh.dataset.asl;
     return;
   }
   bosh.hidden = true;
