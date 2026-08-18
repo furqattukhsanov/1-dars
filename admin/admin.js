@@ -1029,7 +1029,13 @@ function renderTraffic() {
   // uchta belgi oladi (belgi kunlik, `lib/traffic.js` izohi). Shuning uchun
   // bu yerda O'RTACHA ko'rsatiladi, yig'indi emas: yig'indi jimgina
   // "30 kunda 900 kishi keldi" degan yolg'onni tug'dirardi.
-  const ortacha = kunlar.length ? Math.round(kunlar.reduce((s, d) => s + d.visitors, 0) / kunlar.length) : 0;
+  // 🔴 O'LCHANGAN kunlarga bo'linadi, oyna kengligiga EMAS. Ilgari 30 ga
+  // bo'linardi va o'lchov endi boshlanganda karta o'ziga o'zi zid raqam
+  // ko'rsatardi: "1 · bugun 15" (15 / 30 = 0.5 → 1). Bo'luvchi serverdan
+  // keladi, chunki qaysi kunlar o'lchanganini faqat baza biladi: nol
+  // ko'rishli kun ham O'LCHANGAN bo'lishi mumkin.
+  const olchangan = t.measuredDays || kunlar.length || 1;
+  const ortacha = Math.round(kunlar.reduce((s, d) => s + d.visitors, 0) / olchangan);
 
   const f = t.funnel || { viewed: 0, carted: 0, ordered: 0 };
   const konv = f.viewed ? Math.round((f.carted / f.viewed) * 100) : null;
@@ -1037,13 +1043,14 @@ function renderTraffic() {
   document.getElementById('trViews').textContent = fmtNum(views);
   document.getElementById('trViewsFoot').textContent = `${fmtNum(bugun.views)} bugun · ${t.days} kun`;
   document.getElementById('trVisitors').textContent = fmtNum(ortacha);
-  document.getElementById('trVisitorsFoot').textContent = `kuniga o'rtacha · bugun ${fmtNum(bugun.visitors)}`;
+  document.getElementById('trVisitorsFoot').textContent =
+    `kuniga o'rtacha (${fmtNum(olchangan)} kun) · bugun ${fmtNum(bugun.visitors)}`;
   document.getElementById('trCarts').textContent = fmtNum(f.carted);
   document.getElementById('trCartsFoot').textContent = `${fmtNum(f.viewed)} mato ko'rgan`;
   // Konversiya HISOBLAB bo'lmasa chiziqcha — nol foiz DEYILMAYDI.
   document.getElementById('trConv').textContent = konv === null ? '–' : `${konv}%`;
   document.getElementById('trConvFoot').textContent = konv === null
-    ? 'hali mato ko\'rilmagan' : `${fmtNum(f.ordered)} buyurtma`;
+    ? 'hali mato ko\'rilmagan' : `o'lchov davrida ${fmtNum(f.ordered)} buyurtma`;
 
   // ---- Kunlik ustunlar. Oxirgi 14 kun — 30 tasi telefon ekranida qisilib
   // o'qib bo'lmas holga kelardi (sana yorlig'i sig'maydi).
@@ -1062,9 +1069,13 @@ function renderTraffic() {
   // ⚠️ O'lchov boshlangan sana AYTILADI: undan oldingi kunlar grafikda nol
   // bo'lib turadi va ular "tashrif bo'lmagan" emas, "O'LCHANMAGAN"
   // (`users.src` dagi "noma'lum" bilan bitta oila).
-  const since = t.since ? new Date(t.since) : null;
+  // ⚠️ Sana SERVERDAN tayyor satr bo'lib keladi (`sinceDay`, Toshkent
+  // bo'yicha). Bu yerda `toISOString()` bilan yasalsa u UTC ga o'tib bir kun
+  // ORQAGA surilardi — founder ekranida bugungi o'lchov "2026-08-17 dan
+  // boshlangan" deb turgan edi.
+  const since = t.sinceDay || null;
   document.getElementById('trChartFoot').textContent = since
-    ? `O'lchov ${since.toISOString().slice(0, 10)} dan boshlangan — undan oldingi kunlar o'lchanmagan`
+    ? `O'lchov ${since} dan boshlangan — undan oldingi kunlar o'lchanmagan`
     : '';
 
   trafficRows('trProducts', (t.products || []).map((p) => ({
@@ -1097,6 +1108,10 @@ function renderTraffic() {
 
   // ---- Voronka. Uchala pog'ona ham eng kengiga nisbatan chiziladi, ya'ni
   // tasmalar UZUNLIGI konversiyani ko'rsatadi.
+  // ⚠️ Uchala pog'ona BITTA oynadan — server oynani o'lchov boshlangan
+  // paytdan oldinga o'tkazmaydi. Ilgari buyurtma 30 kunlik tarixdan olinib,
+  // ko'rish esa o'lchov boshlangan kundan olinardi: voronka TESKARI chiqib,
+  // "3 ko'rgan → 23 buyurtma" deb turardi.
   const vQator = [
     { text: 'Mato ko\'rgan', n: f.viewed, color: '#119DAB' },
     { text: 'Savatga qo\'shgan', n: f.carted, color: '#D98E0C' },

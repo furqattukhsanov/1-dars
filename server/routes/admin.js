@@ -338,14 +338,28 @@ async function handleAdminTraffic(req, res, ip) {
       // ---- Kunlik qator. `generate_series` bo'sh kunlarni ham beradi (GMV
       // grafigidagi bilan bitta naqsh) — aks holda tashrifsiz kun grafikdan
       // tushib qolib, chiziq uzilardi.
+      //
+      // 🔴 KUN CHEGARASI TOSHKENT BO'YICHA, UTC BO'YICHA EMAS (2026-08-18 da
+      // founder ekranida ko'rindi). Server UTC da yuradi, ya'ni `date_trunc`
+      // kunni 05:00 Toshkent vaqtida almashtirardi: yarim tundan tonggacha
+      // bo'lgan tashrif KECHAGI kunga tushardi. O'zbekistondagi bozor uchun
+      // "bugun" — Toshkentning bugungi kuni.
+      //
+      // ⚠️ Sana SQL da SATRGA aylantiriladi (`to_char`), Node'ga `Date` bo'lib
+      // O'TMAYDI: `date` tipini drayver MAHALLIY yarim tunda `Date` qilib
+      // beradi va `toISOString()` uni UTC ga qaytarib bir kun ORQAGA suradi —
+      // panelda bugungi 30 ta ko'rish "17.08" deb turgan edi.
       pool.query(`
-        SELECT d::date AS day,
+        SELECT to_char(d, 'YYYY-MM-DD') AS day,
                count(t.id) FILTER (WHERE t.kind = 'view')::int AS views,
                count(DISTINCT t.visitor)::int                  AS visitors
-          FROM generate_series(date_trunc('day', now()) - ($1::int - 1) * interval '1 day',
-                               date_trunc('day', now()), interval '1 day') d
+          FROM generate_series(date_trunc('day', now() AT TIME ZONE 'Asia/Tashkent')
+                                 - ($1::int - 1) * interval '1 day',
+                               date_trunc('day', now() AT TIME ZONE 'Asia/Tashkent'),
+                               interval '1 day') d
           LEFT JOIN traffic_events t
-                 ON t.at >= d AND t.at < d + interval '1 day'
+                 ON t.at >= d AT TIME ZONE 'Asia/Tashkent'
+                AND t.at <  (d + interval '1 day') AT TIME ZONE 'Asia/Tashkent'
          GROUP BY d ORDER BY d`, [days]),
 
       // ---- Yuz bo'yicha. Sayt va Mini App ALOHIDA: ular bitta raqamga
@@ -394,20 +408,47 @@ async function handleAdminTraffic(req, res, ip) {
       // Sabab: buyurtma — pulga bog'langan HAQIQAT va uning yagona manbai
       // `orders`. Ikkinchi joyga nusxalansa ikki raqam ikki xil bo'lardi
       // (reyting hosila qoidasi bilan bitta oila).
+      //
+      // 🔴 UCHALA POG'ONA BITTA OYNADAN OLINADI — aks holda voronka TESKARI
+      // chiqadi (2026-08-18 da founder ekranida aynan shunday edi:
+      // "ko'rgan 3 → savatga 2 → buyurtma 23"). Sabab: buyurtmalarning
+      // TARIXI bor, o'lchov esa BUGUN yoqilgan. Oyna o'lchov boshlangan
+      // paytdan oldinga o'tmaydi — `GREATEST` shuni qiladi.
+      //
+      // ⚠️ Bu "buyurtmani ham traffic_events dan sana" degani EMAS: buyurtma
+      // pulga bog'langan haqiqat va uning yagona manbai `orders` bo'lib
+      // qoladi (reyting hosila qoidasi bilan bitta oila). O'zgargani —
+      // faqat SANALADIGAN ORALIQ.
       pool.query(`
-        SELECT (SELECT count(DISTINCT visitor) FROM traffic_events
+        WITH w AS (
+          SELECT GREATEST(now() - ($1::int * interval '1 day'),
+                          COALESCE((SELECT min(at) FROM traffic_events), now())) AS boshi
+        )
+        SELECT (SELECT count(DISTINCT visitor) FROM traffic_events, w
                  WHERE kind = 'view' AND product_id IS NOT NULL
-                   AND at >= now() - ($1::int * interval '1 day'))::int AS viewed,
-               (SELECT count(DISTINCT visitor) FROM traffic_events
-                 WHERE kind = 'cart'
-                   AND at >= now() - ($1::int * interval '1 day'))::int AS carted,
-               (SELECT count(*) FROM orders
-                 WHERE created_at >= now() - ($1::int * interval '1 day')
+                   AND at >= w.boshi)::int                              AS viewed,
+               (SELECT count(DISTINCT visitor) FROM traffic_events, w
+                 WHERE kind = 'cart' AND at >= w.boshi)::int            AS carted,
+               (SELECT count(*) FROM orders, w
+                 WHERE created_at >= w.boshi
                    AND status NOT IN ('cancelled','refunded'))::int     AS ordered`, [days]),
 
       // ---- O'lchov QACHON boshlangan. Jadval bo'sh bo'lsa `NULL` — panel
       // shunda blokni UMUMAN ko'rsatmaydi (nol chizmaydi).
-      pool.query(`SELECT min(at) AS since, count(*)::int AS total FROM traffic_events`),
+      //
+      // ⚠️ `measured_days` — O'LCHANGAN kunlar soni, oyna kengligi EMAS.
+      // Panel o'rtachani shunga bo'ladi: 30 ga bo'linsa o'lchov endi
+      // boshlanganda "kuniga o'rtacha 1 · bugun 15" degan o'zi-o'ziga zid
+      // raqam chiqardi (founder ekranida ko'rindi).
+      pool.query(`
+        SELECT min(at) AS since,
+               to_char(min(at) AT TIME ZONE 'Asia/Tashkent', 'YYYY-MM-DD') AS since_day,
+               count(*)::int AS total,
+               GREATEST(1, LEAST($1::int,
+                 (date_trunc('day', now() AT TIME ZONE 'Asia/Tashkent')::date
+                  - date_trunc('day', min(at) AT TIME ZONE 'Asia/Tashkent')::date) + 1))::int
+                 AS measured_days
+          FROM traffic_events`, [days]),
     ]);
 
     const face = (n) => faceRes.rows.find((r) => r.face === n) || { views: 0, visitors: 0 };
@@ -418,10 +459,15 @@ async function handleAdminTraffic(req, res, ip) {
       // O'lchov boshlangan payt — panel "bundan oldingi kunlar o'lchanmagan"
       // deb AYTISHI uchun. `null` bo'lsa hali birorta hodisa yo'q.
       since: sinceRes.rows[0].since ? new Date(sinceRes.rows[0].since).toISOString() : null,
+      // Panel KO'RSATADIGAN sana — Toshkent bo'yicha va TAYYOR satr.
+      // Panelda `toISOString()` bilan yasalsa u UTC ga o'tib bir kun orqaga
+      // surilardi (yuqoridagi kunlik qator izohi bilan bitta sabab).
+      sinceDay: sinceRes.rows[0].since_day || null,
       total: sinceRes.rows[0].total,
+      measuredDays: sinceRes.rows[0].measured_days,
 
       daily: dailyRes.rows.map((r) => ({
-        day: r.day instanceof Date ? r.day.toISOString().slice(0, 10) : String(r.day),
+        day: String(r.day),
         views: r.views,
         visitors: r.visitors,
       })),

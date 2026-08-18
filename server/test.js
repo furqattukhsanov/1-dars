@@ -1406,7 +1406,7 @@ function testAssetVersionsAreFresh() {
     // faqat bittasi bo'lgan `app.js`.
     'panel.js': { v: 47, hash: '1165def86832' },
     'admin/admin.css': { v: 18, hash: '15b0bc977b85' },
-    'admin/admin.js': { v: 27, hash: '2d949d600182' },
+    'admin/admin.js': { v: 28, hash: '71572b4688ac' },
     'telegram-app/styles.css': { v: 36, hash: '570a2450c3a4' },
     'telegram-app/app.js': { v: 100, hash: 'c5e4e0fbf5fc' },
     'telegram-app/pwa.js': { v: 6, hash: '798ab85e1cde' },
@@ -5396,6 +5396,38 @@ function testTrafficMeasurement() {
   const adminRoute = kodSofi(fs.readFileSync(path.join(__dirname, 'routes', 'admin.js'), 'utf8'));
   const ht = adminRoute.match(/async function handleAdminTraffic\([\s\S]*?\n\}/);
   assert.ok(ht, 'routes/admin.js da `handleAdminTraffic` topilmadi');
+
+  // ---- 2026-08-18, founder ekranidan topilgan uchta nuqson ----
+  // Uchalasi ham SQL/JS to'g'ri ishlab turib RAQAMNI yolg'on ko'rsatardi,
+  // ya'ni na xato, na qizil test bo'lgan — faqat KO'Z ko'rgan.
+
+  // (a) Kun chegarasi Toshkent bo'yicha. Server UTC da yuradi: `date_trunc`
+  //     kunni 05:00 Toshkentda almashtirsa, tundagi tashrif kechagi kunga
+  //     tushardi va bugungi ustun "kecha" deb yozilardi.
+  const trafficSql = ht[0];
+  assert.ok(/date_trunc\('day', now\(\) AT TIME ZONE 'Asia\/Tashkent'\)/.test(trafficSql),
+    'Trafik kunlik qatori kunni UTC bo\'yicha kesyapti — O\'zbekistondagi "bugun" 05:00 da boshlanardi.');
+
+  // (b) Sana SQL da satrga aylansin. `date` tipini drayver mahalliy yarim
+  //     tunda `Date` qilib beradi va `toISOString()` uni bir kun ORQAGA
+  //     suradi — panelda bugungi 30 ta ko'rish "17.08" deb turgan edi.
+  assert.ok(/to_char\(d, 'YYYY-MM-DD'\) AS day/.test(trafficSql),
+    'Kun yorlig\'i SQL da satrga aylantirilmagan.');
+  assert.ok(!/day: r\.day instanceof Date/.test(trafficSql),
+    '`day` Node tomonda `toISOString()` bilan yasalyapti — sana bir kun orqaga suriladi.');
+
+  // (c) Voronka BITTA oynadan. Ilgari buyurtma 30 kunlik tarixdan, ko'rish
+  //     esa o'lchov boshlangan kundan olinardi: "3 ko'rgan → 23 buyurtma".
+  assert.ok(/GREATEST\(now\(\) - \(\$1::int \* interval '1 day'\),[\s\S]{0,120}min\(at\) FROM traffic_events/.test(trafficSql),
+    'Voronka oynasi o\'lchov boshlangan paytga qisilmagan — buyurtma tarixi ko\'rish bilan solishtirilib, voronka teskari chiqadi.');
+
+  // (d) O'rtacha O'LCHANGAN kunlarga bo'linsin. 30 ga bo'linganda karta
+  //     o'ziga o'zi zid raqam berardi: "kuniga o'rtacha 1 · bugun 15".
+  assert.ok(/measuredDays/.test(adminRoute) && /t\.measuredDays/.test(adminSrc),
+    'O\'rtacha tashrifchi o\'lchangan kunlar soniga bo\'linmayapti.');
+  assert.ok(!/reduce\(\(s, d\) => s \+ d\.visitors, 0\) \/ kunlar\.length/.test(adminSrc),
+    'O\'rtacha hamon oyna kengligiga (`kunlar.length`) bo\'linyapti.');
+
   assert.ok(ht[0].includes('adminPanelAuth(req, res)'),
     '`handleAdminTraffic` panel tokenini tekshirmayapti — trafik statistikasi hammaga ochiq bo\'lardi.');
   assert.ok(!/interval '\$\{/.test(ht[0]) && ht[0].includes('$1::int'),
