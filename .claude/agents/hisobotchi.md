@@ -79,10 +79,19 @@ Batafsil izoh: nuqson NIMA edi, NEGA shunday bo'lgan, NIMA o'zgardi.
 Raqam bo'lsa aniq yoz (masalan "82 -> 86 test").
 ```
 
-⚠️ **`Co-Authored-By` qatorini O'ZING yozma** — muhit uni o'zi qo'shadi.
-Ilgari bu yerda model nomi qotib yozilgan edi va u ESKIRDI: 2026-08-19 da
-agent noto'g'ri nom taklif qildi, commit'da qo'lda to'g'irlashga to'g'ri
-keldi.
+⚠️ **`Co-Authored-By` qatori KERAK, lekin model nomini SHU FAYLDAN olma** —
+uni o'z tizim ko'rsatmangdagi JORIY nomdan ol:
+
+```
+Co-Authored-By: Claude <joriy model nomi> <noreply@anthropic.com>
+```
+
+Ilgari bu yerda nom qotirib yozilgan edi (`Claude Sonnet 4.6`) va u ESKIRDI —
+2026-08-19 da agent noto'g'ri nom taklif qildi. Birinchi tuzatish esa
+«qatorni o'zing yozma, muhit qo'shadi» degan edi va u **noto'g'ri**
+bo'lib chiqdi: o'lchandi — qatorni MUHIT emas, MODELNING O'ZI yozadi,
+ya'ni ko'rsatmaga so'zma-so'z amal qilinganda qator umuman tushmadi.
+Nomni har model o'zi biladi: `681a19f` → Opus 5, `824e254` → Fable 5.
 
 Tiplar: `feat` (yangi funksiya), `fix` (xato), `docs` (hujjat), `style` (dizayn), `refactor`, `chore` (texnik)
 
