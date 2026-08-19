@@ -170,6 +170,96 @@ Platformaning barcha funksiyalarini real foydalanuvchilar bilan sinovdan o'tkazi
 
 ## Qilingan ishlar
 
+- [2026-08-19] **HISOBOTCHI AGENTINING O'Z TA'RIFI YANGILANDI — JARAYON
+  O'ZGARISHI, KOD EMAS. Test soni O'ZGARMADI: 86.**
+
+  O'zgargan yagona ishchi fayl — `.claude/agents/hisobotchi.md`, ya'ni bu
+  hisobotni yozadigan agentning O'Z ko'rsatmasi. Ish `681a19f` dan keyin,
+  o'sha kunning ikkita sessiyasida chiqqan xatolar ustida qilindi.
+
+  **O'LCHANDI (yangi 0-bo'lim talabi bo'yicha, chaqiruvchining da'vosi
+  ko'chirilmadi):** `node server/test.js` mustaqil yurgizildi, `^✅ Test`
+  satrlari sanaldi — **86 PASS, 0 xato**. Chaqiruvchi ham 86 degandi; raqam
+  mos keldi, lekin u SHUNING UCHUN emas, O'LCHANGANI uchun yozilyapti.
+
+  **1. `Co-Authored-By` qatori shablondan OLIB TASHLANDI.** Model nomi
+  ta'rifda QOTIB yozilgan edi va ESKIRDI: bugun agent noto'g'ri nom taklif
+  qildi va commit'da uni qo'lda to'g'irlashga to'g'ri keldi. Endi qatorni
+  muhitning O'ZI qo'shadi. Dars: **vaqt bilan o'zgaradigan qiymat shablonga
+  QOTIRILMASIN** — u eskirganda hech narsa qichqirmaydi, na test qizil
+  bo'ladi, na jurnalda iz qoladi; faqat noto'g'ri natija chiqadi va uni
+  odam qo'lda tuzatadi. Bu `ALERT_CHAT_ID` va `BANNER_VERSION` darslari
+  bilan bitta oila: **jimgina eskirgan qiymat yo'q qiymatdan yomonroq.**
+
+  **2. `git push` endi hisobotchi ishi EMAS.** Ilgari ta'rifda «ha
+  javobidan keyin `git add`, `git commit`, `git push`» deb yozilgandi.
+  Push tashqi dunyoga chiqadi va CI orqali **production deploy'ini ishga
+  tushiradi** — ya'ni u hisobotning davomi emas, **ALOHIDA QAROR**. Endi
+  agent `git commit` gacha boradi, undan nariga emas; push'ni founder
+  o'zi qabul qiladi. (Shu commit ham aynan shunday: commit qilindi,
+  **push QILINMADI**.)
+
+  **3. Yangi 0-bo'lim — «DA'VONI KO'CHIRMA, O'LCHA».** Chaqiruvchi
+  agentning «testlar yashil», «bu qator faylda bor», «migratsiya kerak
+  emas», «yangi qorovul qo'shildi» degan gaplari endi **TEKSHIRILMAGAN
+  DA'VO** deb qaraladi: test YURGIZILADI, fayl OCHIB ko'riladi, sxema
+  tasdiqlanadi, yangi qorovul esa MUTATSIYA bilan buzib sinaladi.
+  Tekshira olinmagan da'vo hisobotda aynan shunday — **«tekshirilmadi»**
+  deb belgilanadi.
+  ⚠️ **Bu qadamlarning hammasi bugungi BIRINCHI sessiyada ALLAQACHON
+  bajarilgan edi** (test mustaqil sanalgan, `style.css` ochib ko'rilgan,
+  4 mutatsiya qilingan) — **lekin ta'rifda yozilmagani uchun TASODIFGA
+  bog'liq edi.** Bir marta qilingan ish hali odat emas: keyingi sessiya
+  boshqa kontekstda ochiladi va o'sha ehtiyotkorlikni takrorlashi
+  kafolatlanmagan.
+
+  **4. Yangi «XAVFSIZLIK QOIDALARI» bo'limi.** `git checkout <fayl>`
+  **TAQIQLANADI**; o'rniga `cp` bilan nusxa olib, nusxadan tiklash
+  ko'rsatildi. `rm -rf` va `git reset --hard` umuman yo'q. Tekshirish
+  uchun kiritilgan HAR QANDAY o'zgarish qaytariladi va oxirida
+  `git status` bilan TASDIQLANADI. Sabab: bugun agent
+  `git checkout index.html` bilan **commit QILINMAGAN** tahrirni
+  (`hidden` olib tashlash + `?v=57`) o'chirib yuborgan — tiklandi, lekin
+  **TASODIFAN**, chunki zaxira nusxa olinmagan edi.
+
+  🔴 **ENG QIMMAT BAND — NEGA AYNAN ENDI.** Bu xato 2026-08-07 dagi
+  Test 17 yozuvida **ALLAQACHON ogohlantirilgan** edi va shunga qaramay
+  takrorlandi. Sabab texnik emas: ogohlantirish **HISOBOTDA** turgan,
+  **AGENT TA'RIFIDA** esa turmagan — agent har chaqirilganda o'z
+  ta'rifini o'qiydi, eski hisobotlarni emas. Ya'ni **dars yozilishi
+  kerak bo'lgan joy — ish bajaruvchining KO'RSATMASI, ish natijasining
+  hisoboti emas.** Bu «yozilgan qoida himoya emas, uni tekshiradigan
+  test himoya» oilasining qo'shnisi: bu yerda testga tushmaydigan narsa
+  (agentning xatti-harakati) bor, shuning uchun u yagona ishlaydigan
+  joyga — ta'rifning O'ZIGA yozildi.
+
+  **YO'L-YO'LAKAY O'LCHANDI — ESKI OGOHLANTIRISH YOPILDI.** Oldingi
+  yozuvda «backend ko'tarilmasa «Eng yangi» ZAXIRA rejimda ishlaydi va
+  buni HECH NARSA ko'rsatmaydi» deb turgandi. Jonli o'lchandi (brauzer
+  UA si bilan, Test 43 darsi bo'yicha): `/api/version` = **681a19f**,
+  `/api/products` da `createdAt` **24/24** mahsulotda BOR. Backend
+  ko'tarilgan, saralash HAQIQIY sanada ishlayapti.
+
+  ⚠️ **RAQAM ANIQLASHTIRILDI:** «14 xil sana» degani 14 xil
+  **TIMESTAMP**; kalendar **KUNI** esa atigi **6 ta** (11 mahsulot bitta
+  kunda — 2026-07-23, qolganlari 07-31, 08-06, 08-07, 08-09, 08-13).
+  Ya'ni saralashda TENG qiymatlar bor va ular orasidagi tartib
+  aniqlanmagan. Bu nuqson EMAS (tenglar orasidagi tartib muhim emas),
+  lekin «14 xil sana» iborasi *kunlar* deb o'qilsa yolg'on bo'lardi —
+  **«hujjatdagi raqam = tekshirilmagan da'vo»** qoidasining kichik,
+  lekin aniq namunasi.
+
+  **Kesh:** `panel.js` 48 → **49** (Test 16 jadvali birga:
+  `3223b5679c9b` → `4a2fde98ff09`). ⚠️ `loyiha-panel.html` prozasida
+  `panel.js?v=` satri **yana oltita** joyda uchraydi (v=13…v=20) va
+  ular TARIX — global almashtirish panelni jimgina soxtalashtirardi;
+  shuning uchun faqat 1155-qatordagi HAQIQIY `<script src>` o'zgartirildi
+  va qolgan oltitasi o'zgarmagani TEKSHIRILDI.
+
+  **DEPLOY:** faqat STATIK (`panel.js`, `loyiha-panel.html`) — backend
+  TEGILMADI, migratsiya YO'Q. 🔴 **PUSH QILINMADI** — founder qaroriga
+  qoldirildi. 🔴 Founder panelni hali ko'z bilan ko'rmagan.
+
 - [2026-08-19] **UCHTA QOROVUL QARZI YOPILDI (Test 44, 45, 46) VA QOROVULNING
   O'ZIDAGI LATENT NUQSON TUZATILDI. 82 → 86 test.**
 
@@ -917,6 +1007,53 @@ Platformaning barcha funksiyalarini real foydalanuvchilar bilan sinovdan o'tkazi
 ---
 
 ## Qarorlar
+
+- [2026-08-19] Qaror: **mutatsiya QO'LLANGANINI tasdiqlamasdan uning
+  natijasiga ishonilmaydi.** Bugun Test 16 ni sinash uchun qilingan
+  ikkinchi mutatsiya (`?v=49` → `?v=50`) **umuman tegmadi**: hisobot
+  yozuvi qo'shilgach `loyiha-panel.html` da qatorlar 13 taga surilgan va
+  qattiq yozilgan qator raqami endi boshqa qatorni ko'rsatardi. Test
+  YASHIL qoldi va bu «qorovul ko'r» degan **NOTO'G'RI xulosaga** olib
+  kelayotgandi — aslida qorovul sog'lom, tekshiruvning O'ZI bo'sh
+  ketgandi. Endi mutatsiya qatorni RAQAM bilan emas, MAZMUN bilan topadi
+  va o'zgarish sodir bo'lganini `assert` qiladi (o'zgarmasa — to'xtaydi).
+  ⚠️ **Yashil test ikki xil ma'noda bo'ladi: «nuqson yo'q» va «men
+  hech narsani sinamadim»** — ikkinchisi birinchisiga o'xshab ko'rinadi.
+  Bu `tekshiruv-xatolari` darsining aynan takrori: «tekshirdim» ≠
+  «to'g'ri narsani tekshirdim». Qayta o'lchandi: mutatsiya mazmun bo'yicha
+  qo'llangach Test 16 **QIZIL** bo'ldi, ya'ni qorovul tirik
+
+- [2026-08-19] Qaror: **`git push` — hisobotchining ishi EMAS.** Agent
+  `git add` va `git commit` gacha boradi, push'ni founder o'zi bajaradi.
+  Sabab: push tashqi dunyoga chiqadi va CI orqali **production deploy'ini**
+  ishga tushiradi, ya'ni u hisobotning texnik davomi emas, ALOHIDA QAROR.
+  Bir xil tugma ostida ikki xil og'irlikdagi amal turmasin: commit'ni
+  qaytarish arzon, production'ga chiqqan kodni qaytarish qimmat
+
+- [2026-08-19] Qaror: **dars ISH BAJARUVCHINING KO'RSATMASIGA yoziladi,
+  ish natijasining hisobotiga emas.** `git checkout` xatosi 2026-08-07
+  dagi Test 17 yozuvida allaqachon ogohlantirilgan edi va shunga qaramay
+  2026-08-19 da takrorlandi — chunki ogohlantirish HISOBOTDA turgan,
+  AGENT TA'RIFIDA esa turmagan. Agent har chaqirilganda o'z ta'rifini
+  o'qiydi, eski sprint yozuvlarini emas. Dars: **hujjatning to'g'ri
+  bo'lishi yetarli emas, u O'QILADIGAN joyda turishi ham kerak** —
+  «yozilgan qoida himoya emas» oilasining qo'shnisi
+
+- [2026-08-19] Qaror: **agent xatti-harakati testga tushmaydi, shuning
+  uchun u TA'RIFDA qulflanadi.** «Da'voni o'lcha», «`git checkout`
+  ishlatma», «o'zgarishni qaytar» — bularning hech biri `test.js` bilan
+  qo'riqlanmaydi (test kodni o'qiydi, agentni emas). Bu prompt matni va
+  «mavjud yo'lni sana» bandlari bilan bitta oilada: **test yozib
+  bo'lmaydigan joyda qadam QO'LDA bajariladi va ta'rifga yoziladi.**
+  Shuning uchun bu qoidalar uchun qorovul test QO'SHILMADI va bu
+  kamchilik emas, TANLOV
+
+- [2026-08-19] Qaror: **vaqt bilan eskiradigan qiymat shablonga
+  QOTIRILMAYDI.** `Co-Authored-By` dagi model nomi ta'rifda qotib
+  yozilgan edi va eskirganda hech narsa qichqirmadi — na test qizil
+  bo'ldi, na jurnalda iz qoldi; nuqson faqat odam ko'rgach tuzatildi.
+  Bunday qiymat yo muhitdan olinadi, yo umuman yozilmaydi.
+  `ALERT_CHAT_ID` va `BANNER_VERSION` darslari bilan bitta oila
 
 - [2026-08-19] Qaror: **qorovul QOIDANI NUSXALAMAYDI — manbadagi funksiyani
   CHAQIRADI.** Test 46 deep-link prefiksini o'zi tekshirmaydi, serverning

@@ -1404,7 +1404,7 @@ function testAssetVersionsAreFresh() {
     // YUQORIGA suriladi: teng raqam qaytib kelgan foydalanuvchida keshdagi
     // BIR TOMONLAMA faylni qoldirardi — sevimlilar yoki chiqish tuzatishining
     // faqat bittasi bo'lgan `app.js`.
-    'panel.js': { v: 48, hash: '3223b5679c9b' },
+    'panel.js': { v: 49, hash: '4a2fde98ff09' },
     'admin/admin.css': { v: 19, hash: 'cb8d6c43473d' },
     'admin/admin.js': { v: 30, hash: '23c3705db020' },
     'telegram-app/styles.css': { v: 36, hash: '570a2450c3a4' },
