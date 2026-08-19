@@ -516,15 +516,20 @@ async function handleAdminCfTraffic(req, res, ip) {
   const xom = parseInt(new URL(req.url, 'http://x').searchParams.get('days'), 10);
   const days = Number.isInteger(xom) ? Math.min(90, Math.max(7, xom)) : 30;
 
+  // ⚠️ `ok()` ishlatiladi, `sendJson` EMAS: bu fayl `sendJson` ni import
+  // qilmaydi (u `lib/http` ichida qoladi va tashqariga `ok`/`fail` orqali
+  // chiqadi). 2026-08-19 da aynan shu production'da yiqilgan —
+  // `sendJson is not defined`. Testlar yashil edi, chunki ular MODULNI
+  // sinardi, ENDPOINTNI emas; nuqsonni alert tomi ko'rsatdi.
   if (cfKesh && cfKesh.days === days && Date.now() - cfKesh.vaqt < CF_KESH_MS) {
-    return sendJson(res, 200, { ok: true, data: cfKesh.data });
+    return ok(res, cfKesh.data);
   }
 
   const data = await cfTraffic(days);
   // ⚠️ Xato KESHLANMAYDI — aks holda bir marta yiqilgan so'rov 10 daqiqa
   // «xato» qaytarib turardi va tuzatilgani ko'rinmasdi.
   if (!data.xato) cfKesh = { vaqt: Date.now(), days, data };
-  sendJson(res, 200, { ok: true, data });
+  ok(res, data);
 }
 
 // ============ ADMIN AMALLARI: panel so'raydi → Telegram tasdiqlaydi ============

@@ -6077,6 +6077,113 @@ async function testCloudflareAnalyticsHonesty() {
   console.log('✅ Test 48: Cloudflare bloki halol — PASS (5 xatti-harakat, 4 band)');
 }
 
+/* ── Test 49: Endpoint HAQIQATAN javob bersin ─────────────────────────────
+   🔴 2026-08-19 da production'da yiqilgan: `/api/admin/cf-traffic` ichida
+   `sendJson(...)` chaqirilgan, lekin `routes/admin.js` uni IMPORT
+   QILMAYDI (u `lib/http` ichida qoladi va tashqariga `ok`/`fail` orqali
+   chiqadi). Natija — `sendJson is not defined`, har so'rov 500.
+
+   ⚠️ 87 TEST BUNI O'TKAZIB YUBORDI va sabab muhim: Test 48 `cfTraffic`
+   MODULINI sinardi, ENDPOINTNI emas. Modul benuqson edi, uni chaqiradigan
+   qavat esa yiqilardi. `node --check` ham ushlamaydi — sintaksis to'g'ri,
+   nuqson faqat ISHGA TUSHGANDA chiqadi.
+
+   Shuning uchun bu yerda handler HAQIQATAN chaqiriladi: soxta `req`/`res`
+   bilan, to'g'ri token bilan, `fetch` esa almashtirilgan. Ya'ni tekshiruv
+   "kod bormi" emas, "ISHLAYDIMI". */
+async function testAdminEndpointsActuallyRespond() {
+  const fs = require('fs');
+  const path = require('path');
+
+  // ── 1-band: STATIK — `lib/http` funksiyasi import qilinmasdan
+  //    ishlatilmasin. Arzon va butun `routes/` oilasini qamraydi.
+  const dir = path.join(__dirname, 'routes');
+  const yomon = [];
+  let tekshirilgan = 0;
+
+  for (const f of fs.readdirSync(dir).filter((x) => x.endsWith('.js'))) {
+    const src = jsSofi(fs.readFileSync(path.join(dir, f), 'utf8'));
+    // Faylning `lib/http` dan nimani olgani
+    const imp = src.match(/require\('\.\.\/lib\/http'\)/) ? src.slice(0, src.indexOf("require('../lib/http')")) : '';
+    const olingan = new Set();
+    const m = imp.match(/const\s*\{([^}]*)\}\s*=\s*$/);
+    if (m) for (const nom of m[1].split(',')) olingan.add(nom.trim().split(':')[0].trim());
+
+    for (const nom of ['sendJson', 'ok', 'fail', 'readBody', 'cors', 'rateLimited']) {
+      if (!new RegExp(`(?<![.\\w])${nom}\\s*\\(`).test(src)) continue;   // ishlatilmagan
+      tekshirilgan++;
+      // O'z faylida e'lon qilingan bo'lsa ham to'g'ri.
+      const ozida = new RegExp(`(?:async\\s+)?function\\s+${nom}\\s*\\(|(?:const|let)\\s+${nom}\\s*=`).test(src);
+      if (!olingan.has(nom) && !ozida) {
+        yomon.push(`routes/${f}: \`${nom}(\` ishlatilgan, lekin import ham, e'lon ham yo'q`);
+      }
+    }
+  }
+
+  assert.ok(tekshirilgan >= 10, `http yordamchilari topilmadi (${tekshirilgan}) — qidiruv naqshi eskirgan`);
+  assert.deepStrictEqual(yomon, [],
+    'Marshrut fayli mavjud bo\'lmagan funksiyani chaqiryapti. Sintaksis to\'g\'ri, '
+    + '`node --check` jim — nuqson faqat SO\'ROV kelganda chiqadi va butun endpoint '
+    + '500 qaytaradi (2026-08-19, `sendJson is not defined`):\n  ' + yomon.join('\n  '));
+
+  // ── 2-band: XATTI-HARAKAT — handler chaqiriladi va JAVOB BERADI ──
+  // ⚠️ Panel tokeni test muhitida yo'q, ya'ni to'liq yo'l 401 da to'xtardi
+  // va aynan yiqiladigan qism SINALMAY qolardi. Soxta token o'rnatiladi va
+  // ZANJIR qayta yuklanadi: `config` → `lib/auth` (token shu yerda o'qiladi)
+  // → `routes/admin`. Faqat `config` ni yangilash YETMAYDI — `lib/auth`
+  // o'z nusxasini ushlab turardi.
+  process.env.ADMIN_PANEL_TOKEN = 'sinov-panel-tokeni-32-belgidan-uzun';
+  for (const mod of ['./config', './lib/auth', './routes/admin']) {
+    delete require.cache[require.resolve(mod)];
+  }
+  const { handleAdminCfTraffic } = require('./routes/admin');
+
+  // Soxta `res`: yozilgan holat va tanani ushlaydi.
+  const soxtaRes = () => {
+    const r = { kod: null, tana: null, sarlavha: {} };
+    r.writeHead = (k, h) => { r.kod = k; Object.assign(r.sarlavha, h || {}); return r; };
+    r.setHeader = (k, v) => { r.sarlavha[k] = v; };
+    r.end = (t) => { r.tana = t; };
+    return r;
+  };
+  const soxtaReq = (token) => ({
+    url: '/api/admin/cf-traffic?days=30',
+    method: 'GET',
+    headers: token ? { 'x-admin-token': token } : {},
+  });
+
+  // (a) TOKENSIZ — 401, va bu ham `fail()` orqali ketadi (u ham import bo'lishi kerak)
+  let res = soxtaRes();
+  await handleAdminCfTraffic(soxtaReq(null), res, '10.0.0.1');
+  assert.strictEqual(res.kod, 401, 'tokensiz so\'rov 401 bermadi');
+
+  // (b) TOKEN BILAN — to'liq yo'l yuriladi va JSON javob qaytadi.
+  //     Aynan shu yo'lda `sendJson is not defined` yiqilardi.
+  const { ADMIN_PANEL_TOKEN } = require('./config');
+  assert.ok(ADMIN_PANEL_TOKEN, 'test muhitida `ADMIN_PANEL_TOKEN` yo\'q — sinov o\'tkazib yuborilardi');
+
+  const aslFetch = global.fetch;
+  global.fetch = async () => ({
+    ok: true, status: 200,
+    json: async () => ({
+      data: { viewer: { accounts: [{ kunlik: [], davlat: [], sahifa: [], manba: [] }] } },
+      errors: null,
+    }),
+  });
+  try {
+    res = soxtaRes();
+    await handleAdminCfTraffic(soxtaReq(ADMIN_PANEL_TOKEN), res, '10.0.0.2');
+    assert.strictEqual(res.kod, 200, 'token bilan 200 qaytmadi');
+    const j = JSON.parse(res.tana);
+    assert.strictEqual(j.ok, true, 'javob `{ ok: true, ... }` shaklida emas — panel `api()` shu shaklni kutadi');
+    assert.ok(j.data, 'javobda `data` yo\'q');
+  } finally {
+    global.fetch = aslFetch;
+  }
+
+  console.log(`✅ Test 49: Admin endpointi haqiqatan javob beradi — PASS (${tekshirilgan} yordamchi, 2 chaqiruv)`);
+}
+
 async function runTests() {
   console.log('\n🧪 LolaMarket Server Testlari\n');
 
@@ -6171,6 +6278,7 @@ async function runTests() {
     testDeepLinkTagsPassServer();
     testNewestSortUsesRealDate();
     await testCloudflareAnalyticsHonesty();
+    await testAdminEndpointsActuallyRespond();
 
     console.log('\n✅ Hammasi PASS — pul hisobi, imzo, route jadvali, xato alerti, buyurtma tarixi va AI rasmi joyida\n');
     process.exit(0);
