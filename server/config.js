@@ -502,6 +502,46 @@ function cfZone(raw) {
   }
   return v;
 }
+// ============ CLOUDFLARE WEB ANALYTICS (2026-08-19) ============
+// Panelga «tashrif» raqamlarini olib keladi. ⚠️ Bu bizning `traffic_events`
+// ni ALMASHTIRMAYDI — u boshqa savolga javob beradi (CLAUDE.md): Cloudflare
+// necha kishi kelganini biladi, biz esa QAYSI MATO ko'rilganini. Ikkalasi
+// panelda YONMA-YON qo'yilmaydi — mos kelmagan ikki raqam «biri buzuq»
+// degan yolg'on xulosa beradi.
+//
+// ⚠️ Token PURGE tokenidan ALOHIDA: purge uchun `Zone.Cache Purge`, bu yerda
+// `Account Analytics: Read` kerak. Bitta tokenga ikkalasini yig'ish mumkin
+// edi, lekin alohida bo'lgani yaxshiroq — biri o'g'irlansa ikkinchisi
+// o'z ishini davom ettiradi va ruxsat doirasi tor qoladi.
+//
+// ⚠️ IXTIYORIY, `process.exit` QILINMAYDI (R2/AI/karta naqshi): sozlanmagan
+// bo'lsa panel Cloudflare blokini UMUMAN chizmaydi — nol ko'rsatmaydi.
+const CF_ANALYTICS_TOKEN = cfToken(process.env.CF_ANALYTICS_TOKEN);
+
+// Account va sayt belgisi — ikkalasi ham 32 ta hex. `cfZone` AYNI shaklni
+// tekshiradi, shuning uchun qayta ishlatiladi (ikkinchi nusxa yozilmaydi).
+const CF_ACCOUNT_ID = cfZone(process.env.CF_ACCOUNT_ID);
+
+// 🔴 `CF_SITE_TAG` — beacon skriptidagi `token` EMAS. 2026-08-19 da o'lchandi:
+// sahifadagi `data-cf-beacon` da `6acaeab5…` turadi, GraphQL esa `0d0ad786…`
+// ni kutadi. Beacon qiymati bilan so'ralganda javob XATOSIZ, lekin BO'SH
+// keladi — ya'ni panel «hech kim kelmadi» deb turardi. Bizning eng qimmat
+// xato turimiz: raqam yo'q emas, YOLG'ON. To'g'ri qiymat GraphQL javobidagi
+// `siteTag` o'lchovidan olinadi.
+const CF_SITE_TAG = cfZone(process.env.CF_SITE_TAG);
+
+const CF_ANALYTICS_ENABLED = !!(CF_ANALYTICS_TOKEN && CF_ACCOUNT_ID && CF_SITE_TAG);
+
+// Qisman to'ldirilgan holat — purge va R2 dagi bilan AYNI qorovul.
+{
+  const berilgan = ['CF_ANALYTICS_TOKEN', 'CF_ACCOUNT_ID', 'CF_SITE_TAG']
+    .filter((n) => String(process.env[n] || '').trim() !== '').length;
+  if (berilgan > 0 && !CF_ANALYTICS_ENABLED) {
+    console.error('Cloudflare analitika sozlamasi to\'liq emas — panelda blok chizilmaydi:',
+      `yaroqli=${[CF_ANALYTICS_TOKEN, CF_ACCOUNT_ID, CF_SITE_TAG].filter(Boolean).length}/3 (.env da ${berilgan} ta yozilgan)`);
+  }
+}
+
 const CF_API_TOKEN = cfToken(process.env.CF_API_TOKEN);
 const CF_ZONE_ID = cfZone(process.env.CF_ZONE_ID);
 const CF_PURGE_ENABLED = !!(CF_API_TOKEN && CF_ZONE_ID);
@@ -591,6 +631,7 @@ module.exports = {
   AI_CREDITS_START, AI_CREDIT_COST, AI_UNLIMITED_TG_IDS,
   AI_IMAGE_MODEL, AI_IMAGE_CHAT_ID, AI_IMAGE_ENABLED, AI_IMAGE_EFFECT_ID,
   CF_API_TOKEN, CF_ZONE_ID, CF_PURGE_ENABLED,
+  CF_ANALYTICS_TOKEN, CF_ACCOUNT_ID, CF_SITE_TAG, CF_ANALYTICS_ENABLED,
   R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET,
   R2_ENABLED, R2_ENDPOINT, R2_PUBLIC_BASE,
   YANDEX_MAPS_KEY, MAPS_ENABLED,

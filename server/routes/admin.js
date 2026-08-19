@@ -1,5 +1,6 @@
 const { ADMIN_CHAT_ID, ADMIN_TG_IDS, COMMISSION_RATE } = require('../config');
 const { pool } = require('../db');
+const { cfTraffic } = require('../lib/cf-analytics');
 const { adminPanelAuth, isAdmin } = require('../lib/auth');
 const { escapeHtml, money, dateLabel } = require('../lib/format');
 const { validate, ClientError } = require('../lib/validate');
@@ -491,6 +492,39 @@ async function handleAdminTraffic(req, res, ip) {
     console.error('adminTraffic xatosi:', e.message);
     fail(res, 'server error', 500);
   }
+}
+
+// ============ /api/admin/cf-traffic — CLOUDFLARE TRAFIGI (2026-08-19) ============
+// Manba — Cloudflare Web Analytics (`lib/cf-analytics.js`). Yuqoridagi
+// `/api/admin/traffic` ni ALMASHTIRMAYDI va u bilan SOLISHTIRILMAYDI:
+// bizniki qaysi MATO ko'rilganini biladi (aniq), bu esa necha KISHI
+// kelganini (taxminiy).
+//
+// ⚠️ Alohida endpoint ATAYLAB: bitta javobga qo'shilsa Cloudflare yiqilgan
+// kuni butun trafik sahifasi qulardi. Endi har biri o'z holicha yiqiladi va
+// panel qaysi manba yo'qligini AYTADI.
+//
+// ⚠️ Javob 10 daqiqa KESHLANADI: Cloudflare so'rovi sekin va panel har
+// ochilganda chaqiriladi. Kesh xotirada — restart'da bo'shaydi, bu yetarli.
+let cfKesh = null;   // { vaqt, days, data }
+const CF_KESH_MS = 10 * 60 * 1000;
+
+async function handleAdminCfTraffic(req, res, ip) {
+  if (rateLimited(`admincftraffic:${ip}`, 20)) return fail(res, 'too many requests', 429);
+  if (!adminPanelAuth(req, res)) return;
+
+  const xom = parseInt(new URL(req.url, 'http://x').searchParams.get('days'), 10);
+  const days = Number.isInteger(xom) ? Math.min(90, Math.max(7, xom)) : 30;
+
+  if (cfKesh && cfKesh.days === days && Date.now() - cfKesh.vaqt < CF_KESH_MS) {
+    return sendJson(res, 200, { ok: true, data: cfKesh.data });
+  }
+
+  const data = await cfTraffic(days);
+  // ⚠️ Xato KESHLANMAYDI — aks holda bir marta yiqilgan so'rov 10 daqiqa
+  // «xato» qaytarib turardi va tuzatilgani ko'rinmasdi.
+  if (!data.xato) cfKesh = { vaqt: Date.now(), days, data };
+  sendJson(res, 200, { ok: true, data });
 }
 
 // ============ ADMIN AMALLARI: panel so'raydi → Telegram tasdiqlaydi ============
@@ -1029,6 +1063,6 @@ async function handleAdminActionCallback(cq) {
 }
 
 module.exports = {
-  handleAdminSummary, handleAdminTraffic,
+  handleAdminSummary, handleAdminTraffic, handleAdminCfTraffic,
   handleAdminActionRequest, handleAdminActionStatus, handleAdminActionCallback,
 };

@@ -11,7 +11,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@24,600..800&family=Hanken+Grotesk:wght@400..700&family=Geist+Mono:wght@600..700&display=swap" rel="stylesheet">
 
   <link rel="stylesheet" href="../style.css?v=64" />
-  <link rel="stylesheet" href="admin.css?v=19" />
+  <link rel="stylesheet" href="admin.css?v=20" />
 </head>
 <body>
 
@@ -569,6 +569,70 @@
               shuning uchun ikki raqam bir xil chiqmaydi va solishtirilmasin.
             </div>
           </div>
+
+          <!-- ═══ CLOUDFLARE — ALOHIDA BLOK (2026-08-19) ═══
+               ⚠️ Yuqoridagi `trafficBody` DAN TASHQARIDA turadi va o'z
+               holicha ko'rinadi: bizning o'lchov bo'sh bo'lsa ham Cloudflare
+               ma'lumoti chiziladi (ular boshqa manba, biri ikkinchisiga
+               bog'liq emas).
+               ⚠️ Raqamlar YONMA-YON QO'YILMAYDI (CLAUDE.md) — shuning uchun
+               alohida sarlavha va o'z ogohlantirishi bor. -->
+          <div class="cf-sep">
+            <h2 class="cf-title">Cloudflare — butun sayt bo'yicha</h2>
+            <div class="cf-sub">Boshqa manba, boshqa savol: «necha kishi keldi». Yuqoridagi raqamlar bilan solishtirilmaydi.</div>
+          </div>
+
+          <div id="cfEmpty" class="sample-note">
+            Cloudflare ma'lumoti hali olinmadi.
+          </div>
+
+          <div id="cfBody" hidden>
+            <div class="stats-grid stats-grid-3">
+              <div class="stat-card glass tone-pom">
+                <div class="stat-number" id="cfViews">–</div>
+                <div class="stat-label">Sahifa ko'rishlari</div>
+                <div class="stat-foot" id="cfViewsFoot">–</div>
+              </div>
+              <div class="stat-card glass">
+                <div class="stat-number" id="cfVisits">–</div>
+                <div class="stat-label">Tashriflar</div>
+                <div class="stat-foot" id="cfVisitsFoot">–</div>
+              </div>
+              <div class="stat-card glass">
+                <div class="stat-number" id="cfBest">–</div>
+                <div class="stat-label">Eng gavjum kun</div>
+                <div class="stat-foot" id="cfBestFoot">–</div>
+              </div>
+            </div>
+
+            <div class="dash-grid dash-grid-even">
+              <div class="panel glass">
+                <div class="panel-head"><div class="panel-title">Sahifalar</div></div>
+                <div class="cat-list" id="cfPaths"></div>
+              </div>
+              <div class="panel glass">
+                <div class="panel-head"><div class="panel-title">Qayerdan kelishgan</div></div>
+                <div class="cat-list" id="cfRefs"></div>
+              </div>
+            </div>
+
+            <div class="panel glass">
+              <div class="panel-head"><div class="panel-title">Davlatlar</div></div>
+              <div class="cat-list" id="cfCountries"></div>
+            </div>
+
+            <div class="sample-note" id="cfNote">
+              🔴 <b>Raqamlar taxminiy.</b> Cloudflare bepul tarifda tashriflarning bir
+              qismini oladi va koeffitsiyentga ko'paytiradi — shuning uchun qiymatlar
+              o'nlab yaxlitlangan ko'rinadi. Aniq son emas, DARAJA sifatida o'qing.
+              ⚠️ <b>Admin panel tashriflari hisobga olinmaydi</b> (founder qarori
+              2026-08-19): o'lchandi — 29 kunda 1700 ko'rishning 310 tasi
+              <code>/admin/</code> va <code>/loyiha-panel.html</code> edi, ya'ni 18%
+              o'zimizniki.
+              ⚠️ Sayt va Mini App <b>bitta belgi</b> ostida yuradi, ular faqat
+              sahifa yo'li bo'yicha ajraladi (<code>/mini-app/</code>).
+            </div>
+          </div>
         </section>
 
         <!-- ═══ Reja/Fakt page ═══ -->
@@ -659,6 +723,6 @@
     </div>
   </div>
 
-  <script src="admin.js?v=30"></script>
+  <script src="admin.js?v=31"></script>
 </body>
 </html>

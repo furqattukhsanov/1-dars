@@ -15,6 +15,7 @@ const {
 const {
   handleAdminSummary, handleAdminActionRequest, handleAdminActionStatus,
   handleAdminTraffic,
+  handleAdminCfTraffic,
 } = require('./routes/admin');
 const { handleTrack } = require('./routes/track');
 const {
@@ -150,6 +151,16 @@ function routeRequest(req, res) {
     if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
     if (req.method !== 'GET') return fail(res, 'method not allowed', 405);
     return handleAdminTraffic(req, res, ip);
+  }
+
+  // Cloudflare Web Analytics — ALOHIDA yo'l (2026-08-19). Yuqoridagi bilan
+  // bitta javobga qo'shilmadi: Cloudflare yiqilgan kuni butun trafik
+  // sahifasi qulamasin, panel qaysi manba yo'qligini AYTSIN.
+  if (path === '/api/admin/cf-traffic') {
+    cors(res, 'GET, OPTIONS');
+    if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
+    if (req.method !== 'GET') return fail(res, 'method not allowed', 405);
+    return handleAdminCfTraffic(req, res, ip);
   }
 
   // Paneldan so'ralgan yozuv amali — Telegram'da tasdiqlanadi

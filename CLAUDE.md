@@ -5,6 +5,21 @@
 - **Har git commit'dan oldin majburiy `hisobotchi` agentini ishga tushir.**
 - **Barcha commit xabarlari o'zbek tilida bo'lsin.**
 - Commit format: `tip: tavsif` (feat / fix / docs / style / refactor / chore)
+- **`git push` ni AGENT bajarmaydi** (2026-08-19). `hisobotchi` faqat
+  `git add` + `git commit` gacha boradi; push esa CI orqali **production
+  deploy'ini ishga tushiradi**, ya'ni alohida qaror va u founder'da qoladi.
+  ⚠️ Bu «ehtiyot chorasi» emas, MEXANIZM farqi: commit lokal va qaytariladi,
+  push esa tashqi dunyoga chiqadi va statik fayllar o'sha zahoti saytga
+  tushadi. Qoida `hisobotchi` ta'rifida ham yozilgan — ikkalasi birga
+  turishi shart, chunki ta'rif faqat agentga ko'rinadi, CLAUDE.md esa
+  har bir sessiyaga.
+- **Commit xabaridagi `Co-Authored-By` qatoriga model nomi QO'LDA
+  yozilmasin** (2026-08-19 da o'lchandi). Har model o'z joriy nomini
+  tizim ko'rsatmasidan biladi (`681a19f` → Opus 5, `824e254` → Fable 5).
+  Nom biror faylga qotirilsa u ESKIRADI va noto'g'ri muallif yozilib
+  qoladi — `hisobotchi` ta'rifida aynan shunday bo'lgan. ⚠️ Teskari
+  xato ham qilingan: «qatorni umuman yozma» degan tuzatish qatorni
+  BUTUNLAY yo'qotdi. Qator KERAK, faqat nomi joriy manbadan olinadi.
 
 ## Arxitektura qoidalari
 

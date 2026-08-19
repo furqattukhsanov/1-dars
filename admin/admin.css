@@ -1512,3 +1512,33 @@ body { min-height: 100vh; padding-bottom: 0; }
   font-variant-numeric: tabular-nums;
 }
 .tr-xaxis span { flex: 1 1 0; text-align: center; min-width: 0; }
+
+/* ─── Cloudflare bloki (2026-08-19) ───
+   ⚠️ Ajratuvchi VAZIFASI bor, bezak emas: bu blok BOSHQA MANBADAN keladi
+   va yuqoridagi raqamlar bilan solishtirilmasligi kerak (CLAUDE.md).
+   Ko'z uni alohida bo'lim deb o'qishi shart, aks holda ikki xil o'lchov
+   bitta jadval bo'lib ko'rinardi. */
+.cf-sep {
+  margin: 34px 0 14px;
+  padding-top: 22px;
+  border-top: 1px solid var(--line, rgba(23, 26, 48, .1));
+}
+.cf-title {
+  margin: 0;
+  font-family: var(--font-display, inherit);
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: -.02em;
+  color: var(--ink-1, #171a30);
+}
+.cf-sub {
+  margin-top: 4px;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--ink-3, #6b7280);
+}
+
+/* ⚠️ `#cfBody` ga `display` ATAYLAB berilmagan. Berilsa `hidden` atributi
+   uni yashira olmasdi — brauzerning `[hidden]` qoidasi muallif qoidasidan
+   KUCHSIZ (CLAUDE.md, 2026-08-17 da narx paneli aynan shundan production'da
+   hech qachon yopilmagan edi). Blok oddiy oqimda qoladi. */

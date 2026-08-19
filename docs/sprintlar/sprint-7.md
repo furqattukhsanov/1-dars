@@ -41,6 +41,76 @@ Founder sifatida platformani to'liq nazorat qilish: ishlab chiqaruvchilarni tasd
 
 ## Qilingan ishlar
 
+- [2026-08-19] **Cloudflare Web Analytics panelga ULANDI — bir yildan beri
+  yig'ilib yotgan raqamlar birinchi marta KO'RILDI** (yangi
+  `server/lib/cf-analytics.js`, `GET /api/admin/cf-traffic`, panelda alohida
+  blok; kesh `admin.js?v=31`, `admin.css?v=20`). Bu 2026-08-18 yozuvida
+  ATAYLAB ochiq qoldirilgan bandning yopilishi: o'shanda beacon'ning
+  **2026-08-02 dan beri ishlab turgani** aniqlangan, lekin ma'lumotning O'ZI
+  hech qachon ochilmagan edi. Bugun founder `Account Analytics: Read`
+  tokenini yasadi va manba ochildi. **Birinchi o'lchov:** 29 kunda ~1700
+  sahifa ko'rishi, ~1520 tashrif, eng gavjum kun 13-avgust (~270).
+
+  🔴 **ENG QIMMAT TOPILMA — `siteTag` beacon tokeni EMAS.** Sahifadagi
+  `data-cf-beacon` da `6acaeab5…` turadi (2026-08-18 da aynan shu qiymat
+  o'lchab yozilgan), GraphQL esa `0d0ad786…` ni kutadi. **Beacon qiymati
+  bilan so'ralganda javob XATOSIZ va BO'SH keladi** — HTTP 200, `errors`
+  yo'q, `data` bor, ichi bo'sh. Ya'ni panel «hech kim kelmadi» deb
+  turardi. Bu bizning eng qimmat xato turimiz: raqam yo'q emas, YOLG'ON
+  (`ALERT_CHAT_ID`, `NULL` reyting va tarix darslari bilan bitta oila).
+  To'g'ri qiymat GraphQL javobining O'ZIDAN o'lchab olindi, hujjatdan emas.
+
+  ⚠️ **Admin panel tashriflari HISOBGA OLINMAYDI** (founder qarori, pastda).
+  O'lchandi: 1700 ko'rishning **310 tasi** `/admin/` va `/loyiha-panel.html`
+  edi — ya'ni **18%** o'zimizniki. Filtr **GraphQL TOMONIDA** qo'llanadi
+  (`requestPath_notlike`), serverda emas: serverda kesilsa kunlik yig'indi
+  baribir admin tashriflarini o'z ichiga olardi va «tozalangan» raqam
+  aslida tozalanmagan bo'lardi. Filtr ishlagani o'lchandi: **1700 → 1390**.
+
+  ⚠️ **Raqamlar NAMUNAVIY va panel buni AYTADI.** O'lchandi: qaytgan
+  qiymatlarning HAMMASI 10 ga bo'linadi (10, 20, 60, 270…) — Cloudflare
+  bepul tarifda tashriflarning bir qismini olib koeffitsiyentga
+  ko'paytiradi. Panelda «aniq son emas, DARAJA sifatida o'qing» deb
+  yozilgan.
+
+  ⚠️ **Ikki manba YONMA-YON QO'YILMADI** (CLAUDE.md, 2026-08-18 qarori):
+  Cloudflare bloki `trafficBody` DAN TASHQARIDA, o'z sarlavhasi va o'z
+  ogohlantirishi bilan turadi. Endpoint ham ALOHIDA — bitta javobga
+  qo'shilsa Cloudflare yiqilgan kuni butun Trafik sahifasi qulardi; endi
+  har biri o'z holicha yiqiladi va panel qaysi manba yo'qligini AYTADI.
+  Chizuvchi ham o'z `try` sida (2026-08-18 «chizuvchi tartibi» darsi).
+
+  ⚠️ Javob 10 daqiqa keshlanadi, lekin **xato KESHLANMAYDI** — aks holda
+  bir marta yiqilgan so'rov 10 daqiqa «xato» qaytarib turardi va
+  tuzatilgani ko'rinmasdi. Sozlama IXTIYORIY: to'liq bo'lmasa blok
+  UMUMAN chizilmaydi (nol ko'rsatilmaydi) va `process.exit` qilinmaydi
+  (R2/AI/karta naqshi). Qisman to'ldirilgan `.env` jurnalda qichqiradi.
+
+  **Qorovul: Test 48** — MATN emas, XATTI-HARAKAT sinovi: `fetch`
+  almashtirilib 5 xil javob shakli yurgiziladi (GraphQL `errors` + qisman
+  `data`, bo'sh natija, haqiqiy ma'lumot, HTTP xatosi, tarmoq uzilishi).
+  Testlar **86 → 87**.
+
+  🟠 **OCHIQ QARZ — QOROVULDA TESHIK BOR (hisobotchi o'lchadi, 2026-08-19).**
+  Test 48 ning 1-bandi admin filtrini **matn bo'yicha** tekshiradi
+  (`requestPath_notlike` va `/admin%` manba faylda bormi). Mutatsiya bilan
+  sinaldi: `umumiy` satridan `AND: [${notlike}]` olib tashlanganda —
+  ya'ni filtr GraphQL so'roviga UMUMAN bormaganda — `ICHKI_YOLLAR` va
+  `notlike` quruvchisi faylda QOLGANI uchun **butun to'plam YASHIL
+  qoldi**. Chiquvchi so'rov tanasi bilan tasdiqlandi:
+  `requestPath_notlike` → yo'q, `/admin%` → yo'q. Ya'ni founder qarori
+  jimgina buzilishi va panel yana 1700 (18% o'zimizniki) ko'rsatishi
+  mumkin, hech narsa qizarmasdan. Kodning O'ZI to'g'ri — teshik faqat
+  qorovulda. Tuzatish tayyor turibdi: test allaqachon `fetch` ni
+  almashtiryapti, ya'ni so'rov tanasini ushlab (`JSON.parse(o.body).query`)
+  filtrni XATTI-HARAKAT darajasida tekshirish mumkin. Bu Test 3f va
+  Test 23 darsining AYNAN takrori: **qorovul matnni emas, KODNI o'qishi
+  kerak.**
+
+  🟠 OCHIQ: server kodi rsync qilingan va egalik to'g'irlangan, lekin
+  **servis hali qayta ishga tushirilmagan** — ya'ni endpoint production'da
+  hali tirik emas va founder blokni ko'z bilan ko'rmagan.
+
 - [2026-08-18] **Sayt va Mini App trafigi endi O'LCHANADI va panelda ko'rinadi —
   yangi «Trafik» sahifasi (`db/028_traffic.sql`).** Band `users.src` (2026-08-13)
   ochib qoldirgan savolni yopadi: o'shanda odam QAYSI kanaldan kelgani
@@ -251,6 +321,41 @@ Founder sifatida platformani to'liq nazorat qilish: ishlab chiqaruvchilarni tasd
 - [2026-08-08] **`/start` bosgan odam endi bazaga yoziladi — va shu bilan birga panel raqami IKKIGA ajratildi (`db/020_user_engagement.sql`).** Bu yuqoridagi yozuvda ATAYLAB ochiq qoldirilgan bandning yopilishi: o'shanda panel "ilovani ochganlar" ni ko'rsatardi, haqiqiy bot auditoriyasi esa hech qayerda hisoblanmasdi. **Nega shunchaki qator qo'shish YETARLI EMAS edi:** `/start` qatorlarini mavjud `users` ga qo'shsak, panelda allaqachon turgan "ilovani ochganlar" raqami jimgina yolg'onga aylanardi — ichiga ilovani hech qachon ochmagan odamlar qo'shilib ketardi va buni HECH NARSA ko'rsatmasdi (raqam ko'paygani o'sish bo'lib ko'rinardi). Shuning uchun migratsiya bitta ustun qo'shadi: `users.engaged_at TIMESTAMPTZ` — `NULL` = faqat `/start` bosgan, `NOT NULL` = ilova / sayt / sotuvchi arizasi orqali BIRINCHI marta foydalangan vaqt; ustiga `users_engaged_at_idx` (panel har so'rovda `count(*) FILTER (WHERE engaged_at IS NULL)` hisoblaydi). **Backfill to'g'ri va uni ISBOTLASH mumkin:** migratsiyagacha `/start` hech qachon qator YARATMAGAN (`webhook.js` da `INSERT` umuman yo'q edi), ya'ni mavjud har bir qator albatta uchta foydalanish yo'lidan biri orqali kelgan — shuning uchun `UPDATE users SET engaged_at = created_at` taxmin emas, xulosadir. **Yozuv joyi** (`server/routes/webhook.js`): `/start` da `INSERT ... ON CONFLICT (tg_user_id) DO UPDATE`. Uch qaror shu yerda: (a) `DO NOTHING` emas, `DO UPDATE` — ism/username o'zgargan bo'lishi mumkin; (b) `role` TEGILMAYDI — aks holda sotuvchi `/start` bossa `buyer` ga tushib qolardi; (c) `engaged_at` na `INSERT` da, na `UPDATE` da qo'yiladi — bu qator "ilovani ochgan" degani EMAS. Telegram ID bu yerda ishonchli: uni klient emas, Telegram'ning O'ZI webhook orqali yuboradi va so'rov `WEBHOOK_SECRET` bilan tekshirilgan (CLAUDE.md — foydalanuvchi kimligi brauzerdan olinmaydi). Yozuv xatosi `/start` javobini yiqitmaydi (`.catch`), alert kaliti birinchi argumentda qat'iy — Test 10c qoidasi saqlandi. **Uchta foydalanish yo'li** (`catalog.js`, `web-auth.js`, `seller-application.js`) endi `engaged_at = COALESCE(users.engaged_at, now())` qo'yadi — `COALESCE` majburiy, aks holda maydon "birinchi foydalanish" o'rniga jimgina "oxirgi kirish" ga aylanardi va u boshqa ma'noli raqam bo'lardi. **Backend** (`server/routes/admin.js`): `users` so'roviga `engaged` va `start_only` sanoqlari, javobga `engaged` / `startOnly`. **Frontend** (`admin/admin.js`, `admin/index.html`, `admin.js?v=21` → `?v=22`): sarlavha "ilovani ochganlar" → "botga kirganlar", ostida ajratuvchi qator (`806 foydalangan (65%) · 437 faqat /start` ko'rinishida), faollik ustunlariga ikkita yangi qator. **Qorovul kengaytirildi va bu bekorga emas:** ilgari `users` maydonining O'ZI tekshirilardi, endi `engaged` ham — deploy oynasida frontend yangi, backend bir qadam orqada bo'lsa `engaged` `undefined` bo'lib ekranda "NaN%" chiqardi, ya'ni eski qorovulning ko'r nuqtasi aynan shu o'zgarish bilan ochildi. **Sinov:** `node server/test.js` — 42 test PASS (raqam sanaldi, taxmin emas); `npx eslint .` (`server/`) — 0 xato, 28 ogohlantirish; stendda haqiqiy `handleAdminSummary` orqali sinaldi — ajratuvchi qator va 5 qatorli faollik ustunlari chizildi, mobil 375px da gorizontal siljish yo'q, ikkala qorovul holati (backend butunlay eski / bir qadam orqada) blokni yashirdi. **Hali qilinmagan (deploy tartibi MUHIM):** `db/020` haqiqiy Postgres'da HALI ishlamagan (lokalda baza yo'q) va u backenddan OLDIN qo'llanishi SHART — teskari tartibda `engaged_at` ga murojaat qiladigan `/api/admin/summary` va uchala auth yo'li birdan yiqiladi, ya'ni bu 27-iyuldagi "migratsiya qo'llanmagan" insidentining aynan takroriga olib kelardi. Shuningdek `engaged_at = COALESCE(...)` qoidasini tekshiradigan TEST YO'Q: yangi foydalanish yo'li qo'shilib uni unutsa, odam abadiy "faqat /start bosgan" bo'lib qolardi va buni hech narsa ko'rsatmasdi — "yozilgan qoida himoya emas, uni tekshiradigan test himoya" qoidasi bu bandda hali bajarilmagan
 
 ## Qarorlar
+
+- [2026-08-19] Qaror (founder): **admin panel tashriflari trafik
+  hisobiga KIRMAYDI.** O'lchandi — 29 kunda 1700 ko'rishning 310 tasi
+  `/admin/` va `/loyiha-panel.html` edi (18%), ya'ni panel o'z
+  tashriflarimizni «foydalanuvchi» deb ko'rsatib turardi. Filtr
+  **GraphQL TOMONIDA** (`requestPath_notlike`), serverda EMAS: serverda
+  kesilsa kunlik yig'indi baribir admin tashriflarini o'z ichiga olardi.
+  Ro'yxat bitta joyda — `lib/cf-analytics.js` → `ICHKI_YOLLAR`; yangi
+  ichki sahifa qo'shilsa shu yerga yoziladi. O'lchandi: 1700 → 1390
+
+- [2026-08-19] Qaror: **`CF_SITE_TAG` sahifadagi beacon tokeni EMAS va
+  bu farq hujjatga YOZILDI.** Beacon `data-cf-beacon` da `6acaeab5…`,
+  GraphQL esa `0d0ad786…` kutadi. 🔴 Noto'g'ri qiymatda javob XATOSIZ va
+  BO'SH keladi — ya'ni nosozlik «hech kim kelmadi» niqobida keladi va uni
+  na test, na jurnal ko'rsatadi. Qiymat GraphQL javobining O'ZIDAN
+  o'lchab olinadi. `config.js` shaklni tekshiradi (32 hex, `cfZone`
+  qayta ishlatildi — ikkinchi nusxa yozilmadi)
+
+- [2026-08-19] Qaror: **Cloudflare ALOHIDA endpoint va ALOHIDA blok.**
+  `/api/admin/cf-traffic` `/api/admin/traffic` ga qo'shilmadi: bitta
+  javobga yig'ilsa Cloudflare yiqilgan kuni butun Trafik sahifasi
+  qulardi. Panelda ham blok `trafficBody` DAN TASHQARIDA — bizning
+  o'lchov bo'sh bo'lsa ham Cloudflare chiziladi. Raqamlar YONMA-YON
+  qo'yilmaydi (2026-08-18 qarorining davomi): biri namunaviy, biri
+  aniq — mos kelmagan ikki raqam «biri buzuq» degan yolg'on xulosa
+  beradi. Sayt va Mini App bitta belgi ostida yuradi, ular faqat
+  sahifa yo'li bo'yicha ajraladi (`/mini-app/`)
+
+- [2026-08-19] Qaror: **raqamlar TAXMINIY ekani panelda YOZILADI.**
+  O'lchandi: qiymatlarning hammasi 10 ga bo'linadi — Cloudflare bepul
+  tarifda namuna olib koeffitsiyentga ko'paytiradi. «1700» aniq son
+  emas. Ogohlantirish olib tashlanmasin: xarita `mapApprox` bandi bilan
+  bitta oila — aniq ko'rinadigan taxmin noto'g'ri ishonch beradi.
+  Sozlanmagan/xato/bo'sh — uchalasi BOSHQACHA yoziladi, hech qaysisi
+  nol ko'rsatmaydi
 
 - [2026-08-18] Qaror: **o'z trafik jadvalimiz Cloudflare Web Analytics ning
   O'RNINI BOSMAYDI — u ATAYLAB ikkinchi yo'l.** Ortiqchalik CLAUDE.md

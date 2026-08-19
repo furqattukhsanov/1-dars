@@ -1404,9 +1404,9 @@ function testAssetVersionsAreFresh() {
     // YUQORIGA suriladi: teng raqam qaytib kelgan foydalanuvchida keshdagi
     // BIR TOMONLAMA faylni qoldirardi — sevimlilar yoki chiqish tuzatishining
     // faqat bittasi bo'lgan `app.js`.
-    'panel.js': { v: 49, hash: '4a2fde98ff09' },
-    'admin/admin.css': { v: 19, hash: 'cb8d6c43473d' },
-    'admin/admin.js': { v: 30, hash: '23c3705db020' },
+    'panel.js': { v: 50, hash: '07abba253906' },
+    'admin/admin.css': { v: 20, hash: 'e895a96e6f32' },
+    'admin/admin.js': { v: 31, hash: '0c04c32732c4' },
     'telegram-app/styles.css': { v: 36, hash: '570a2450c3a4' },
     'telegram-app/app.js': { v: 101, hash: 'f0203a8eb061' },
     'telegram-app/pwa.js': { v: 6, hash: '798ab85e1cde' },
@@ -5904,6 +5904,179 @@ function testNewestSortUsesRealDate() {
   console.log('✅ Test 47: «Eng yangi» haqiqiy sanada — PASS (3 xatti-harakat sinovi, 2 yuz)');
 }
 
+/* ── Test 48: Cloudflare bloki YOLG'ON gapirmasin ─────────────────────────
+   Cloudflare paneli bizning `traffic_events` dan BOSHQA manba va boshqa
+   savolga javob beradi. Uch xil jimgina yolg'on mumkin edi va uchalasi
+   ham shu yerda qulflanadi:
+
+   1) Noto'g'ri `siteTag` — javob XATOSIZ va BO'SH keladi, panel esa
+      «hech kim kelmadi» deb turadi. 2026-08-19 da aynan shu bo'ldi:
+      sahifadagi beacon tokeni (`6acaeab5…`) GraphQL kutgan `siteTag`
+      (`0d0ad786…`) EMAS.
+   2) GraphQL xatoni HTTP 200 bilan qaytaradi — `errors` tekshirilmasa
+      «hammasi joyida» degan yolg'on xulosa chiqardi.
+   3) Admin panel tashriflari sanalsa panel O'Z tashriflarimizni
+      «foydalanuvchi» deb ko'rsatardi (o'lchandi: 29 kunda 18%).
+
+   ⚠️ Sinov MATN emas, XATTI-HARAKAT: `fetch` almashtiriladi va modul
+   haqiqiy javob shakllarida yurgiziladi. */
+async function testCloudflareAnalyticsHonesty() {
+  const fs = require('fs');
+  const path = require('path');
+  const ildiz = path.join(__dirname, '..');
+
+  // ── 1-band: `/admin/` filtri GRAFQL TOMONIDA ──
+  //    Serverda kesilsa kunlik yig'indi baribir admin tashriflarini o'z
+  //    ichiga olardi — ya'ni «tozalangan» raqam aslida tozalanmagan bo'lardi.
+  const modul = jsSofi(fs.readFileSync(path.join(__dirname, 'lib', 'cf-analytics.js'), 'utf8'));
+  assert.ok(/requestPath_notlike/.test(modul),
+    '`/admin/` filtri GraphQL so\'roviga qo\'yilmagan — kunlik raqamlar admin '
+    + 'tashriflarini ham sanaydi (o\'lchandi: 1700 dan 310 tasi bizniki edi)');
+  assert.ok(/\/admin%/.test(modul), 'filtr ro\'yxatida `/admin%` yo\'q');
+
+  // ── 2-band: XATTI-HARAKAT — javob shakllari ──
+  // ⚠️ Modul sozlanmagan bo'lsa `fetch` gacha YETIB BORMAYDI (`{xato:'sozlanmagan'}`),
+  // ya'ni sinov uchun soxta sozlama kerak. `config.js` va modul kesh'dan
+  // tozalanib QAYTA yuklanadi — boshqa testlar o'z nusxasini ushlab turadi
+  // va bundan ta'sirlanmaydi.
+  process.env.CF_ANALYTICS_TOKEN = 'T'.repeat(40);
+  process.env.CF_ACCOUNT_ID = '0'.repeat(32);
+  process.env.CF_SITE_TAG = '1'.repeat(32);
+  delete require.cache[require.resolve('./config')];
+  delete require.cache[require.resolve('./lib/cf-analytics')];
+  const { cfTraffic } = require('./lib/cf-analytics');
+  const asl = global.fetch;
+  // ⚠️ SO'ROV TANASI saqlanadi — quyida u O'QILADI. Sabab: filtr faylda
+  // «bor» ekani uni so'rovga TUSHGANINI isbotlamaydi. Bu teshik shu testda
+  // HAQIQATAN bo'lgan: `AND: [${notlike}]` so'rovdan olib tashlanganda
+  // `ICHKI_YOLLAR` fayl ichida qolgani uchun matn tekshiruvi YASHIL qolardi
+  // va founder qarori (admin tashriflari sanalmasin) jimgina buzilardi.
+  let songgi = null;
+  const javobBer = (tana, ok = true) => {
+    global.fetch = async (_url, opt) => {
+      songgi = opt;
+      return { ok, status: ok ? 200 : 500, json: async () => tana };
+    };
+  };
+  const asilXato = console.error;
+  console.error = () => {};   // kutilgan xatolar chiqishni ifloslamasin
+
+  try {
+    // (a) GraphQL `errors` bilan → `xato`, NOL EMAS.
+    //     ⚠️ Javobda `data` HAM, `errors` HAM bor — GraphQL aynan shunday
+    //     qaytaradi (qisman natija + xato) va bu holat eng xavflisi:
+    //     `errors` e'tiborsiz qoldirilsa YARIM ma'lumot TO'LIQ deb
+    //     qabul qilinardi. Birinchi variantda `data: null` yozilgandi va
+    //     mutatsiya undan JIMGINA o'tib ketdi — kod boshqa sababdan
+    //     xato qaytarardi, ya'ni test to'g'ri narsani tekshirmasdi.
+    javobBer({
+      data: { viewer: { accounts: [{
+        kunlik: [{ count: 10, sum: { visits: 10 }, dimensions: { date: '2026-08-01' } }],
+        davlat: [], sahifa: [], manba: [],
+      }] } },
+      errors: [{ message: 'partial failure' }],
+    });
+    let r = await cfTraffic(30);
+    assert.ok(r.xato, 'GraphQL `errors` qaytarganda `xato` bo\'lishi kerak edi — '
+      + 'aks holda panel yarim ma\'lumotni to\'liq deb chizardi (HTTP 200 yetarli emas darsi)');
+    assert.strictEqual(r.total, undefined, 'xato holatda `total` qaytarilmasin');
+
+    // (b) BO'SH natija → bu XATO EMAS, haqiqiy holat
+    javobBer({ data: { viewer: { accounts: [{ kunlik: [], davlat: [], sahifa: [], manba: [] }] } }, errors: null });
+    r = await cfTraffic(30);
+    assert.ok(!r.xato, 'bo\'sh natija `xato` EMAS — u haqiqiy holat («hali hodisa yo\'q»)');
+    assert.strictEqual(r.total, 0, 'bo\'sh natijada `total` 0 bo\'lishi kerak');
+
+    // (c) HAQIQIY ma'lumot → yig'indi to'g'ri
+    javobBer({
+      data: { viewer: { accounts: [{
+        kunlik: [
+          { count: 60, sum: { visits: 50 }, dimensions: { date: '2026-08-01' } },
+          { count: 40, sum: { visits: 40 }, dimensions: { date: '2026-08-02' } },
+        ],
+        davlat: [{ count: 100, dimensions: { countryName: 'UZ' } }],
+        sahifa: [{ count: 70, dimensions: { requestPath: '/mini-app/' } }],
+        manba: [{ count: 90, dimensions: { refererHost: '' } }],
+      }] } },
+      errors: null,
+    });
+    r = await cfTraffic(30);
+    assert.strictEqual(r.total, 100, 'ko\'rishlar yig\'indisi noto\'g\'ri');
+    assert.strictEqual(r.visits, 90, 'tashriflar yig\'indisi noto\'g\'ri');
+    assert.strictEqual(r.approx, true, '`approx` bayrog\'i yo\'q — panel «taxminiy» ogohlantirishini chizmaydi');
+
+    // (c2) SO'ROVNING O'ZI tekshiriladi — filtr GraphQL ga HAQIQATAN
+    //      yuborilyaptimi. Fayldagi mavjudlik yetarli emas (yuqoridagi izoh).
+    const sorov = JSON.parse(songgi.body);
+    assert.ok(/requestPath_notlike/.test(sorov.query),
+      'GraphQL so\'roviga `requestPath_notlike` TUSHMAGAN — admin tashriflari '
+      + 'baribir sanaladi. Fayl ichida filtr bor bo\'lishi yetarli emas: u '
+      + 'so\'rovga qo\'shilmasa founder qarori jimgina buziladi (o\'lchandi: 18%)');
+    assert.ok(/\/admin%/.test(sorov.query), 'so\'rovda `/admin%` yo\'q');
+    assert.ok(/loyiha-panel/.test(sorov.query), 'so\'rovda `/loyiha-panel%` yo\'q');
+    // Sozlamalar ham so'rovga tushsin — noto'g'ri `siteTag` bo'sh javob beradi
+    // va u «hech kim kelmadi» bo'lib ko'rinardi (bandning sarlavhasidagi nuqson).
+    assert.strictEqual(sorov.variables.tag, '1'.repeat(32), '`siteTag` so\'rovga uzatilmagan');
+    assert.strictEqual(sorov.variables.hisob, '0'.repeat(32), '`accountTag` so\'rovga uzatilmagan');
+
+    // (d) HTTP xatosi → `xato`, yiqilmasin
+    javobBer({}, false);
+    r = await cfTraffic(30);
+    assert.ok(r.xato, 'HTTP xatosida `xato` qaytarilishi kerak');
+
+    // (e) tarmoq yiqildi → `xato`, istisno TASHLANMASIN
+    global.fetch = async () => { throw new Error('network down'); };
+    r = await cfTraffic(30);
+    assert.ok(r.xato, 'tarmoq yiqilganda `xato` qaytarilishi kerak — istisno tashlansa '
+      + 'butun admin so\'rovi qulardi');
+  } finally {
+    global.fetch = asl;
+    console.error = asilXato;
+  }
+
+  // ── 3-band: PANEL nol chizmaydi va IKKI MANBA yonma-yon emas ──
+  const panel = jsSofi(fs.readFileSync(path.join(ildiz, 'admin', 'admin.js'), 'utf8'));
+  const chiz = panel.slice(panel.indexOf('function renderCfTraffic'), panel.indexOf('function renderTraffic'));
+  assert.ok(chiz.length > 200, '`renderCfTraffic` topilmadi — u `renderTraffic` dan OLDIN turishi kerak');
+  for (const [nom, naqsh] of [
+    ['sozlanmagan holat', /sozlanmagan/],
+    ['xato holati', /c\.xato/],
+    ['bo\'sh holat', /!c\.total/],
+  ]) {
+    assert.ok(naqsh.test(chiz), `renderCfTraffic: ${nom} alohida ishlanmagan — `
+      + 'uchala holat bir xil ko\'rinsa panel «hech kim kelmadi» deb yolg\'on gapirardi');
+  }
+
+  // Cloudflare bloki bizning `trafficBody` ICHIDA bo'lmasin: bo'lsa u
+  // bizning o'lchov bo'sh bo'lganda BIRGA yashirinardi va ikki manba
+  // bir-biriga bog'lanib qolardi.
+  const html = fs.readFileSync(path.join(ildiz, 'admin', 'index.html'), 'utf8');
+  const tanaBoshi = html.indexOf('id="trafficBody"');
+  const cfBoshi = html.indexOf('id="cfBody"');
+  assert.ok(tanaBoshi > 0 && cfBoshi > tanaBoshi, 'panelda `cfBody` topilmadi');
+  // `trafficBody` qayerda YOPILISHINI aniq topamiz: `<div` va `</div>`
+  // balansi nolga tushgan joy. Ichki bloklar o'nlab, ya'ni oddiy sanash
+  // yaramaydi (birinchi urinishda aynan shu xato bo'lgan).
+  let bal = 0, yopilishi = -1;
+  for (const m of html.slice(tanaBoshi).matchAll(/<div\b|<\/div>/g)) {
+    bal += m[0] === '</div>' ? -1 : 1;
+    if (bal === 0) { yopilishi = tanaBoshi + m.index; break; }
+  }
+  assert.ok(yopilishi > 0, '`trafficBody` yopilish nuqtasi topilmadi — HTML buzilgan bo\'lishi mumkin');
+  assert.ok(cfBoshi > yopilishi,
+    'Cloudflare bloki `trafficBody` ICHIDA qolgan — bizning o\'lchov bo\'sh bo\'lganda '
+    + 'u ham yashirinardi, holbuki ular MUSTAQIL manba (CLAUDE.md: ikki raqam '
+    + 'yonma-yon qo\'yilmasin)');
+
+  // ── 4-band: xato KESHLANMASIN ──
+  const adminRoute = jsSofi(fs.readFileSync(path.join(__dirname, 'routes', 'admin.js'), 'utf8'));
+  assert.ok(/if\s*\(!data\.xato\)\s*cfKesh\s*=/.test(adminRoute),
+    'xato ham keshlanyapti — bir marta yiqilgan so\'rov 10 daqiqa «xato» qaytarib '
+    + 'turardi va tuzatilgani ko\'rinmasdi');
+
+  console.log('✅ Test 48: Cloudflare bloki halol — PASS (5 xatti-harakat, 4 band)');
+}
+
 async function runTests() {
   console.log('\n🧪 LolaMarket Server Testlari\n');
 
@@ -5997,6 +6170,7 @@ async function runTests() {
     testSortSheetAndHiddenWork();
     testDeepLinkTagsPassServer();
     testNewestSortUsesRealDate();
+    await testCloudflareAnalyticsHonesty();
 
     console.log('\n✅ Hammasi PASS — pul hisobi, imzo, route jadvali, xato alerti, buyurtma tarixi va AI rasmi joyida\n');
     process.exit(0);

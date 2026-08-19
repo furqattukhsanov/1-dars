@@ -121,6 +121,7 @@ const state = {
   disputes: [],
   daily: [],     // { date:Date, gmv, plan, orders, commission }
   traffic: null, // null — o'lchanmagan/kelmagan (nol EMAS, `renderTraffic` izohi)
+  cfTraffic: null, // Cloudflare — ALOHIDA manba, `traffic` ga bog'liq EMAS
 };
 
 /* ═══════════════════════ API ═══════════════════════ */
@@ -143,6 +144,7 @@ const fetchSummary  = () => api('/api/admin/summary');
 const fetchDisputes = () => api('/api/admin/disputes');
 // Oraliq — 30 kun. `summary` dan alohida endpoint (`server.js` izohi).
 const fetchTraffic  = () => api('/api/admin/traffic?days=30');
+const fetchCfTraffic = () => api('/api/admin/cf-traffic?days=30');
 
 /* ═══════════════════════ Kirish ═══════════════════════ */
 
@@ -196,7 +198,7 @@ async function loadAll() {
   // ⚠️ Trafik ham SHU sababdan `catch` bilan: migratsiya (`db/028`) hali
   // o'tkazilmagan serverda endpoint 500 qaytaradi va butun panel qorong'i
   // bo'lib qolardi. `null` kelsa Trafik sahifasi o'zi sababni yozadi.
-  const [summary, disputes, traffic] = await Promise.all([
+  const [summary, disputes, traffic, cfTraffic] = await Promise.all([
     fetchSummary(),
     fetchDisputes().catch(() => []),
     // ⚠️ Xato "ma'lumot yo'q" bilan ARALASHMASIN. Ilgari `catch` `null`
@@ -205,10 +207,17 @@ async function loadAll() {
     // yolg'onni ko'rsatardi. Bu aynan `ALERT_CHAT_ID` va `NULL` reyting
     // darslarining o'zi: yo'qlik ko'rinadi, yolg'on ko'rinmaydi.
     fetchTraffic().catch((e) => ({ xato: e.message || 'so\'rov yiqildi' })),
+    // Cloudflare — AYNI qoida: xato "ma'lumot yo'q" bilan aralashmasin.
+    // ⚠️ U bizning trafikdan MUSTAQIL yiqiladi: bittasi ishlamasa
+    // ikkinchisi baribir chiziladi.
+    fetchCfTraffic().catch((e) => ({ xato: e.message || 'so\'rov yiqildi' })),
   ]);
   state.summary = summary;
   state.disputes = disputes;
   state.traffic = traffic;
+  // ⚠️ Endpoint javobi `{ ok, data }` — `api()` `data` ni ochib beradi,
+  // ya'ni `xato` maydoni ham shu darajada keladi.
+  state.cfTraffic = cfTraffic;
   state.daily = (summary.daily || []).map((d) => {
     const date = new Date(d.day + 'T00:00:00');
     return { date, gmv: d.gmv, orders: d.orders, commission: d.commission, plan: planSomForDate(date) };
@@ -359,6 +368,9 @@ function renderAll() {
      Xato YUTILMAYDI — konsolga chiqadi. */
   try {
     renderTraffic();
+    // ⚠️ O'Z `try` si: Cloudflare bloki yiqilsa yuqoridagi sahifalar
+    // qulamasin (2026-08-18 darsi — chizuvchi tartibi muhim).
+    try { renderCfTraffic(); } catch (e) { console.error('renderCfTraffic xatosi:', e.message); }
   } catch (e) {
     console.error('renderTraffic xatosi:', e.message);
   }
@@ -1008,6 +1020,75 @@ function trafficRows(elId, qatorlar, bosh) {
       <span class="cat-count">${fmtNum(r.n)}</span>
     </div>
   `).join('');
+}
+
+/* ─── Cloudflare bloki (2026-08-19) ───
+   ⚠️ `renderTraffic` DAN MUSTAQIL: bizning o'lchov bo'sh bo'lsa ham bu blok
+   chiziladi va aksincha. Ular boshqa manba, biri ikkinchisining o'rnini
+   BOSMAYDI (CLAUDE.md) — shuning uchun raqamlari ham yonma-yon
+   qo'yilmaydi.
+
+   ⚠️ Nol chizilmaydi: sozlanmagan bo'lsa ham, so'rov yiqilsa ham SABAB
+   yoziladi. «0 tashrif» bilan «o'lchanmadi» bir xil ko'rinishi mumkin emas. */
+function renderCfTraffic() {
+  const bosh = document.getElementById('cfEmpty');
+  const tana = document.getElementById('cfBody');
+  if (!bosh || !tana) return;
+
+  const c = state.cfTraffic;
+
+  const sabab = (matn) => {
+    tana.hidden = true;
+    bosh.hidden = false;
+    bosh.textContent = matn;
+  };
+
+  if (!c) return sabab('Cloudflare ma\'lumoti hali olinmadi.');
+  if (c.xato === 'sozlanmagan') {
+    return sabab('Cloudflare ulanmagan — server `.env` ida CF_ANALYTICS_TOKEN, '
+      + 'CF_ACCOUNT_ID va CF_SITE_TAG kerak. ⚠️ CF_SITE_TAG sahifadagi beacon '
+      + 'tokeni EMAS, GraphQL javobidagi siteTag.');
+  }
+  if (c.xato) {
+    return sabab('Cloudflare javob bermadi (' + c.xato + '). Bu "hech kim kelmadi" '
+      + 'degani EMAS — ma\'lumot OLINMADI.');
+  }
+  // Bo'sh — bu HAQIQIY holat, xatodan farq qiladi va boshqacha yoziladi.
+  if (!c.total) {
+    return sabab('Cloudflare ulangan, lekin bu oraliqda hodisa yo\'q. '
+      + 'Beacon yangi yoqilgan bo\'lsa ma\'lumot bir necha soatdan keyin ko\'rinadi.');
+  }
+
+  bosh.hidden = true;
+  tana.hidden = false;
+
+  const kunlar = c.daily || [];
+  const eng = kunlar.length ? kunlar.reduce((a, b) => (b.views > a.views ? b : a)) : null;
+
+  // Element topilmasa JIM o'tadi — panel qismi olib tashlansa chizuvchi
+  // butunlay yiqilmasin (qolgan bloklar baribir chizilsin).
+  const setText = (id, v) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = v;
+  };
+
+  setText('cfViews', fmtNum(c.total));
+  setText('cfViewsFoot', c.days + ' kun · taxminiy');
+  setText('cfVisits', fmtNum(c.visits));
+  setText('cfVisitsFoot', 'admin paneli hisobga olinmagan');
+  setText('cfBest', eng ? fmtNum(eng.views) : '–');
+  setText('cfBestFoot', eng ? eng.date : '–');
+
+  // ⚠️ `refererHost` bo'sh bo'lishi MUMKIN va bu ma'noli: havolasiz kelgan
+  // (to'g'ridan-to'g'ri) tashrif. Uni "(yo'q)" deb tashlab yubormaymiz —
+  // aks holda eng katta ulush paneldan g'oyib bo'lardi.
+  const manbalar = (c.referrers || []).map((r) => ({
+    name: r.name || 'To\'g\'ridan-to\'g\'ri (havolasiz)', n: r.n,
+  }));
+
+  trafficRows('cfPaths', (c.paths || []).map((r) => ({ name: r.name || '/', n: r.n })), '–');
+  trafficRows('cfRefs', manbalar, '–');
+  trafficRows('cfCountries', (c.countries || []).map((r) => ({ name: r.name || '?', n: r.n })), '–');
 }
 
 function renderTraffic() {
