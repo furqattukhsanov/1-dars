@@ -513,8 +513,19 @@ async function handleOrderNotify(req, res, ip) {
 }
 
 // ============ /api/order-status — holat (bazadan) ============
+// ⚠️ Kimlik imzolangan initData'dan (`authUser`) va so'rov EGAGA bog'lanadi:
+// `WHERE id=$1 AND tg_user_id=$2`. Ilgari faqat `WHERE id=$1` edi va autentifikatsiya
+// umuman yo'q edi — ID ketma-ket (`'#LM-' || nextval('order_seq')`) bo'lgani uchun
+// istalgan odam login'siz `#LM-1..N` ni sanab har bir buyurtmaning holatini va
+// jami buyurtma sonini o'qiy olardi (IDOR, 2026-08-20 da jonli tasdiqlangan).
+// Faqat Mini App chaqiradi (`app.js` → `syncOrderStatuses`); sayt statusni
+// `/api/web/orders` ro'yxatidan oladi, bu endpointga tegmaydi. Shuning uchun
+// `authUser` (initData majburiy) — bu ATAYLAB tanlov (CLAUDE.md: faqat Mini App
+// uchun mo'ljallangan endpoint `authUser`da qolishi mumkin).
 async function handleOrderStatus(req, res, ip) {
   if (rateLimited(`orderstatus:${ip}`, 60)) return fail(res, 'too many requests', 429);
+  const u = authUser(req);
+  if (!u || !u.id) return fail(res, 'unauthorized', 401);
   let id;
   try {
     id = new URL(req.url, 'http://x').searchParams.get('id');
@@ -523,7 +534,8 @@ async function handleOrderStatus(req, res, ip) {
   }
   if (!id) return fail(res, 'invalid id', 400);
   try {
-    const { rows } = await pool.query(`SELECT status FROM orders WHERE id = $1`, [id]);
+    const { rows } = await pool.query(
+      `SELECT status FROM orders WHERE id = $1 AND tg_user_id = $2`, [id, String(u.id)]);
     sendJson(res, 200, { status: rows.length ? rows[0].status : null });
   } catch (e) {
     console.error('orderStatus xatosi:', e.message);

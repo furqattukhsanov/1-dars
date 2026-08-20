@@ -1404,11 +1404,11 @@ function testAssetVersionsAreFresh() {
     // YUQORIGA suriladi: teng raqam qaytib kelgan foydalanuvchida keshdagi
     // BIR TOMONLAMA faylni qoldirardi — sevimlilar yoki chiqish tuzatishining
     // faqat bittasi bo'lgan `app.js`.
-    'panel.js': { v: 50, hash: '07abba253906' },
+    'panel.js': { v: 51, hash: '3284da8ca378' },
     'admin/admin.css': { v: 20, hash: 'e895a96e6f32' },
     'admin/admin.js': { v: 31, hash: '0c04c32732c4' },
     'telegram-app/styles.css': { v: 36, hash: '570a2450c3a4' },
-    'telegram-app/app.js': { v: 101, hash: 'f0203a8eb061' },
+    'telegram-app/app.js': { v: 102, hash: 'ba922a9a4d31' },
     'telegram-app/pwa.js': { v: 6, hash: '798ab85e1cde' },
   };
 
@@ -6279,6 +6279,7 @@ async function runTests() {
     testNewestSortUsesRealDate();
     await testCloudflareAnalyticsHonesty();
     await testAdminEndpointsActuallyRespond();
+    await testOrderStatusScopedToOwner();
 
     console.log('\n✅ Hammasi PASS — pul hisobi, imzo, route jadvali, xato alerti, buyurtma tarixi va AI rasmi joyida\n');
     process.exit(0);
@@ -6286,6 +6287,35 @@ async function runTests() {
     console.error('\n❌ TEST XATOSI:\n', err.message, '\n');
     process.exit(1);
   }
+}
+
+// ============ TEST 50: order-status IDOR — EGAGA bog'langan (2026-08-20) ============
+// `/api/order-status` ilgari `WHERE id=$1` edi va autentifikatsiyasiz — ID ketma-ket
+// (`'#LM-' || nextval('order_seq')`) bo'lgani uchun istalgan odam login'siz `#LM-1..N`
+// ni sanab har bir buyurtma holatini va jami sonini o'qiy olardi (IDOR, jonli
+// tasdiqlangan). Qorovul: handler `authUser` bilan kimlik oladi, 401 qaytaradi va
+// so'rov `tg_user_id=$2` bilan EGAGA bog'lanadi. IZOHLAR TOZALANADI — aks holda
+// bu qatordagi `authUser`/`tg_user_id` so'zlari testni ALDAB o'tkazib yuborardi
+// (Test 3f va Test 23 darsi: qorovul matnni emas, KODNI o'qisin).
+async function testOrderStatusScopedToOwner() {
+  const fs = require('fs');
+  const path = require('path');
+  const strip = (s) => s
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .split('\n').filter((l) => !/^\s*\/\//.test(l)).join('\n');
+  const src = strip(fs.readFileSync(path.join(__dirname, 'routes', 'orders.js'), 'utf8'));
+  const m = src.match(/async function handleOrderStatus\b[\s\S]*?\n\}/);
+  assert.ok(m, 'handleOrderStatus topilmadi (nomi o\'zgardimi?)');
+  const body = m[0];
+  assert.ok(/authUser\s*\(/.test(body),
+    'order-status IDOR: handleOrderStatus autentifikatsiya qilmaydi (kod tanasida ' +
+    '`authUser(` yo\'q) — istalgan odam login\'siz buyurtma holatini o\'qiy oladi.');
+  assert.ok(/unauthorized/.test(body) && /\b401\b/.test(body),
+    'order-status: kimliksiz so\'rov 401 qaytarmayapti.');
+  assert.ok(/tg_user_id\s*=\s*\$2/.test(body),
+    'order-status IDOR: so\'rov EGAGA bog\'lanmagan (`WHERE ... tg_user_id = $2` yo\'q) — ' +
+    'ID ketma-ket (#LM-N), ya\'ni begona odam buyurtma holatini sanay oladi.');
+  console.log('✅ Test 50: order-status EGAGA bog\'langan (IDOR yopiq) — PASS');
 }
 
 runTests();

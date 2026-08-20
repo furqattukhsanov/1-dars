@@ -170,6 +170,59 @@ Platformaning barcha funksiyalarini real foydalanuvchilar bilan sinovdan o'tkazi
 
 ## Qilingan ishlar
 
+- [2026-08-20] **XAVFSIZLIK AUDITI (oq/etik, o'z loyihamiz) — BITTA HAQIQIY
+  ZAIFLIK TOPILIB TUZATILDI: `/api/order-status` IDOR. Testlar: 88 → 89
+  (`✅ Test` PASS satrlari, MUSTAQIL sanaldi).**
+
+  Audit ikki qismdan iborat edi: (1) veb-ilova auditi (sayt + Mini App + admin
+  + Hetzner backend), (2) AI-guardrail chidamlilik sinovi («kibir hujum», 11
+  raund, 33/33 O'TDI — **o'z-o'zini sinov ekani hujjatda ochiq yozilgan**,
+  mustaqil tashqi validatsiya EMAS). Hujjatlar: `docs/xavfsizlik/00-xavfsizlik-xulosa.md`
+  (umumiy zaiflik jadvali W1–W9 + Z1–Z4 va sessiyalarga bo'lingan tuzatish rejasi),
+  `docs/xavfsizlik/01-pentest-metodologiya.md`, `docs/kibir-hujum-hisoboti.md`,
+  `docs/kibir-hujum-stsenariylari.md`.
+
+  **TOPILGAN ZAIFLIK (W6, IDOR — jonli tasdiqlangan 2026-08-20):**
+  `/api/order-status?id=` endpointi **autentifikatsiyasiz** edi va so'rov faqat
+  `WHERE id=$1` bilan ketardi. Buyurtma ID'si ketma-ket
+  (`'#LM-' || nextval('order_seq')` → `#LM-1..N`), ya'ni istalgan odam login'siz
+  `#LM-1..N` ni sanab (1) jami buyurtma sonini, (2) har birining holatini va vaqt
+  bo'yicha o'zgarishini o'qiy olardi — raqobatchiga biznes hajmi/tezligi ochiq edi.
+  **PII chiqmaydi** (faqat status), yozuv imkoni yo'q — shuning uchun 🔴 emas, 🟠.
+  Jonli PoC: `curl` autentifikatsiyasiz HTTP 200 qaytardi.
+
+  **TUZATISH (bu ishning O'ZI o'lchab tasdiqladi):** `handleOrderStatus`
+  (`server/routes/orders.js`) endi `authUser(req)` bilan kimlik oladi (kimliksiz
+  **401**) va so'rov EGAGA bog'landi: `WHERE id=$1 AND tg_user_id=$2`. Endpointni
+  faqat Mini App chaqiradi (`app.js` → `syncOrderStatuses`), sayt statusni
+  `/api/web/orders` ro'yxatidan oladi — shuning uchun `authUser` (initData majburiy)
+  ATAYLAB tanlandi (CLAUDE.md: «faqat Mini App uchun mo'ljallangan endpoint
+  `authUser`da qolishi mumkin»). ⚠️ Xulosa hujjatining «tuzatish rejasi» dastlab
+  **imzo** (`orderStatusSig`) yechimini tavsiya qilgan edi; amalda `authUser`
+  qo'llanildi (u yaxshiroq va CLAUDE.md tamoyiliga to'g'ridan-to'g'ri mos) —
+  hujjatdagi reja qatori shu jihatdan ESKIRDI.
+  Mini App tomoni: `syncOrderStatuses()` poll'i endi `X-Telegram-Init-Data`
+  header yuboradi va initData bo'lmasa (Telegram tashqarisi) umuman so'ramaydi.
+  Kesh: `telegram-app/app.js?v=101 → v=102` (Test 16 jadvali birga).
+
+  **YANGI QOROVUL — Test 50** (`testOrderStatusScopedToOwner`): `handleOrderStatus`
+  tanasini (izohlar TOZALANGAN holda — Test 3f/23 darsi: qorovul matnni emas,
+  KODNI o'qisin) skanerlaydi va `authUser(`, `401`, `tg_user_id=$2` borligini talab
+  qiladi. **HISOBOTCHI MUSTAQIL SINADI (o'z ta'rifining 0-bo'limi bo'yicha):**
+  butun to'plam yashil (89 `✅ Test`), so'ng qorovul MUTATSIYA bilan buzib ko'rildi —
+  (a) egalik bog'lanishini olib tashlash → Test 50 `tg_user_id=$2` assertioni QIZIL
+  berdi; (b) tuzatishdan oldingi to'liq holatga qaytarish (`WHERE id=$1`) → yana QIZIL;
+  (c) `authUser` qatorini o'chirish → bog'liqlik skaneri `u is not defined` bilan
+  ushladi. Uch mutatsiya ham ushlandi. Tekshiruv nusxadan tiklandi (`cp`, `git checkout`
+  EMAS — xavfsizlik qoidasi); yakunда `git status` toza (faqat ataylab qilingan
+  tuzatishlar qoldi).
+
+  🔴 **DEPLOY: STATIK + BACKEND** — `server/routes/orders.js` o'zgardi, ya'ni rsync
+  (`--no-owner --no-group` SHART) + servis restart TALAB QILINADI; migratsiya YO'Q.
+  Backend ko'tarilmasa eski (himoyasiz) kod production'da qolaveradi. **Founder jonli
+  saytda hali tekshirmagan. PUSH QILINMADI** — founder qaroriga qoldirildi.
+  Hujjat: `docs/xavfsizlik/00-xavfsizlik-xulosa.md`.
+
 - [2026-08-19] **HISOBOTCHI AGENTINING O'Z TA'RIFI YANGILANDI — JARAYON
   O'ZGARISHI, KOD EMAS. Test soni O'ZGARMADI: 86.**
 
@@ -1007,6 +1060,17 @@ Platformaning barcha funksiyalarini real foydalanuvchilar bilan sinovdan o'tkazi
 ---
 
 ## Qarorlar
+
+- [2026-08-20] Qaror: **`/api/order-status` IDOR'i imzo emas, `authUser` +
+  egalik bilan yopildi.** Xulosa hujjatning dastlabki rejasi imzo qo'yishni
+  (`orderStatusSig`, `productPhotoSig` naqshi) taklif qilgandi. Amalda `authUser`
+  tanlandi: (1) u CLAUDE.md tamoyiliga to'g'ridan-to'g'ri mos — endpointni faqat
+  Mini App chaqiradi, ya'ni initData majburiy bo'lishi ATAYLAB; (2) egalikka
+  bog'lash (`WHERE id=$1 AND tg_user_id=$2`) imzodan kuchliroq — imzo faqat «bu ID'ni
+  bilaman» ni isbotlaydi, egalik esa «bu buyurtma MENIKI» ni. Bahs/profil endpointlari
+  allaqachon shu naqshda (`WHERE tg_user_id=$auth`), ya'ni order-status ularga
+  moslashtirildi, yangi naqsh o'ylab topilmadi. Hujjatdagi imzo-reja qatori shu bilan
+  ESKIRDI (kod — haqiqatga birlamchi manba).
 
 - [2026-08-19] Qaror: **mutatsiya QO'LLANGANINI tasdiqlamasdan uning
   natijasiga ishonilmaydi.** Bugun Test 16 ni sinash uchun qilingan

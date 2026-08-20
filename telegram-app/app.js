@@ -4519,8 +4519,14 @@ function syncOrderStatuses() {
   const CLOSED = ['delivered', 'completed', 'refunded', 'cancelled'];
   const open = ORDERS.filter(o => !CLOSED.includes(o.statusKey));
   if (!open.length) return;
+  // Kimlik header'dagi imzolangan initData'dan — endpoint EGAGA bog'langan
+  // (server IDOR tuzatildi, 2026-08-20). initData bo'lmasa (Telegram tashqarisi)
+  // so'ramaymiz — 401 bo'lardi.
+  const initData = tgInitData();
+  if (!initData) return;
   open.forEach((o) => {
-    fetch('/api/order-status?id=' + encodeURIComponent(o.id))
+    fetch('/api/order-status?id=' + encodeURIComponent(o.id),
+      { headers: { 'X-Telegram-Init-Data': initData } })
       .then((r) => r.json())
       .then((d) => {
         if (d && d.status && d.status !== o.statusKey) {
