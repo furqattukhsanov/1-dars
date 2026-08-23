@@ -15,7 +15,7 @@ const {
 const {
   handleAdminSummary, handleAdminActionRequest, handleAdminActionStatus,
   handleAdminTraffic,
-  handleAdminCfTraffic, handleAdminUsers,
+  handleAdminCfTraffic, handleAdminUsers, handleAdminUserEvents,
 } = require('./routes/admin');
 const { handleTrack } = require('./routes/track');
 const {
@@ -160,6 +160,13 @@ function routeRequest(req, res) {
     if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
     if (req.method !== 'GET') return fail(res, 'method not allowed', 405);
     return handleAdminUsers(req, res, ip);
+  }
+
+  if (path === '/api/admin/user-events') {
+    cors(res, 'GET, OPTIONS');
+    if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
+    if (req.method !== 'GET') return fail(res, 'method not allowed', 405);
+    return handleAdminUserEvents(req, res, ip);
   }
 
   // Cloudflare Web Analytics — ALOHIDA yo'l (2026-08-19). Yuqoridagi bilan

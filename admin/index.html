@@ -11,7 +11,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@24,600..800&family=Hanken+Grotesk:wght@400..700&family=Geist+Mono:wght@600..700&display=swap" rel="stylesheet">
 
   <link rel="stylesheet" href="../style.css?v=64" />
-  <link rel="stylesheet" href="admin.css?v=21" />
+  <link rel="stylesheet" href="admin.css?v=22" />
 </head>
 <body>
 
@@ -496,6 +496,28 @@
               </div>
             </div>
 
+            <!-- Foydalanuvchi HARAKATLARI (2026-08-23, founder referensi:
+                 «Statistika» kartalari). Manba — `user_events` (kirgan
+                 foydalanuvchi amallari), trafik beacon'i EMAS. Kartalar
+                 serverdan kelgan turlar bo'yicha chiziladi — ro'yxat bu yerda yo'q. -->
+            <div class="section-header tr-act-head">
+              <div class="section-title">Foydalanuvchi harakatlari</div>
+              <div class="section-count" id="trActTotal"></div>
+            </div>
+            <div class="stats-grid" id="trActions"></div>
+            <div class="panel glass tr-chart tr-act-chart">
+              <div class="panel-head">
+                <div>
+                  <div class="panel-title">Harakatlar dinamikasi</div>
+                  <div class="tr-big" id="trActBig">–</div>
+                </div>
+                <span class="tr-legend actions">Harakatlar (kunlik)</span>
+              </div>
+              <div class="tr-area actions" id="trActChart"></div>
+              <div class="tr-xaxis" id="trActChartX"></div>
+              <div class="stat-foot">Sevimli, AI rasm, buyurtma, kirish — kirgan foydalanuvchining o'zi bajargan amallar. Mato ko'rishlari bu yerga kirmaydi (u yuqorida, anonim).</div>
+            </div>
+
             <!-- Ikki maydon grafigi (2026-08-18, founder referensi). Ilgari bu
                  yerda ustunlar turgan; referensda esa silliq chiziq va gradient
                  to'ldirish bor — tendensiya bir qarashda ko'rinadi.
@@ -680,8 +702,8 @@
             <div class="orders-table-wrap glass">
               <table class="orders-table orders-table-wide">
                 <thead><tr>
-                  <th>Foydalanuvchi</th><th>Rol</th><th class="num">Kredit</th>
-                  <th class="num">AI / 7 kun</th><th class="num">Buyurtma</th>
+                  <th>Foydalanuvchi</th><th>Telefon</th><th>Rol</th><th class="num">Kredit</th>
+                  <th class="num">Buyurtma</th>
                   <th>Qo'shilgan</th><th>Oxirgi kirish</th><th>Amal</th>
                 </tr></thead>
                 <tbody id="buRows"></tbody>
@@ -690,12 +712,13 @@
 
             <div class="panel glass bu-feed">
               <div class="panel-head">
-                <div class="panel-title">Oxirgi harakatlar</div>
+                <div class="panel-title">Oxirgi harakatlar <span class="bu-who" id="buFeedWho"></span></div>
                 <span class="panel-sub" id="buFeedCount"></span>
               </div>
               <div class="bu-kinds" id="buKinds"></div>
               <div class="bu-feed-list" id="buFeed"></div>
               <div class="stat-foot">
+                Foydalanuvchi nomini bossangiz — faqat uning harakatlari (30 kun).
                 Lentaga faqat KIRGAN foydalanuvchining o'zi bajargan amallar tushadi
                 (sevimli, AI rasm, buyurtma, saytga kirish). Mato ko'rishlari bu yerda YO'Q —
                 ko'rish anonim o'lchanadi (Trafik sahifasi).
@@ -792,6 +815,6 @@
     </div>
   </div>
 
-  <script src="admin.js?v=33"></script>
+  <script src="admin.js?v=34"></script>
 </body>
 </html>

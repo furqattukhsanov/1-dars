@@ -41,6 +41,38 @@ Founder sifatida platformani to'liq nazorat qilish: ishlab chiqaruvchilarni tasd
 
 ## Qilingan ishlar
 
+- [2026-08-23] **«BOT USERLAR» — TELEFON USTUNI, `/start` DA RAQAM SO'ROVI,
+  PER-USER HARAKAT LENTASI VA TRAFIKDA «FOYDALANUVCHI HARAKATLARI».** Founder
+  beshta so'rovi: (1) «jadvalda telefonni ko'rsat» — `GET /api/admin/users`
+  javobiga `phone` (panel admin tokeni bilan yopiq, raqam buyurtma bo'yicha
+  bog'lanish uchun), jadvalda «Telefon» ustuni, ☎ belgisi o'rniga raqamning
+  o'zi (yo'q bo'lsa «—»); (2) «Start bosgandan keyin telefonni so'rasin» —
+  `routes/webhook.js` `/start` upsert'i `RETURNING phone`, raqam YO'Q
+  bo'lgandagina `request_contact: true` klaviaturasi («📱 Raqamni yuborish»),
+  majburiy emas, raqami borga qayta so'ralmaydi, kontaktni mavjud
+  `msg.contact` tarmog'i saqlaydi; (3) «qaysi user nimalar qilgan» — yangi
+  `GET /api/admin/user-events?tg=&days=` (`server.js` marshrut, 300 qator
+  chegara), panelda ism bosiladi → lenta shu odamga filtrlanadi, «Hammasi»
+  qaytaradi; (4) «umumiy muhim statistika» — `/api/admin/traffic` javobida
+  `actions: {total, kinds, daily}` (`user_events`, Toshkent kuni), Trafik
+  sahifasida kartalar + «Harakatlar dinamikasi» grafigi, 7/30/90 ga
+  bo'ysunadi, backend orqada bo'lsa blok YASHIRINADI (nol chizilmaydi);
+  (5) «AI / 7 kun» ustuni olib tashlandi (API'da `aiWeek` qoldi).
+  Qorovul: **Test 51 → 1c-band** — `request_contact` bor VA `phone`
+  bor-yo'qligiga bog'langan. **Hisobotchi mustaqil o'lchadi:** `✅ Test`
+  yashil soni **91** (da'vo bilan mos); o'z mutatsiyasi
+  (`if (!telefonBor)` → `if (true)`) Test 51 da QIZIL
+  («telefon so'rovi `phone` BOR-YO'QLIGIGA bog'lanmagan»), fayl `cp`
+  nusxadan tiklandi va `cmp` bilan tasdiqlandi. Brauzerdagi soxta-holat
+  tekshiruvi va jonli bot xatti-harakati hisobotchi tomonidan
+  TEKSHIRILMADI. **Halol chegara:** lenta va harakat kartalari 2026-08-23
+  dan o'lchanadi; telefon so'rovi jonli botda hali sinalmagan — deploy'dan
+  keyin founder `/start` bosib ko'radi. Kesh: `admin.js` 33→**34**,
+  `admin.css` 21→**22**, `panel.js` 54→**55** (Test 16 jadvali birga).
+  🔴 **DEPLOY: STATIK + BACKEND** — `server/routes/admin.js`, `webhook.js`,
+  `server.js` o'zgardi: rsync (`--no-owner --no-group`) + servis restart;
+  migratsiya YO'Q. **PUSH YO'Q.**
+
 - [2026-08-23] **«BOT USERLAR» — 30 DAN 16 TASIDA `@username` YO'Q EDI: MINI APP
   KIRISHI USERNAME'NI UZATMASDI.** Founder savoli: «nimaga hamma userning
   username'i ko'rinmayapti?». Sabab: `users` ga TO'RT yo'l yozadi va Mini App
@@ -417,6 +449,17 @@ Founder sifatida platformani to'liq nazorat qilish: ishlab chiqaruvchilarni tasd
 
 ## Qarorlar
 
+- [2026-08-23] Qaror (founder): **telefon raqami paneldagi jadvalda OCHIQ
+  ko'rinadi** (`phone`, ☎ belgisi emas) — panel admin tokeni bilan yopiq,
+  raqam buyurtma bo'yicha bog'lanish uchun kerak.
+- [2026-08-23] Qaror (founder): **telefon `/start` dan keyin DARHOL
+  so'raladi, lekin MAJBURIY emas** — faqat bazada raqam yo'q bo'lganda
+  (`RETURNING phone`), «o'tkazib yuborish» tugmasi yo'q, klaviatura shunchaki
+  turadi. Qorovul — Test 51 → 1c.
+- [2026-08-23] Qaror: **«Foydalanuvchi harakatlari» bloki backend orqada
+  bo'lsa YASHIRINADI** — `actions` kelmasa nol chizilmaydi («o'ylab
+  topilgan raqam» qoidasi). Tur ro'yxati serverdan (`USER_EVENT_KINDS`),
+  panelda qo'lda yozilmaydi.
 - [2026-08-23] Qaror: **`users` ga yozadigan HAR yo'l `tg_username` ni
   uzatadi va `ON CONFLICT` da yangilaydi** — bitta yo'l tashlab ketsa panel
   jimgina bo'sh `@username` ko'rsatadi. Backfill qilinmaydi: qiymat keyingi

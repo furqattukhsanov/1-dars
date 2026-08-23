@@ -1404,10 +1404,10 @@ function testAssetVersionsAreFresh() {
     // YUQORIGA suriladi: teng raqam qaytib kelgan foydalanuvchida keshdagi
     // BIR TOMONLAMA faylni qoldirardi — sevimlilar yoki chiqish tuzatishining
     // faqat bittasi bo'lgan `app.js`.
-    'panel.js': { v: 54, hash: '6e66e3b9a823' },
+    'panel.js': { v: 55, hash: '71efab30491c' },
     // 2026-08-23: «Bot userlar» sahifasi, mahsulot jadvali, 7/30/90 oraliq.
-    'admin/admin.css': { v: 21, hash: '328ee0d3fade' },
-    'admin/admin.js': { v: 33, hash: '099f2717f3ba' },
+    'admin/admin.css': { v: 22, hash: '2b63d25b1098' },
+    'admin/admin.js': { v: 34, hash: '56844af79b82' },
     'telegram-app/styles.css': { v: 36, hash: '570a2450c3a4' },
     'telegram-app/app.js': { v: 102, hash: 'ba922a9a4d31' },
     'telegram-app/pwa.js': { v: 6, hash: '798ab85e1cde' },
@@ -5477,6 +5477,15 @@ function testBotUsersPage() {
   const wa = oqi('routes/web-auth.js');
   const loginBlok = wa.slice(wa.indexOf('INSERT INTO web_sessions'), wa.indexOf('INSERT INTO web_sessions') + 1500);
   assert.ok(/touchLastSeen\(/.test(loginBlok), 'web-auth.js: sessiya yaratilganda `touchLastSeen(` yo\'q — saytga kirish «oxirgi kirish» bo\'lib sanalmaydi');
+
+  // ── 1c-band: `/start` telefon SO'RAYDI — faqat raqam YO'Q bo'lganda
+  // (2026-08-23, founder: «ertaroq telefon raqamini olamiz»). Shartsiz
+  // so'ralsa raqami bor odam har `/start` da bezovta bo'lardi.
+  const wh = oqi('routes/webhook.js');
+  const startBlok = wh.slice(wh.indexOf("if (text.startsWith('/start'))"), wh.indexOf('} else {', wh.indexOf("if (text.startsWith('/start'))")));
+  assert.ok(/request_contact:\s*true/.test(startBlok), "webhook.js `/start` tarmog'ida `request_contact: true` yo'q — telefon boshidanoq so'ralmaydi");
+  assert.ok(/RETURNING phone/.test(startBlok) && /if \(!telefonBor\)/.test(startBlok),
+    "webhook.js: telefon so'rovi `phone` BOR-YO'QLIGIGA bog'lanmagan — raqami bor odam ham har /start da so'raladi");
 
   // ── 2-band: har tur kamida bitta joyda yoziladi ──
   const { KINDS } = require('./lib/user-events');

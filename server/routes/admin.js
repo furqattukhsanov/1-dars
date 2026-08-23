@@ -339,7 +339,7 @@ async function handleAdminTraffic(req, res, ip) {
   const days = Number.isInteger(xom) ? Math.min(90, Math.max(7, xom)) : 30;
 
   try {
-    const [dailyRes, faceRes, screenRes, productRes, refRes, funnelRes, sinceRes] = await Promise.all([
+    const [dailyRes, faceRes, screenRes, productRes, refRes, funnelRes, sinceRes, actKindRes, actDailyRes] = await Promise.all([
       // ---- Kunlik qator. `generate_series` bo'sh kunlarni ham beradi (GMV
       // grafigidagi bilan bitta naqsh) — aks holda tashrifsiz kun grafikdan
       // tushib qolib, chiziq uzilardi.
@@ -476,6 +476,26 @@ async function handleAdminTraffic(req, res, ip) {
                   - date_trunc('day', min(at) AT TIME ZONE 'Asia/Tashkent')::date) + 1))::int
                  AS measured_days
           FROM traffic_events`, [days]),
+
+      // ---- Foydalanuvchi HARAKATLARI (db/029, 2026-08-23 founder referensi:
+      // «umumiy muhim statistika»). `traffic_events` dan boshqa manba: bu
+      // yerda KIRGAN foydalanuvchining amali (sevimli, AI, buyurtma, kirish).
+      // Yorliq serverdan (`KINDS`). Kunlik qator — Toshkent kuni bo'yicha,
+      // yuqoridagi bilan bir xil sabab.
+      pool.query(`
+        SELECT kind, count(*)::int AS n FROM user_events
+         WHERE at >= now() - ($1::int * interval '1 day')
+         GROUP BY kind ORDER BY n DESC`, [days]),
+      pool.query(`
+        SELECT to_char(d, 'YYYY-MM-DD') AS day, count(e.id)::int AS n
+          FROM generate_series(date_trunc('day', now() AT TIME ZONE 'Asia/Tashkent')
+                                 - ($1::int - 1) * interval '1 day',
+                               date_trunc('day', now() AT TIME ZONE 'Asia/Tashkent'),
+                               interval '1 day') d
+          LEFT JOIN user_events e
+                 ON e.at >= d AT TIME ZONE 'Asia/Tashkent'
+                AND e.at <  (d + interval '1 day') AT TIME ZONE 'Asia/Tashkent'
+         GROUP BY d ORDER BY d`, [days]),
     ]);
 
     const face = (n) => faceRes.rows.find((r) => r.face === n) || { views: 0, visitors: 0 };
@@ -512,6 +532,12 @@ async function handleAdminTraffic(req, res, ip) {
       refs: refRes.rows.map((r) => ({ ref: r.ref, views: r.views })),
 
       funnel: { viewed: f.viewed, carted: f.carted, ordered: f.ordered },
+
+      actions: {
+        total: actKindRes.rows.reduce((s, r) => s + r.n, 0),
+        kinds: actKindRes.rows.map((r) => ({ kind: r.kind, label: USER_EVENT_KINDS[r.kind] || r.kind, n: r.n })),
+        daily: actDailyRes.rows.map((r) => ({ day: String(r.day), n: r.n })),
+      },
     });
   } catch (e) {
     // ⚠️ Jadval hali yaratilmagan bo'lsa (migratsiya o'tkazilmagan) bu yerga
@@ -546,7 +572,7 @@ async function handleAdminUsers(req, res, ip) {
   try {
     const [usersRes, feedRes, kindRes] = await Promise.all([
       pool.query(`
-        SELECT u.tg_user_id, u.full_name, u.tg_username, u.role, u.phone IS NOT NULL AS has_phone,
+        SELECT u.tg_user_id, u.full_name, u.tg_username, u.role, u.phone, u.phone IS NOT NULL AS has_phone,
                u.created_at, u.last_seen_at, u.engaged_at IS NOT NULL AS engaged,
                c.balance, c.spent,
                (SELECT count(*) FROM user_events e
@@ -580,7 +606,9 @@ async function handleAdminUsers(req, res, ip) {
       users: usersRes.rows.map((r) => ({
         tgId: String(r.tg_user_id),
         name: r.full_name, username: r.tg_username, role: r.role,
-        hasPhone: r.has_phone, engaged: r.engaged,
+        // Raqamning O'ZI — founder qarori (2026-08-23): panel admin tokeni
+        // bilan yopiq, raqam buyurtma bo'yicha bog'lanish uchun kerak.
+        phone: r.phone || null, hasPhone: r.has_phone, engaged: r.engaged,
         createdAt: r.created_at ? new Date(r.created_at).toISOString() : null,
         lastSeen: r.last_seen_at ? new Date(r.last_seen_at).toISOString() : null,
         aiWeek: r.ai_week, orders: r.orders,
@@ -603,6 +631,38 @@ async function handleAdminUsers(req, res, ip) {
     });
   } catch (e) {
     console.error('adminUsers xatosi:', e.message);
+    fail(res, 'server error', 500);
+  }
+}
+
+// ============ /api/admin/user-events — BITTA FOYDALANUVCHI HARAKATLARI (2026-08-23) ============
+// Founder: «qaysi user nimalar qilganini». Umumiy lenta 150 qator bilan
+// chegaralangan — bitta odamniki shu yerdan, o'z oynasi bilan.
+async function handleAdminUserEvents(req, res, ip) {
+  if (rateLimited(`adminuserev:${ip}`, 60)) return fail(res, 'too many requests', 429);
+  if (!adminPanelAuth(req, res)) return;
+  const u = new URL(req.url, 'http://x');
+  const tg = String(u.searchParams.get('tg') || '').trim();
+  if (!/^\d{1,19}$/.test(tg)) return fail(res, 'tg yaroqsiz', 400);
+  const xom = parseInt(u.searchParams.get('days'), 10);
+  const days = Number.isInteger(xom) ? Math.min(365, Math.max(1, xom)) : 30;
+  try {
+    const { rows } = await pool.query(`
+      SELECT e.at, e.kind, e.product_id, e.label, p.name_uz AS product_name
+        FROM user_events e
+        LEFT JOIN products p ON p.id = e.product_id
+       WHERE e.tg_user_id = $1 AND e.at >= now() - ($2::int * interval '1 day')
+       ORDER BY e.at DESC LIMIT 300`, [tg, days]);
+    ok(res, {
+      tgId: tg, days,
+      feed: rows.map((r) => ({
+        at: new Date(r.at).toISOString(),
+        kind: r.kind, label: USER_EVENT_KINDS[r.kind] || r.kind,
+        subject: r.product_name || r.label || r.product_id || null,
+      })),
+    });
+  } catch (e) {
+    console.error('adminUserEvents xatosi:', e.message);
     fail(res, 'server error', 500);
   }
 }
@@ -1224,6 +1284,6 @@ async function handleAdminActionCallback(cq) {
 }
 
 module.exports = {
-  handleAdminSummary, handleAdminTraffic, handleAdminCfTraffic, handleAdminUsers,
+  handleAdminSummary, handleAdminTraffic, handleAdminCfTraffic, handleAdminUsers, handleAdminUserEvents,
   handleAdminActionRequest, handleAdminActionStatus, handleAdminActionCallback,
 };

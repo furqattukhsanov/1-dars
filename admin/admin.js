@@ -1211,6 +1211,31 @@ function renderTraffic() {
     </tr>`;
   }).join('') : `<tr><td colspan="6"><div class="empty-panel">Hali birorta mato ochilmagan</div></td></tr>`;
 
+  // ---- Foydalanuvchi harakatlari (2026-08-23). Kartalar serverdan kelgan
+  // turlar bo'yicha — ro'yxat bu yerda yo'q. Backend bir qadam orqada
+  // (`actions` yo'q) bo'lsa blok BUTUNLAY yashiriladi, nol chizilmaydi.
+  const act = t.actions;
+  const actEl = document.getElementById('trActions');
+  const actBlok = [actEl, actEl.previousElementSibling, document.querySelector('.tr-act-chart')];
+  if (!act || !Array.isArray(act.kinds)) {
+    actBlok.forEach((el) => { if (el) el.hidden = true; });
+  } else {
+    actBlok.forEach((el) => { if (el) el.hidden = false; });
+    document.getElementById('trActTotal').textContent = `${t.days} kunda ${fmtNum(act.total)} ta`;
+    const ranglar = ['pom', 'teal', 'saffron', 'teal', 'pom', 'saffron'];
+    actEl.innerHTML = act.kinds.length ? act.kinds.map((k, i) => `
+      <div class="stat-card glass">
+        <div class="stat-number">${fmtNum(k.n)}</div>
+        <div class="stat-label">${esc(k.label)}</div>
+        <div class="stat-foot ${ranglar[i % ranglar.length]}">${t.days} kun</div>
+      </div>`).join('')
+      : `<div class="empty-panel">${t.days} kunda harakat yo'q — lenta 2026-08-23 dan o'lchanadi</div>`;
+    const aKun = (act.daily || []).slice(-14);
+    document.getElementById('trActChart').innerHTML = areaChart(aKun.map((d) => d.n), 'act');
+    document.getElementById('trActChartX').innerHTML = xaxisHtml(aKun);
+    document.getElementById('trActBig').textContent = `${fmtNum(act.total)} harakat`;
+  }
+
   trafficRows('trScreens', (t.screens || []).map((s) => ({
     name: SCREEN_LABELS[s.screen] || s.screen, n: s.views,
   })), 'Ma\'lumot yo\'q');
@@ -1639,18 +1664,19 @@ function renderBotUsers() {
   document.getElementById('buCount').textContent = `${fmtNum(u.users.length)} ta`;
   document.getElementById('buNote').textContent =
     `Boshlang'ich kredit: ${u.limits.start} · cheksiz ro'yxatda: ${cheksiz} · `
-    + `«AI / 7 kun» — so'rovlar soni (keshdan kelgani ham) · «Oxirgi kirish» 2026-08-23 dan o'lchanadi, `
+    + `«Oxirgi kirish» 2026-08-23 dan o'lchanadi, `
     + `undan oldin kirganlar «—» ko'rinadi.`;
 
   document.getElementById('buRows').innerHTML = u.users.map((x) => {
     const ism = x.name || (x.username ? '@' + x.username : `#${x.tgId}`);
     const kredit = x.credits.unlimited ? '∞' : `${fmtNum(x.credits.balance)} <small>(sarf ${fmtNum(x.credits.spent)})</small>`;
+    // Ism BOSILADI → faqat shu odamning harakatlari (`/api/admin/user-events`).
     return `<tr>
-      <td><div class="bu-user"><b>${esc(ism)}</b>
-        <small>${x.username ? '@' + esc(x.username) + ' · ' : ''}#${esc(x.tgId)}${x.hasPhone ? ' · ☎' : ''}</small></div></td>
+      <td><div class="bu-user" data-user="${esc(x.tgId)}" data-name="${esc(ism)}" title="Harakatlarini ko'rish"><b>${esc(ism)}</b>
+        <small>${x.username ? '@' + esc(x.username) + ' · ' : ''}#${esc(x.tgId)}</small></div></td>
+      <td>${x.phone ? esc(x.phone) : '<span class="bu-dim">—</span>'}</td>
       <td>${esc(ROL_NOMI[x.role] || x.role)}</td>
       <td class="num">${kredit}</td>
-      <td class="num">${fmtNum(x.aiWeek)}</td>
       <td class="num">${fmtNum(x.orders)}</td>
       <td>${esc(fmtVaqt(x.createdAt))}</td>
       <td>${esc(fmtVaqt(x.lastSeen))}</td>
@@ -1659,16 +1685,46 @@ function renderBotUsers() {
     </tr>`;
   }).join('') || `<tr><td colspan="8"><div class="empty-panel">Foydalanuvchi yo'q</div></td></tr>`;
 
-  document.getElementById('buFeedCount').textContent = `${u.days} kunda ${fmtNum(u.total)} ta`;
-  document.getElementById('buKinds').innerHTML = (u.kinds || []).map((k) =>
-    `<span class="bu-kind">${esc(k.label)}<i>${fmtNum(k.n)}</i></span>`).join('');
-  document.getElementById('buFeed').innerHTML = (u.feed || []).length
-    ? u.feed.map((e) => `<div class="bu-ev">
-        <div class="bu-ev-main"><b>${esc(e.label)}</b>${e.subject ? `<span>${esc(e.subject)}</span>` : ''}</div>
-        <div class="bu-ev-meta">${esc(e.user)} · ${esc(fmtVaqt(e.at))}</div>
-      </div>`).join('')
-    : `<div class="empty-panel">${u.days} kunda harakat yo'q</div>`;
+  buFeedRender(null);
 }
+
+// Lenta: `kim` null → umumiy (serverdan kelgan 7 kunlik), aks holda bitta
+// foydalanuvchi (`/api/admin/user-events`, 30 kun). Yorliqlar serverdan.
+function buFeedRender(kim, feed, days) {
+  const u = state.users;
+  const who = document.getElementById('buFeedWho');
+  const list = kim ? feed : (u.feed || []);
+  const kun = kim ? days : u.days;
+  who.innerHTML = kim
+    ? `— ${esc(kim.name)} <button class="bu-all" id="buFeedAll">Hammasi</button>` : '';
+  document.getElementById('buFeedCount').textContent = `${kun} kunda ${fmtNum(kim ? list.length : u.total)} ta`;
+  const kinds = kim
+    ? Object.entries(list.reduce((m, e) => { m[e.label] = (m[e.label] || 0) + 1; return m; }, {}))
+        .map(([label, n]) => ({ label, n })).sort((a, b) => b.n - a.n)
+    : (u.kinds || []);
+  document.getElementById('buKinds').innerHTML = kinds.map((k) =>
+    `<span class="bu-kind">${esc(k.label)}<i>${fmtNum(k.n)}</i></span>`).join('');
+  document.getElementById('buFeed').innerHTML = list.length
+    ? list.map((e) => `<div class="bu-ev">
+        <div class="bu-ev-main"><b>${esc(e.label)}</b>${e.subject ? `<span>${esc(e.subject)}</span>` : ''}</div>
+        <div class="bu-ev-meta">${kim ? '' : esc(e.user) + ' · '}${esc(fmtVaqt(e.at))}</div>
+      </div>`).join('')
+    : `<div class="empty-panel">${kun} kunda harakat yo'q</div>`;
+  const all = document.getElementById('buFeedAll');
+  if (all) all.onclick = () => buFeedRender(null);
+}
+
+document.addEventListener('click', async (e) => {
+  const row = e.target.closest('[data-user]');
+  if (!row) return;
+  try {
+    const r = await api(`/api/admin/user-events?tg=${encodeURIComponent(row.dataset.user)}&days=30`);
+    buFeedRender({ name: row.dataset.name }, r.feed || [], r.days);
+    document.querySelector('.bu-feed').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } catch (err) {
+    toast('Harakatlar olinmadi: ' + err.message, 'err');
+  }
+});
 
 // Kredit berish — boshqa yozuv amallari kabi Telegram tasdig'idan o'tadi.
 document.addEventListener('click', async (e) => {

@@ -417,6 +417,7 @@ async function handleTelegramWebhook(req, res) {
       // rad etilgan havolani ALERTGA chiqaradi (izohi funksiya ustida).
       const manba = manbaAniqla(startParam);
 
+      let telefonBor = true;   // noma'lum bo'lsa SO'RALMAYDI (yozuv yiqilgan holat)
       if (msg.from && msg.from.id) {
         const startName =
           [msg.from.first_name, msg.from.last_name].filter(Boolean).join(' ')
@@ -430,12 +431,14 @@ async function handleTelegramWebhook(req, res) {
            ON CONFLICT (tg_user_id) DO UPDATE
              SET full_name   = COALESCE(users.full_name, EXCLUDED.full_name),
                  tg_username = COALESCE(EXCLUDED.tg_username, users.tg_username),
-                 src         = COALESCE(users.src, EXCLUDED.src)`,
+                 src         = COALESCE(users.src, EXCLUDED.src)
+           RETURNING phone`,
           // ⚠️ `manba` — TOZALANGAN qiymat, `startParam` EMAS. Xom payload
           // bazaga tushsa panel `GROUP BY` ga ixtiyoriy matn kirardi.
           [String(msg.from.id), startName, msg.from.username || null, manba]
+        ).then((r) => { telefonBor = !!(r.rows[0] && r.rows[0].phone); })
         // Birinchi argument — alert guruhlash kaliti, o'zgaruvchan qism ikkinchida.
-        ).catch((e) => console.error('/start foydalanuvchini yozishda xato:', e.message));
+        .catch((e) => console.error('/start foydalanuvchini yozishda xato:', e.message));
       }
 
       // Saytdan kelgan kirish havolasi: /start web_<kod>
@@ -449,6 +452,25 @@ async function handleTelegramWebhook(req, res) {
         msg.chat.id,
         "Assalomu alaykum! 🌷 <b>LolaMarket</b> — to'qima materiallar uchun B2B platforma.\n\nQuyidagi tugma orqali katalogni oching. Ishlab chiqaruvchi bo'lsangiz — /sotuvchi buyrug'ini yuboring."
       );
+      // ============ TELEFONNI BOSHIDANOQ SO'RASH (2026-08-23, founder) ============
+      // «Ertaroq telefon raqamini olamiz». Raqam faqat bazada YO'Q bo'lganda
+      // so'raladi — bor odamga har `/start` da qayta so'rash bezovta qiladi.
+      // Kelgan kontaktni yuqoridagi `msg.contact` tarmog'i saqlaydi (o'sha
+      // kod: faqat O'ZINING kontakti qabul qilinadi, `user_id === from.id`).
+      // Bu MAJBURIY emas — tugmani bosmasa ham do'kon ochiladi; «o'tkazib
+      // yuborish» uchun alohida tugma yo'q, klaviatura shunchaki turadi va
+      // kontakt kelganda `remove_keyboard` bilan yig'iladi.
+      if (!telefonBor) {
+        await callTelegram('sendMessage', {
+          chat_id: msg.chat.id,
+          text: "📱 Buyurtma va aloqa uchun telefon raqamingizni ulashing — pastdagi tugmani bosing. "
+            + "Raqam faqat buyurtmangiz bo'yicha bog'lanish uchun ishlatiladi.",
+          reply_markup: {
+            keyboard: [[{ text: '📱 Raqamni yuborish', request_contact: true }]],
+            resize_keyboard: true, one_time_keyboard: true,
+          },
+        }).catch((e) => console.error('/start telefon so\'rovi xatosi:', e.message));
+      }
     } else {
       await sendOpenAppMessage(msg.chat.id, "Ilovani ochish uchun quyidagi tugmani bosing:");
     }
