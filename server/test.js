@@ -1404,10 +1404,10 @@ function testAssetVersionsAreFresh() {
     // YUQORIGA suriladi: teng raqam qaytib kelgan foydalanuvchida keshdagi
     // BIR TOMONLAMA faylni qoldirardi — sevimlilar yoki chiqish tuzatishining
     // faqat bittasi bo'lgan `app.js`.
-    'panel.js': { v: 53, hash: '5beef6e46be7' },
+    'panel.js': { v: 54, hash: '6e66e3b9a823' },
     // 2026-08-23: «Bot userlar» sahifasi, mahsulot jadvali, 7/30/90 oraliq.
     'admin/admin.css': { v: 21, hash: '328ee0d3fade' },
-    'admin/admin.js': { v: 32, hash: '3e38d951cf98' },
+    'admin/admin.js': { v: 33, hash: '099f2717f3ba' },
     'telegram-app/styles.css': { v: 36, hash: '570a2450c3a4' },
     'telegram-app/app.js': { v: 102, hash: 'ba922a9a4d31' },
     'telegram-app/pwa.js': { v: 6, hash: '798ab85e1cde' },
@@ -5466,6 +5466,18 @@ function testBotUsersPage() {
   assert.ok(/last_seen_at/.test(kodSofi(fs.readFileSync(path.join(__dirname, '..', 'db', '029_bot_userlar.sql'), 'utf8'))),
     'db/029 da `last_seen_at` ustuni yo\'q');
 
+  // ── 1b-band: KIRISH NUQTALARINING O'ZI ham yozadi (2026-08-23, founder:
+  // «oxirgi qachon kirganlarini ham hisobla»). Mini App kirishi
+  // (`/api/auth/telegram`) va sayt kirishi (`web-auth`) `requestUser()` dan
+  // o'tmaydi — ular `touchLastSeen` ni TO'G'RIDAN-TO'G'RI chaqirsin, aks
+  // holda ilovani ochib hech narsa bosmagan odam panelda abadiy «—».
+  const cat = oqi('routes/catalog.js');
+  const authTg = cat.slice(cat.indexOf('async function handleAuthTelegram('), cat.indexOf('\nasync function ', cat.indexOf('async function handleAuthTelegram(') + 10));
+  assert.ok(/touchLastSeen\(/.test(authTg), 'catalog.js → handleAuthTelegram `touchLastSeen(` chaqirmaydi — Mini App ochilishi «oxirgi kirish» bo\'lib sanalmaydi');
+  const wa = oqi('routes/web-auth.js');
+  const loginBlok = wa.slice(wa.indexOf('INSERT INTO web_sessions'), wa.indexOf('INSERT INTO web_sessions') + 1500);
+  assert.ok(/touchLastSeen\(/.test(loginBlok), 'web-auth.js: sessiya yaratilganda `touchLastSeen(` yo\'q — saytga kirish «oxirgi kirish» bo\'lib sanalmaydi');
+
   // ── 2-band: har tur kamida bitta joyda yoziladi ──
   const { KINDS } = require('./lib/user-events');
   const turlar = Object.keys(KINDS);
@@ -5508,6 +5520,35 @@ function testBotUsersPage() {
   assert.ok(/\/api\/admin\/users/.test(front), 'admin/admin.js `/api/admin/users` ni chaqirmayapti');
 
   console.log(`✅ Test 51: «Bot userlar» — kirish vaqti ikkala kanalda, ${turlar.length} tur yoziladi, buyurtma COMMIT dan keyin — PASS`);
+}
+
+// ============ TEST 52: HAR `users` UPSERT'I USERNAME'NI OLADI (2026-08-23) ============
+// Jonli panelda 30 foydalanuvchidan 16 tasida `@username` yo'q edi — odamlarda
+// username BOR (boshqa botda ko'rinadi), bizda yozilmagan. Sabab: `users` ga
+// to'rt yo'l yozadi va Mini App kirishi (`catalog.js`) `tg_username` ni
+// UZATMASDI — `initData` da turgan bo'lsa ham. «Bir yo'lda bor, ikkinchisida
+// yo'q» oilasi (`authUser()` naqshi). Qorovul: `routes/` dagi HAR BIR
+// `INSERT INTO users (...)` ustunlar ro'yxatida `tg_username` bo'lsin va
+// `ON CONFLICT` bo'limida u yangilansin. Ro'yxat manbadan yig'iladi.
+function testUsersUpsertCarriesUsername() {
+  const fs = require('fs');
+  const path = require('path');
+  const dir = path.join(__dirname, 'routes');
+  const yomon = [];
+  let topildi = 0;
+  for (const f of fs.readdirSync(dir).filter((x) => x.endsWith('.js'))) {
+    const src = kodSofi(fs.readFileSync(path.join(dir, f), 'utf8'));
+    for (const m of src.matchAll(/INSERT INTO users \(([^)]*)\)([\s\S]*?)(?:RETURNING|`)/g)) {
+      topildi++;
+      const ustunlar = m[1].split(',').map((x) => x.trim());
+      if (!ustunlar.includes('tg_username')) { yomon.push(`routes/${f}: INSERT ustunlarida tg_username yo'q`); continue; }
+      if (!/tg_username\s*=\s*COALESCE\(/.test(m[2])) yomon.push(`routes/${f}: ON CONFLICT da tg_username yangilanmaydi`);
+    }
+  }
+  assert.ok(topildi >= 4, `users upsert'lari topilmadi (${topildi}) — naqsh eskirgan`);
+  assert.deepStrictEqual(yomon, [],
+    'users ga yozadigan yo\'l username\'ni tashlab ketyapti — panelda @username bo\'sh qoladi:\n  ' + yomon.join('\n  '));
+  console.log(`✅ Test 52: users upsert'larining hammasi tg_username oladi — PASS (${topildi} yo'l)`);
 }
 
 // ============ TEST 43: YANGI JADVAL EGALIGI (2026-08-18) ============
@@ -6349,6 +6390,7 @@ async function runTests() {
     testTrafficMeasurement();
     testNewTablesAreOwnedByApp();
     testBotUsersPage();
+    testUsersUpsertCarriesUsername();
     testActionTargetsExist();
     testSortSheetAndHiddenWork();
     testDeepLinkTagsPassServer();

@@ -351,6 +351,13 @@
     <div id="faoliyat-list">
       <div class="faoliyat-item">
         <span class="faoliyat-sana">2026-08-23</span>
+        <span class="faoliyat-text"><b>&laquo;BOT USERLAR&raquo; — 30 DAN 16 TASIDA <code>@username</code> YO'Q EDI: MINI APP KIRISHI USERNAME'NI UZATMASDI.</b> Founder savoli: &laquo;nimaga hamma userning username'i ko'rinmayapti?&raquo;. Sabab: <code>users</code> ga TO'RT yo'l yozadi va Mini App kirishi (<code>routes/catalog.js</code> &rarr; <code>handleAuthTelegram</code>) <code>tg_username</code> ni upsert'ga UZATMASDI — imzolangan <code>initData</code> da u bor edi; menyu tugmasidan <code>/start</code> bosmasdan kirgan odam username'siz tushardi. Endi <code>COALESCE(EXCLUDED.tg_username, users.tg_username)</code> — <code>/start</code> bilan bir naqsh; 16 bo'sh qator keyingi ochilishda o'zi to'ladi, backfill YO'Q. Sotuvchi tasdig'i upsert'i ham username oladi. <b>Dars:</b> &laquo;bir yo'lda bor, ikkinchisida yo'q&raquo; oilasi — nuqson faqat panel ochilgach ko'rindi.
+        <b>Founder: &laquo;oxirgi qachon kirganlarini ham hisobla&raquo;</b> — kirish nuqtalarining o'zi <code>requestUser()</code> dan o'tmasdi: <code>touchLastSeen</code> eksport qilinib Mini App kirishi va sayt sessiyasi yaratilganda to'g'ridan-to'g'ri chaqiriladi (aks holda ilovani ochib hech narsa bosmagan odam abadiy &laquo;—&raquo;). <b>Founder: &laquo;qachon qo'shilganini ham hisobini ol&raquo;</b> — jadvalga &laquo;Qo'shilgan&raquo; ustuni.
+        <b>QOROVULLAR:</b> yangi <b>Test 52</b> — <code>routes/</code> dagi HAR <code>INSERT INTO users</code> ustunlarida <code>tg_username</code> va <code>ON CONFLICT</code> da yangilanishi (4 yo'l, manbadan yig'iladi); <b>Test 51 &rarr; 1b</b> — ikkala kirish nuqtasi <code>touchLastSeen(</code> chaqiradi. <b>HISOBOTCHI MUSTAQIL O'LCHADI:</b> 90 &rarr; <b>91</b> <code>✅ Test</code> yashil; o'z mutatsiyasi (sayt kirishidan <code>touchLastSeen</code> olib tashlash) Test 51 da QIZIL, fayl <code>cp</code> nusxadan tiklandi, <code>git status</code> boshlang'ich holatda. Jonli &laquo;30/16 NULL&raquo; da'vosi TEKSHIRILMADI (baza serverda). Kesh: <code>admin.js</code> 32&rarr;<b>33</b>, <code>panel.js</code> 53&rarr;<b>54</b>. 🔴 <b>DEPLOY: STATIK + BACKEND</b> (<code>routes/</code>, <code>lib/auth.js</code>) — rsync + servis restart; migratsiya YO'Q. <b>PUSH YO'Q.</b> Hujjat: <code>docs/sprintlar/sprint-7.md</code></span>
+        <span class="faoliyat-sprint">Sprint 7</span>
+      </div>
+      <div class="faoliyat-item">
+        <span class="faoliyat-sana">2026-08-23</span>
         <span class="faoliyat-text"><b><code>8136850</code> DEPLOY YAKUNI — PRODUCTION TASDIQLANDI VA CDN DARSI TOPILDI.</b> Backend: <code>/api/version</code> = <code>8136850</code>, <code>/api/admin/users</code> tokenli 200 / tokensiz 401; statik <code>admin.css?v=21</code>, <code>panel.js?v=52</code> hashlari mos. 🔴 <b><code>admin.js?v=32</code> — Cloudflare ESKI faylni YANGI kalit ostida qulflab olgan edi:</b> CI rsync tugamasdan yangi URL ga so'rov ketdi, CDN 71749 baytlik eski nusxani <code>HIT</code> qildi (serverda 79066 bayt) — sayt yangi HTML + eski JS berardi, <code>?v=</code> qoidasi bajarilgan bo'lsa ham. Purge serverning o'zida <code>.env</code> dagi token bilan, sir chiqmadi. <b>Hisobotchi mustaqil o'lchadi:</b> jonli <code>admin.js?v=32</code> &rarr; 79066 bayt, <code>3e38d951cf98</code>, lokal bilan aynan mos. Yangi qoida CLAUDE.md da: «CI tugamay turib yangi <code>?v=</code> manziliga so'rov yuborilmasin» (<code>gh run watch</code> &rarr; serverdagi sha256 &rarr; jonli URL). ⚠️ Jurnalda Gemini <code>429 prepayment credits depleted</code> (2026-08-22) — AI rasm production'da ISHLAMAYAPTI, founder'ga aytildi. Kesh: <code>panel.js</code> 52&rarr;<b>53</b>. PUSH YO'Q. Hujjat: docs/sprintlar/sprint-7.md</span>
         <span class="faoliyat-sprint">Sprint 7</span>
       </div>
@@ -1204,6 +1211,6 @@
 
 </div>
 
-<script src="panel.js?v=53" defer></script>
+<script src="panel.js?v=54" defer></script>
 </body>
 </html>

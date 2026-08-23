@@ -1652,11 +1652,12 @@ function renderBotUsers() {
       <td class="num">${kredit}</td>
       <td class="num">${fmtNum(x.aiWeek)}</td>
       <td class="num">${fmtNum(x.orders)}</td>
+      <td>${esc(fmtVaqt(x.createdAt))}</td>
       <td>${esc(fmtVaqt(x.lastSeen))}</td>
       <td><button class="bu-grant" data-grant="${esc(x.tgId)}" data-name="${esc(ism)}"
            ${x.credits.unlimited ? 'disabled title="cheksiz ro\'yxatda"' : ''}>Kredit berish</button></td>
     </tr>`;
-  }).join('') || `<tr><td colspan="7"><div class="empty-panel">Foydalanuvchi yo'q</div></td></tr>`;
+  }).join('') || `<tr><td colspan="8"><div class="empty-panel">Foydalanuvchi yo'q</div></td></tr>`;
 
   document.getElementById('buFeedCount').textContent = `${u.days} kunda ${fmtNum(u.total)} ta`;
   document.getElementById('buKinds').innerHTML = (u.kinds || []).map((k) =>

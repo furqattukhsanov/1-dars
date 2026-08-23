@@ -165,5 +165,5 @@ async function requireSeller(req, res) {
 
 module.exports = {
   verifyInitData, authUser, requestUser, isAdmin, adminPanelAuth,
-  currentSeller, requireSeller, sellerAllowed,
+  currentSeller, requireSeller, sellerAllowed, touchLastSeen,
 };

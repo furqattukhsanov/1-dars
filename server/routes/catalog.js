@@ -4,7 +4,7 @@ const { pool } = require('../db');
 const { BOT_TOKEN, ADMIN_PANEL_TOKEN, AI_IMAGE_ENABLED } = require('../config');
 const { aiClientConfig } = require('../lib/ai');
 const { mapsClientConfig } = require('../lib/maps');
-const { verifyInitData, authUser, requestUser, isAdmin, currentSeller } = require('../lib/auth');
+const { verifyInitData, authUser, requestUser, isAdmin, currentSeller, touchLastSeen } = require('../lib/auth');
 const { escapeHtml, money, safeEqual } = require('../lib/format');
 const { validate } = require('../lib/validate');
 const { rateLimited, readBody, sendJson, ok, fail } = require('../lib/http');
@@ -28,14 +28,27 @@ async function handleAuthTelegram(req, res, ip) {
       // `engaged_at` — BIRINCHI haqiqiy foydalanish belgisi (db/020).
       // `COALESCE` bilan bir marta yoziladi: keyingi ochishlar uni surmaydi,
       // aks holda "birinchi foydalanish" o'rniga "oxirgi" bo'lib qolardi.
-      `INSERT INTO users (tg_user_id, full_name, role, engaged_at)
-       VALUES ($1, $2, 'buyer', now())
+      //
+      // `tg_username` HAM shu yerdan (2026-08-23). Ilgari bu INSERT username'ni
+      // UZATMASDI, holbuki imzolangan `initData` da u bor — Mini App'ni menyu
+      // tugmasidan `/start` bosmasdan ochgan odam bazaga username'siz tushardi
+      // (jonli: 30 dan 16 ta `NULL`, boshqa botda o'sha odamlarda username bor).
+      // `/start` (`webhook.js`) bilan AYNI naqsh: yangi qiymat eskisini
+      // bosadi, yo'q bo'lsa eskisi qoladi — username o'zgartirilsa ham
+      // keyingi ochilishda yangilanadi. Qorovul: `server/test.js` → Test 52.
+      `INSERT INTO users (tg_user_id, full_name, tg_username, role, engaged_at)
+       VALUES ($1, $2, $3, 'buyer', now())
        ON CONFLICT (tg_user_id)
-       DO UPDATE SET full_name  = COALESCE(EXCLUDED.full_name, users.full_name),
-                     engaged_at = COALESCE(users.engaged_at, now())
+       DO UPDATE SET full_name   = COALESCE(EXCLUDED.full_name, users.full_name),
+                     tg_username = COALESCE(EXCLUDED.tg_username, users.tg_username),
+                     engaged_at  = COALESCE(users.engaged_at, now())
        RETURNING id, tg_user_id, full_name, role, created_at`,
-      [String(tgUser.id), fullName]
+      [String(tgUser.id), fullName, tgUser.username || null]
     );
+    // «Oxirgi kirish» (db/029): bu endpoint `requestUser()` dan O'TMAYDI
+    // (initData'ni o'zi tekshiradi), ya'ni ilovani ochib hech narsa bosmagan
+    // odam panelda «—» bo'lib qolardi. Kirishning o'zi ham kirish.
+    touchLastSeen(String(tgUser.id));
     // `aiImageEnabled` — AI rasm tugmasi chizilsinmi. Sozlama yaroqsiz bo'lsa
     // (config.js qorovuli) frontend tugmani UMUMAN ko'rsatmaydi: bosilgach
     // "xato" chiqadigan tugma sozlama buzilganini yashirardi.

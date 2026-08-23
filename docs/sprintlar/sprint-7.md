@@ -41,6 +41,36 @@ Founder sifatida platformani to'liq nazorat qilish: ishlab chiqaruvchilarni tasd
 
 ## Qilingan ishlar
 
+- [2026-08-23] **«BOT USERLAR» — 30 DAN 16 TASIDA `@username` YO'Q EDI: MINI APP
+  KIRISHI USERNAME'NI UZATMASDI.** Founder savoli: «nimaga hamma userning
+  username'i ko'rinmayapti?». Sabab: `users` ga TO'RT yo'l yozadi va Mini App
+  kirishi (`routes/catalog.js` → `handleAuthTelegram`, `/api/auth/telegram`)
+  `tg_username` ni upsert'ga UZATMASDI — imzolangan `initData` da u bor edi.
+  Menyu tugmasidan `/start` bosmasdan kirgan odam username'siz tushardi.
+  Endi `COALESCE(EXCLUDED.tg_username, users.tg_username)` — `/start` bilan
+  bir xil naqsh; 16 bo'sh qator keyingi ochilishda o'zi to'ladi, backfill
+  YO'Q. Sotuvchi tasdig'i upsert'i (`seller-application.js`) ham
+  `tg_username` oladi. **Dars:** «bir yo'lda bor, ikkinchisida yo'q» oilasi
+  (`authUser()` naqshi) — nuqson faqat panel ochilgach KO'RINDI.
+  **Founder: «oxirgi qachon kirganlarini ham hisobla»** — kirish nuqtalarining
+  O'ZI `requestUser()` dan o'tmasdi: `lib/auth.js` dan `touchLastSeen`
+  eksport qilindi, `handleAuthTelegram` va `web-auth.js` (sessiya yaratilganda)
+  uni to'g'ridan-to'g'ri chaqiradi — aks holda ilovani ochib hech narsa
+  bosmagan odam abadiy «—». **Founder: «qachon qo'shilganini ham hisobini
+  ol»** — jadvalga «Qo'shilgan» ustuni (`createdAt`, API'da allaqachon bor).
+  Qorovullar: **Test 52** (yangi) — `routes/` dagi HAR `INSERT INTO users`
+  ustunlarida `tg_username` va `ON CONFLICT` da yangilanishi, ro'yxat
+  manbadan yig'iladi (4 yo'l); **Test 51 → 1b-band** — ikkala kirish nuqtasi
+  `touchLastSeen(` chaqiradi. **Hisobotchi mustaqil o'lchadi:** 90 → **91**
+  `✅ Test` yashil; o'z mutatsiyasi (`web-auth.js` dan `touchLastSeen`
+  olib tashlash) Test 51 da QIZIL, fayl `cp` nusxadan tiklandi, `git status`
+  boshlang'ich holatda. Ish hisobotidagi 2 mutatsiya va jonli «30/16 NULL,
+  `1300211622` boshqa botda `@Shahodaat`» da'volari hisobotchi tomonidan
+  TEKSHIRILMADI (baza serverda). Kesh: `admin.js` 32→**33**, `panel.js`
+  53→**54** (Test 16 jadvali birga). 🔴 **DEPLOY: STATIK + BACKEND** —
+  `server/routes/*` va `lib/auth.js` o'zgardi, rsync (`--no-owner
+  --no-group`) + servis restart; migratsiya YO'Q. **PUSH YO'Q.**
+
 - [2026-08-23] **`8136850` DEPLOY YAKUNI — production tasdiqlandi, yo'l-yo'lakay
   CDN DARSI.** Backend: `/api/version` = `8136850`, `/api/admin/users` tokenli
   200, tokensiz 401. Statik: `admin.css?v=21`, `panel.js?v=52` hashlari mos.
@@ -387,6 +417,13 @@ Founder sifatida platformani to'liq nazorat qilish: ishlab chiqaruvchilarni tasd
 
 ## Qarorlar
 
+- [2026-08-23] Qaror: **`users` ga yozadigan HAR yo'l `tg_username` ni
+  uzatadi va `ON CONFLICT` da yangilaydi** — bitta yo'l tashlab ketsa panel
+  jimgina bo'sh `@username` ko'rsatadi. Backfill qilinmaydi: qiymat keyingi
+  kirishda o'zi keladi. Qorovul — Test 52 (ro'yxat manbadan yig'iladi).
+- [2026-08-23] Qaror (founder): **kirishning o'zi «oxirgi kirish»** —
+  `requestUser()` dan o'tmaydigan kirish endpointlari `touchLastSeen` ni
+  to'g'ridan-to'g'ri chaqiradi (Test 51 → 1b).
 - [2026-08-23] Qaror: **yangi `?v=` manziliga so'rov faqat CI tugagandan
   KEYIN** — tekshiruv tartibi `gh run watch` → serverdagi `sha256` (`ssh`) →
   jonli URL. Sabab: CDN birinchi so'rovdagi tarkibni kalit ostida bir yil

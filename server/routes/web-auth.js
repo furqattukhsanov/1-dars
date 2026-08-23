@@ -6,6 +6,7 @@ const { safeEqual, dateLabel, sha256, randHex } = require('../lib/format');
 const { rateLimited, sendJson, fail, parseCookies } = require('../lib/http');
 const { callTelegram } = require('../lib/telegram-api');
 const { recordUserEvent } = require('../lib/user-events');
+const { touchLastSeen } = require('../lib/auth');
 const {
   SESSION_COOKIE, WEB_SESSION_TTL_DAYS, setSessionCookie, clearSessionCookie, webSessionUser,
 } = require('../lib/web-session');
@@ -102,6 +103,7 @@ async function handleWebLoginPoll(req, res, ip) {
     );
     setSessionCookie(res, token);
     void recordUserEvent(upd.rows[0].tg_user_id, 'web_login');   // lenta, db/029
+    touchLastSeen(String(upd.rows[0].tg_user_id));                 // «oxirgi kirish» — kirishning o'zi
     sendJson(res, 200, {
       ok: true,
       status: 'confirmed',

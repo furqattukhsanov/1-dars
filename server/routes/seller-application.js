@@ -173,14 +173,16 @@ async function handleSellerApplicationReview(chatId, action, appId, reason) {
       // bo'lmasdi (bot raqamni faqat `!user.phone` bo'lganda so'raydi).
       // Ariza raqami YO'QOLMAYDI — u `seller_applications.phone` da qoladi.
       // Qorovul: `server/test.js` → Test 31.
-      `INSERT INTO users (tg_user_id, full_name, phone, role, engaged_at)
-         VALUES ($1, $2, $3, 'seller', now())
+      `INSERT INTO users (tg_user_id, full_name, phone, tg_username, role, engaged_at)
+         VALUES ($1, $2, $3, $4, 'seller', now())
          ON CONFLICT (tg_user_id) DO UPDATE
            SET role = 'seller',
                phone = COALESCE(users.phone, EXCLUDED.phone),
+               tg_username = COALESCE(users.tg_username, EXCLUDED.tg_username),
                engaged_at = COALESCE(users.engaged_at, now())
          RETURNING id`,
-      [String(app.tg_user_id), app.business_name || app.tg_username || null, app.phone || null]
+      [String(app.tg_user_id), app.business_name || app.tg_username || null, app.phone || null,
+        app.tg_username || null]
     );
     const userId = userRows[0].id;
 
