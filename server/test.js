@@ -1404,7 +1404,7 @@ function testAssetVersionsAreFresh() {
     // YUQORIGA suriladi: teng raqam qaytib kelgan foydalanuvchida keshdagi
     // BIR TOMONLAMA faylni qoldirardi — sevimlilar yoki chiqish tuzatishining
     // faqat bittasi bo'lgan `app.js`.
-    'panel.js': { v: 52, hash: '0014bd2c36ed' },
+    'panel.js': { v: 53, hash: '5beef6e46be7' },
     // 2026-08-23: «Bot userlar» sahifasi, mahsulot jadvali, 7/30/90 oraliq.
     'admin/admin.css': { v: 21, hash: '328ee0d3fade' },
     'admin/admin.js': { v: 32, hash: '3e38d951cf98' },

@@ -351,6 +351,11 @@
     <div id="faoliyat-list">
       <div class="faoliyat-item">
         <span class="faoliyat-sana">2026-08-23</span>
+        <span class="faoliyat-text"><b><code>8136850</code> DEPLOY YAKUNI — PRODUCTION TASDIQLANDI VA CDN DARSI TOPILDI.</b> Backend: <code>/api/version</code> = <code>8136850</code>, <code>/api/admin/users</code> tokenli 200 / tokensiz 401; statik <code>admin.css?v=21</code>, <code>panel.js?v=52</code> hashlari mos. 🔴 <b><code>admin.js?v=32</code> — Cloudflare ESKI faylni YANGI kalit ostida qulflab olgan edi:</b> CI rsync tugamasdan yangi URL ga so'rov ketdi, CDN 71749 baytlik eski nusxani <code>HIT</code> qildi (serverda 79066 bayt) — sayt yangi HTML + eski JS berardi, <code>?v=</code> qoidasi bajarilgan bo'lsa ham. Purge serverning o'zida <code>.env</code> dagi token bilan, sir chiqmadi. <b>Hisobotchi mustaqil o'lchadi:</b> jonli <code>admin.js?v=32</code> &rarr; 79066 bayt, <code>3e38d951cf98</code>, lokal bilan aynan mos. Yangi qoida CLAUDE.md da: «CI tugamay turib yangi <code>?v=</code> manziliga so'rov yuborilmasin» (<code>gh run watch</code> &rarr; serverdagi sha256 &rarr; jonli URL). ⚠️ Jurnalda Gemini <code>429 prepayment credits depleted</code> (2026-08-22) — AI rasm production'da ISHLAMAYAPTI, founder'ga aytildi. Kesh: <code>panel.js</code> 52&rarr;<b>53</b>. PUSH YO'Q. Hujjat: docs/sprintlar/sprint-7.md</span>
+        <span class="faoliyat-sprint">Sprint 7</span>
+      </div>
+      <div class="faoliyat-item">
+        <span class="faoliyat-sana">2026-08-23</span>
         <span class="faoliyat-text"><b>&laquo;BOT USERLAR&raquo; SAHIFASI ADMIN PANELGA QO'SHILDI</b> — founder boshqa botining panelini referens qilib ko'rsatdi: foydalanuvchilar jadvali (ism / @username / ID / rol / AI kredit / AI 7 kun / buyurtma / oxirgi kirish / &laquo;Kredit berish&raquo;), &laquo;Oxirgi harakatlar&raquo; lentasi va tur chiplari. Trafik sahifasida <b>7/30/90 kun</b> tanlovi (ikkala manbaga ham) va &laquo;Eng ko'p ko'rilgan matolar&raquo; JADVALGA o'tdi — ko'rish / savat / sevimli / buyurtma / konv. (konversiya = buyurtma/ko'rish, ko'rish nol bo'lsa foiz CHIZILMAYDI). <b>FOUNDER QARORI: &laquo;Premium&raquo; YO'Q, faqat AI kredit.</b>
         <b>BAZA (<code>db/029</code>):</b> <code>users.last_seen_at</code> + yangi <code>user_events</code> jadvali (<code>OWNER TO lola</code> + sekvensiya — db/028 darsi) + <code>admin_actions_kind_check</code> ga <code>credit_grant</code>; o'z-o'zini tekshirish bloki (shakl qorovullari <code>&lt;img src=x&gt;</code> va <code>x; DROP TABLE</code> ni rad etishi SQL ichida sinaladi). <code>kind</code> ro'yxati bazada YO'Q, faqat shakl — ro'yxat kodda bitta joyda (<code>lib/user-events.js</code> &rarr; <code>KINDS</code>), db/014 darsi.
         <b>&laquo;OXIRGI KIRISH&raquo; BITTA NUQTADAN:</b> <code>lib/auth.js</code> &rarr; <code>requestUser()</code> ning IKKALA tarmog'ida <code>touchLastSeen</code> — yangi endpoint qo'shilganda eslab qolish shart emas; 5 daqiqada bir UPDATE, xato yutilmaydi. Eski foydalanuvchilarda <code>NULL</code> &rarr; &laquo;—&raquo;: sana o'ylab topilmaydi, o'lchov 2026-08-23 dan.
@@ -1199,6 +1204,6 @@
 
 </div>
 
-<script src="panel.js?v=52" defer></script>
+<script src="panel.js?v=53" defer></script>
 </body>
 </html>

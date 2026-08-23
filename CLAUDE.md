@@ -277,6 +277,16 @@
   bilan bitta oilada: **yozilgan qoida himoya emas — uni tekshiradigan test
   himoya**, va aynan bu qoida 2026-08-06 gacha faqat odat bo'lgani uchun
   buzilgan edi.
+- **CI TUGAMAY TURIB YANGI `?v=` MANZILIGA SO'ROV YUBORILMASIN** (2026-08-23,
+  production'da bo'ldi). Cloudflare versiyalangan faylni URL bo'yicha keshlaydi:
+  `admin.js?v=32` ga birinchi so'rov rsync hali tugamagan paytda ketdi va CDN
+  **eski tarkibni yangi kalit ostida** qulflab oldi (`HIT`, 71749 bayt;
+  serverda 79066). Natija — har tashrifchi yangi HTML + eski JS olardi, ya'ni
+  `?v=` qoidasi bajarilgan bo'lsa ham himoya yo'qoldi. Tekshiruv tartibi:
+  (1) `gh run watch` bilan CI ni KUTISH, (2) avval serverdagi faylning `sha256`
+  ini `ssh` bilan o'qish, (3) faqat keyin jonli URL. Agar eski tarkib keshlanib
+  qolgan bo'lsa — purge `.env` dagi `CF_API_TOKEN`/`CF_ZONE_ID` bilan serverning
+  O'ZIDA bajariladi (`purge_cache`, `files` ro'yxati), sir yozishmaga chiqmaydi.
 - **R2 — QO'SHIMCHA ombor, ALMASHTIRUVCHI emas** (2026-08-09). Rasm
   Cloudflare R2 ga (`lolamarket-storage`, `cdn.lolamarket.uz`) yoziladi, lekin
   Telegram nusxasi **O'CHIRILMAYDI**: `product_ai_image.file_id` `NOT NULL`

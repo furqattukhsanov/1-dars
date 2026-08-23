@@ -41,6 +41,23 @@ Founder sifatida platformani to'liq nazorat qilish: ishlab chiqaruvchilarni tasd
 
 ## Qilingan ishlar
 
+- [2026-08-23] **`8136850` DEPLOY YAKUNI — production tasdiqlandi, yo'l-yo'lakay
+  CDN DARSI.** Backend: `/api/version` = `8136850`, `/api/admin/users` tokenli
+  200, tokensiz 401. Statik: `admin.css?v=21`, `panel.js?v=52` hashlari mos.
+  🔴 **`admin.js?v=32` — Cloudflare ESKI tarkibni YANGI kalit ostida qulflab
+  olgan edi:** CI rsync tugamasdan yangi URL ga HEAD so'rov ketdi, CDN
+  71749 baytlik eski faylni `?v=32` ostida `HIT` qildi (serverda 79066 bayt,
+  `3e38d951cf98`), ya'ni sayt yangi HTML + eski JS berardi — `?v=` qoidasi
+  bajarilgan bo'lsa ham. Purge serverning O'ZIDA `.env` dagi
+  `CF_API_TOKEN`/`CF_ZONE_ID` bilan (`purge_cache`, `files`), sir chiqmadi.
+  Hisobotchi mustaqil o'lchadi: jonli `admin.js?v=32` → 79066 bayt,
+  `3e38d951cf98`, lokal bilan AYNAN mos. Yangi qoida CLAUDE.md ga yozildi
+  («CI tugamay turib yangi `?v=` manziliga so'rov yuborilmasin»). Kesh:
+  `panel.js?v=53` (faqat yangilanish matni, Test 16 jadvali birga).
+  ⚠️ Jurnalda: Gemini `HTTP 429 prepayment credits depleted` (2026-08-22) —
+  AI rasm production'da ISHLAMAYAPTI, founder'ga aytildi (hisobotchi
+  tekshirmadi — jurnal serverda). **PUSH YO'Q.**
+
 - [2026-08-23] **«BOT USERLAR» SAHIFASI — foydalanuvchilar jadvali, «Oxirgi
   harakatlar» lentasi, AI kredit berish; Trafik sahifasida 7/30/90 kun va
   mahsulot jadvali (ko'rish/savat/sevimli/buyurtma/konv.).** Founder boshqa
@@ -370,6 +387,11 @@ Founder sifatida platformani to'liq nazorat qilish: ishlab chiqaruvchilarni tasd
 
 ## Qarorlar
 
+- [2026-08-23] Qaror: **yangi `?v=` manziliga so'rov faqat CI tugagandan
+  KEYIN** — tekshiruv tartibi `gh run watch` → serverdagi `sha256` (`ssh`) →
+  jonli URL. Sabab: CDN birinchi so'rovdagi tarkibni kalit ostida bir yil
+  ushlab turadi; deploy oynasida yuborilgan so'rov eski faylni yangi nom
+  bilan qulflaydi. Purge serverda, sir yozishmaga chiqmaydi.
 - [2026-08-23] Qaror (founder): **«Premium» tushunchasi YO'Q — faqat AI
   kredit.** Referens paneldagi «Premium berish» tugmasi ko'chirilmadi;
   o'rniga `credit_grant` (Telegram tasdig'i bilan, balans QO'SHILADI).
