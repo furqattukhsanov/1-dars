@@ -1542,3 +1542,35 @@ body { min-height: 100vh; padding-bottom: 0; }
    uni yashira olmasdi — brauzerning `[hidden]` qoidasi muallif qoidasidan
    KUCHSIZ (CLAUDE.md, 2026-08-17 da narx paneli aynan shundan production'da
    hech qachon yopilmagan edi). Blok oddiy oqimda qoladi. */
+
+/* ─── Bot userlar (2026-08-23, db/029) ─── */
+.bu-user { display: flex; flex-direction: column; gap: .15rem; }
+.bu-user b { font-weight: 700; color: var(--ink-900, #1a1a1a); }
+.bu-user small { color: var(--text-muted); font-size: .72rem; }
+.bu-feed { margin-top: 1.2rem; }
+.bu-kinds { display: flex; flex-wrap: wrap; gap: .45rem; margin-bottom: 1rem; }
+.bu-kind {
+  font-size: .72rem; font-weight: 600; padding: .35rem .8rem; border-radius: 100px;
+  background: rgba(133,24,15,.06); color: var(--ink-700, #333);
+}
+.bu-kind i { font-style: normal; color: var(--text-muted); margin-left: .3rem; }
+.bu-feed-list { display: flex; flex-direction: column; }
+.bu-ev {
+  display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem;
+  padding: .75rem 0; border-bottom: 1px solid var(--border-hair);
+}
+.bu-ev:last-child { border-bottom: none; }
+.bu-ev-main b { display: block; font-weight: 700; font-size: .85rem; }
+.bu-ev-main span { color: var(--text-muted); font-size: .8rem; }
+.bu-ev-meta { color: var(--text-muted); font-size: .78rem; white-space: nowrap; }
+.bu-grant {
+  font-size: .7rem; font-weight: 700; padding: .45rem .9rem; border-radius: 100px;
+  border: none; cursor: pointer; background: var(--grad-pom); color: #fff;
+}
+.bu-grant:disabled { opacity: .45; cursor: default; }
+.tr-products { margin-bottom: 1.2rem; }
+.tr-products .orders-table td.num, .tr-products .orders-table th.num { text-align: right; }
+.tr-products .conv-ok { color: #1f8a3a; font-weight: 700; }
+.panel-sub { color: var(--text-muted); font-size: .78rem; }
+/* ⚠️ `#usersPageBody` va `#trafficBody` ga `display` BERILMAYDI — `hidden`
+   muallif `display` qoidasidan kuchsiz (CLAUDE.md, 2026-08-17). */

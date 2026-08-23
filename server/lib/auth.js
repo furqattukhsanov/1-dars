@@ -36,14 +36,37 @@ function authUser(req) {
 // maydonda, shunda chaqiruvchi kodda shart tarmoqlanmaydi. Topilmasa `null`.
 async function requestUser(req) {
   const tg = authUser(req);
-  if (tg && tg.id) return { id: String(tg.id), source: 'miniapp' };
+  if (tg && tg.id) { touchLastSeen(String(tg.id)); return { id: String(tg.id), source: 'miniapp' }; }
 
   // Marshrut emas, kutubxona — qatlam buzilmaydi (`lib/web-session.js`).
   const { webSessionUser } = require('./web-session');
   const web = await webSessionUser(req);
-  if (web && web.tgUserId) return { id: String(web.tgUserId), source: 'web' };
+  if (web && web.tgUserId) { touchLastSeen(String(web.tgUserId)); return { id: String(web.tgUserId), source: 'web' }; }
 
   return null;
+}
+
+// ---- «Oxirgi kirish» (2026-08-23, db/029) ----
+// AYNAN SHU YERDA, chunki kimlik ikkala kanalda ham shu nuqtadan o'tadi:
+// yangi endpoint qo'shilganda «oxirgi kirish»ni eslab qolish shart emas.
+// Mini App'da sessiya yo'q (har so'rov imzolangan `initData` bilan keladi),
+// ya'ni buni yozadigan boshqa joy yo'q edi.
+//
+// ⚠️ Har so'rovda UPDATE yozilmaydi — bir foydalanuvchi uchun 5 daqiqada
+// bir marta (xotirada). Bu aniqlikni yo'qotmaydi: panel daqiqa aniqligida
+// ko'rsatadi. Yozuv KUTILMAYDI va xato yutilmaydi (Test 10c kaliti).
+const LAST_SEEN_MS = 5 * 60 * 1000;
+const lastSeenYozildi = new Map();   // tg id → ms
+function touchLastSeen(tgId) {
+  const hozir = Date.now();
+  if ((lastSeenYozildi.get(tgId) || 0) > hozir - LAST_SEEN_MS) return;
+  lastSeenYozildi.set(tgId, hozir);
+  // Xarita cheksiz o'smasin — eskilari tozalanadi.
+  if (lastSeenYozildi.size > 5000) {
+    for (const [k, v] of lastSeenYozildi) if (v < hozir - LAST_SEEN_MS) lastSeenYozildi.delete(k);
+  }
+  pool.query(`UPDATE users SET last_seen_at = now() WHERE tg_user_id = $1`, [tgId])
+    .catch((e) => { console.error('last_seen yozish xatosi:', e.message); });
 }
 
 // Foydalanuvchi admin (moderator)mi? Kimlik imzolangan initData'dan olinadi,

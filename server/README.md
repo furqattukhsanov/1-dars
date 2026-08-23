@@ -582,6 +582,33 @@ ssh root@65.21.180.44 "grep -q TRAFFIC_SALT /opt/lolamarket-notify/.env || \
 #    Frontend (script.js, admin/, telegram-app/) CI orqali push bilan chiqadi.
 ```
 
+## «Bot userlar» sahifasi deploy qadamlari (2026-08-23)
+
+Admin panelda foydalanuvchilar ro'yxati (AI kredit, «AI / 7 kun», oxirgi
+kirish, «Kredit berish») va «Oxirgi harakatlar» lentasi. Manba — `db/029`:
+`users.last_seen_at` ustuni + `user_events` jadvali + `credit_grant` amali.
+
+⚠️ **Migratsiya BACKEND RESTARTIDAN OLDIN** — yangi kod `last_seen_at` ga
+yozadi; ustun yo'q bo'lsa har 5 daqiqada alert tushadi (ataylab jim emas).
+
+```bash
+# 1. Migratsiya (ustun + jadval + egalik + o'z-o'zini tekshirish)
+scp db/029_bot_userlar.sql root@65.21.180.44:/tmp/
+ssh root@65.21.180.44 "sudo -u postgres psql -d lolamarket -f /tmp/029_bot_userlar.sql"
+#    Oxirida `NOTICE: Tekshiruv OK — ...` chiqishi SHART.
+
+# 2. Kodni ko'chirish va restart (odatdagi Deploy bo'limi, `--no-owner --no-group`)
+#    Panel (admin/) CI orqali push bilan chiqadi.
+
+# 3. Tasdiqlash — token bilan (401 yetarli emas, db/028 darsi: jadval yo'q
+#    bo'lsa ham 401 to'g'ri chiqadi). `users` massivi kelishi kerak:
+ssh root@65.21.180.44 'T=$(grep -m1 "^ADMIN_PANEL_TOKEN=" /opt/lolamarket-notify/.env | cut -d= -f2-); \
+  curl -s -H "X-Admin-Token: $T" "https://lolamarket.uz/api/admin/users?days=7" | head -c 300'
+```
+
+«Oxirgi kirish» o'lchov boshlangan kundan yoziladi — eski foydalanuvchilarda
+«—» turadi va bu to'g'ri (sana o'ylab topilmaydi).
+
 ### Nginx
 
 Yangi blok **KERAK EMAS**: `/api/track` va `/api/admin/traffic` mavjud

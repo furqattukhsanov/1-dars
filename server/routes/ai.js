@@ -4,6 +4,7 @@ const {
 } = require('../config');
 const { pool } = require('../db');
 const { requestUser } = require('../lib/auth');
+const { recordUserEvent } = require('../lib/user-events');
 const { rateLimited, clientIp, readBody, sendJson, ok, fail } = require('../lib/http');
 const { imageSourceHash, generateImage, normalizeChoices, choicesHash, joriyJavobmi } = require('../lib/ai');
 const { tgGetFile, tgDownloadFile, sendPhotoBytes, sendPhotoWithEffect } = require('../lib/telegram-api');
@@ -203,6 +204,11 @@ async function handleAiImage(req, res) {
     const inp = JSON.parse(body || '{}');
     const productId = String(inp.productId || '').trim();
     if (!productId) return fail(res, 'productId kerak', 400);
+
+    // Lenta (db/029): SO'ROV sanaladi, natija emas — keshdan kelgan yoki
+    // yiqilgan urinish ham foydalanuvchining amali. Panel «AI / 7 kun»
+    // ustuni shundan oziqlanadi.
+    void recordUserEvent(tg.id, 'ai_image', { productId });
 
     // ---- Xaridor javoblari (2026-08-07) ----
     // Oq ro'yxatdan O'TKAZILADI va yaroqsizi 400 bilan RAD ETILADI.

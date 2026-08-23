@@ -1,6 +1,7 @@
 const { PREPAY_RATE, COMMISSION_RATE, DELIVERY_FEE_ESTIMATE } = require('../config');
 const { pool } = require('../db');
 const { authUser } = require('../lib/auth');
+const { recordUserEvent } = require('../lib/user-events');
 const { escapeHtml, money, dateLabel } = require('../lib/format');
 const { validate, ClientError } = require('../lib/validate');
 const { rateLimited, readBody, sendJson, fail } = require('../lib/http');
@@ -184,6 +185,8 @@ async function handleCreateOrder(req, res, ip) {
       note: 'Mini App',
     });
     await client.query('COMMIT');
+    // Lenta (db/029) — COMMIT dan KEYIN: tranzaksiya qaytarilsa yozuv qolmasin.
+    void recordUserEvent(u.id, 'order', { label: orderId });
 
     // Telegram xabarlari (baza yozilgach)
     const uShort = (u) => (u === 'rulon' ? 'rulon' : u || '');
@@ -358,6 +361,7 @@ async function handleCreateWebOrder(req, res, ip) {
       note: 'sayt (web)',
     });
     await client.query('COMMIT');
+    if (session && session.tgUserId) void recordUserEvent(session.tgUserId, 'order', { label: orderId });
 
     const uShort = (u) => (u === 'rulon' ? 'rulon' : u || '');
     const itemsText = items

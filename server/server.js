@@ -15,7 +15,7 @@ const {
 const {
   handleAdminSummary, handleAdminActionRequest, handleAdminActionStatus,
   handleAdminTraffic,
-  handleAdminCfTraffic,
+  handleAdminCfTraffic, handleAdminUsers,
 } = require('./routes/admin');
 const { handleTrack } = require('./routes/track');
 const {
@@ -151,6 +151,15 @@ function routeRequest(req, res) {
     if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
     if (req.method !== 'GET') return fail(res, 'method not allowed', 405);
     return handleAdminTraffic(req, res, ip);
+  }
+
+  // «Bot userlar» — foydalanuvchilar ro'yxati va harakatlar lentasi
+  // (2026-08-23, db/029). `summary` dan alohida — u og'irroq.
+  if (path === '/api/admin/users') {
+    cors(res, 'GET, OPTIONS');
+    if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
+    if (req.method !== 'GET') return fail(res, 'method not allowed', 405);
+    return handleAdminUsers(req, res, ip);
   }
 
   // Cloudflare Web Analytics — ALOHIDA yo'l (2026-08-19). Yuqoridagi bilan

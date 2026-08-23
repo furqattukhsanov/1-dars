@@ -41,6 +41,54 @@ Founder sifatida platformani to'liq nazorat qilish: ishlab chiqaruvchilarni tasd
 
 ## Qilingan ishlar
 
+- [2026-08-23] **«BOT USERLAR» SAHIFASI — foydalanuvchilar jadvali, «Oxirgi
+  harakatlar» lentasi, AI kredit berish; Trafik sahifasida 7/30/90 kun va
+  mahsulot jadvali (ko'rish/savat/sevimli/buyurtma/konv.).** Founder boshqa
+  botining admin panelini referens qilib ko'rsatdi; founder qarori —
+  **«Premium» YO'Q, faqat AI kredit.** Testlar: 89 → **90** `✅ Test` satri
+  (hisobotchi MUSTAQIL sanadi; ish hisobotidagi «91» yakuniy «Hammasi PASS»
+  qatorini ham qo'shib sanagan — raqam 90). `db/029_bot_userlar.sql`,
+  yangi `server/lib/user-events.js`, `GET /api/admin/users?days=7`,
+  `credit_grant` admin amali; kesh `admin.js?v=32`, `admin.css?v=21`,
+  `panel.js?v=52`.
+
+  **Nima qo'shildi:** (1) `users.last_seen_at` — «oxirgi kirish» `lib/auth.js`
+  → `requestUser()` ning IKKALA tarmog'ida (`touchLastSeen`), bir foydalanuvchi
+  uchun 5 daqiqada bir UPDATE, xato yutilmaydi; (2) `user_events` jadvali
+  (`tg_user_id`, `kind` — bazada faqat SHAKL tekshiruvi, ro'yxat KODDA
+  `KINDS`: favorite_add / favorite_remove / ai_image / order / web_login),
+  `OWNER TO lola` + sekvensiya (db/028 darsi); (3) hodisa nuqtalari:
+  sevimli faqat HAQIQIY o'zgarishda (`rowCount`), AI so'rov keshdan kelgani
+  ham, buyurtma ikkala yo'lda **COMMIT dan KEYIN**, saytga kirish;
+  (4) `credit_grant` — Telegram tasdig'idan o'tadi (panel faqat so'rov
+  yaratadi), balans QO'SHILADI (ustiga yozilmaydi), qator yo'q bo'lsa
+  `AI_CREDITS_START` dan boshlanadi (`takeCredits` bilan ayni mantiq),
+  cheksiz ro'yxatdagiga rad; `admin_actions_kind_check` qayta yozildi
+  (Test 23 qamraydi); (5) panelda yangi sahifa — jadval (ism / @username /
+  ID / rol / kredit / AI 7 kun / buyurtma / oxirgi kirish / «Kredit berish»)
+  + lenta + tur chiplari; yorliqlar SERVERDAN, frontendda ikkinchi ro'yxat
+  yo'q; tana FAQAT server javob berganda ochiladi, xato SABAB bilan.
+
+  **Qorovul — Test 51 (5 band):** `touchLastSeen` ikkala tarmoqda; `KINDS`
+  dagi har tur kamida bir joyda yoziladi va teskarisi; buyurtma hodisasi
+  COMMIT dan keyin; kredit QO'SHILADI; yorliqlar serverdan. Ish hisobotida
+  «4 mutatsiya, 4/4 ushlandi»; **hisobotchi mustaqil 2 mutatsiya qildi**
+  (sayt tarmog'idan `touchLastSeen` olib tashlandi; buyurtma hodisasi COMMIT
+  oldiga ko'chirildi) — ikkalasi ham ushlandi, fayllar `cp` nusxadan
+  tiklandi (`git checkout` EMAS), yakunda `git status` toza.
+  ⚠️ Nomerlash: qorovul avval «Test 44», keyin «48» deb yozilgan — ikkalasi
+  ham band ekan (`data-action` nishonlari, `Cloudflare bloki halol`).
+  Hisobotchi o'lchab topdi; yakunda **Test 51** (bo'sh raqam) qilindi.
+
+  🔴 **HALOL CHEGARA:** (a) `db/029` haqiqiy Postgres'da HALI ishlamagan
+  va u backend restartidan **OLDIN** qo'llanishi SHART (README'da qadamlar;
+  ustun yo'q bo'lsa har 5 daqiqada alert tushadi — ataylab jim emas);
+  (b) `server/` rsync + restart founder tomonidan (`--no-owner --no-group`);
+  (c) **founder panelni ko'z bilan ko'rmagan** — brauzerda SOXTA holat bilan
+  sinaldi, jonli ma'lumot bilan emas; (d) `credit_grant` Telegram tugmasi
+  jonli bosilmagan; (e) topbar'dagi «Oxirgi 30 kun» pill'i Trafik 7/90
+  tanlovida o'zgarmaydi (u dashboard uchun). **PUSH QILINMADI.**
+
 - [2026-08-19] **Cloudflare Web Analytics panelga ULANDI — bir yildan beri
   yig'ilib yotgan raqamlar birinchi marta KO'RILDI** (yangi
   `server/lib/cf-analytics.js`, `GET /api/admin/cf-traffic`, panelda alohida
@@ -322,6 +370,26 @@ Founder sifatida platformani to'liq nazorat qilish: ishlab chiqaruvchilarni tasd
 
 ## Qarorlar
 
+- [2026-08-23] Qaror (founder): **«Premium» tushunchasi YO'Q — faqat AI
+  kredit.** Referens paneldagi «Premium berish» tugmasi ko'chirilmadi;
+  o'rniga `credit_grant` (Telegram tasdig'i bilan, balans QO'SHILADI).
+- [2026-08-23] Qaror: **`traffic_events` ANONIMLIGI O'ZGARMADI** (Test 42).
+  «Kim nima qildi» uchun ALOHIDA `user_events` jadvali ochildi — unga faqat
+  KIRGAN foydalanuvchining O'ZI bajargan amal tushadi; «mato ko'rildi»
+  lentada YO'Q, chunki ko'rish anonim beacon orqali keladi. Ikki jadval
+  ikki xil va'da beradi va bitta jadvalga QO'SHILMAYDI.
+- [2026-08-23] Qaror: **«Oxirgi kirish» eski foydalanuvchilarda `NULL` → «—».**
+  `created_at` bilan to'ldirish jimgina yolg'on bo'lardi — o'lchov
+  2026-08-23 dan (`NULL` reyting va `src IS NULL` qoidalari bilan bitta oila).
+- [2026-08-23] Qaror: **«AI / 7 kun» — `user_events` dagi SO'ROVLAR soni**,
+  `ai_credits.spent` emas: u sanasiz va cheksiz ro'yxatdagilarda ham
+  o'sadi, ya'ni «7 kun» savoliga javob bera olmaydi. Keshdan kelgan so'rov
+  ham sanaladi — u foydalanuvchining amali.
+- [2026-08-23] Qaror: `user_events.kind` uchun bazada RO'YXAT yo'q, faqat
+  shakl (`^[a-z_]+$`); ro'yxat bitta joyda — `lib/user-events.js` →
+  `KINDS`. Sabab `to_status` / `admin_actions_kind_check` darsi (db/014):
+  ikkinchi ro'yxat himoya emas, tuzoq. `users` ga FK ham ataylab yo'q —
+  hodisa o'tmishdagi fakt, foydalanuvchi qatori o'chsa ham qolsin.
 - [2026-08-19] Qaror (founder): **admin panel tashriflari trafik
   hisobiga KIRMAYDI.** O'lchandi — 29 kunda 1700 ko'rishning 310 tasi
   `/admin/` va `/loyiha-panel.html` edi (18%), ya'ni panel o'z

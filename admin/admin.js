@@ -122,6 +122,8 @@ const state = {
   daily: [],     // { date:Date, gmv, plan, orders, commission }
   traffic: null, // null — o'lchanmagan/kelmagan (nol EMAS, `renderTraffic` izohi)
   cfTraffic: null, // Cloudflare — ALOHIDA manba, `traffic` ga bog'liq EMAS
+  trafficDays: 30, // 7 / 30 / 90 — founder referensi (2026-08-23)
+  users: null,     // «Bot userlar» (db/029) — null = kelmagan, {xato} = yiqilgan
 };
 
 /* ═══════════════════════ API ═══════════════════════ */
@@ -143,8 +145,10 @@ async function api(path, opts = {}) {
 const fetchSummary  = () => api('/api/admin/summary');
 const fetchDisputes = () => api('/api/admin/disputes');
 // Oraliq — 30 kun. `summary` dan alohida endpoint (`server.js` izohi).
-const fetchTraffic  = () => api('/api/admin/traffic?days=30');
-const fetchCfTraffic = () => api('/api/admin/cf-traffic?days=30');
+const fetchTraffic  = () => api(`/api/admin/traffic?days=${state.trafficDays}`);
+const fetchCfTraffic = () => api(`/api/admin/cf-traffic?days=${state.trafficDays}`);
+// «Bot userlar» — lenta 7 kunlik (referensdagi «7 kunda N ta»).
+const fetchUsers    = () => api('/api/admin/users?days=7');
 
 /* ═══════════════════════ Kirish ═══════════════════════ */
 
@@ -198,7 +202,7 @@ async function loadAll() {
   // ⚠️ Trafik ham SHU sababdan `catch` bilan: migratsiya (`db/028`) hali
   // o'tkazilmagan serverda endpoint 500 qaytaradi va butun panel qorong'i
   // bo'lib qolardi. `null` kelsa Trafik sahifasi o'zi sababni yozadi.
-  const [summary, disputes, traffic, cfTraffic] = await Promise.all([
+  const [summary, disputes, traffic, cfTraffic, users] = await Promise.all([
     fetchSummary(),
     fetchDisputes().catch(() => []),
     // ⚠️ Xato "ma'lumot yo'q" bilan ARALASHMASIN. Ilgari `catch` `null`
@@ -211,8 +215,11 @@ async function loadAll() {
     // ⚠️ U bizning trafikdan MUSTAQIL yiqiladi: bittasi ishlamasa
     // ikkinchisi baribir chiziladi.
     fetchCfTraffic().catch((e) => ({ xato: e.message || 'so\'rov yiqildi' })),
+    // «Bot userlar» — AYNI qoida: xato sabab bilan keladi, bo'sh emas.
+    fetchUsers().catch((e) => ({ xato: e.message || 'so\'rov yiqildi' })),
   ]);
   state.summary = summary;
+  state.users = users;
   state.disputes = disputes;
   state.traffic = traffic;
   // ⚠️ Endpoint javobi `{ ok, data }` — `api()` `data` ni ochib beradi,
@@ -374,6 +381,8 @@ function renderAll() {
   } catch (e) {
     console.error('renderTraffic xatosi:', e.message);
   }
+  // «Bot userlar» — o'z `try` si bilan, yuqoridagi sabab.
+  try { renderBotUsers(); } catch (e) { console.error('renderBotUsers xatosi:', e.message); }
 }
 
 const sum = (arr, k) => arr.reduce((s, x) => s + (x[k] || 0), 0);
@@ -1180,11 +1189,27 @@ function renderTraffic() {
     ? `O'lchov ${since} dan boshlangan — undan oldingi kunlar o'lchanmagan`
     : '';
 
-  trafficRows('trProducts', (t.products || []).map((p) => ({
+  // ---- Mahsulot jadvali (2026-08-23). Konversiya = buyurtma / ko'rish;
+  // ko'rish nol bo'lsa foiz CHIZILMAYDI (nolga bo'lish emas, "o'lchanmagan").
+  // ⚠️ Ko'rish va savat anonim (aniq), sevimli — kirgan foydalanuvchi,
+  // buyurtma — `orders`: uch manba, bitta oyna. Pastdagi izoh shuni aytadi.
+  const trP = document.getElementById('trProducts');
+  const mahsulotlar = t.products || [];
+  document.getElementById('trProductsSub').textContent =
+    mahsulotlar.length ? `${t.days} kun · ko'rish bo'yicha` : '';
+  trP.innerHTML = mahsulotlar.length ? mahsulotlar.map((p) => {
+    const konv = p.views ? Math.round((p.orders / p.views) * 100) : null;
     // Mahsulot o'chirilgan bo'lsa nom yo'q — xom id ko'rsatiladi
     // (server `LEFT JOIN` qiladi, db/028 da tashqi kalit yo'q).
-    name: p.name || `${p.id} (o'chirilgan)`, n: p.views,
-  })), 'Hali birorta mato ochilmagan');
+    return `<tr>
+      <td><b>${esc(p.name || `${p.id} (o'chirilgan)`)}</b></td>
+      <td class="num"><b>${fmtNum(p.views)}</b></td>
+      <td class="num">${fmtNum(p.carts || 0)}</td>
+      <td class="num">${fmtNum(p.favorites || 0)}</td>
+      <td class="num">${fmtNum(p.orders || 0)}</td>
+      <td class="num${konv ? ' conv-ok' : ''}">${konv === null ? '–' : konv + '%'}</td>
+    </tr>`;
+  }).join('') : `<tr><td colspan="6"><div class="empty-panel">Hali birorta mato ochilmagan</div></td></tr>`;
 
   trafficRows('trScreens', (t.screens || []).map((s) => ({
     name: SCREEN_LABELS[s.screen] || s.screen, n: s.views,
@@ -1569,6 +1594,111 @@ function renderPlanFakt() {
 
 /* ─── Sidebar navigatsiya ─── */
 
+/* ═══════════ «Bot userlar» (2026-08-23, db/029) ═══════════
+   Founder referensi: foydalanuvchi ro'yxati (ism, @username, ID, rol, AI /
+   7 kun, oxirgi kirish, «kredit berish») + «Oxirgi harakatlar» lentasi.
+
+   ⚠️ «Premium» YO'Q (founder qarori 2026-08-23) — faqat AI kredit.
+   ⚠️ Tana FAQAT server javob berganda ochiladi; xato SABAB bilan yoziladi,
+   nol chizilmaydi (`renderTraffic` bilan bitta qoida).
+   ⚠️ Oxirgi kirish `NULL` bo'lsa `—`: o'lchov 2026-08-23 dan boshlangan,
+   undan oldingi kirish noma'lum — sana O'YLAB TOPILMAYDI.
+   ⚠️ Lenta yorliqlari SERVERDAN keladi (`label`) — bu yerda ro'yxat yo'q. */
+function fmtVaqt(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mi = String(d.getMinutes()).padStart(2, '0');
+  return `${dd}/${mm}, ${hh}:${mi}`;
+}
+
+const ROL_NOMI = { buyer: 'xaridor', seller: 'sotuvchi', admin: 'admin' };
+
+function renderBotUsers() {
+  const bosh = document.getElementById('usersPageEmpty');
+  const tana = document.getElementById('usersPageBody');
+  if (!bosh || !tana) return;
+  const u = state.users;
+
+  if (bosh.dataset.asl === undefined) bosh.dataset.asl = bosh.textContent;
+  if (u && u.xato) {
+    tana.hidden = true; bosh.hidden = false;
+    bosh.textContent = 'Foydalanuvchilar ro\'yxati OLINMADI (' + u.xato + '). '
+      + 'Bu "foydalanuvchi yo\'q" degani EMAS — server javob bermadi.';
+    return;
+  }
+  if (!u || !Array.isArray(u.users)) {
+    tana.hidden = true; bosh.hidden = false; bosh.textContent = bosh.dataset.asl;
+    return;
+  }
+  bosh.hidden = true; tana.hidden = false;
+
+  const cheksiz = u.users.filter((x) => x.credits.unlimited).length;
+  document.getElementById('buCount').textContent = `${fmtNum(u.users.length)} ta`;
+  document.getElementById('buNote').textContent =
+    `Boshlang'ich kredit: ${u.limits.start} · cheksiz ro'yxatda: ${cheksiz} · `
+    + `«AI / 7 kun» — so'rovlar soni (keshdan kelgani ham) · «Oxirgi kirish» 2026-08-23 dan o'lchanadi, `
+    + `undan oldin kirganlar «—» ko'rinadi.`;
+
+  document.getElementById('buRows').innerHTML = u.users.map((x) => {
+    const ism = x.name || (x.username ? '@' + x.username : `#${x.tgId}`);
+    const kredit = x.credits.unlimited ? '∞' : `${fmtNum(x.credits.balance)} <small>(sarf ${fmtNum(x.credits.spent)})</small>`;
+    return `<tr>
+      <td><div class="bu-user"><b>${esc(ism)}</b>
+        <small>${x.username ? '@' + esc(x.username) + ' · ' : ''}#${esc(x.tgId)}${x.hasPhone ? ' · ☎' : ''}</small></div></td>
+      <td>${esc(ROL_NOMI[x.role] || x.role)}</td>
+      <td class="num">${kredit}</td>
+      <td class="num">${fmtNum(x.aiWeek)}</td>
+      <td class="num">${fmtNum(x.orders)}</td>
+      <td>${esc(fmtVaqt(x.lastSeen))}</td>
+      <td><button class="bu-grant" data-grant="${esc(x.tgId)}" data-name="${esc(ism)}"
+           ${x.credits.unlimited ? 'disabled title="cheksiz ro\'yxatda"' : ''}>Kredit berish</button></td>
+    </tr>`;
+  }).join('') || `<tr><td colspan="7"><div class="empty-panel">Foydalanuvchi yo'q</div></td></tr>`;
+
+  document.getElementById('buFeedCount').textContent = `${u.days} kunda ${fmtNum(u.total)} ta`;
+  document.getElementById('buKinds').innerHTML = (u.kinds || []).map((k) =>
+    `<span class="bu-kind">${esc(k.label)}<i>${fmtNum(k.n)}</i></span>`).join('');
+  document.getElementById('buFeed').innerHTML = (u.feed || []).length
+    ? u.feed.map((e) => `<div class="bu-ev">
+        <div class="bu-ev-main"><b>${esc(e.label)}</b>${e.subject ? `<span>${esc(e.subject)}</span>` : ''}</div>
+        <div class="bu-ev-meta">${esc(e.user)} · ${esc(fmtVaqt(e.at))}</div>
+      </div>`).join('')
+    : `<div class="empty-panel">${u.days} kunda harakat yo'q</div>`;
+}
+
+// Kredit berish — boshqa yozuv amallari kabi Telegram tasdig'idan o'tadi.
+document.addEventListener('click', async (e) => {
+  const btn = e.target.closest('[data-grant]');
+  if (!btn || btn.disabled) return;
+  const r = await askModal(`AI kredit berish — ${btn.dataset.name}`, [
+    { name: 'amount', label: 'Nechta kredit', type: 'number', value: 10, hint: '1 dan 1000 gacha. Mavjud qoldiqqa QO\'SHILADI.' },
+  ], 'Telegram\'ga yuborish');
+  if (!r) return;
+  const n = parseInt(r.amount, 10);
+  if (!Number.isInteger(n) || n < 1 || n > 1000) { toast('Son 1..1000 oralig\'ida bo\'lsin', 'err'); return; }
+  await runAdminAction('credit_grant', btn.dataset.grant, { amount: n }, `+${n} kredit (${btn.dataset.name})`);
+});
+
+// Trafik oralig'i (7/30/90) — ikkala manba qayta so'raladi, qolgan panel tegilmaydi.
+document.querySelectorAll('#trDays [data-days]').forEach((b) => {
+  b.addEventListener('click', async () => {
+    const d = parseInt(b.dataset.days, 10);
+    if (!d || d === state.trafficDays) return;
+    state.trafficDays = d;
+    document.querySelectorAll('#trDays [data-days]').forEach((x) => x.classList.toggle('active', x === b));
+    const [traffic, cfTraffic] = await Promise.all([
+      fetchTraffic().catch((e) => ({ xato: e.message || 'so\'rov yiqildi' })),
+      fetchCfTraffic().catch((e) => ({ xato: e.message || 'so\'rov yiqildi' })),
+    ]);
+    state.traffic = traffic; state.cfTraffic = cfTraffic;
+    try { renderTraffic(); } catch (err) { console.error('renderTraffic xatosi:', err.message); }
+    try { renderCfTraffic(); } catch (err) { console.error('renderCfTraffic xatosi:', err.message); }
+  });
+});
+
 const PAGE_META = {
   dashboard:  { title: 'Dashboard',   subtitle: "Umumiy ko'rinish" },
   orders:     { title: 'Buyurtmalar', subtitle: "Barcha buyurtmalar, komissiya va to'lovlar" },
@@ -1577,6 +1707,7 @@ const PAGE_META = {
   disputes:   { title: 'Bahslar',     subtitle: 'Xaridor shikoyatlari va moderator qarori' },
   stats:      { title: 'Statistika',  subtitle: 'Savdo, komissiya va kategoriya tahlili' },
   traffic:    { title: 'Trafik',      subtitle: "Sayt va Mini App tashriflari, ko'rish → savat → buyurtma" },
+  users:      { title: 'Bot userlar', subtitle: "Foydalanuvchilar, AI kredit va oxirgi harakatlar" },
   planfakt:   { title: 'Reja/Fakt',   subtitle: '12 oylik savdo rejasi va haqiqiy natija' },
 };
 

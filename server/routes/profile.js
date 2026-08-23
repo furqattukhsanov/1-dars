@@ -2,6 +2,7 @@ const https = require('https');
 const { BOT_TOKEN } = require('../config');
 const { pool } = require('../db');
 const { requestUser } = require('../lib/auth');
+const { recordUserEvent } = require('../lib/user-events');
 const { isPickupPointId } = require('../lib/maps');
 const { callTelegram, tgGetFile } = require('../lib/telegram-api');
 const { rateLimited, readBody, ok, fail } = require('../lib/http');
@@ -98,16 +99,20 @@ async function handleSaveFavorite(req, res, ip) {
     const liked = data.liked === true;
 
     if (liked) {
-      await pool.query(
+      const ins = await pool.query(
         `INSERT INTO user_favorites (tg_user_id, product_id) VALUES ($1, $2)
          ON CONFLICT (tg_user_id, product_id) DO NOTHING`,
         [String(u.id), id]
       );
+      // Lenta (db/029) — faqat HAQIQIY o'zgarishda: takroriy bosish
+      // (`DO NOTHING`, 0 qator) lentaga tushmasin.
+      if (ins.rowCount) void recordUserEvent(u.id, 'favorite_add', { productId: id });
     } else {
-      await pool.query(
+      const del = await pool.query(
         `DELETE FROM user_favorites WHERE tg_user_id = $1 AND product_id = $2`,
         [String(u.id), id]
       );
+      if (del.rowCount) void recordUserEvent(u.id, 'favorite_remove', { productId: id });
     }
     ok(res, { productId: id, liked });
   } catch (e) {

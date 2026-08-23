@@ -1404,9 +1404,10 @@ function testAssetVersionsAreFresh() {
     // YUQORIGA suriladi: teng raqam qaytib kelgan foydalanuvchida keshdagi
     // BIR TOMONLAMA faylni qoldirardi — sevimlilar yoki chiqish tuzatishining
     // faqat bittasi bo'lgan `app.js`.
-    'panel.js': { v: 51, hash: '3284da8ca378' },
-    'admin/admin.css': { v: 20, hash: 'e895a96e6f32' },
-    'admin/admin.js': { v: 31, hash: '0c04c32732c4' },
+    'panel.js': { v: 52, hash: '0014bd2c36ed' },
+    // 2026-08-23: «Bot userlar» sahifasi, mahsulot jadvali, 7/30/90 oraliq.
+    'admin/admin.css': { v: 21, hash: '328ee0d3fade' },
+    'admin/admin.js': { v: 32, hash: '3e38d951cf98' },
     'telegram-app/styles.css': { v: 36, hash: '570a2450c3a4' },
     'telegram-app/app.js': { v: 102, hash: 'ba922a9a4d31' },
     'telegram-app/pwa.js': { v: 6, hash: '798ab85e1cde' },
@@ -5435,6 +5436,80 @@ function testTrafficMeasurement() {
     + `PASS (8 band, ${traffic.SCREENS.size} ekran, ${saytEkran.size} sayt + ${miniEkran.size} Mini App)`);
 }
 
+// ============ TEST 51: «BOT USERLAR» — KIRISH VAQTI VA HARAKATLAR LENTASI (2026-08-23) ============
+// db/029: `users.last_seen_at` + `user_events`. Uch narsa qulflanadi:
+//   1. «Oxirgi kirish» `requestUser()` ning IKKALA tarmog'ida yoziladi —
+//      bittasi tushib qolsa sayt (yoki Mini App) foydalanuvchisi panelda
+//      abadiy «—» bo'lib turardi va buni hech narsa ko'rsatmasdi (bir yuzda
+//      ishlab ikkinchisida ishlamaydigan naqsh, CLAUDE.md).
+//   2. `lib/user-events.js` → `KINDS` dagi HAR BIR tur kamida bitta joyda
+//      YOZILADI — yorliq bor-u yozuvchi yo'q tur lentada hech qachon
+//      chiqmaydigan «o'lik» tur. Ro'yxat MANBADAN o'qiladi, qo'lda emas.
+//   3. Buyurtma hodisasi COMMIT dan KEYIN — tranzaksiya qaytarilsa lentada
+//      bo'lmagan buyurtma qolmasin.
+// Yonida: kredit berish QO'SHADI (ustiga yozmaydi) va paneldagi lenta
+// yorliqlari serverdan keladi (frontendda ikkinchi ro'yxat yo'q).
+function testBotUsersPage() {
+  const fs = require('fs');
+  const path = require('path');
+  const oqi = (f) => kodSofi(fs.readFileSync(path.join(__dirname, f), 'utf8'));
+
+  // ── 1-band: requestUser ikkala tarmoqda last_seen yozadi ──
+  const auth = oqi('lib/auth.js');
+  const ru = auth.slice(auth.indexOf('async function requestUser('), auth.indexOf('\nfunction touchLastSeen'));
+  assert.ok(/source: 'miniapp'/.test(ru) && /source: 'web'/.test(ru), 'requestUser shakli o\'zgargan — test eskirgan');
+  const miniapp = ru.slice(0, ru.indexOf("source: 'miniapp'"));
+  const web = ru.slice(ru.indexOf("source: 'miniapp'"), ru.indexOf("source: 'web'"));
+  assert.ok(/touchLastSeen\(/.test(miniapp), 'requestUser: Mini App tarmog\'ida `touchLastSeen(` yo\'q — Mini App foydalanuvchisi panelda abadiy «—»');
+  assert.ok(/touchLastSeen\(/.test(web), 'requestUser: sayt tarmog\'ida `touchLastSeen(` yo\'q — sayt foydalanuvchisi panelda abadiy «—»');
+  assert.ok(/UPDATE users SET last_seen_at = now\(\)/.test(auth), '`users.last_seen_at` yangilanmayapti');
+  assert.ok(/last_seen_at/.test(kodSofi(fs.readFileSync(path.join(__dirname, '..', 'db', '029_bot_userlar.sql'), 'utf8'))),
+    'db/029 da `last_seen_at` ustuni yo\'q');
+
+  // ── 2-band: har tur kamida bitta joyda yoziladi ──
+  const { KINDS } = require('./lib/user-events');
+  const turlar = Object.keys(KINDS);
+  assert.ok(turlar.length >= 5, `KINDS ro'yxati qisqarib ketgan (${turlar.length})`);
+  const routes = fs.readdirSync(path.join(__dirname, 'routes')).filter((f) => f.endsWith('.js'))
+    .map((f) => [f, oqi(path.join('routes', f))]);
+  const yozuvsiz = turlar.filter((k) =>
+    !routes.some(([, src]) => new RegExp(`recordUserEvent\\([^;]*'${k}'`).test(src)));
+  assert.deepStrictEqual(yozuvsiz, [],
+    `Bu turlar KINDS da bor, lekin hech qayerda yozilmaydi — lentada hech qachon chiqmaydi: ${yozuvsiz.join(', ')}`);
+  // Teskarisi: kodda yozilayotgan tur KINDS da bo'lsin (aks holda serverda
+  // `noma'lum tur` xatosi bilan jimgina tashlanadi).
+  const yozilgan = new Set();
+  for (const [, src] of routes) for (const m of src.matchAll(/recordUserEvent\([^;]*'([a-z_]+)'/g)) yozilgan.add(m[1]);
+  const royxatsiz = [...yozilgan].filter((k) => !KINDS[k]);
+  assert.deepStrictEqual(royxatsiz, [], `Kodda yoziladi, KINDS da yo'q: ${royxatsiz.join(', ')}`);
+
+  // ── 3-band: buyurtma hodisasi COMMIT dan keyin ──
+  const orders = oqi('routes/orders.js');
+  const orderHooks = [...orders.matchAll(/recordUserEvent\([^;]*'order'/g)];
+  assert.ok(orderHooks.length >= 2, `orders.js da buyurtma hodisasi ${orderHooks.length} joyda — ikki yo'l (Mini App + sayt) bor`);
+  for (const m of orderHooks) {
+    const oldin = orders.slice(Math.max(0, m.index - 400), m.index);
+    assert.ok(/client\.query\('COMMIT'\)/.test(oldin) && !/ROLLBACK/.test(oldin.slice(oldin.lastIndexOf("COMMIT"))),
+      'orders.js: buyurtma hodisasi COMMIT dan OLDIN yozilyapti — qaytarilgan tranzaksiya lentada qolardi');
+  }
+
+  // ── 4-band: kredit berish QO'SHADI, ustiga yozmaydi ──
+  const admin = oqi('routes/admin.js');
+  const grant = admin.slice(admin.indexOf('  credit_grant: {'), admin.indexOf('\n};', admin.indexOf('  credit_grant: {')));
+  assert.ok(grant.length > 100, 'admin.js da `credit_grant` amali topilmadi');
+  assert.ok(/balance = ai_credits\.balance \+/.test(grant), 'credit_grant balansni QO\'SHMAYAPTI — ikkinchi admin birinchisini yo\'qotadi');
+  assert.ok(/AI_CREDITS_START/.test(grant), 'credit_grant yangi qatorni AI_CREDITS_START dan boshlamayapti — `takeCredits` bilan farq qiladi');
+
+  // ── 5-band: yorliqlar serverdan, frontendda ikkinchi ro'yxat yo'q ──
+  assert.ok(/USER_EVENT_KINDS\[r\.kind\]/.test(admin), 'admin.js lenta yorlig\'ini KINDS dan olmayapti');
+  const front = jsSofi(fs.readFileSync(path.join(__dirname, '..', 'admin', 'admin.js'), 'utf8'));
+  const frontda = turlar.filter((k) => front.includes(`'${k}'`));
+  assert.deepStrictEqual(frontda, [], `admin/admin.js da hodisa turi nomi bor (${frontda.join(', ')}) — ro'yxat ikkinchi joyda yashamasin`);
+  assert.ok(/\/api\/admin\/users/.test(front), 'admin/admin.js `/api/admin/users` ni chaqirmayapti');
+
+  console.log(`✅ Test 51: «Bot userlar» — kirish vaqti ikkala kanalda, ${turlar.length} tur yoziladi, buyurtma COMMIT dan keyin — PASS`);
+}
+
 // ============ TEST 43: YANGI JADVAL EGALIGI (2026-08-18) ============
 // 🔴 BU TEST PRODUCTION NOSOZLIGIDAN TUG'ILDI. `db/028` deploy qilindi, jadval
 // yaratildi, backend ko'tarildi, `/api/admin/traffic` to'g'ri 401 berdi —
@@ -6273,6 +6348,7 @@ async function runTests() {
     testDbImportShape();
     testTrafficMeasurement();
     testNewTablesAreOwnedByApp();
+    testBotUsersPage();
     testActionTargetsExist();
     testSortSheetAndHiddenWork();
     testDeepLinkTagsPassServer();

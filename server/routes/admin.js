@@ -1,4 +1,7 @@
-const { ADMIN_CHAT_ID, ADMIN_TG_IDS, COMMISSION_RATE } = require('../config');
+const {
+  ADMIN_CHAT_ID, ADMIN_TG_IDS, COMMISSION_RATE,
+  AI_CREDITS_START, AI_UNLIMITED_TG_IDS,
+} = require('../config');
 const { pool } = require('../db');
 const { cfTraffic } = require('../lib/cf-analytics');
 const { adminPanelAuth, isAdmin } = require('../lib/auth');
@@ -12,6 +15,7 @@ const { r2Delete, r2PublicUrl } = require('../lib/r2');
 const { purgeUrls, CF_PURGE_ENABLED } = require('../lib/cloudflare');
 const { findReviewForAdmin, hideReview } = require('./reviews');
 const { recordStatusChange } = require('../lib/order-history');
+const { KINDS: USER_EVENT_KINDS } = require('../lib/user-events');
 
 // ============ ADMIN PANEL RUXSATI ============
 // admin/index.html (standalone sahifa) Telegram initData ishlab chiqara olmaydi,
@@ -384,16 +388,38 @@ async function handleAdminTraffic(req, res, ip) {
       // BERA OLMAYDI — u bizning mahsulot id'imizni bilmaydi.
       // `LEFT JOIN` — mahsulot o'chirilgan bo'lsa ham qator yo'qolmasin
       // (db/028 da tashqi kalit ataylab yo'q).
+      //
+      // 2026-08-23 (founder referensi — «Eng ko'p ko'rilgan joylar»
+      // jadvali): ko'rish yoniga SAVAT, SEVIMLI va BUYURTMA ustunlari.
+      // Uchalasi UCH manbadan: savat — `traffic_events` (anonim, aniq),
+      // sevimli — `user_favorites` (kirgan foydalanuvchi), buyurtma —
+      // `order_items` + `orders` (pulga bog'langan haqiqat, bekor/qaytarilgan
+      // chiqariladi). Bitta oyna — `days`. Konversiya panelda hisoblanadi
+      // (buyurtma / ko'rish) va ko'rish nol bo'lsa chizilmaydi.
       pool.query(`
-        SELECT t.product_id, p.name_uz AS name,
-               count(*)::int                  AS views,
-               count(DISTINCT t.visitor)::int AS visitors
-          FROM traffic_events t
-          LEFT JOIN products p ON p.id = t.product_id
-         WHERE t.kind = 'view' AND t.product_id IS NOT NULL
-           AND t.at >= now() - ($1::int * interval '1 day')
-         GROUP BY t.product_id, p.name_uz
-         ORDER BY views DESC LIMIT 15`, [days]),
+        WITH v AS (
+          SELECT product_id,
+                 count(*) FILTER (WHERE kind = 'view')::int AS views,
+                 count(DISTINCT visitor) FILTER (WHERE kind = 'view')::int AS visitors,
+                 count(*) FILTER (WHERE kind = 'cart')::int AS carts
+            FROM traffic_events
+           WHERE product_id IS NOT NULL
+             AND at >= now() - ($1::int * interval '1 day')
+           GROUP BY product_id
+        )
+        SELECT v.product_id, p.name_uz AS name, v.views, v.visitors, v.carts,
+               (SELECT count(*) FROM user_favorites f
+                 WHERE f.product_id = v.product_id
+                   AND f.created_at >= now() - ($1::int * interval '1 day'))::int AS favorites,
+               (SELECT count(DISTINCT oi.order_id) FROM order_items oi
+                  JOIN orders o ON o.id = oi.order_id
+                 WHERE oi.product_id = v.product_id
+                   AND o.created_at >= now() - ($1::int * interval '1 day')
+                   AND o.status NOT IN ('cancelled','refunded'))::int AS orders
+          FROM v
+          LEFT JOIN products p ON p.id = v.product_id
+         WHERE v.views > 0
+         ORDER BY v.views DESC LIMIT 15`, [days]),
 
       pool.query(`
         SELECT ref, count(*)::int AS views
@@ -481,6 +507,7 @@ async function handleAdminTraffic(req, res, ip) {
       screens: screenRes.rows.map((r) => ({ screen: r.screen, views: r.views })),
       products: productRes.rows.map((r) => ({
         id: r.product_id, name: r.name, views: r.views, visitors: r.visitors,
+        carts: r.carts, favorites: r.favorites, orders: r.orders,
       })),
       refs: refRes.rows.map((r) => ({ ref: r.ref, views: r.views })),
 
@@ -490,6 +517,92 @@ async function handleAdminTraffic(req, res, ip) {
     // ⚠️ Jadval hali yaratilmagan bo'lsa (migratsiya o'tkazilmagan) bu yerga
     // tushadi va panel blokni ko'rsatmaydi — sayt esa ishlayveradi.
     console.error('adminTraffic xatosi:', e.message);
+    fail(res, 'server error', 500);
+  }
+}
+
+// ============ /api/admin/users — «BOT USERLAR» (2026-08-23, db/029) ============
+// Founder referensi: har foydalanuvchi bir qator + pastida «Oxirgi
+// harakatlar» lentasi. `summary` ga QO'SHILMADI — u panelning eng issiq
+// so'rovi (`server.js` dagi trafik izohi bilan bitta sabab).
+//
+// ⚠️ Raqamlar HALOL bo'lsin:
+//   * `aiWeek` — `user_events` dagi `ai_image` SO'ROVLARI (keshdan kelgani
+//     ham). `ai_credits.spent` emas: u cheksiz ro'yxatdagilarda ham o'sadi,
+//     lekin sanasiz — «7 kun» savoliga javob bera olmaydi;
+//   * `lastSeen` — `users.last_seen_at`; NULL = o'lchov boshlangandan beri
+//     kirmagan YOKI undan oldin kirgan (panel `—` ko'rsatadi, sana emas);
+//   * `credits.balance` qator yo'q bo'lsa `AI_CREDITS_START` — `takeCredits`
+//     bilan ayni mantiq; `unlimited` ro'yxatdan.
+// Lenta yorliqlari SERVERDAN (`lib/user-events.js` → `KINDS`) — panelda
+// ikkinchi ro'yxat yashamasin.
+async function handleAdminUsers(req, res, ip) {
+  if (rateLimited(`adminusers:${ip}`, 30)) return fail(res, 'too many requests', 429);
+  if (!adminPanelAuth(req, res)) return;
+
+  const xom = parseInt(new URL(req.url, 'http://x').searchParams.get('days'), 10);
+  const days = Number.isInteger(xom) ? Math.min(90, Math.max(1, xom)) : 7;
+
+  try {
+    const [usersRes, feedRes, kindRes] = await Promise.all([
+      pool.query(`
+        SELECT u.tg_user_id, u.full_name, u.tg_username, u.role, u.phone IS NOT NULL AS has_phone,
+               u.created_at, u.last_seen_at, u.engaged_at IS NOT NULL AS engaged,
+               c.balance, c.spent,
+               (SELECT count(*) FROM user_events e
+                 WHERE e.tg_user_id = u.tg_user_id AND e.kind = 'ai_image'
+                   AND e.at >= now() - interval '7 days')::int AS ai_week,
+               (SELECT count(*) FROM orders o
+                 WHERE o.tg_user_id = u.tg_user_id
+                   AND o.status NOT IN ('cancelled','refunded'))::int AS orders
+          FROM users u
+          LEFT JOIN ai_credits c ON c.tg_user_id = u.tg_user_id
+         WHERE u.tg_user_id IS NOT NULL
+         ORDER BY u.last_seen_at DESC NULLS LAST, u.created_at DESC
+         LIMIT 500`),
+      pool.query(`
+        SELECT e.at, e.kind, e.product_id, e.label, e.tg_user_id,
+               u.full_name, u.tg_username, p.name_uz AS product_name
+          FROM user_events e
+          LEFT JOIN users u ON u.tg_user_id = e.tg_user_id
+          LEFT JOIN products p ON p.id = e.product_id
+         WHERE e.at >= now() - ($1::int * interval '1 day')
+         ORDER BY e.at DESC LIMIT 150`, [days]),
+      pool.query(`
+        SELECT kind, count(*)::int AS n FROM user_events
+         WHERE at >= now() - ($1::int * interval '1 day')
+         GROUP BY kind ORDER BY n DESC`, [days]),
+    ]);
+
+    ok(res, {
+      days,
+      limits: { start: AI_CREDITS_START },
+      users: usersRes.rows.map((r) => ({
+        tgId: String(r.tg_user_id),
+        name: r.full_name, username: r.tg_username, role: r.role,
+        hasPhone: r.has_phone, engaged: r.engaged,
+        createdAt: r.created_at ? new Date(r.created_at).toISOString() : null,
+        lastSeen: r.last_seen_at ? new Date(r.last_seen_at).toISOString() : null,
+        aiWeek: r.ai_week, orders: r.orders,
+        credits: {
+          balance: r.balance == null ? AI_CREDITS_START : r.balance,
+          spent: r.spent || 0,
+          unlimited: AI_UNLIMITED_TG_IDS.has(String(r.tg_user_id)),
+        },
+      })),
+      feed: feedRes.rows.map((r) => ({
+        at: new Date(r.at).toISOString(),
+        kind: r.kind, label: USER_EVENT_KINDS[r.kind] || r.kind,
+        tgId: String(r.tg_user_id),
+        user: r.full_name || (r.tg_username ? '@' + r.tg_username : String(r.tg_user_id)),
+        // Mahsulot o'chirilgan bo'lsa xom id (db/028 naqshi)
+        subject: r.product_name || r.label || r.product_id || null,
+      })),
+      kinds: kindRes.rows.map((r) => ({ kind: r.kind, label: USER_EVENT_KINDS[r.kind] || r.kind, n: r.n })),
+      total: kindRes.rows.reduce((s, r) => s + r.n, 0),
+    });
+  } catch (e) {
+    console.error('adminUsers xatosi:', e.message);
     fail(res, 'server error', 500);
   }
 }
@@ -927,6 +1040,49 @@ const ADMIN_ACTIONS = {
       return `🙈 Sharh #${r.id} yashirildi`;
     },
   },
+
+  // AI kredit berish (2026-08-23, «Bot userlar» sahifasi). Founder qarori:
+  // «Premium» tushunchasi YO'Q, faqat kredit. Bu PUL (bitta rasm ~$0.04),
+  // shuning uchun boshqa yozuv amallari bilan bitta yo'l — Telegram tasdig'i.
+  //
+  // ⚠️ `balance` QO'SHILADI, ustiga yozilmaydi: ikki admin ketma-ket bersa
+  // ikkinchisi birinchisini yo'qotmasin. Qator yo'q bo'lsa u `AI_CREDITS_START`
+  // dan boshlab tug'iladi — `routes/ai.js` → `takeCredits` dagi bilan AYNI
+  // mantiq, aks holda «hali rasm chizmagan odamga 10 kredit» 10 ga teng
+  // bo'lib qolardi, boshqalarda esa 20+10.
+  credit_grant: {
+    schema: { amount: { type: 'int', required: true, min: 1, max: 1000 } },
+    async check(targetId) {
+      if (!/^\d{1,19}$/.test(targetId)) throw new ClientError('Telegram ID yaroqsiz');
+      const { rows } = await pool.query(
+        `SELECT u.tg_user_id, u.full_name, u.tg_username, c.balance, c.spent
+           FROM users u LEFT JOIN ai_credits c ON c.tg_user_id = u.tg_user_id
+          WHERE u.tg_user_id = $1`, [targetId]);
+      if (!rows.length) throw new ClientError('foydalanuvchi topilmadi');
+      if (AI_UNLIMITED_TG_IDS.has(String(targetId))) {
+        throw new ClientError('bu foydalanuvchi cheksiz ro\'yxatda — kredit kerak emas');
+      }
+      return rows[0];
+    },
+    summary: (t, p) =>
+      `🎨 <b>AI kredit berish</b>\n\n<b>${escapeHtml(t.full_name || t.tg_username || t.tg_user_id)}</b>` +
+      (t.tg_username ? ` (@${escapeHtml(t.tg_username)})` : '') + ` · <code>${escapeHtml(String(t.tg_user_id))}</code>\n` +
+      `<b>Hozir:</b> ${t.balance == null ? `${AI_CREDITS_START} (boshlang'ich)` : t.balance} kredit, sarflangan ${t.spent || 0}\n` +
+      `<b>Qo'shiladi:</b> +${p.amount}`,
+    async run(a) {
+      const n = Number(a.payload.amount);
+      const { rows } = await pool.query(
+        `INSERT INTO ai_credits (tg_user_id, balance, spent)
+         VALUES ($1, $2 + $3, 0)
+         ON CONFLICT (tg_user_id)
+         DO UPDATE SET balance = ai_credits.balance + $3, updated_at = now()
+         RETURNING balance`,
+        [a.target_id, AI_CREDITS_START, n]);
+      await notify(a.target_id,
+        `🎨 Sizga <b>${n}</b> ta AI rasm krediti berildi. Hozirgi qoldiq: <b>${rows[0].balance}</b>.`);
+      return `🎨 +${n} kredit berildi, qoldiq ${rows[0].balance}`;
+    },
+  },
 };
 
 // ---- POST /api/admin/action — paneldan amal SO'RASH ----
@@ -1068,6 +1224,6 @@ async function handleAdminActionCallback(cq) {
 }
 
 module.exports = {
-  handleAdminSummary, handleAdminTraffic, handleAdminCfTraffic,
+  handleAdminSummary, handleAdminTraffic, handleAdminCfTraffic, handleAdminUsers,
   handleAdminActionRequest, handleAdminActionStatus, handleAdminActionCallback,
 };
