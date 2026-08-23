@@ -537,6 +537,16 @@
   Qorovul: `server/test.js` → **Test 42** (8 band, 13 mutatsiya bilan sinaldi,
   13 tasi ham ushlandi). Ekran ro'yxati qo'lda yozilmaydi — ikkala frontend
   manbasidan yig'iladi.
+  ⚠️ **2026-08-23 da IKKINCHI JADVAL OCHILDI — `user_events` (db/029), va
+  beacon endi KIMLIKNI HAM yuboradi.** Founder qarori («qaysi mijoz nimani
+  ko'rdi, savatga soldi, chiqardi — qadamba-qadam»). `traffic_events`
+  HAMON ANONIM (IP ham, Telegram ID ham yo'q — Test 42, 4-band) va mehmonni
+  sanaydi; `user_events` esa KIRGAN foydalanuvchining amalini ism bilan
+  yozadi (`routes/track.js` → `requestUser()` → `recordUserEvent`). Ikkisi
+  bir xil raqam BERMAYDI va panelda shunday deyiladi. Hodisa turlari
+  ro'yxati FAQAT `lib/user-events.js` → `KINDS` da (bazada shakl tekshiruvi).
+  Kimlik tekshiruvi `try` ichida — yiqilsa beacon yiqilmaydi. Test 42 5-band
+  shunga qayta yozildi; Test 51 har turning yozuvchisi borligini tekshiradi.
   ⚠️ **Yo'l-yo'lakay topilgan tuzoq:** Test 23 `db/` dagi eng katta raqamli
   faylni SO'ZGA qarab tanlardi va `db/028` izohida `admin_actions_kind_check`
   eslatilgani uchun uni "ro'yxat manbai" deb qabul qilib QIZIL bo'ldi — kod

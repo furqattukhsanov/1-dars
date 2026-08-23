@@ -993,6 +993,7 @@ function decCart(id) {
 }
 function removeCart(id) {
   S.cart = S.cart.filter(x => x.id !== id);
+  track('cart_remove', 'cart', id);   // shaxsiy lenta (db/029)
   render();
 }
 
@@ -4321,7 +4322,7 @@ function catalogDec(id) {
   const p = byId(id);
   const line = S.cart.find(x => x.id === id);
   if (!line) return;
-  if (line.qty <= p.moq) { S.cart = S.cart.filter(x => x.id !== id); }
+  if (line.qty <= p.moq) { S.cart = S.cart.filter(x => x.id !== id); track('cart_remove', 'cart', id); }
   else { line.qty = Math.max(p.moq, line.qty - step(p)); }
   render();
 }
@@ -4797,11 +4798,15 @@ function track(kind, screen, product) {
     trackOxirgi = kalit;
   }
   try {
+    // 2026-08-23: imzolangan `initData` YUBORILADI — kirgan xaridorning
+    // ko'rish/savat amali shaxsiy lentaga (db/029) ism bilan tushsin
+    // (founder qarori). Trafik soni hamon anonim (`traffic_events`).
+    const initData = typeof tgInitData === 'function' ? tgInitData() : '';
     fetch('/api/track', {
       method: 'POST',
       credentials: 'omit',
       keepalive: true,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...(initData ? { 'X-Telegram-Init-Data': initData } : {}) },
       body: JSON.stringify({
         kind, screen, product: product || null, face: 'miniapp',
         // Mini App'da tashqi havola tushunchasi yo'q — kirish faqat

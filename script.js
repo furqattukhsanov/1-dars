@@ -1252,7 +1252,10 @@ function track(kind, screen, product) {
   try {
     fetch('/api/track', {
       method: 'POST',
-      credentials: 'omit',
+      // 2026-08-23: cookie YUBORILADI — kirgan xaridorning ko'rish/savat
+      // amali shaxsiy lentaga (db/029) ism bilan tushsin (founder qarori).
+      // Trafik sonining o'zi hamon anonim (`traffic_events`, serverda).
+      credentials: 'same-origin',
       keepalive: true,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -4977,6 +4980,7 @@ function setQty(id, delta) {
   const eng = moqOf(id);
   if (cart[id] < eng) delete cart[id];
   if (cart[id] < 1) delete cart[id];
+  if (!cart[id]) track('cart_remove', 'cart', id);   // shaxsiy lenta (db/029)
   saveCart();
   updateBadge();
   renderCardAction(id);
@@ -4985,6 +4989,7 @@ function setQty(id, delta) {
 
 function removeLine(id) {
   delete cart[id];
+  track('cart_remove', 'cart', id);   // shaxsiy lenta (db/029)
   saveCart();
   updateBadge();
   renderCardAction(id);

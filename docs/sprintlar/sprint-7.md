@@ -41,6 +41,41 @@ Founder sifatida platformani to'liq nazorat qilish: ishlab chiqaruvchilarni tasd
 
 ## Qilingan ishlar
 
+- [2026-08-23] **SHAXSIY LENTA ENDI KO'RISH VA SAVATNI HAM KO'RSATADI — BEACON
+  KIMLIKNI YUBORADI (kech, `380cf7f` dan keyin).** Founder norozi: «userlarning
+  oxirgi harakatlarini qadamba-qadam ko'ra olmayapman — savatga soldi,
+  chiqardi, qaysi mijoz qaysi tovarni oldi, referensdek nega yo'q?». Sabab
+  HALOL: agentning O'Z qarori — 2026-08-18 da trafik beacon'i ataylab anonim
+  qoldirilgan va bu chegara founder'ga AYTILMAGAN edi; shuning uchun
+  ko'rish/savat lentaga tushmasdi. Tuzatish: (1) `routes/track.js` —
+  kimlik `requestUser()` bilan (`try` ichida, yiqilsa beacon yiqilmaydi),
+  kimlik BOR bo'lsa `user_events` ga ism bilan `product_view` / `cart_add` /
+  `cart_remove` (faqat mato darajasida); `traffic_events` ANONIM QOLADI
+  (IP/Telegram ID yo'q, Test 42 4-band), mehmon hamon sanaladi;
+  `cart_remove` faqat shaxsiy lentaga — db/028 CHECK va voronka tegilmadi;
+  (2) `lib/user-events.js` → `KINDS` ga 3 tur (ro'yxat faqat shu yerda);
+  (3) klientlar: `script.js` beacon `credentials: 'same-origin'`,
+  `cart_remove` `setQty`/`removeLine` da; `telegram-app/app.js` beacon
+  `X-Telegram-Init-Data` sarlavhasi, `cart_remove` `removeCart`/`catalogDec`
+  da; (4) `routes/admin.js` — lentada buyurtma tovarlari bilan: «#LM-104 —
+  Ipak atlas ×2, Tafta ×1» (`order_items` `string_agg`), umumiy va per-user
+  lentada; (5) `admin/index.html` izoh matnlari; CLAUDE.md trafik bandiga
+  qaror o'zgarishi.
+  **Qorovul:** Test 42 5-band QAYTA YOZILDI (avval «beacon kimlik so'ramasin»
+  edi): `requestUser` (`authUser` emas), traffic INSERT'da kimlik ustuni yo'q,
+  `try`, `recordUserEvent` bor, klientlar kimlikni haqiqatan yuboradi.
+  Ish hisobotida 2 mutatsiya ushlangan. **Hisobotchi mustaqil o'lchadi:**
+  **91** `✅ Test` yashil (da'vo bilan mos); o'z mutatsiyasi (`track.js` da
+  `requestUser` `try` dan chiqarildi) Test 42 da QIZIL, fayl `cp` nusxadan
+  tiklandi. Ikkinchi mutatsiya (`script.js` `same-origin` → `omit`) Test 16
+  da (hash) ushlandi — Test 42 (d) bandiga yetmadi, ya'ni u band hisobotchi
+  tomonidan MUSTAQIL sinalmadi. Jonli lenta, brauzer, baza — TEKSHIRILMADI.
+  **Halol chegara:** lenta bu deploy'dan boshlab to'ladi, o'tmish yo'q.
+  Kesh: `script.js` 57→**58**, `app.js` 102→**103**, `panel.js` 55→**56**.
+  🔴 **DEPLOY: STATIK + BACKEND** (`routes/track.js`, `routes/admin.js`,
+  `lib/user-events.js`) — rsync + servis restart; migratsiya YO'Q (db/029
+  allaqachon bor). PUSH YO'Q.
+
 - [2026-08-23] **«BOT USERLAR» — TELEFON USTUNI, `/start` DA RAQAM SO'ROVI,
   PER-USER HARAKAT LENTASI VA TRAFIKDA «FOYDALANUVCHI HARAKATLARI».** Founder
   beshta so'rovi: (1) «jadvalda telefonni ko'rsat» — `GET /api/admin/users`
@@ -449,6 +484,13 @@ Founder sifatida platformani to'liq nazorat qilish: ishlab chiqaruvchilarni tasd
 
 ## Qarorlar
 
+- [2026-08-23] Qaror (founder): **kirgan foydalanuvchining ko'rish va savat
+  amali ISM bilan yoziladi** (`user_events`), trafik soni esa hamon anonim
+  (`traffic_events`). Ikki jadval, ikki va'da — panel shunday deydi.
+- [2026-08-23] Dars: **referens berilganda u so'zma-so'z qamrab olinsin;
+  chegara (anonimlik) agent tomonidan jimgina qo'yilmasin — u founder
+  qarori.** 2026-08-18 da anonimlik «qaror» deb kodga yozildi, founder'ga
+  aytilmadi; 5 kun lenta kam ma'lumot berdi.
 - [2026-08-23] Qaror (founder): **telefon raqami paneldagi jadvalda OCHIQ
   ko'rinadi** (`phone`, ☎ belgisi emas) — panel admin tokeni bilan yopiq,
   raqam buyurtma bo'yicha bog'lanish uchun kerak.

@@ -1390,7 +1390,7 @@ function testAssetVersionsAreFresh() {
     // 2026-08-16 (kechqurun, 2-tahrir): qator chiqqanda header yuqoriga
     // suriladi — ikkita qadalgan qator birga turmaydi.
     'style.css': { v: 64, hash: 'e9718d3f4f24' },
-    'script.js': { v: 57, hash: 'c724fe599d76' },
+    'script.js': { v: 58, hash: '0241701cbc04' },
     'pwa.js': { v: 3, hash: 'dce9fcfee6cb' },
     // ⚠️ IKKINCHI BIRLASHTIRISH (2026-08-14): ikkala tomon panel.js ni 24,
     // app.js ni 87 ga ko'targan — AYNI raqamlar, TARKIB esa har xil.
@@ -1404,12 +1404,12 @@ function testAssetVersionsAreFresh() {
     // YUQORIGA suriladi: teng raqam qaytib kelgan foydalanuvchida keshdagi
     // BIR TOMONLAMA faylni qoldirardi — sevimlilar yoki chiqish tuzatishining
     // faqat bittasi bo'lgan `app.js`.
-    'panel.js': { v: 55, hash: '71efab30491c' },
+    'panel.js': { v: 56, hash: 'fdf85f0af230' },
     // 2026-08-23: «Bot userlar» sahifasi, mahsulot jadvali, 7/30/90 oraliq.
     'admin/admin.css': { v: 22, hash: '2b63d25b1098' },
     'admin/admin.js': { v: 34, hash: '56844af79b82' },
     'telegram-app/styles.css': { v: 36, hash: '570a2450c3a4' },
-    'telegram-app/app.js': { v: 102, hash: 'ba922a9a4d31' },
+    'telegram-app/app.js': { v: 103, hash: '2b4580b8b328' },
     'telegram-app/pwa.js': { v: 6, hash: '798ab85e1cde' },
   };
 
@@ -5312,21 +5312,32 @@ function testTrafficMeasurement() {
   assert.ok(trackSrc.includes('visitorBelgisi('),
     '`visitorBelgisi()` ishlatilmayapti — tashrifchi belgisi qayerdan kelyapti?');
 
-  // ── 5-band: beacon KIMLIK SO'RAMAYDI (ataylab) ──
-  // Test 3f "sayt chaqirgan endpoint kimlikni to'g'ri oladimi" ni tekshiradi;
-  // bu yerda TESKARISI qulflanadi: bu endpointga kimlik QO'SHILMASIN.
-  // Qo'shilsa (a) kirmagan mehmon o'lchanmay qolardi, (b) bazada "kim qaysi
-  // sahifani ochdi" degan yozuv paydo bo'lardi.
-  assert.ok(!trackSrc.includes('authUser(') && !trackSrc.includes('requestUser('),
-    'routes/track.js kimlik so\'rayapti. Trafik beacon\'i ANONIM bo\'lishi kerak: '
-    + 'kimlik so\'ralsa kirmagan mehmon o\'lchanmay qoladi va bazada kuzatuv yozuvi paydo bo\'ladi.');
-  // Klient tomonda ham: cookie yubormaslik — va'daning ikkinchi yarmi.
-  for (const [fayl, src] of [['script.js', siteSrc], ['telegram-app/app.js', miniSrc]]) {
-    const tana = src.match(/fetch\('\/api\/track', \{([\s\S]*?)\}\)/);
-    assert.ok(tana, `${fayl}: \`/api/track\` chaqiruvi topilmadi`);
-    assert.ok(/credentials:\s*'omit'/.test(tana[1]),
-      `${fayl}: beacon cookie yuboryapti (\`credentials: 'omit'\` yo'q). `
-      + 'Anonimlik VA\'DA bo\'lib qolardi — kod bilan tasdiqlansin.');
+  // ── 5-band: kimlik IKKI JADVALGA IKKI XIL (2026-08-23 da qayta yozildi) ──
+  // 2026-08-18 → 08-23 oralig'ida bu band "beacon kimlik SO'RAMASIN" edi.
+  // Founder qarori bilan endi kirgan foydalanuvchining ko'rish/savat amali
+  // `user_events` ga ISM bilan yoziladi. Lekin `traffic_events` ANONIM
+  // QOLADI (4-band) va bu yerda uchta narsa qulflanadi:
+  //   (a) kimlik `requestUser()` dan — `authUser()` emas (ikki kanal);
+  //   (b) `traffic_events` INSERT'ida kimlik ustuni YO'Q (4-band bilan);
+  //   (c) kimlik tekshiruvi YIQILSA beacon yiqilmasin (`try`) — o'lchov
+  //       o'lchanayotgan narsani sindirmasin;
+  //   (d) klientlar kimlikni HAQIQATAN yuboradi: sayt cookie
+  //       (`same-origin`), Mini App `X-Telegram-Init-Data` — aks holda
+  //       server tomoni to'g'ri bo'lsa ham lenta bo'sh qolardi.
+  assert.ok(trackSrc.includes('requestUser(') && !trackSrc.includes('authUser('),
+    'routes/track.js kimlikni `requestUser()` dan olsin (`authUser()` bitta kanalni biladi).');
+  assert.ok(!ustunlar.includes('tg_user_id') && !ustunlar.includes('user_id'),
+    'traffic_events INSERT\'ida kimlik ustuni paydo bo\'lgan — anonim jadval anonim qolsin, kimlik `user_events` ga.');
+  assert.ok(/try\s*\{\s*u = await requestUser\(req\);/.test(trackSrc),
+    'track.js: `requestUser` `try` siz — kimlik tekshiruvi yiqilsa butun beacon yiqiladi.');
+  assert.ok(/recordUserEvent\(/.test(trackSrc), 'track.js shaxsiy lentaga (`recordUserEvent`) yozmayapti');
+  {
+    const tana = siteSrc.match(/fetch\('\/api\/track', \{([\s\S]*?)\}\)/);
+    assert.ok(tana && /credentials:\s*'same-origin'/.test(tana[1]),
+      "script.js: beacon cookie yubormayapti (`credentials: 'same-origin'` kerak) — sayt xaridori lentada ko'rinmaydi");
+    const mini = miniSrc.match(/fetch\('\/api\/track', \{([\s\S]*?)\}\)/);
+    assert.ok(mini && /X-Telegram-Init-Data/.test(mini[1]),
+      'telegram-app/app.js: beacon `X-Telegram-Init-Data` yubormayapti — Mini App xaridori lentada ko\'rinmaydi');
   }
 
   // ── 6-band: tortmaning BIRINCHI ochilishi ham sanaladi ──

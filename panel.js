@@ -36,7 +36,7 @@
   barEl.style.width = foiz + "%";
   percentEl.textContent = foiz + "%";
   countEl.textContent = tugaganlar + " / " + sprintlar.length + " sprint";
-  updatedEl.textContent = "Yangilanish: 2026-08-23 («BOT USERLAR» — telefon ustuni, /start da raqam so'rovi (faqat raqam yo'q bo'lganda, majburiy emas), ism bosilsa per-user harakat lentasi (GET /api/admin/user-events), Trafikda «Foydalanuvchi harakatlari» kartalari va grafigi; «AI / 7 kun» olib tashlandi. Test 51 → 1c qorovuli; 91 test yashil, mutatsiya ushlandi. Kesh: admin.js 34, admin.css 22, panel.js 55. DEPLOY: statik + backend, migratsiya yo'q. PUSH YO'Q.)";
+  updatedEl.textContent = "Yangilanish: 2026-08-23 (kech: shaxsiy lenta endi ko'rish/savatga solish/chiqarishni ham ko'rsatadi — beacon kimlikni requestUser() bilan yuboradi, traffic_events anonim qoladi; buyurtma hodisasi tovarlar bilan. Sabab: anonimlik chegarasi founder'ga aytilmay qo'yilgan edi. Test 42 5-band qayta yozildi; 91 test yashil, mutatsiya ushlandi. Kesh: script.js 58, app.js 103, panel.js 56. DEPLOY: statik + backend, migratsiya yo'q. PUSH YO'Q.)";
 
 
   sprintlar.forEach(s => {

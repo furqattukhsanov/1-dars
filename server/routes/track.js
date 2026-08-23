@@ -4,6 +4,8 @@ const { rateLimited, readBody, ok, fail } = require('../lib/http');
 const {
   KINDS, ekranNomi, botmi, visitorBelgisi, refHost, manbaBelgisi, yuzAniqla,
 } = require('../lib/traffic');
+const { requestUser } = require('../lib/auth');
+const { recordUserEvent } = require('../lib/user-events');
 
 // ============ POST /api/track — TRAFIK HODISASI (2026-08-18) ============
 // Sayt va Mini App shu yerga "ekran ochildi" / "savatga qo'shildi" deb
@@ -11,17 +13,20 @@ const {
 // bilan yuboriladi, ya'ni bu endpoint yiqilsa ham FOYDALANUVCHI hech narsa
 // sezmaydi. Bu ataylab: o'lchov vositasi o'lchayotgan narsani sindirmasin.
 //
-// ============ KIMLIK BU YERDA YO'Q — ATAYLAB ============
-// ⚠️ Endpoint `authUser()` ni ham, `requestUser()` ni ham CHAQIRMAYDI va bu
-// e'tibordan qolgan joy emas, QAROR: trafik o'lchovi kim ekanini bilishi
-// SHART EMAS. Kimlik so'ralsa ikki narsa buzilardi — (1) kirmagan mehmon
-// (ya'ni trafikning katta qismi) umuman o'lchanmasdi, (2) bazada "kim qaysi
-// sahifani ochdi" degan yozuv paydo bo'lardi, holbuki bizga faqat SON kerak.
-// CLAUDE.md dagi `requestUser()` qoidasi "kimlik olinsa bitta nuqtadan
-// olinsin" deydi — bu yerda kimlik UMUMAN olinmaydi.
-//
-// ⚠️ Shuning uchun jadvalda IP ham, Telegram ID ham yo'q: faqat kun bilan
-// tuzlangan `visitor` belgisi (`lib/traffic.js` → `visitorBelgisi`).
+// ============ KIMLIK: IKKI JADVAL, IKKI VA'DA (2026-08-23 da o'zgardi) ============
+// 2026-08-18 dan 2026-08-23 gacha bu endpoint kimlikni UMUMAN so'ramasdi.
+// Founder qarori (2026-08-23): «qaysi mijoz nimani ko'rdi, savatga soldi,
+// chiqardi — qadamba-qadam ko'rmoqchiman». Shuning uchun endi:
+//   * `traffic_events` — HAMON ANONIM: IP ham, Telegram ID ham yo'q, faqat
+//     kun bilan tuzlangan `visitor` (Test 42, 4-band qulflaydi). Mehmon ham
+//     shu yerda sanaladi;
+//   * `user_events` — QO'SHIMCHA: kimlik `requestUser()` orqali BOR bo'lsa
+//     (Mini App `initData` sarlavhasi / sayt cookie), o'sha odamning
+//     ko'rish/savat amali ism bilan yoziladi (db/029). Kimlik yo'q bo'lsa
+//     hech narsa o'zgarmaydi — mehmon o'lchanishdan to'xtamaydi.
+// Kimlik BITTA nuqtadan (`requestUser`, CLAUDE.md) — `authUser()` emas.
+// `cart_remove` FAQAT `user_events` ga boradi: `traffic_events` voronkasi
+// (ko'rish → savat) o'zgarmaydi, db/028 CHECK ro'yxati ham.
 
 // So'rov tanasi juda kichik — 1 KB dan oshsa bu bizning klientimiz emas.
 const MAX_BODY = 1024;
@@ -74,8 +79,10 @@ async function handleTrack(req, res, ip) {
     return fail(res, 'bad request', 400);
   }
 
-  const kind = KINDS.includes(String(d.kind || '').trim()) ? String(d.kind).trim() : null;
-  if (!kind) return fail(res, 'bad request', 400);
+  const kindXom = String(d.kind || '').trim();
+  const kind = KINDS.includes(kindXom) ? kindXom : null;
+  // `cart_remove` — faqat shaxsiy lenta uchun (yuqoridagi izoh)
+  if (!kind && kindXom !== 'cart_remove') return fail(res, 'bad request', 400);
 
   // Yuz `Referer` sarlavhasidan aniqlanadi — klient aytgan qiymat faqat
   // zaxira (`lib/traffic.js` → `yuzAniqla` izohi).
@@ -90,18 +97,34 @@ async function handleTrack(req, res, ip) {
   const kun = new Date().toISOString().slice(0, 10);
   const visitor = visitorBelgisi(ip, ua, kun);
 
-  try {
-    await pool.query(
-      `INSERT INTO traffic_events (kind, face, screen, product_id, visitor, ref, src)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-      [kind, face, screen, productId, visitor,
-        refHost(d.ref, new URL(SITE_ORIGIN).hostname), manbaBelgisi(d.src)]
-    );
-  } catch (e) {
-    // Birinchi argument BARQAROR kalit (CLAUDE.md, Test 10c): xato matni
-    // ikkinchi argumentda, aks holda har xil xato alohida alert bo'lardi.
-    console.error('trafik yozish xatosi:', e.message);
-    return fail(res, 'server error', 500);
+  if (kind) {
+    try {
+      await pool.query(
+        `INSERT INTO traffic_events (kind, face, screen, product_id, visitor, ref, src)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        [kind, face, screen, productId, visitor,
+          refHost(d.ref, new URL(SITE_ORIGIN).hostname), manbaBelgisi(d.src)]
+      );
+    } catch (e) {
+      // Birinchi argument BARQAROR kalit (CLAUDE.md, Test 10c): xato matni
+      // ikkinchi argumentda, aks holda har xil xato alohida alert bo'lardi.
+      console.error('trafik yozish xatosi:', e.message);
+      return fail(res, 'server error', 500);
+    }
+  }
+
+  // ---- Shaxsiy lenta (db/029) — faqat kimlik bor bo'lsa va faqat MATO
+  // darajasida (katalog/savat ekranini ochish lentaga tushmaydi — u shovqin).
+  // Kimlik tekshiruvi yiqilsa beacon yiqilmaydi: o'lchov o'lchanayotgan
+  // narsani sindirmasin.
+  if (productId) {
+    let u = null;
+    try { u = await requestUser(req); } catch (e) { console.error('track kimlik xatosi:', e.message); }
+    if (u && u.id) {
+      if (kindXom === 'view') void recordUserEvent(u.id, 'product_view', { productId });
+      else if (kindXom === 'cart') void recordUserEvent(u.id, 'cart_add', { productId });
+      else if (kindXom === 'cart_remove') void recordUserEvent(u.id, 'cart_remove', { productId });
+    }
   }
 
   // Tozalash yozuvdan KEYIN va kutilmasdan — beacon javobi kechikmasin.

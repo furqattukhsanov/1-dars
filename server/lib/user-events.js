@@ -3,15 +3,21 @@ const { pool } = require('../db');
 // ============ FOYDALANUVCHI AMALLARI LENTASI (2026-08-23, db/029) ============
 // Admin paneldagi «Bot userlar» → «Oxirgi harakatlar» shu jadvaldan chiziladi.
 //
-// `traffic_events` (db/028) bilan ARALASHTIRILMAYDI: u anonim va ko'rishni
-// sanaydi; bu yerda esa KIRGAN foydalanuvchining O'ZI bajargan amal va uning
-// Telegram ID'si. «Mato ko'rildi» shuning uchun bu yerga TUSHMAYDI —
-// ko'rish anonim beacon orqali keladi va u kimlik so'ramaydi (Test 42).
+// `traffic_events` (db/028) bilan ARALASHTIRILMAYDI: u anonim va SONNI
+// sanaydi (mehmon ham); bu yerda esa KIRGAN foydalanuvchining O'ZI bajargan
+// amal va uning Telegram ID'si. Ko'rish/savat ham shu yerga tushadi — lekin
+// faqat kimlik bo'lganda (founder qarori 2026-08-23, `routes/track.js`).
 //
 // ⚠️ RO'YXAT FAQAT SHU YERDA. Bazada `kind` uchun faqat shakl tekshiruvi bor
 // (db/029 izohi — `to_status` darsi). Panel yorlig'i ham shu yerdan
 // (`LABELS`) — admin.js ga nusxalanmaydi, server javobda tayyor yorliq beradi.
 const KINDS = Object.freeze({
+  // 2026-08-23 (founder: «qadamba-qadam ko'rmoqchiman»): kirgan foydalanuvchi
+  // uchun ko'rish va savat ham yoziladi — `routes/track.js` dan, faqat
+  // kimlik BOR bo'lsa. Mehmon hamon anonim (`traffic_events`).
+  product_view:    "Matoni ko'rdi",
+  cart_add:        "Savatga soldi",
+  cart_remove:     'Savatdan chiqardi',
   favorite_add:    "Sevimliga qo'shildi",
   favorite_remove: 'Sevimlidan olindi',
   ai_image:        "AI rasm so'raldi",

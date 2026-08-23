@@ -588,7 +588,10 @@ async function handleAdminUsers(req, res, ip) {
          LIMIT 500`),
       pool.query(`
         SELECT e.at, e.kind, e.product_id, e.label, e.tg_user_id,
-               u.full_name, u.tg_username, p.name_uz AS product_name
+               u.full_name, u.tg_username, p.name_uz AS product_name,
+               CASE WHEN e.kind = 'order' THEN
+                 (SELECT string_agg(oi.name || ' ×' || oi.qty, ', ' ORDER BY oi.id)
+                    FROM order_items oi WHERE oi.order_id = e.label) END AS order_items
           FROM user_events e
           LEFT JOIN users u ON u.tg_user_id = e.tg_user_id
           LEFT JOIN products p ON p.id = e.product_id
@@ -623,8 +626,9 @@ async function handleAdminUsers(req, res, ip) {
         kind: r.kind, label: USER_EVENT_KINDS[r.kind] || r.kind,
         tgId: String(r.tg_user_id),
         user: r.full_name || (r.tg_username ? '@' + r.tg_username : String(r.tg_user_id)),
-        // Mahsulot o'chirilgan bo'lsa xom id (db/028 naqshi)
-        subject: r.product_name || r.label || r.product_id || null,
+        // Buyurtma: «#LM-104 — Ipak atlas ×2, Tafta ×1». Mahsulot
+        // o'chirilgan bo'lsa xom id (db/028 naqshi).
+        subject: r.order_items ? `${r.label} — ${r.order_items}` : (r.product_name || r.label || r.product_id || null),
       })),
       kinds: kindRes.rows.map((r) => ({ kind: r.kind, label: USER_EVENT_KINDS[r.kind] || r.kind, n: r.n })),
       total: kindRes.rows.reduce((s, r) => s + r.n, 0),
@@ -648,7 +652,10 @@ async function handleAdminUserEvents(req, res, ip) {
   const days = Number.isInteger(xom) ? Math.min(365, Math.max(1, xom)) : 30;
   try {
     const { rows } = await pool.query(`
-      SELECT e.at, e.kind, e.product_id, e.label, p.name_uz AS product_name
+      SELECT e.at, e.kind, e.product_id, e.label, p.name_uz AS product_name,
+             CASE WHEN e.kind = 'order' THEN
+               (SELECT string_agg(oi.name || ' ×' || oi.qty, ', ' ORDER BY oi.id)
+                  FROM order_items oi WHERE oi.order_id = e.label) END AS order_items
         FROM user_events e
         LEFT JOIN products p ON p.id = e.product_id
        WHERE e.tg_user_id = $1 AND e.at >= now() - ($2::int * interval '1 day')
@@ -658,7 +665,7 @@ async function handleAdminUserEvents(req, res, ip) {
       feed: rows.map((r) => ({
         at: new Date(r.at).toISOString(),
         kind: r.kind, label: USER_EVENT_KINDS[r.kind] || r.kind,
-        subject: r.product_name || r.label || r.product_id || null,
+        subject: r.order_items ? `${r.label} — ${r.order_items}` : (r.product_name || r.label || r.product_id || null),
       })),
     });
   } catch (e) {

@@ -351,6 +351,11 @@
     <div id="faoliyat-list">
       <div class="faoliyat-item">
         <span class="faoliyat-sana">2026-08-23</span>
+        <span class="faoliyat-text"><b>SHAXSIY LENTA ENDI KO'RISH VA SAVATNI HAM KO'RSATADI — BEACON KIMLIKNI YUBORADI</b> (kech, <code>380cf7f</code> dan keyin). Founder norozi: «qadamba-qadam ko'ra olmayapman — savatga soldi, chiqardi, qaysi mijoz qaysi tovarni oldi». Sabab HALOL: agentning o'z qarori — 2026-08-18 da beacon ataylab anonim qoldirilgan va bu chegara founder'ga aytilmagan edi. Endi <code>routes/track.js</code> kimlikni <code>requestUser()</code> bilan (<code>try</code> ichida) oladi; kimlik bor bo'lsa <code>user_events</code> ga ism bilan <code>product_view</code> / <code>cart_add</code> / <code>cart_remove</code>; <code>traffic_events</code> ANONIM QOLADI (Test 42 4-band), mehmon hamon sanaladi. Sayt beacon'i <code>same-origin</code> cookie, Mini App <code>X-Telegram-Init-Data</code>. Lentada buyurtma tovarlar bilan: «#LM-104 — Ipak atlas ×2». <b>Qorovul:</b> Test 42 5-band qayta yozildi. <b>Hisobotchi mustaqil o'lchadi:</b> <b>91</b> test yashil (da'vo bilan mos); mutatsiya (<code>requestUser</code> <code>try</code> siz) Test 42 da QIZIL, fayl nusxadan tiklandi; ikkinchi mutatsiya Test 16 da (hash) to'xtadi, Test 42 (d) bandi mustaqil sinalmadi. Jonli lenta TEKSHIRILMADI. <b>Halol chegara:</b> lenta shu deploy'dan to'ladi, o'tmish yo'q. Kesh: <code>script.js</code> 57&rarr;<b>58</b>, <code>app.js</code> 102&rarr;<b>103</b>, <code>panel.js</code> 55&rarr;<b>56</b>. 🔴 <b>DEPLOY: STATIK + BACKEND</b> — rsync + servis restart; migratsiya YO'Q. PUSH YO'Q. Hujjat: docs/sprintlar/sprint-7.md</span>
+        <span class="faoliyat-sprint">Sprint 7</span>
+      </div>
+      <div class="faoliyat-item">
+        <span class="faoliyat-sana">2026-08-23</span>
         <span class="faoliyat-text"><b>&laquo;BOT USERLAR&raquo; — TELEFON USTUNI, <code>/start</code> DA RAQAM SO'ROVI, PER-USER HARAKAT LENTASI VA TRAFIKDA &laquo;FOYDALANUVCHI HARAKATLARI&raquo;.</b> Founder beshta so'rovi: (1) jadvalda telefon — <code>GET /api/admin/users</code> javobiga <code>phone</code> (admin tokeni bilan yopiq), «Telefon» ustuni, ☎ o'rniga raqamning o'zi; (2) <code>/start</code> dan keyin raqam so'raladi — upsert <code>RETURNING phone</code>, raqam YO'Q bo'lgandagina <code>request_contact</code> klaviaturasi, majburiy emas, raqami borga qayta so'ralmaydi; (3) ism bosiladi → lenta faqat shu odamga (<code>GET /api/admin/user-events</code>), «Hammasi» qaytaradi; (4) Trafik sahifasida «Foydalanuvchi harakatlari» kartalari + «Harakatlar dinamikasi» grafigi (<code>actions</code>, <code>user_events</code>, Toshkent kuni), backend orqada bo'lsa blok YASHIRINADI; (5) «AI / 7 kun» ustuni olib tashlandi.
         <b>Qorovul:</b> Test 51 → 1c — <code>request_contact</code> bor VA <code>phone</code> bor-yo'qligiga bog'langan. <b>Hisobotchi mustaqil o'lchadi:</b> <b>91</b> test yashil (da'vo bilan mos); mutatsiya (<code>if (!telefonBor)</code> → <code>if (true)</code>) Test 51 da QIZIL, fayl nusxadan tiklandi. Brauzer tekshiruvi va jonli bot hisobotchi tomonidan TEKSHIRILMADI. <b>Halol chegara:</b> lenta/kartalar 2026-08-23 dan o'lchanadi; telefon so'rovi jonli botda hali sinalmagan. Kesh: <code>admin.js</code> 33&rarr;<b>34</b>, <code>admin.css</code> 21&rarr;<b>22</b>, <code>panel.js</code> 54&rarr;<b>55</b>. 🔴 <b>DEPLOY: STATIK + BACKEND</b> (<code>routes/admin.js</code>, <code>webhook.js</code>, <code>server.js</code>) — rsync + servis restart; migratsiya YO'Q. PUSH YO'Q. Hujjat: docs/sprintlar/sprint-7.md</span>
         <span class="faoliyat-sprint">Sprint 7</span>
@@ -1217,6 +1222,6 @@
 
 </div>
 
-<script src="panel.js?v=55" defer></script>
+<script src="panel.js?v=56" defer></script>
 </body>
 </html>
