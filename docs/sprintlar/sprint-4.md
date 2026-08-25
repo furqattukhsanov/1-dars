@@ -134,6 +134,24 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
 
 ## Qilingan ishlar
 
+- [2026-08-25] **SAYQAL TO'PLAMIDAN BITTA BAND QAYTARILDI — `.nav-lens`
+  480ms sakrashga qaytdi (founder telefonda sinab rad etdi).** Quyidagi
+  to'plamning 9-bandi (`.nav-lens` 480ms → 280ms «tez va aniq») founder
+  sinovida YOQMADI — sakrash (spring, `cubic-bezier(.34,1.56,.64,1)`)
+  brendga xos his ekan. `telegram-app/styles.css` da o'tish eski holatga
+  qaytarildi va ustiga ATAYLAB ekanligi izohda yozildi (keyin yana
+  «optimallashtirib» yuborilmasin). QOLGAN 9 sayqal (varaq drawer bilan
+  chiqib pastga kuzatilib yopilishi, toast, badge, yurak, karta bosilishi,
+  bo'sh holat, `.nav-profile-btn`) JOYIDA qoladi — rad faqat linzaga.
+  Kesh: `styles.css` 37→**38** (`index.html` da), Test 16 jadvali birga.
+  **Hisobotchi mustaqil o'lchadi:** 91 test yashil (sanab tasdiqlandi);
+  Test 16 qorovuli mutatsiya bilan sinaldi — jadvalga eski hash qaytarilsa
+  test QIZIL (`?v=38` vs `v=37` xabari bilan), keyin tiklandi.
+  Bu NORMAL jarayon darsi: tavsiya qoidasi (Emil: tez-tez ko'rinadigan
+  harakat qisqartirilsin) founder didi bilan to'qnashganda **did yutadi** —
+  sinovda bir bandning rad etilishi to'plamning muvaffaqiyatsizligi emas,
+  sinovning ishlagani.
+
 - [2026-08-25] **MINI APP'GA DIZAYN-SAYQAL (ANIMATSIYA) TO'PLAMI — lokalda
   tekshirildi, PRODUCTION'GA HALI CHIQMAGAN** (deploy founder telefonda
   ko'rgandan keyin). Emil Kowalski dizayn-injiniring yondashuvi
@@ -3436,6 +3454,13 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
 ---
 
 ## Qarorlar
+
+- [2026-08-25] Qaror (founder): **`.nav-lens` surilishi 480ms sakrash
+  (spring) bo'lib QOLADI — 280ms «tez va aniq» varianti telefonda sinovda
+  rad etildi.** Tavsiya qoidasi (tez-tez ko'rinadigan harakat qisqartirilsin)
+  founder didi bilan to'qnashganda did yutadi: sakrash brendga xos his.
+  Izoh `styles.css` dagi `.nav-lens` ustida turadi — qayta
+  «optimallashtirilmasin».
 
 - [2026-08-25] Qaror: **uch joy ATAYLAB animatsiyasiz qoldirildi** —
   (1) pastki nav'dagi ekran almashishi (ekranlar `innerHTML` bilan butunlay

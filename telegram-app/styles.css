@@ -363,7 +363,11 @@ body {
   box-shadow:
     0 6px 14px -4px rgba(81,1,0,.5),
     inset 0 1px 1px rgba(255,229,210,.28);
-  transition: left 280ms var(--ease-out);
+  /* 480ms sakrash — ATAYLAB (2026-08-25 founder qarori: 280ms'lik "tez va
+     aniq" varianti sinovda YOQMADI, sakrash brendga xos his ekan). Emil
+     qoidasi ("tez-tez ko'rinadigan harakat qisqartiriladi") bu yerda ongli
+     ravishda chetga qo'yilgan — qayta "optimallashtirilmasin". */
+  transition: left 480ms cubic-bezier(.34,1.56,.64,1);
   pointer-events: none;
   z-index: 1;
 }

@@ -36,7 +36,7 @@
   barEl.style.width = foiz + "%";
   percentEl.textContent = foiz + "%";
   countEl.textContent = tugaganlar + " / " + sprintlar.length + " sprint";
-  updatedEl.textContent = "Yangilanish: 2026-08-25 (Mini App'ga dizayn-sayqal to'plami: uchala pastki varaq iOS drawer egri chizig'i bilan chiqadi va pastga kuzatilib yopiladi, toast ikki bosqichli chiqadi, savat belgisi son oshgandagina pop, yurak yoqilgandagina pop, karta/tugma bosishga javob beradi, bo'sh holat zinama-zina; uch joy ataylab animatsiyasiz. Lokalda tekshirildi, PRODUCTION'GA HALI CHIQMAGAN — deploy founder telefonda ko'rgandan keyin. 91 test yashil. Kesh: styles.css 37, app.js 104, panel.js 58. PUSH YO'Q.)";
+  updatedEl.textContent = "Yangilanish: 2026-08-25 (Sayqal to'plamidan bitta band qaytarildi: .nav-lens 480ms sakrashga qaytdi — founder telefonda sinab 280ms'ni rad etdi, sakrash brendga xos his. Qolgan 9 sayqal joyida. Tavsiya qoidasi founder didi bilan to'qnashganda did yutadi — bu normal jarayon. 91 test yashil. Kesh: styles.css 38, panel.js 59. PUSH YO'Q.)";
 
 
   sprintlar.forEach(s => {

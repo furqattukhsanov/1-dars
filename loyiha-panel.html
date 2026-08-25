@@ -351,6 +351,11 @@
     <div id="faoliyat-list">
       <div class="faoliyat-item">
         <span class="faoliyat-sana">2026-08-25</span>
+        <span class="faoliyat-text"><b>SAYQAL TO'PLAMIDAN BITTA BAND QAYTARILDI — <code>.nav-lens</code> 480ms SAKRASHGA QAYTDI</b> (founder <code>d81d81b</code> ni telefonda sinab, 10 banddan bittasini rad etdi). 280ms «tez va aniq» varianti yoqmadi — sakrash (spring, <code>cubic-bezier(.34,1.56,.64,1)</code>) brendga xos his ekan. <code>telegram-app/styles.css</code> da o'tish qaytarildi va ustiga ATAYLAB ekanligi izohda yozildi (keyin yana «optimallashtirib» yuborilmasin). <b>Qolgan 9 sayqal JOYIDA</b> — varaq drawer, toast, badge, yurak, karta bosilishi, bo'sh holat, <code>.nav-profile-btn</code>. <b>Dars:</b> tavsiya qoidasi (Emil: tez-tez ko'rinadigan harakat qisqartirilsin) founder didi bilan to'qnashganda <b>did yutadi</b> — sinovda bir bandning rad etilishi NORMAL jarayon, sinovning ishlagani. <b>Hisobotchi mustaqil o'lchadi:</b> <b>91</b> test yashil (sanab tasdiqlandi); Test 16 qorovuli mutatsiya bilan sinaldi — eski hash qaytarilsa test QIZIL, keyin tiklandi. Kesh: <code>styles.css</code> 37&rarr;<b>38</b>, <code>panel.js</code> 58&rarr;<b>59</b> (Test 16 jadvali birga). <b>DEPLOY: faqat STATIK</b> — server kodiga tegilmadi (faqat Test 16 jadvali), migratsiya YO'Q. PUSH YO'Q. Hujjat: docs/sprintlar/sprint-4.md</span>
+        <span class="faoliyat-sprint">Sprint 4</span>
+      </div>
+      <div class="faoliyat-item">
+        <span class="faoliyat-sana">2026-08-25</span>
         <span class="faoliyat-text"><b>MINI APP'GA DIZAYN-SAYQAL (ANIMATSIYA) TO'PLAMI — LOKALDA TEKSHIRILDI, PRODUCTION'GA HALI CHIQMAGAN.</b> Emil Kowalski dizayn-injiniring yondashuvi (<code>emil-design-eng</code>, <code>find-animation-opportunities</code>) bilan 10 sayqal, founder «hammasini qil» degan: uchala pastki varaq (narx/saralash, BTS, bog'lanish) iOS drawer egri chizig'i (<code>--ease-drawer</code>, 360ms) bilan chiqadi va endi YOPILISHI ham kuzatiladi — <code>sheetYopib()</code> varaqni pastga qaytarib (200ms, kirishdan ataylab tezroq) keyin holatni o'zgartiradi, beshta yopish nuqtasi shundan o'tadi; toast bir kadrda g'oyib bo'lmaydi (ikki bosqichli chiqish, 150ms); savat belgisi son OSHGANDAGINA pop (<code>_oldingiSavatSoni</code> qorovuli — ilova ochilishida jim); yurak faqat YOQILGANDA pop; mahsulot kartasi va <code>.icon-btn</code> bosishga javob beradi (<code>scale(.98)</code>/<code>scale(.94)</code>); bo'sh savat zinama-zina kiradi; <code>.nav-lens</code>/<code>.nav-profile-btn</code> 480ms sakrashdan 280ms ga; hamma yangi harakatga <code>prefers-reduced-motion</code>. <b>Uch joy ATAYLAB animatsiyasiz</b> (nav ekran almashishi, filtr qayta chizilishi, miqdor +/-) — rad bandlari sprint faylida. <b>Hisobotchi mustaqil o'lchadi:</b> <b>91</b> test yashil, 0 xato; sevimlilar qorovuli <code>toggleLike</code> ni BAJARADI — yangi yurak-pop kodi uchun sandbox'ga bo'sh <code>document</code> stubi qo'shildi (app kodiga tegilmadi); <code>sw.js</code> PRECACHE'da bu fayllar YO'Q — <code>CACHE_VERSION</code> tegilmadi (tekshirildi). Lokalda brauzerda ko'rilgani — sessiya da'vosi, hisobotchi TEKSHIRMADI. Kesh: <code>styles.css</code> 36&rarr;<b>37</b>, <code>app.js</code> 103&rarr;<b>104</b>, <code>panel.js</code> 57&rarr;<b>58</b> (Test 16 jadvali birga). <b>DEPLOY: faqat STATIK, lekin HALI QILINMAYDI</b> — founder telefonda ko'rgandan keyin. PUSH YO'Q. Hujjat: docs/sprintlar/sprint-4.md</span>
         <span class="faoliyat-sprint">Sprint 4</span>
       </div>
@@ -1232,6 +1237,6 @@
 
 </div>
 
-<script src="panel.js?v=58" defer></script>
+<script src="panel.js?v=59" defer></script>
 </body>
 </html>

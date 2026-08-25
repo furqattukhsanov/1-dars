@@ -1404,11 +1404,13 @@ function testAssetVersionsAreFresh() {
     // YUQORIGA suriladi: teng raqam qaytib kelgan foydalanuvchida keshdagi
     // BIR TOMONLAMA faylni qoldirardi — sevimlilar yoki chiqish tuzatishining
     // faqat bittasi bo'lgan `app.js`.
-    'panel.js': { v: 58, hash: 'ef369d352988' },
+    'panel.js': { v: 59, hash: '2cd4444bbb0f' },
     // 2026-08-23: «Bot userlar» sahifasi, mahsulot jadvali, 7/30/90 oraliq.
     'admin/admin.css': { v: 22, hash: '2b63d25b1098' },
     'admin/admin.js': { v: 34, hash: '56844af79b82' },
-    'telegram-app/styles.css': { v: 37, hash: '55246c752814' },
+    // 2026-08-25: `.nav-lens` o'tishi 480ms sakrashga QAYTARILDI (founder
+    // telefonda sinab 280ms'ni rad etdi — sakrash brendga xos his).
+    'telegram-app/styles.css': { v: 38, hash: '17e788357294' },
     'telegram-app/app.js': { v: 104, hash: '8a223bf4fe02' },
     'telegram-app/pwa.js': { v: 6, hash: '798ab85e1cde' },
   };
