@@ -122,6 +122,7 @@
   --dur-slow:    480ms;
   --ease-spring: cubic-bezier(.34, 1.56, .64, 1);
   --ease-out:    cubic-bezier(.22, 1, .36, 1);
+  --ease-drawer: cubic-bezier(.32, .72, 0, 1); /* iOS uslubidagi pastdan chiqadigan varaq egri chizig'i */
 
   --header-h: 58px;
 }
@@ -226,7 +227,8 @@ body {
   color: var(--text-body);
   box-shadow: 0 4px 12px -6px rgba(81,1,0,.22), inset 0 1px 0 rgba(255,255,255,.95);
 }
-.icon-btn:active { background: rgba(255,255,255,.82); }
+.icon-btn { transition: transform var(--dur-fast) var(--ease-out), background var(--dur-fast) ease; }
+.icon-btn:active { background: rgba(255,255,255,.82); transform: scale(.94); }
 .notif-btn { position: relative; }
 
 /* ─── Shaffof header — mahsulot ekranidagi to'liq kenglikdagi rasm uchun
@@ -361,7 +363,7 @@ body {
   box-shadow:
     0 6px 14px -4px rgba(81,1,0,.5),
     inset 0 1px 1px rgba(255,229,210,.28);
-  transition: left 480ms cubic-bezier(.34,1.56,.64,1);
+  transition: left 280ms var(--ease-out);
   pointer-events: none;
   z-index: 1;
 }
@@ -418,13 +420,17 @@ body {
   color: rgba(122,20,13,.5);
   display: flex; align-items: center; justify-content: center;
   box-shadow: var(--glass-cast), var(--glass-spec);
-  transition: all 480ms cubic-bezier(.34,1.56,.64,1);
+  transition: background 280ms var(--ease-out), color 280ms var(--ease-out),
+              border-color 280ms var(--ease-out), box-shadow 280ms var(--ease-out);
 }
 .nav-profile-btn.active {
   border-color: rgba(255,229,210,.3);
   background: linear-gradient(155deg, #a51f13 0%, #7a140d 48%, #480100 100%);
   color: #ffe9db;
   box-shadow: 0 6px 14px -4px rgba(81,1,0,.5), inset 0 1px 1px rgba(255,229,210,.28);
+}
+@media (prefers-reduced-motion: reduce) {
+  .nav-lens, .nav-profile-btn, .pcard { transition: none; }
 }
 
 /* ===== ANIMATSIYALAR ===== */
@@ -474,6 +480,48 @@ body {
   display: flex; align-items: center; justify-content: center;
   box-shadow: 0 8px 24px -8px rgba(23,26,48,.4);
   animation: toastIn var(--dur-base) var(--ease-spring);
+  /* Chiqish — kirishdan TEZROQ (150ms) va o'sha yo'ldan (pastga). display:none
+     ni app.js o'tish tugagach qo'yadi, aks holda o'tish ko'rinmasdi. */
+  transition: opacity 150ms var(--ease-out), transform 150ms var(--ease-out);
+}
+.toast.toast-exit { opacity: 0; transform: translateY(8px); }
+
+/* Savat belgisi — son OSHGANDA bir martalik pop ("savatga tushdi" tasdig'i) */
+@keyframes badge-pop { 40% { transform: scale(1.25); } }
+.cart-badge.badge-pop { animation: badge-pop 300ms var(--ease-out); }
+
+/* Yurak — yoqilgandagina siqilib-kengayadi (o'chirish jim qoladi) */
+@keyframes yurak-pop { 0% { transform: scale(.8); } 55% { transform: scale(1.15); } }
+svg.yurak-pop { animation: yurak-pop 250ms var(--ease-out); }
+
+/* Bo'sh holat (masalan bo'sh savat) — bolalar 50ms zinama-zina kirib keladi.
+   `backwards` SHART: kechikish paytida element ko'rinmay turishi uchun. */
+@keyframes bosh-kirish { from { opacity: 0; transform: translateY(6px) scale(.97); } }
+.bosh-holat > * { animation: bosh-kirish 240ms var(--ease-out) backwards; }
+.bosh-holat > :nth-child(2) { animation-delay: 50ms; }
+.bosh-holat > :nth-child(3) { animation-delay: 100ms; }
+.bosh-holat > :nth-child(4) { animation-delay: 150ms; }
+
+/* Varaq chiqishi — app.js -> sheetYopib() `sheet-exit` klassini qo'yadi.
+   `animation: none` kirish keyframe'i bilan to'qnashuvni oldini oladi
+   (kirish payti yopilsa transform sakramasin). */
+#sheet-wrap.sheet-exit { pointer-events: none; }
+#sheet-wrap.sheet-exit .sheet-panel {
+  animation: none;
+  transform: translateY(100%);
+  transition: transform 200ms var(--ease-out);
+}
+#sheet-wrap.sheet-exit .sheet-scrim {
+  animation: none;
+  opacity: 0;
+  transition: opacity 200ms var(--ease-out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast { transition: opacity 150ms ease; }
+  .toast.toast-exit { transform: none; }
+  .cart-badge.badge-pop, svg.yurak-pop { animation: none; }
+  .bosh-holat > * { animation: fade 200ms ease backwards; }
 }
 
 /* ===== SENSORLI EKRAN — MINIMAL 44px TEGISH MAYDONI =====
@@ -737,6 +785,10 @@ button:active { opacity: .88; }
    tashlandi. Ya'ni sensorli ekranda video borligi kartochkadan
    bilinmaydi; u faqat mahsulot ekranidagi galereyada ko'rinadi. */
 .card-media { position: relative; overflow: hidden; }
+
+/* Mahsulot kartasi bosilganda javob beradi — interfeys "eshitayotganini" bildiradi */
+.pcard { transition: transform 160ms var(--ease-out); }
+.pcard:active { transform: scale(.98); }
 .media-hover {
   position: absolute;
   inset: 0;

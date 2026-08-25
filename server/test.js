@@ -1404,12 +1404,12 @@ function testAssetVersionsAreFresh() {
     // YUQORIGA suriladi: teng raqam qaytib kelgan foydalanuvchida keshdagi
     // BIR TOMONLAMA faylni qoldirardi — sevimlilar yoki chiqish tuzatishining
     // faqat bittasi bo'lgan `app.js`.
-    'panel.js': { v: 57, hash: 'f1e563a04932' },
+    'panel.js': { v: 58, hash: 'ef369d352988' },
     // 2026-08-23: «Bot userlar» sahifasi, mahsulot jadvali, 7/30/90 oraliq.
     'admin/admin.css': { v: 22, hash: '2b63d25b1098' },
     'admin/admin.js': { v: 34, hash: '56844af79b82' },
-    'telegram-app/styles.css': { v: 36, hash: '570a2450c3a4' },
-    'telegram-app/app.js': { v: 103, hash: '2b4580b8b328' },
+    'telegram-app/styles.css': { v: 37, hash: '55246c752814' },
+    'telegram-app/app.js': { v: 104, hash: '8a223bf4fe02' },
     'telegram-app/pwa.js': { v: 6, hash: '798ab85e1cde' },
   };
 
@@ -4314,7 +4314,7 @@ function testFavoritesPersistAndDoNotLie() {
     const S = { liked: {}, lang: 'uz' };
     const chizildi = [];
     const toastlar = [];
-    const fn = new Function('S', 'STR', 'showToast', 'render', 'tgInitData', 'fetch', 'console',
+    const fn = new Function('S', 'STR', 'showToast', 'render', 'tgInitData', 'fetch', 'console', 'document',
       `${tglSrc}\nreturn toggleLike;`)(
       S,
       { uz: { liked: 'qo\'shildi', likeErr: 'saqlanmadi' } },
@@ -4322,7 +4322,9 @@ function testFavoritesPersistAndDoNotLie() {
       () => chizildi.push({ ...S.liked }),
       () => 'soxta-initdata',
       javob,
-      { error: () => {} }
+      { error: () => {} },
+      // 2026-08-25: yurak-pop animatsiyasi DOM'ga tegadi — sandbox'da bo'sh stub
+      { querySelectorAll: () => [] }
     );
     return { fn, S, chizildi, toastlar };
   };

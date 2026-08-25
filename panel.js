@@ -9,7 +9,7 @@
     { num: 1, nom: "Telegram Mini App MVP",     dars: "Dars 8",  holat: "tugadi",  sana: "2026-07-31" },
     { num: 2, nom: "Ma'lumotlar bazasi / Backend", dars: "Dars 9",  holat: "tugadi", sana: "2026-07-23" },
     { num: 3, nom: "Foydalanuvchilar + rollar", dars: "Dars 10", holat: "tugadi", sana: "2026-08-16" },
-    { num: 4, nom: "Asosiy funksiya",           dars: "Dars 11", holat: "jarayonda",  sana: "2026-08-19" },
+    { num: 4, nom: "Asosiy funksiya",           dars: "Dars 11", holat: "jarayonda",  sana: "2026-08-25" },
     { num: 5, nom: "Mobil / PWA",               dars: "Dars 12", holat: "jarayonda",  sana: "2026-08-13" },
     { num: 6, nom: "Integratsiyalar",           dars: "Dars 13", holat: "jarayonda",  sana: "2026-07-22" },
     { num: 7, nom: "Admin panel",               dars: "Dars 14", holat: "tugadi",  sana: "2026-08-23" },
@@ -36,7 +36,7 @@
   barEl.style.width = foiz + "%";
   percentEl.textContent = foiz + "%";
   countEl.textContent = tugaganlar + " / " + sprintlar.length + " sprint";
-  updatedEl.textContent = "Yangilanish: 2026-08-25 (Matt Pocock muhandislik skill'lari uchun per-repo konfiguratsiya: docs/agents/ da uch hujjat — issue-tracker (GitHub Issues, gh CLI, tashqi PR'lar triage EMAS), triage-labels (beshta kanonik teg standart nomlari bilan), domain (bitta kontekst, CONTEXT.md + docs/adr/ keyin ochiladi); CLAUDE.md ga «Agent skills» bo'limi. Kod tegilmagan, faqat hujjat. Kesh: panel.js 57. DEPLOY: faqat statik. PUSH YO'Q.)";
+  updatedEl.textContent = "Yangilanish: 2026-08-25 (Mini App'ga dizayn-sayqal to'plami: uchala pastki varaq iOS drawer egri chizig'i bilan chiqadi va pastga kuzatilib yopiladi, toast ikki bosqichli chiqadi, savat belgisi son oshgandagina pop, yurak yoqilgandagina pop, karta/tugma bosishga javob beradi, bo'sh holat zinama-zina; uch joy ataylab animatsiyasiz. Lokalda tekshirildi, PRODUCTION'GA HALI CHIQMAGAN — deploy founder telefonda ko'rgandan keyin. 91 test yashil. Kesh: styles.css 37, app.js 104, panel.js 58. PUSH YO'Q.)";
 
 
   sprintlar.forEach(s => {

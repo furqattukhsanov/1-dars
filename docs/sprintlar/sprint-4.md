@@ -134,6 +134,35 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
 
 ## Qilingan ishlar
 
+- [2026-08-25] **MINI APP'GA DIZAYN-SAYQAL (ANIMATSIYA) TO'PLAMI — lokalda
+  tekshirildi, PRODUCTION'GA HALI CHIQMAGAN** (deploy founder telefonda
+  ko'rgandan keyin). Emil Kowalski dizayn-injiniring yondashuvi
+  (`emil-design-eng`, `find-animation-opportunities` skill'lari) bilan
+  10 ta sayqal, founder «hammasini qil» degan.
+
+  **Nima qo'shildi** (`telegram-app/styles.css` v37, `app.js` v104):
+  (1) uchala pastki varaq (narx/saralash, BTS, bog'lanish) endi iOS drawer
+  egri chizig'i bilan chiqadi — `--ease-drawer: cubic-bezier(.32,.72,0,1)`,
+  360ms; (2) varaq YOPILISHI ham kuzatiladi — `sheetYopib()` yordamchisi
+  varaqni pastga qaytarib (200ms, kirishdan ATAYLAB tezroq) keyin holatni
+  o'zgartiradi, beshta yopish nuqtasi shundan o'tadi; (3) toast endi bir
+  kadrda g'oyib bo'lmaydi — ikki bosqichli chiqish (`.toast-exit`, 150ms);
+  (4) savat belgisi son OSHGANDAGINA pop — `_oldingiSavatSoni` qorovuli
+  bilan, ilova ochilishida va kamayishda jim; (5) yurak faqat YOQILGANDA
+  pop (o'chirish — bekor qilish, jim); (6) mahsulot kartasi bosilganda
+  `scale(.98)` javob; (7) `.icon-btn` bosilganda `scale(.94)`; (8) bo'sh
+  holat (masalan bo'sh savat) bolalari 50ms zinama-zina kiradi; (9)
+  `.nav-lens` va `.nav-profile-btn` 480ms sakrashdan 280ms `--ease-out` ga,
+  `transition: all` aniq xossalarga almashdi; (10) hamma yangi harakatga
+  `prefers-reduced-motion` bloklari.
+
+  **Testlar:** Test 16 jadvalida ikkala faylning yangi `sha256` va `?v=`
+  (37/104) yangilandi. Sevimlilar qorovuli `toggleLike` ni sandbox'da
+  BAJARADI — yangi yurak-pop kodi `document` ga tegadi, sandbox'ga bo'sh
+  `document` stubi qo'shildi (app kodiga tegilmadi). `sw.js` PRECACHE'da
+  `app.js`/`styles.css` YO'Q — `CACHE_VERSION` ga tegilmadi (tekshirildi).
+  Yakun: **91 test yashil, 0 xato.**
+
 - [2026-08-19] **«ENG YANGI» ENDI HAQIQIY SANAGA TAYANADI — TUGMA O'Z NOMINI
   BAJARADI. 2026-08-17 da ochiq qoldirilgan band YOPILDI.**
 
@@ -3407,6 +3436,16 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
 ---
 
 ## Qarorlar
+
+- [2026-08-25] Qaror: **uch joy ATAYLAB animatsiyasiz qoldirildi** —
+  (1) pastki nav'dagi ekran almashishi (ekranlar `innerHTML` bilan butunlay
+  qayta chiziladi, «kirish» animatsiyasi har bosishda butun sahifani
+  o'ynatib charchatardi); (2) filtr/saralash qo'llanganda katalog qayta
+  chizilishi (natija DARHOL ko'rinishi kerak — kutish hissi qo'shmaslik);
+  (3) miqdor +/- tugmalari (raqam o'zgarishi o'zi yetarli fikr-aloqa).
+  `find-animation-opportunities` hisobotining rad bandlari — «hamma narsani
+  animatsiya qilish» sifat emas. Yopilish tezligi ham qaror: varaq chiqishi
+  360ms, YOPILISHI 200ms — yo'qolayotgan narsani kutish shart emas.
 
 - [2026-08-19] Qaror: **«Eng yangi» HAQIQIY sanaga tayanadi, yorliq esa
   ZAXIRA bo'lib qoladi.** 2026-08-17 dagi ochiq band yopildi — sana o'ylab

@@ -1029,15 +1029,24 @@ function decQty() {
 
 // ============ TOAST ============
 let _toastTimer;
+let _toastYopTimer; // chiqish o'tishi (150ms) tugashini kutadi — undan keyin display:none
 function showToast(msg) {
   const el = document.getElementById('toast');
   el.textContent = msg;
-  el.classList.remove('hidden');
   clearTimeout(_toastTimer);
-  _toastTimer = setTimeout(() => el.classList.add('hidden'), 2000);
+  clearTimeout(_toastYopTimer);
+  el.classList.remove('toast-exit');
+  el.classList.remove('hidden');
+  _toastTimer = setTimeout(() => {
+    // Avval pastga kuzatamiz (CSS .toast-exit), display:none faqat o'tish tugagach —
+    // aks holda toast bir kadrda g'oyib bo'lardi (kirishi bor, chiqishi yo'q edi)
+    el.classList.add('toast-exit');
+    _toastYopTimer = setTimeout(() => { el.classList.add('hidden'); el.classList.remove('toast-exit'); }, 180);
+  }, 2000);
 }
 
 // ============ HEADER ============
+let _oldingiSavatSoni = null; // null = hali o'lchanmagan — ilova ochilishida pop bo'lmasin
 function updateHeader() {
   const sc = S.screen;
   const T = STR[S.lang];
@@ -1161,6 +1170,13 @@ function updateNav() {
     const cnt = cartCount();
     badge.classList.toggle('hidden', cnt === 0);
     if (cnt > 0) badge.textContent = cnt;
+    // Son OSHGANDAGINA pop — "savatga tushdi" tasdig'i; kamayish va ilk chizish jim
+    if (_oldingiSavatSoni !== null && cnt > _oldingiSavatSoni) {
+      badge.classList.remove('badge-pop');
+      void badge.offsetWidth; // reflow — ketma-ket qo'shishda animatsiya qayta boshlansin
+      badge.classList.add('badge-pop');
+    }
+    _oldingiSavatSoni = cnt;
   }
 
   if (showMainBtn) {
@@ -1559,8 +1575,10 @@ function openPriceSheet() {
   paintSheet();
 }
 function closePriceSheet() {
-  S.priceSheet = false;
-  paintSheet();
+  sheetYopib(() => {
+    S.priceSheet = false;
+    paintSheet();
+  });
 }
 /* `data-input` uchun o'ramlar. Delegatsiya `fn(qiymat, arg)` tartibida
    chaqiradi (qiymat asosiy), bu funksiya esa `(which, v)` kutadi — shuning
@@ -1593,9 +1611,12 @@ function applyPriceFilter() {
   S.priceMin = lo;
   S.priceMax = hi;
   S.sortKey = S.sortDraft;
-  S.priceSheet = false;
-  paintSheet();
+  // Natija DARHOL yangilanadi (varaq ortida ko'rinadi), varaq esa kuzatilib yopiladi
   paintHome();
+  sheetYopib(() => {
+    S.priceSheet = false;
+    paintSheet();
+  });
 }
 // "Tozalash" — narx HAM, saralash HAM boshlang'ich holatga (sayt bilan bir xil)
 function clearPriceFilter() {
@@ -1606,9 +1627,11 @@ function clearPriceFilter() {
   S.sortKey = 'rec';
   S.sortDraft = 'rec';
   S.priceErr = '';
-  S.priceSheet = false;
-  paintSheet();
   paintHome();
+  sheetYopib(() => {
+    S.priceSheet = false;
+    paintSheet();
+  });
 }
 
 // ============ EKRAN: AI BO'LIMI (2026-08-07) ============
@@ -2718,7 +2741,7 @@ function searchRow(p) {
 function renderCart() {
   const T = STR[S.lang];
   if (S.cart.length === 0) return `
-  <div style="padding:60px 24px;display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center">
+  <div class="bosh-holat" style="padding:60px 24px;display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center">
     <span style="width:72px;height:72px;border-radius:50%;background:rgba(255,255,255,.6);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.55);display:flex;align-items:center;justify-content:center;color:var(--ink-300)">
       <svg width="34" height="34" viewBox="0 0 24 24" fill="none"><path d="M6 2L3 6v13a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4H6z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M3 6h18" stroke="currentColor" stroke-width="1.7"/><path d="M16 10a4 4 0 0 1-8 0" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
     </span>
@@ -2921,8 +2944,8 @@ function renderBtsSheet() {
   });
 
   return `
-  <div data-action="closeBtsSheet" style="position:absolute;inset:0;background:rgba(23,26,48,.34);z-index:60;animation:fade var(--dur-base) var(--ease-out)"></div>
-  <div style="position:absolute;left:0;right:0;bottom:0;z-index:61;max-height:80%;display:flex;flex-direction:column;border-radius:var(--radius-xl) var(--radius-xl) 0 0;padding:10px 14px calc(18px + env(safe-area-inset-bottom));backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);background:var(--glass-tint);box-shadow:var(--glass-spec),0 -12px 40px -8px rgba(81,1,0,.28);animation:sheetUp var(--dur-base) var(--ease-out)">
+  <div class="sheet-scrim" data-action="closeBtsSheet" style="position:absolute;inset:0;background:rgba(23,26,48,.34);z-index:60;animation:fade var(--dur-base) var(--ease-out)"></div>
+  <div class="sheet-panel" style="position:absolute;left:0;right:0;bottom:0;z-index:61;max-height:80%;display:flex;flex-direction:column;border-radius:var(--radius-xl) var(--radius-xl) 0 0;padding:10px 14px calc(18px + env(safe-area-inset-bottom));backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);background:var(--glass-tint);box-shadow:var(--glass-spec),0 -12px 40px -8px rgba(81,1,0,.28);animation:sheetUp 360ms var(--ease-drawer)">
     <div style="width:38px;height:4px;border-radius:99px;background:var(--ink-200);margin:0 auto 12px;flex:none"></div>
     <div style="font-family:var(--font-display);font-size:17px;font-weight:800;color:var(--text-strong);letter-spacing:-.02em;margin-bottom:11px;flex:none">${T.pickSheetT}</div>
 
@@ -2993,8 +3016,8 @@ function renderPriceSheet() {
   };
 
   return `
-  <div data-action="closePriceSheet" style="position:absolute;inset:0;background:rgba(23,26,48,.34);z-index:60;animation:fade var(--dur-base) var(--ease-out)"></div>
-  <div role="dialog" aria-modal="true" aria-label="${T.sort}" style="position:absolute;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));z-index:61;display:flex;flex-direction:column;border-radius:var(--radius-xl);padding:20px 18px 18px;background:#FFFDFB;box-shadow:0 18px 60px -20px rgba(23,26,48,.5),0 2px 8px rgba(23,26,48,.08);animation:sheetUp var(--dur-base) var(--ease-out)">
+  <div class="sheet-scrim" data-action="closePriceSheet" style="position:absolute;inset:0;background:rgba(23,26,48,.34);z-index:60;animation:fade var(--dur-base) var(--ease-out)"></div>
+  <div class="sheet-panel" role="dialog" aria-modal="true" aria-label="${T.sort}" style="position:absolute;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));z-index:61;display:flex;flex-direction:column;border-radius:var(--radius-xl);padding:20px 18px 18px;background:#FFFDFB;box-shadow:0 18px 60px -20px rgba(23,26,48,.5),0 2px 8px rgba(23,26,48,.08);animation:sheetUp 360ms var(--ease-drawer)">
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px">
       <div style="flex:1;font-family:var(--font-display);font-size:21px;font-weight:800;color:var(--text-strong);letter-spacing:-.02em">${T.sort}</div>
       <button type="button" data-action="closePriceSheet" aria-label="${T.pvClose}" style="flex:none;width:34px;height:34px;border-radius:50%;border:1px solid rgba(23,26,48,.08);background:none;color:var(--text-body);display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0">
@@ -3064,13 +3087,28 @@ function openAddrPicker() {
   paintSheet();
 }
 
+/* Varaqni pastga kuzatib, KEYIN yopadi — pastdan kirgan narsa pastga qaytib
+   chiqsin (fazoviy izchillik). Kirish 360ms, chiqish ATAYLAB tezroq (200ms).
+   `pointer-events` chiqish payti o'chadi — 200ms ichida ikkinchi bosish
+   (masalan fonni qayta bosish) yopishni ikki marta boshlamasin.
+   reduced-motion'da animatsiyasiz darhol yopiladi. */
+function sheetYopib(keyin) {
+  const wrap = document.getElementById('sheet-wrap');
+  const panel = wrap && wrap.querySelector('.sheet-panel');
+  if (!panel || matchMedia('(prefers-reduced-motion: reduce)').matches) { keyin(); return; }
+  wrap.classList.add('sheet-exit');
+  setTimeout(() => { wrap.classList.remove('sheet-exit'); keyin(); }, 210);
+}
+
 function closeBtsSheet() {
-  const qayerdan = S.btsFrom;
-  S.btsSheet = false;
-  paintSheet();
-  document.getElementById('screen-wrap').innerHTML =
-    qayerdan === 'profile' ? renderProfile() : renderCheckout();
-  updateNav();
+  sheetYopib(() => {
+    const qayerdan = S.btsFrom;
+    S.btsSheet = false;
+    paintSheet();
+    document.getElementById('screen-wrap').innerHTML =
+      qayerdan === 'profile' ? renderProfile() : renderCheckout();
+    updateNav();
+  });
 }
 function setBtsView(k) {
   S.btsView = k === 'map' ? 'map' : 'list';
@@ -4032,8 +4070,8 @@ function renderContactSheet() {
   const oq = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" style="flex:none;color:var(--text-subtle)"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 
   return `
-  <div data-action="closeContactSheet" style="position:absolute;inset:0;background:rgba(23,26,48,.34);z-index:60;animation:fade var(--dur-base) var(--ease-out)"></div>
-  <div style="position:absolute;left:0;right:0;bottom:0;z-index:61;display:flex;flex-direction:column;border-radius:var(--radius-xl) var(--radius-xl) 0 0;padding:10px 14px calc(18px + env(safe-area-inset-bottom));backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);background:var(--glass-tint);box-shadow:var(--glass-spec),0 -12px 40px -8px rgba(81,1,0,.28);animation:sheetUp var(--dur-base) var(--ease-out)">
+  <div class="sheet-scrim" data-action="closeContactSheet" style="position:absolute;inset:0;background:rgba(23,26,48,.34);z-index:60;animation:fade var(--dur-base) var(--ease-out)"></div>
+  <div class="sheet-panel" style="position:absolute;left:0;right:0;bottom:0;z-index:61;display:flex;flex-direction:column;border-radius:var(--radius-xl) var(--radius-xl) 0 0;padding:10px 14px calc(18px + env(safe-area-inset-bottom));backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);background:var(--glass-tint);box-shadow:var(--glass-spec),0 -12px 40px -8px rgba(81,1,0,.28);animation:sheetUp 360ms var(--ease-drawer)">
     <div style="width:38px;height:4px;border-radius:99px;background:var(--ink-200);margin:0 auto 12px;flex:none"></div>
     <div style="flex:none;font-family:var(--font-display);font-size:17px;font-weight:800;color:var(--text-strong);letter-spacing:-.02em">${T.contactT}</div>
     <div style="flex:none;font-size:12px;color:var(--text-muted);margin:3px 0 13px">${T.contactSub}</div>
@@ -4066,8 +4104,10 @@ function openContactSheet() {
   paintSheet();
 }
 function closeContactSheet() {
-  S.contactSheet = false;
-  paintSheet();
+  sheetYopib(() => {
+    S.contactSheet = false;
+    paintSheet();
+  });
 }
 
 // ============ EKRAN: PROFIL ============
@@ -4196,7 +4236,7 @@ function likeButton(p) {
 // ============ MAHSULOT KARTA — KATALOG (badge + supplier/verified + meta) ============
 function productCard(p) {
   return `
-  <div data-action="openProduct" data-arg="${p.id}" style="cursor:pointer;background:var(--glass-fill);backdrop-filter:var(--blur-lg);-webkit-backdrop-filter:var(--blur-lg);border:1px solid var(--glass-border-soft);border-radius:var(--radius-lg);box-shadow:0 6px 16px -12px rgba(81,1,0,.16),0 1px 2px rgba(23,26,48,.04);overflow:hidden;display:flex;flex-direction:column">
+  <div class="pcard" data-action="openProduct" data-arg="${p.id}" style="cursor:pointer;background:var(--glass-fill);backdrop-filter:var(--blur-lg);-webkit-backdrop-filter:var(--blur-lg);border:1px solid var(--glass-border-soft);border-radius:var(--radius-lg);box-shadow:0 6px 16px -12px rgba(81,1,0,.16),0 1px 2px rgba(23,26,48,.04);overflow:hidden;display:flex;flex-direction:column">
     <div class="card-media"${p.video ? ` data-video="${p.video}"${p.videoPoster ? ` data-poster="${p.videoPoster}"` : ''}` : ''} style="height:230px;${p.bgStyle}">
       ${p.badgeShow ? `<span style="position:absolute;top:8px;left:8px;display:inline-flex;align-items:center;height:21px;padding:0 8px;border-radius:999px;font-size:10.5px;font-weight:600;background:${p.badgeBg};color:${p.badgeFg}">${p.badge}</span>` : ''}
       ${likeButton(p)}
@@ -4330,7 +4370,7 @@ function catalogDec(id) {
 // ============ MAHSULOT KARTA — BOSH SAHIFA (badge + like, supplier/meta yo'q) ============
 function homeCard(p) {
   return `
-  <div data-action="openProduct" data-arg="${p.id}" style="cursor:pointer;background:var(--glass-fill);backdrop-filter:var(--blur-lg);-webkit-backdrop-filter:var(--blur-lg);border:1px solid var(--glass-border-soft);border-radius:var(--radius-lg);box-shadow:0 6px 16px -12px rgba(81,1,0,.16),0 1px 2px rgba(23,26,48,.04);overflow:hidden;display:flex;flex-direction:column">
+  <div class="pcard" data-action="openProduct" data-arg="${p.id}" style="cursor:pointer;background:var(--glass-fill);backdrop-filter:var(--blur-lg);-webkit-backdrop-filter:var(--blur-lg);border:1px solid var(--glass-border-soft);border-radius:var(--radius-lg);box-shadow:0 6px 16px -12px rgba(81,1,0,.16),0 1px 2px rgba(23,26,48,.04);overflow:hidden;display:flex;flex-direction:column">
     <div class="card-media"${p.video ? ` data-video="${p.video}"${p.videoPoster ? ` data-poster="${p.videoPoster}"` : ''}` : ''} style="height:230px;${p.bgStyle}">
       ${p.badgeShow ? `<span style="position:absolute;top:9px;left:9px;display:inline-flex;align-items:center;height:22px;padding:0 9px;border-radius:999px;font-size:11px;font-weight:600;background:${p.badgeBg};color:${p.badgeFg}">${p.badge}</span>` : ''}
       ${likeButton(p)}
@@ -4384,6 +4424,19 @@ async function toggleLike(id) {
   S.liked[id] = yangi;
   if (yangi) showToast(STR[S.lang].liked);
   render();
+  // Pop faqat YOQILGANDA (o'chirish — bekor qilish, u jim qoladi). Kartadagi
+  // tugunlar render() bilan yangidan chiziladi; header'dagi #btn-like esa
+  // STATIK (index.html) va data-arg'siz — u alohida qo'shiladi va klass unda
+  // saqlanib qolgani uchun avval olib tashlab reflow bilan qayta boshlanadi.
+  if (yangi) {
+    const sel = `[data-action="toggleLike"][data-arg="${id}"] svg`
+      + (S.selectedId === id ? ', #btn-like svg' : '');
+    document.querySelectorAll(sel).forEach(s => {
+      s.classList.remove('yurak-pop');
+      void s.getBoundingClientRect(); // reflow — SVG'da offsetWidth yo'q
+      s.classList.add('yurak-pop');
+    });
+  }
 
   if (!tgInitData()) return;          // kimlik yo'q — faqat xotirada
   try {

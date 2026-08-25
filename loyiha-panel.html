@@ -351,6 +351,11 @@
     <div id="faoliyat-list">
       <div class="faoliyat-item">
         <span class="faoliyat-sana">2026-08-25</span>
+        <span class="faoliyat-text"><b>MINI APP'GA DIZAYN-SAYQAL (ANIMATSIYA) TO'PLAMI — LOKALDA TEKSHIRILDI, PRODUCTION'GA HALI CHIQMAGAN.</b> Emil Kowalski dizayn-injiniring yondashuvi (<code>emil-design-eng</code>, <code>find-animation-opportunities</code>) bilan 10 sayqal, founder «hammasini qil» degan: uchala pastki varaq (narx/saralash, BTS, bog'lanish) iOS drawer egri chizig'i (<code>--ease-drawer</code>, 360ms) bilan chiqadi va endi YOPILISHI ham kuzatiladi — <code>sheetYopib()</code> varaqni pastga qaytarib (200ms, kirishdan ataylab tezroq) keyin holatni o'zgartiradi, beshta yopish nuqtasi shundan o'tadi; toast bir kadrda g'oyib bo'lmaydi (ikki bosqichli chiqish, 150ms); savat belgisi son OSHGANDAGINA pop (<code>_oldingiSavatSoni</code> qorovuli — ilova ochilishida jim); yurak faqat YOQILGANDA pop; mahsulot kartasi va <code>.icon-btn</code> bosishga javob beradi (<code>scale(.98)</code>/<code>scale(.94)</code>); bo'sh savat zinama-zina kiradi; <code>.nav-lens</code>/<code>.nav-profile-btn</code> 480ms sakrashdan 280ms ga; hamma yangi harakatga <code>prefers-reduced-motion</code>. <b>Uch joy ATAYLAB animatsiyasiz</b> (nav ekran almashishi, filtr qayta chizilishi, miqdor +/-) — rad bandlari sprint faylida. <b>Hisobotchi mustaqil o'lchadi:</b> <b>91</b> test yashil, 0 xato; sevimlilar qorovuli <code>toggleLike</code> ni BAJARADI — yangi yurak-pop kodi uchun sandbox'ga bo'sh <code>document</code> stubi qo'shildi (app kodiga tegilmadi); <code>sw.js</code> PRECACHE'da bu fayllar YO'Q — <code>CACHE_VERSION</code> tegilmadi (tekshirildi). Lokalda brauzerda ko'rilgani — sessiya da'vosi, hisobotchi TEKSHIRMADI. Kesh: <code>styles.css</code> 36&rarr;<b>37</b>, <code>app.js</code> 103&rarr;<b>104</b>, <code>panel.js</code> 57&rarr;<b>58</b> (Test 16 jadvali birga). <b>DEPLOY: faqat STATIK, lekin HALI QILINMAYDI</b> — founder telefonda ko'rgandan keyin. PUSH YO'Q. Hujjat: docs/sprintlar/sprint-4.md</span>
+        <span class="faoliyat-sprint">Sprint 4</span>
+      </div>
+      <div class="faoliyat-item">
+        <span class="faoliyat-sana">2026-08-25</span>
         <span class="faoliyat-text"><b>MUHANDISLIK SKILL'LARI UCHUN PER-REPO KONFIGURATSIYA</b> (<code>/setup-matt-pocock-skills</code>). Matt Pocock skill'lari (<code>triage</code>, <code>qa</code>, <code>to-issues</code>, <code>tdd</code>, <code>diagnosing-bugs</code>) shu repoda ishlashi uchun <code>docs/agents/</code> da uch hujjat ochildi. Founder uch qarorni tasdiqladi: <b>(A)</b> masalalar GitHub Issues'da (<code>gh</code> CLI, issue matnlari o'zbekcha), tashqi PR'lar triage yuzasi EMAS; <b>(B)</b> beshta kanonik triage tegi standart nomlari bilan (<code>needs-triage</code>, <code>needs-info</code>, <code>ready-for-agent</code>, <code>ready-for-human</code>, <code>wontfix</code>); <b>(C)</b> repo bitta kontekstli — domen hujjatlari ildizdagi <code>CONTEXT.md</code> + <code>docs/adr/</code> da (hali yaratilmagan, skill'lar kerak bo'lganda o'zi ochadi). <code>CLAUDE.md</code> oxiriga «Agent skills» bo'limi qo'shildi. <b>Hisobotchi mustaqil o'lchadi:</b> to'rtala fayl diskda va mazmuni da'voga mos; <code>gh label list</code> — kanonik beshlikdan repoda hozircha faqat <code>wontfix</code> bor (hujjatdagi eslatma TO'G'RI). Kod tegilmagan. Kesh: <code>panel.js</code> 56&rarr;<b>57</b> (Test 16 jadvali birga). <b>DEPLOY: faqat STATIK</b> — backend tegilmadi, migratsiya YO'Q. PUSH YO'Q. Hujjat: docs/sprintlar/sprint-8.md</span>
         <span class="faoliyat-sprint">Sprint 8</span>
       </div>
@@ -1227,6 +1232,6 @@
 
 </div>
 
-<script src="panel.js?v=57" defer></script>
+<script src="panel.js?v=58" defer></script>
 </body>
 </html>
