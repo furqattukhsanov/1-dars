@@ -350,6 +350,11 @@
     <div style="font-size:0.68rem; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; color:#9C7B5A; margin-bottom:0.7rem;">So'nggi faoliyat</div>
     <div id="faoliyat-list">
       <div class="faoliyat-item">
+        <span class="faoliyat-sana">2026-08-25</span>
+        <span class="faoliyat-text"><b>MUHANDISLIK SKILL'LARI UCHUN PER-REPO KONFIGURATSIYA</b> (<code>/setup-matt-pocock-skills</code>). Matt Pocock skill'lari (<code>triage</code>, <code>qa</code>, <code>to-issues</code>, <code>tdd</code>, <code>diagnosing-bugs</code>) shu repoda ishlashi uchun <code>docs/agents/</code> da uch hujjat ochildi. Founder uch qarorni tasdiqladi: <b>(A)</b> masalalar GitHub Issues'da (<code>gh</code> CLI, issue matnlari o'zbekcha), tashqi PR'lar triage yuzasi EMAS; <b>(B)</b> beshta kanonik triage tegi standart nomlari bilan (<code>needs-triage</code>, <code>needs-info</code>, <code>ready-for-agent</code>, <code>ready-for-human</code>, <code>wontfix</code>); <b>(C)</b> repo bitta kontekstli — domen hujjatlari ildizdagi <code>CONTEXT.md</code> + <code>docs/adr/</code> da (hali yaratilmagan, skill'lar kerak bo'lganda o'zi ochadi). <code>CLAUDE.md</code> oxiriga «Agent skills» bo'limi qo'shildi. <b>Hisobotchi mustaqil o'lchadi:</b> to'rtala fayl diskda va mazmuni da'voga mos; <code>gh label list</code> — kanonik beshlikdan repoda hozircha faqat <code>wontfix</code> bor (hujjatdagi eslatma TO'G'RI). Kod tegilmagan. Kesh: <code>panel.js</code> 56&rarr;<b>57</b> (Test 16 jadvali birga). <b>DEPLOY: faqat STATIK</b> — backend tegilmadi, migratsiya YO'Q. PUSH YO'Q. Hujjat: docs/sprintlar/sprint-8.md</span>
+        <span class="faoliyat-sprint">Sprint 8</span>
+      </div>
+      <div class="faoliyat-item">
         <span class="faoliyat-sana">2026-08-23</span>
         <span class="faoliyat-text"><b>SHAXSIY LENTA ENDI KO'RISH VA SAVATNI HAM KO'RSATADI — BEACON KIMLIKNI YUBORADI</b> (kech, <code>380cf7f</code> dan keyin). Founder norozi: «qadamba-qadam ko'ra olmayapman — savatga soldi, chiqardi, qaysi mijoz qaysi tovarni oldi». Sabab HALOL: agentning o'z qarori — 2026-08-18 da beacon ataylab anonim qoldirilgan va bu chegara founder'ga aytilmagan edi. Endi <code>routes/track.js</code> kimlikni <code>requestUser()</code> bilan (<code>try</code> ichida) oladi; kimlik bor bo'lsa <code>user_events</code> ga ism bilan <code>product_view</code> / <code>cart_add</code> / <code>cart_remove</code>; <code>traffic_events</code> ANONIM QOLADI (Test 42 4-band), mehmon hamon sanaladi. Sayt beacon'i <code>same-origin</code> cookie, Mini App <code>X-Telegram-Init-Data</code>. Lentada buyurtma tovarlar bilan: «#LM-104 — Ipak atlas ×2». <b>Qorovul:</b> Test 42 5-band qayta yozildi. <b>Hisobotchi mustaqil o'lchadi:</b> <b>91</b> test yashil (da'vo bilan mos); mutatsiya (<code>requestUser</code> <code>try</code> siz) Test 42 da QIZIL, fayl nusxadan tiklandi; ikkinchi mutatsiya Test 16 da (hash) to'xtadi, Test 42 (d) bandi mustaqil sinalmadi. Jonli lenta TEKSHIRILMADI. <b>Halol chegara:</b> lenta shu deploy'dan to'ladi, o'tmish yo'q. Kesh: <code>script.js</code> 57&rarr;<b>58</b>, <code>app.js</code> 102&rarr;<b>103</b>, <code>panel.js</code> 55&rarr;<b>56</b>. 🔴 <b>DEPLOY: STATIK + BACKEND</b> — rsync + servis restart; migratsiya YO'Q. PUSH YO'Q. Hujjat: docs/sprintlar/sprint-7.md</span>
         <span class="faoliyat-sprint">Sprint 7</span>
@@ -1222,6 +1227,6 @@
 
 </div>
 
-<script src="panel.js?v=56" defer></script>
+<script src="panel.js?v=57" defer></script>
 </body>
 </html>

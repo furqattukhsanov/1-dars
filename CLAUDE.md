@@ -746,3 +746,17 @@ LolaMarket — O'zbekistonda to'qima materiallar uchun B2B web platforma.
 - Barcha commit xabarlari — o'zbekcha
 - Sprint fayllari — o'zbekcha
 - Kod izohlari — o'zbekcha yoki inglizcha
+
+## Agent skills
+
+### Issue tracker
+
+Masalalar GitHub Issues'da (`furqattukhsanov/1-dars`), `gh` CLI orqali; tashqi PR'lar triage yuzasi EMAS. Qarang: `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Beshta kanonik teg standart nomlari bilan (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`). Qarang: `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Bitta kontekst: ildizda `CONTEXT.md` + `docs/adr/`. Qarang: `docs/agents/domain.md`.

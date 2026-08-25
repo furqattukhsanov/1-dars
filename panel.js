@@ -13,7 +13,7 @@
     { num: 5, nom: "Mobil / PWA",               dars: "Dars 12", holat: "jarayonda",  sana: "2026-08-13" },
     { num: 6, nom: "Integratsiyalar",           dars: "Dars 13", holat: "jarayonda",  sana: "2026-07-22" },
     { num: 7, nom: "Admin panel",               dars: "Dars 14", holat: "tugadi",  sana: "2026-08-23" },
-    { num: 8, nom: "Sifat tekshiruvi",          dars: "Dars 15", holat: "jarayonda", sana: "2026-08-20" },
+    { num: 8, nom: "Sifat tekshiruvi",          dars: "Dars 15", holat: "jarayonda", sana: "2026-08-25" },
     { num: 9, nom: "Production + launch",       dars: "Dars 16", holat: "jarayonda", sana: "2026-08-14" },
     { num: 10, nom: "AI kiyim rasmi",           dars: "Dars 17", holat: "tugadi", sana: "2026-08-16" },
   ];
@@ -36,7 +36,7 @@
   barEl.style.width = foiz + "%";
   percentEl.textContent = foiz + "%";
   countEl.textContent = tugaganlar + " / " + sprintlar.length + " sprint";
-  updatedEl.textContent = "Yangilanish: 2026-08-23 (kech: shaxsiy lenta endi ko'rish/savatga solish/chiqarishni ham ko'rsatadi — beacon kimlikni requestUser() bilan yuboradi, traffic_events anonim qoladi; buyurtma hodisasi tovarlar bilan. Sabab: anonimlik chegarasi founder'ga aytilmay qo'yilgan edi. Test 42 5-band qayta yozildi; 91 test yashil, mutatsiya ushlandi. Kesh: script.js 58, app.js 103, panel.js 56. DEPLOY: statik + backend, migratsiya yo'q. PUSH YO'Q.)";
+  updatedEl.textContent = "Yangilanish: 2026-08-25 (Matt Pocock muhandislik skill'lari uchun per-repo konfiguratsiya: docs/agents/ da uch hujjat — issue-tracker (GitHub Issues, gh CLI, tashqi PR'lar triage EMAS), triage-labels (beshta kanonik teg standart nomlari bilan), domain (bitta kontekst, CONTEXT.md + docs/adr/ keyin ochiladi); CLAUDE.md ga «Agent skills» bo'limi. Kod tegilmagan, faqat hujjat. Kesh: panel.js 57. DEPLOY: faqat statik. PUSH YO'Q.)";
 
 
   sprintlar.forEach(s => {

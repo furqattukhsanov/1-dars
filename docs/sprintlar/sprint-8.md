@@ -170,6 +170,18 @@ Platformaning barcha funksiyalarini real foydalanuvchilar bilan sinovdan o'tkazi
 
 ## Qilingan ishlar
 
+- [2026-08-25] **Matt Pocock muhandislik skill'lari uchun per-repo konfiguratsiya
+  yozildi** (`/setup-matt-pocock-skills`): `triage`, `qa`, `to-issues`, `tdd`,
+  `diagnosing-bugs` kabi skill'lar shu repoda ishlashi uchun uch hujjat ochildi —
+  `docs/agents/issue-tracker.md` (masalalar GitHub Issues'da, `gh` CLI
+  konvensiyalari, tashqi PR'lar triage yuzasi EMAS, issue matnlari o'zbekcha),
+  `docs/agents/triage-labels.md` (beshta kanonik teg standart nomlari bilan;
+  tekshirildi: repoda hozircha beshlikdan faqat `wontfix` mavjud, qolganlari
+  birinchi ishlatilganda yaratiladi), `docs/agents/domain.md` (repo bitta
+  kontekstli; `CONTEXT.md` va `docs/adr/` hali yaratilmagan — skill'lar kerak
+  bo'lganda o'zi ochadi). `CLAUDE.md` oxiriga «Agent skills» bo'limi qo'shildi.
+  Kod tegilmagan, testlar va `?v=` versiyalariga ta'sir yo'q.
+
 - [2026-08-20] **XAVFSIZLIK AUDITI (oq/etik, o'z loyihamiz) — BITTA HAQIQIY
   ZAIFLIK TOPILIB TUZATILDI: `/api/order-status` IDOR. Testlar: 88 → 89
   (`✅ Test` PASS satrlari, MUSTAQIL sanaldi).**
@@ -1060,6 +1072,17 @@ Platformaning barcha funksiyalarini real foydalanuvchilar bilan sinovdan o'tkazi
 ---
 
 ## Qarorlar
+
+- [2026-08-25] Qaror (founder, uch band): **(A) masalalar GitHub Issues'da**
+  (`furqattukhsanov/1-dars`), tashqi PR'lar triage yuzasi EMAS; **(B) triage
+  teglari standart nomlari bilan** (`needs-triage`, `needs-info`,
+  `ready-for-agent`, `ready-for-human`, `wontfix`) — o'zbekcha muqobil
+  o'ylab topilmadi, skill'lar kutgan lug'at bilan bir xil turishi uchun;
+  **(C) repo bitta kontekstli** — `CONTEXT-MAP.md` kerak emas, domen
+  hujjatlari ildizdagi `CONTEXT.md` + `docs/adr/` da yashaydi (ikkalasi hali
+  yaratilmagan, skill'lar kerak bo'lganda o'zi ochadi). ⚠️ ADR yozilganda
+  `CLAUDE.md` dagi mavjud arxitektura qarorlari bilan zid kelmasin —
+  bu ogohlantirish `docs/agents/domain.md` ning o'zida ham yozilgan.
 
 - [2026-08-20] Qaror: **`/api/order-status` IDOR'i imzo emas, `authUser` +
   egalik bilan yopildi.** Xulosa hujjatning dastlabki rejasi imzo qo'yishni
