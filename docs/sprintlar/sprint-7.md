@@ -41,6 +41,56 @@ Founder sifatida platformani to'liq nazorat qilish: ishlab chiqaruvchilarni tasd
 
 ## Qilingan ishlar
 
+- [2026-08-31] **`credit_grant` TUG'ILGANIDAN BERI HECH QACHON ISHLAMAGAN —
+  founder tugmani birinchi marta jonli bosganda chiqdi.** Telegram javobi:
+  «❌ Bajarilmadi: ichki xato», alert: `adminAction run xatosi: operator is
+  not unique: unknown + unknown` (`versiya: 3636d57`). Sabab —
+  `routes/admin.js` → `credit_grant.run` dagi `VALUES ($1, $2 + $3, 0)`:
+  node-postgres parametrlarni TURSIZ yuboradi, ya'ni Postgres uchun ikkalasi
+  ham `unknown` va u qaysi `+` operatorini tanlashni bilmaydi. Yiqilish
+  **PARSE bosqichida**, ya'ni `ON CONFLICT DO UPDATE` yo'liga umuman yetib
+  borilmaydi — demak amal hech qachon bajarilmagan. Tuzatish:
+  `VALUES ($1, $2::int + $3::int, 0)` (`ai_credits.balance` — `INT`,
+  `db/019`); `DO UPDATE` qatoriga TEGILMADI — u yerda ustun turi ma'lum va
+  `$3` shunga keltiriladi, ya'ni u sog'lom edi.
+  🔴 **ASOSIY DARS QOROVULDA, NUQSONDA EMAS.** Aynan shu naqsh 2026-08-07 da
+  `routes/ai.js` → `takeCredits` da bo'lgan va unga **Test 14o ning 6-bandi**
+  yozilgan edi — lekin u `route.slice('async function takeCredits' …)` bilan
+  **bitta funksiya tanasini** o'qirdi, ya'ni **topilgan nuqson kengligida
+  yozilgan edi, mumkin bo'lgan xato kengligida emas**. Shuning uchun naqsh
+  boshqa faylda qaytarilganda test YASHIL turaverdi va nuqson production'ga
+  chiqdi. Endi qorovul `server/`, `server/lib/`, `server/routes/` dagi HAMMA
+  `.js` faylni skanerlaydi (ro'yxat qo'lda yozilmaydi — yangi fayl avtomatik
+  qamraladi); `test.js` ning O'ZI chetda (izohlarida naqsh ataylab bor) va
+  izohlar `jsSofi` bilan tahlildan oldin olib tashlanadi.
+  **4 mutatsiya bilan sinaldi, 4 tasi ham to'g'ri javob berdi:** (1)
+  `admin.js` dagi tuzatish qaytarilsa → QIZIL; (2) naqsh
+  `lib/order-history.js` ga qo'yilsa → QIZIL, **ESKI qorovul bilan esa AYNI
+  mutatsiyada butun to'plam YASHIL** (kengaytirishning isboti shu);
+  (3) naqsh IZOHDA bo'lsa → YASHIL (soxta qizil yo'q); (4) naqsh ildizdagi
+  `server.js` ga qo'yilsa → QIZIL (uchala papka ham chindan qamralgan).
+  Bu 2026-08-23 yozuvida ochiq qoldirilgan **(d) bandining yopilishi**:
+  «`credit_grant` Telegram tugmasi jonli bosilmagan» — bosildi va yiqildi.
+  🔴 **HALOL CHEGARA:** (a) KOD o'zgarishi backend-only, lekin HISOBOT
+  fayllari statik: `panel.js` 59→**60** va Test 16 jadvali birga.
+  ⚠️ Sessiya «statik fayl tegilmagan, `?v=` kerak emas» degan edi va bu
+  **YARIM to'g'ri** bo'lib chiqdi — panelni yangilash ishining O'ZI
+  `panel.js` ga tegadi. Buni hisobotchi emas, **Test 16 ushladi**
+  («yozilgan qoida himoya emas» oilasining yana bir tasdig'i);
+  `CACHE_VERSION` esa chindan tegilmadi (Test 17 yashil).
+  (b) tashxis **jonli production bazasida** qayta hosil qilindi
+  (`sudo -u postgres psql -d lolamarket`): tipsiz
+  `PREPARE p1 AS SELECT $1 + $2` → `ERROR: operator is not unique:
+  unknown + unknown`, tipli variant → `PREPARE`; `\d ai_credits` →
+  `balance | integer`, ya'ni ustun turi IKKI MUSTAQIL manbadan tasdiqlandi
+  (baza va `db/019`). ⚠️ Bu o'lchovni **hisobotchi bajarmadi** — mashinada
+  Postgres/pglite yo'q, o'lchov asosiy sessiyada bo'lgan; hisobotchi
+  mustaqil tasdiqlagani: ustun turi va qorovulning o'zi (4 mutatsiya).
+  (c) rsync + restart
+  founder qo'lida, undan keyin `credit_grant` QAYTA sinalishi kerak;
+  (d) bazada `admin_actions id=34` `status='failed'` bo'lib qoldi — zararsiz,
+  tegilmadi. **PUSH QILINMADI.**
+
 - [2026-08-23] **SHAXSIY LENTA ENDI KO'RISH VA SAVATNI HAM KO'RSATADI — BEACON
   KIMLIKNI YUBORADI (kech, `380cf7f` dan keyin).** Founder norozi: «userlarning
   oxirgi harakatlarini qadamba-qadam ko'ra olmayapman — savatga soldi,
@@ -483,6 +533,21 @@ Founder sifatida platformani to'liq nazorat qilish: ishlab chiqaruvchilarni tasd
 - [2026-08-08] **`/start` bosgan odam endi bazaga yoziladi — va shu bilan birga panel raqami IKKIGA ajratildi (`db/020_user_engagement.sql`).** Bu yuqoridagi yozuvda ATAYLAB ochiq qoldirilgan bandning yopilishi: o'shanda panel "ilovani ochganlar" ni ko'rsatardi, haqiqiy bot auditoriyasi esa hech qayerda hisoblanmasdi. **Nega shunchaki qator qo'shish YETARLI EMAS edi:** `/start` qatorlarini mavjud `users` ga qo'shsak, panelda allaqachon turgan "ilovani ochganlar" raqami jimgina yolg'onga aylanardi — ichiga ilovani hech qachon ochmagan odamlar qo'shilib ketardi va buni HECH NARSA ko'rsatmasdi (raqam ko'paygani o'sish bo'lib ko'rinardi). Shuning uchun migratsiya bitta ustun qo'shadi: `users.engaged_at TIMESTAMPTZ` — `NULL` = faqat `/start` bosgan, `NOT NULL` = ilova / sayt / sotuvchi arizasi orqali BIRINCHI marta foydalangan vaqt; ustiga `users_engaged_at_idx` (panel har so'rovda `count(*) FILTER (WHERE engaged_at IS NULL)` hisoblaydi). **Backfill to'g'ri va uni ISBOTLASH mumkin:** migratsiyagacha `/start` hech qachon qator YARATMAGAN (`webhook.js` da `INSERT` umuman yo'q edi), ya'ni mavjud har bir qator albatta uchta foydalanish yo'lidan biri orqali kelgan — shuning uchun `UPDATE users SET engaged_at = created_at` taxmin emas, xulosadir. **Yozuv joyi** (`server/routes/webhook.js`): `/start` da `INSERT ... ON CONFLICT (tg_user_id) DO UPDATE`. Uch qaror shu yerda: (a) `DO NOTHING` emas, `DO UPDATE` — ism/username o'zgargan bo'lishi mumkin; (b) `role` TEGILMAYDI — aks holda sotuvchi `/start` bossa `buyer` ga tushib qolardi; (c) `engaged_at` na `INSERT` da, na `UPDATE` da qo'yiladi — bu qator "ilovani ochgan" degani EMAS. Telegram ID bu yerda ishonchli: uni klient emas, Telegram'ning O'ZI webhook orqali yuboradi va so'rov `WEBHOOK_SECRET` bilan tekshirilgan (CLAUDE.md — foydalanuvchi kimligi brauzerdan olinmaydi). Yozuv xatosi `/start` javobini yiqitmaydi (`.catch`), alert kaliti birinchi argumentda qat'iy — Test 10c qoidasi saqlandi. **Uchta foydalanish yo'li** (`catalog.js`, `web-auth.js`, `seller-application.js`) endi `engaged_at = COALESCE(users.engaged_at, now())` qo'yadi — `COALESCE` majburiy, aks holda maydon "birinchi foydalanish" o'rniga jimgina "oxirgi kirish" ga aylanardi va u boshqa ma'noli raqam bo'lardi. **Backend** (`server/routes/admin.js`): `users` so'roviga `engaged` va `start_only` sanoqlari, javobga `engaged` / `startOnly`. **Frontend** (`admin/admin.js`, `admin/index.html`, `admin.js?v=21` → `?v=22`): sarlavha "ilovani ochganlar" → "botga kirganlar", ostida ajratuvchi qator (`806 foydalangan (65%) · 437 faqat /start` ko'rinishida), faollik ustunlariga ikkita yangi qator. **Qorovul kengaytirildi va bu bekorga emas:** ilgari `users` maydonining O'ZI tekshirilardi, endi `engaged` ham — deploy oynasida frontend yangi, backend bir qadam orqada bo'lsa `engaged` `undefined` bo'lib ekranda "NaN%" chiqardi, ya'ni eski qorovulning ko'r nuqtasi aynan shu o'zgarish bilan ochildi. **Sinov:** `node server/test.js` — 42 test PASS (raqam sanaldi, taxmin emas); `npx eslint .` (`server/`) — 0 xato, 28 ogohlantirish; stendda haqiqiy `handleAdminSummary` orqali sinaldi — ajratuvchi qator va 5 qatorli faollik ustunlari chizildi, mobil 375px da gorizontal siljish yo'q, ikkala qorovul holati (backend butunlay eski / bir qadam orqada) blokni yashirdi. **Hali qilinmagan (deploy tartibi MUHIM):** `db/020` haqiqiy Postgres'da HALI ishlamagan (lokalda baza yo'q) va u backenddan OLDIN qo'llanishi SHART — teskari tartibda `engaged_at` ga murojaat qiladigan `/api/admin/summary` va uchala auth yo'li birdan yiqiladi, ya'ni bu 27-iyuldagi "migratsiya qo'llanmagan" insidentining aynan takroriga olib kelardi. Shuningdek `engaged_at = COALESCE(...)` qoidasini tekshiradigan TEST YO'Q: yangi foydalanish yo'li qo'shilib uni unutsa, odam abadiy "faqat /start bosgan" bo'lib qolardi va buni hech narsa ko'rsatmasdi — "yozilgan qoida himoya emas, uni tekshiradigan test himoya" qoidasi bu bandda hali bajarilmagan
 
 ## Qarorlar
+
+- [2026-08-31] Dars: **qorovul TOPILGAN nuqson kengligida emas, MUMKIN
+  BO'LGAN xato kengligida yozilsin.** Test 14o `takeCredits` ni qo'riqlardi,
+  naqsh esa `credit_grant` da qaytdi va test yashil turdi. Bitta funksiya
+  yoki bitta fayl nomiga bog'langan qorovul — nuqsonning KO'CHIB YURISHIGA
+  ochiq. To'g'ri shakl: papkani skanerlash, ro'yxatni manbadan yig'ish
+  (Test 16, 42, 44 dagi naqsh). Bu «yozilgan qoida himoya emas, uni
+  tekshiradigan test himoya» oilasining davomi: **tor test ham himoya
+  emas** — u faqat himoya TUYG'USINI beradi.
+- [2026-08-31] Dars: **node-postgres parametrni TURSIZ yuboradi**, ya'ni SQL
+  ichida ikki parametr ustida arifmetika bo'lsa (`$1 + $2`) tur QO'LDA
+  yozilishi shart (`$1::int + $2::int`). Nuqson faqat PARSE bosqichida
+  chiqadi — kod to'g'ri ko'rinadi, testlar yashil, mock'li test esa SQL
+  matnini haqiqiy Postgres'ga umuman yubormaydi (`SQL'ni pglite'da
+  tekshirish» darsi bilan bitta oila).
 
 - [2026-08-23] Qaror (founder): **kirgan foydalanuvchining ko'rish va savat
   amali ISM bilan yoziladi** (`user_events`), trafik soni esa hamon anonim

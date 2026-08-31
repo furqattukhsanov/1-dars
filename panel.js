@@ -12,7 +12,7 @@
     { num: 4, nom: "Asosiy funksiya",           dars: "Dars 11", holat: "jarayonda",  sana: "2026-08-25" },
     { num: 5, nom: "Mobil / PWA",               dars: "Dars 12", holat: "jarayonda",  sana: "2026-08-13" },
     { num: 6, nom: "Integratsiyalar",           dars: "Dars 13", holat: "jarayonda",  sana: "2026-07-22" },
-    { num: 7, nom: "Admin panel",               dars: "Dars 14", holat: "tugadi",  sana: "2026-08-23" },
+    { num: 7, nom: "Admin panel",               dars: "Dars 14", holat: "tugadi",  sana: "2026-08-31" },
     { num: 8, nom: "Sifat tekshiruvi",          dars: "Dars 15", holat: "jarayonda", sana: "2026-08-25" },
     { num: 9, nom: "Production + launch",       dars: "Dars 16", holat: "jarayonda", sana: "2026-08-14" },
     { num: 10, nom: "AI kiyim rasmi",           dars: "Dars 17", holat: "tugadi", sana: "2026-08-16" },
@@ -36,7 +36,7 @@
   barEl.style.width = foiz + "%";
   percentEl.textContent = foiz + "%";
   countEl.textContent = tugaganlar + " / " + sprintlar.length + " sprint";
-  updatedEl.textContent = "Yangilanish: 2026-08-25 (Sayqal to'plamidan bitta band qaytarildi: .nav-lens 480ms sakrashga qaytdi — founder telefonda sinab 280ms'ni rad etdi, sakrash brendga xos his. Qolgan 9 sayqal joyida. Tavsiya qoidasi founder didi bilan to'qnashganda did yutadi — bu normal jarayon. 91 test yashil. Kesh: styles.css 38, panel.js 59. PUSH YO'Q.)";
+  updatedEl.textContent = "Yangilanish: 2026-08-31 (AI kredit berish tugmasi tug'ilganidan beri o'lik ekan — founder birinchi marta jonli bosdi va «operator is not unique: unknown + unknown» chiqdi; node-postgres parametrni tursiz yuboradi, tuzatish $2::int + $3::int. Asosiy dars qorovulda: Test 14o faqat bitta funksiyaga qarardi, ya'ni topilgan nuqson kengligida yozilgan edi — endi butun server/ skanerlanadi. 4 mutatsiya, 4 tasi ushlandi; eski qorovul ayni mutatsiyada yashil qolardi. 91 test yashil. Kesh: panel.js 60. PUSH YO'Q.)";
 
 
   sprintlar.forEach(s => {

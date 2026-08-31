@@ -1404,7 +1404,7 @@ function testAssetVersionsAreFresh() {
     // YUQORIGA suriladi: teng raqam qaytib kelgan foydalanuvchida keshdagi
     // BIR TOMONLAMA faylni qoldirardi — sevimlilar yoki chiqish tuzatishining
     // faqat bittasi bo'lgan `app.js`.
-    'panel.js': { v: 59, hash: '2cd4444bbb0f' },
+    'panel.js': { v: 60, hash: 'd03c6e6a89ae' },
     // 2026-08-23: «Bot userlar» sahifasi, mahsulot jadvali, 7/30/90 oraliq.
     'admin/admin.css': { v: 22, hash: '2b63d25b1098' },
     'admin/admin.js': { v: 34, hash: '56844af79b82' },
@@ -1800,10 +1800,44 @@ function testImageErrorKinds() {
   // Test 14c buni TUTMAYDI — u `pool.query` ni taqlid qiladi, ya'ni SQL
   // matni hech qachon haqiqiy Postgres'ga bormaydi. Shuning uchun qorovul
   // matnning O'ZIGA qaraydi.
-  const takeSrc = route.slice(route.indexOf('async function takeCredits'), route.indexOf('async function refundCredits'));
-  assert.ok(takeSrc.length > 100, 'takeCredits tanasi topilsin');
-  const xomArifmetika = takeSrc.match(/\$\d+(?!::)\s*[-+*/]\s*\$\d+/g);
-  assert.ok(!xomArifmetika, `SQL da $N ${xomArifmetika || ''} arifmetikasiga ::int yozilsin (unknown - unknown)`);
+  //
+  // 🔴 QOROVUL 2026-08-31 DA KENGAYTIRILDI, CHUNKI U O'TKAZIB YUBORDI.
+  // Ilgari u FAQAT `routes/ai.js` → `takeCredits` tanasini o'qirdi, ya'ni
+  // TOPILGAN nuqson kengligida yozilgan edi — MUMKIN BO'LGAN xato kengligida
+  // emas. Aynan o'sha naqsh `routes/admin.js` → `credit_grant` da qaytadan
+  // yozildi (`VALUES ($1, $2 + $3, 0)`) va production'da yiqildi: founder
+  // Telegram'da tugmani bosdi, javob «❌ Bajarilmadi: ichki xato» bo'ldi,
+  // alertda esa "operator is not unique: unknown + unknown". Test YASHIL
+  // turgan edi, chunki u boshqa faylga qarardi.
+  // Endi butun `server/` skanerlanadi — yangi fayl qo'shilsa avtomatik
+  // qamraladi va ro'yxat qo'lda yozilmaydi.
+  //
+  // ⚠️ Izohlar TAHLILDAN OLDIN olib tashlanadi (`jsSofi`): yuqoridagi izoh
+  // matnining o'zida `$2 - $3` yozilgan va u bo'lmasa qorovul O'Z izohidan
+  // yiqilardi (Test 3f dagi «izohdagi so'z qorovulni aldardi» darsining
+  // teskarisi — bu safar izoh soxta QIZIL berardi).
+  const pathMod = require('path');
+  const fsMod = require('fs');
+  const XOM_ARIFMETIKA = /\$\d+(?!::)\s*[-+*/]\s*\$\d+/g;
+  const sqlSkanDirs = [__dirname, pathMod.join(__dirname, 'lib'), pathMod.join(__dirname, 'routes')];
+  const topilgan = [];
+  let skanerlangan = 0;
+  for (const dir of sqlSkanDirs) {
+    for (const file of fsMod.readdirSync(dir).filter((f) => f.endsWith('.js'))) {
+      // `test.js` ning O'ZI chetda: bu izohlarda naqsh ataylab yozilgan.
+      if (dir === __dirname && file === 'test.js') continue;
+      const kod = jsSofi(fsMod.readFileSync(pathMod.join(dir, file), 'utf8'));
+      skanerlangan++;
+      for (const m of kod.match(XOM_ARIFMETIKA) || []) {
+        topilgan.push(`${pathMod.relative(__dirname, pathMod.join(dir, file))}: ${m}`);
+      }
+    }
+  }
+  assert.ok(skanerlangan >= 10, `SQL skaneri juda kam fayl ko'rdi (${skanerlangan}) — yo'l noto'g'ri bo'lishi mumkin`);
+  assert.deepStrictEqual(topilgan, [],
+    'SQL da turi yozilmagan $N arifmetikasi topildi — `::int` qo\'shilsin, aks holda\n' +
+    '   Postgres "operator is not unique: unknown + unknown" bilan yiqiladi:\n   ' +
+    topilgan.join('\n   '));
 
   console.log('✅ Test 14o: Vaqtinchalik va doimiy nosozlik ajratilgan — PASS');
 }

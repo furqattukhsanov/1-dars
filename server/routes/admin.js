@@ -1138,9 +1138,17 @@ const ADMIN_ACTIONS = {
       `<b>Qo'shiladi:</b> +${p.amount}`,
     async run(a) {
       const n = Number(a.payload.amount);
+      // ⚠️ `::int` SHART: turi yozilmagan ikki parametr Postgres uchun
+      // `unknown` bo'ladi va u qaysi `+` operatorini tanlashni bilmaydi
+      // ("operator is not unique: unknown + unknown"). `DO UPDATE` qatorida
+      // kerak emas — u yerda `ai_credits.balance` turi ma'lum va $3 shunga
+      // keltiriladi. Aynan shu nuqson 2026-08-07 da `routes/ai.js` da
+      // bo'lgan, 2026-08-31 da esa SHU YERDA takrorlandi: qorovul (Test 14o)
+      // faqat `takeCredits` ga qarardi, ya'ni topilgan nuqson kengligida
+      // yozilgan edi. Endi qorovul butun `server/` ni skanerlaydi.
       const { rows } = await pool.query(
         `INSERT INTO ai_credits (tg_user_id, balance, spent)
-         VALUES ($1, $2 + $3, 0)
+         VALUES ($1, $2::int + $3::int, 0)
          ON CONFLICT (tg_user_id)
          DO UPDATE SET balance = ai_credits.balance + $3, updated_at = now()
          RETURNING balance`,
