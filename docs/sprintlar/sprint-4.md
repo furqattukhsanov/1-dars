@@ -134,6 +134,27 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
 
 ## Qilingan ishlar
 
+- [2026-09-01] **SAYT FOOTERIDAGI HUQUQIY QATOR RASMIY REKVIZITLARGA
+  ALMASHTIRILDI** (`index.html:798`): «© 2026 LolaMarket. Barcha huquqlar
+  himoyalangan.» → «2026 © «LOLAMARKET GROUP» MCHJ. STIR 313296186. Barcha
+  huquqlar himoyalangan.» Founder rasmiy rekvizitlarni berdi; namuna —
+  Uzum Market footeridagi shakl. O'zgarish BITTA qator, faqat `index.html` —
+  JS/CSS tegilmagan, ya'ni `?v=` oshirish KERAK EMAS (HTML versiyalanmaydi;
+  hisobot ishining O'ZI esa `panel.js` ga tegadi va u 60→61 ga alohida oshdi —
+  2026-08-31 dagi darsning takrori). Qator statik, `data-i18n` YO'Q — ruscha
+  rejimda ham shu ko'rinishda qoladi (founder'ga aytilgan, e'tiroz bo'lmadi;
+  hisobotchi o'lchadi: `footerCopy` i18n kaliti umuman mavjud emas).
+  ⚠️ **`script.js:1669` va `telegram-app/app.js:4208` dagi qisqa
+  «© 2026 LolaMarket» yozuvlariga ATAYLAB tegilmadi** — ular huquqiy qator
+  emas, profil ostidagi BREND BELGISI; founder'dan ularni ham almashtirish
+  kerakmi deb so'raldi — **javob hali KELMAGAN (ochiq savol)**. «Ikkinchi
+  yuzda ham shunday qil» degan o'qish avval ortiqcha ish tug'dirgan
+  (2026-08-13 darsi), shuning uchun jimgina tarqatilmadi.
+  Hisobotchi mustaqil o'lchadi: diff 1 qator (`git diff --stat`); yangi
+  rekvizit repoda FAQAT `index.html` da (grep); **91 test yashil** (sanab
+  tasdiqlandi). Deploy: faqat STATIK (CI), servis restarti va migratsiya
+  kerak emas.
+
 - [2026-08-25] **SAYQAL TO'PLAMIDAN BITTA BAND QAYTARILDI — `.nav-lens`
   480ms sakrashga qaytdi (founder telefonda sinab rad etdi).** Quyidagi
   to'plamning 9-bandi (`.nav-lens` 480ms → 280ms «tez va aniq») founder

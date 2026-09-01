@@ -9,7 +9,7 @@
     { num: 1, nom: "Telegram Mini App MVP",     dars: "Dars 8",  holat: "tugadi",  sana: "2026-07-31" },
     { num: 2, nom: "Ma'lumotlar bazasi / Backend", dars: "Dars 9",  holat: "tugadi", sana: "2026-07-23" },
     { num: 3, nom: "Foydalanuvchilar + rollar", dars: "Dars 10", holat: "tugadi", sana: "2026-08-16" },
-    { num: 4, nom: "Asosiy funksiya",           dars: "Dars 11", holat: "jarayonda",  sana: "2026-08-25" },
+    { num: 4, nom: "Asosiy funksiya",           dars: "Dars 11", holat: "jarayonda",  sana: "2026-09-01" },
     { num: 5, nom: "Mobil / PWA",               dars: "Dars 12", holat: "jarayonda",  sana: "2026-08-13" },
     { num: 6, nom: "Integratsiyalar",           dars: "Dars 13", holat: "jarayonda",  sana: "2026-07-22" },
     { num: 7, nom: "Admin panel",               dars: "Dars 14", holat: "tugadi",  sana: "2026-08-31" },
@@ -36,7 +36,7 @@
   barEl.style.width = foiz + "%";
   percentEl.textContent = foiz + "%";
   countEl.textContent = tugaganlar + " / " + sprintlar.length + " sprint";
-  updatedEl.textContent = "Yangilanish: 2026-08-31 (AI kredit berish tugmasi tug'ilganidan beri o'lik ekan — founder birinchi marta jonli bosdi va «operator is not unique: unknown + unknown» chiqdi; node-postgres parametrni tursiz yuboradi, tuzatish $2::int + $3::int. Asosiy dars qorovulda: Test 14o faqat bitta funksiyaga qarardi, ya'ni topilgan nuqson kengligida yozilgan edi — endi butun server/ skanerlanadi. 4 mutatsiya, 4 tasi ushlandi; eski qorovul ayni mutatsiyada yashil qolardi. 91 test yashil. Kesh: panel.js 60. PUSH YO'Q.)";
+  updatedEl.textContent = "Yangilanish: 2026-09-01 (Sayt footeridagi huquqiy qator rasmiy rekvizitlarga almashtirildi: «LOLAMARKET GROUP» MCHJ, STIR 313296186 — founder berdi, namuna Uzum Market. Bitta qator, faqat index.html; JS/CSS tegilmagan, ?v= faqat panel.js uchun 60→61. script.js va app.js dagi qisqa © brend belgilariga ataylab tegilmadi — founder javobi kutilmoqda. 91 test yashil. PUSH YO'Q.)";
 
 
   sprintlar.forEach(s => {
