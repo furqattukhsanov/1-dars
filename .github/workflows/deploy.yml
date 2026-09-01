@@ -44,7 +44,7 @@ jobs:
           # CSP `'unsafe-inline'`siz ishlagan kuni offline sahifadagi tugma va
           # butun sprint paneli JIMGINA o'lardi — nginx yo'q faylga HTML + 200
           # qaytaradi, ya'ni HTTP kodiga qarab buni sezib ham bo'lmasdi.
-          source: "index.html,style.css,script.js,manifest.json,sw.js,pwa.js,offline.html,offline.js,loyiha-panel.html,panel.js,assets/,Photo/,admin/"
+          source: "index.html,style.css,script.js,manifest.json,sw.js,pwa.js,offline.html,offline.js,loyiha-panel.html,privacy.html,panel.js,assets/,Photo/,admin/"
           target: /var/www/lolamarket
 
       # Mini App ALOHIDA qadam: repoda `telegram-app/`, serverda esa `mini-app/`
@@ -140,4 +140,7 @@ jobs:
               fi
             }
             check_html /loyiha-panel.html 'LolaMarket — Loyiha Panel'
+            # 2026-09-02: App Store uchun maxfiylik sahifasi — source ro'yxatiga
+            # qo'lda qo'shilgan, bu tekshiruv o'sha qadam bajarilganini isbotlaydi.
+            check_html /privacy.html 'privacy-lm'
             exit $FAIL

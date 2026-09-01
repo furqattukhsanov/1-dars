@@ -24,6 +24,38 @@ Platformani mobil qurilmalarda ham qulay ishlashini ta'minlash. Ilovani telefong
 
 ## Qilingan ishlar
 
+- [2026-09-02] **Maxfiylik siyosati sahifasi (`privacy.html`) — App Store yo'lining
+  birinchi kod qadami.** Founder App Store'ga ilova chiqarishni boshladi; Apple
+  Developer enrollment jarayoni Privacy Policy URL talab qiladi — endi u
+  `https://lolamarket.uz/privacy.html` bo'ladi. Sahifa IKKI tilda (o'zbekcha +
+  inglizcha — Apple ko'rikchisi o'qiy olishi uchun), ildizdagi `style.css?v=65`
+  tokenlaridan foydalanadi (`index.html` va `admin/index.html` bilan BIR XIL
+  versiya — «bitta fayl hamma sahifada bir xil versiya» qoidasi; hisobotchi
+  grep bilan o'lchadi), hujjat-maketi esa sahifaning o'z inline `<style>` ida.
+  **Matn faqat REAL amaliyotni aytadi** («jimgina yolg'on» oilasidagi qoidalar
+  bilan bitta yo'nalish): kimlik faqat Telegram'ning imzolangan kanallari orqali,
+  telefon faqat botda o'zi ulashsa, trafik statistikasida xom IP saqlanmasligi va
+  kunlik hash (db/028 qarori aynan shu), karta ma'lumoti UMUMAN yig'ilmasligi,
+  parol yo'qligi, uchinchi tomonlar ro'yxati (Telegram, Cloudflare, Yandex Maps,
+  Google Gemini — hammasi kodda haqiqatan ishlatiladi), HttpOnly sessiya cookie
+  bazada hash ko'rinishida. Operator rekviziti: «LOLAMARKET GROUP» MCHJ, STIR
+  313296186; bog'lanish — `info@lolamarket.uz` (bugun Cloudflare Email Routing
+  bilan ochilgan yangi korporativ pochta). Deploy tekshiruvi uchun sahifada
+  unikal belgi `id="privacy-lm"`. **`deploy.yml` ga ikki o'zgarish:** (1) `source`
+  ro'yxatiga `privacy.html` qo'shildi — ma'lum tuzoq: yangi ildiz fayli ro'yxatga
+  qo'lda qo'shilmasa serverga UMUMAN chiqmaydi va nginx fallback 200 bilan buni
+  yashiradi; (2) `check_html /privacy.html 'privacy-lm'` — o'sha qadam
+  bajarilganini har deploy'da isbotlaydi. **Hisobotchi mustaqil o'lchadi:** 91
+  test yashil (`✅ Test` satrlari sanaldi — Test 16 yangi HTML'ni avtomatik
+  qamrab versiya mosligini tasdiqladi); sahifa tayangan ikkala resurs
+  (`style.css`, `Photo/logo/lola-mark.png`) diskda bor. **Tekshirilmadi:**
+  brauzerda chizilish da'vosi (chaqiruvchi agent lokal serverda ko'rgan) va
+  tashqi qadamlar — Apple developer profili, D-U-N-S so'rovi (D&B Tracking
+  #10843400, Case #10903271, javob kutilmoqda), pochta ishlashi. **Halol
+  chegara:** sahifa production'da hali yo'q — CI push'dan keyin chiqaradi;
+  App Store'ga havola sifatida berishdan oldin jonli URL ko'z bilan ochilsin
+  (CSP jimgina bloklash darsi).
+
 - [2026-08-13] **PWA ikonkalari brend kvadratiga o'tdi** — `assets/pwa/` dagi
   uchala ikonka (`icon-192.png`, `icon-512.png`, `icon-maskable-512.png`)
   endi marun fon (`#7A140D`) ustida oq logo. Manba — yangi
@@ -73,6 +105,15 @@ Platformani mobil qurilmalarda ham qulay ishlashini ta'minlash. Ilovani telefong
 ---
 
 ## Qarorlar
+
+- [2026-09-02] Qaror: **App Store yo'li ochildi va maxfiylik siyosati FAQAT real
+  amaliyotni yozadi.** Founder ilovani App Store'ga chiqarishni boshladi
+  (developer profili, `info@lolamarket.uz` pochta, D-U-N-S so'rovi). Privacy
+  Policy matniga «kelajakda qilamiz» yoki umumiy shablon bandlari ATAYLAB
+  kiritilmadi — har band kodda hozir bor narsaga tayanadi (kunlik hash,
+  HttpOnly cookie, karta yig'ilmasligi). Sabab: sahifa huquqiy va'da, kod esa
+  o'zgaradi — amaliyot o'zgarsa SAHIFA HAM yangilanishi shart (sana bilan),
+  aks holda u «jimgina yolg'on» oilasiga qo'shilardi.
 
 - [2026-07-30] Qaror: **sahifa hayot sikliga bog'liq har qanday kod `load` hodisasiga BEVOSITA
   bog'lanmaydi** — avval `document.readyState` tekshiriladi (`whenReady()` naqshi). Sabab: `load`
