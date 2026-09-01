@@ -196,6 +196,10 @@ const STR = {
     refundLabel: 'Qaytariladi:',
     disputeBtn: "Muammo bo'yicha murojaat",
     rateBtn: '★ Baholash',
+    gotItBtn: '📦 Buyurtmani oldim',
+    gotItAsk: "Buyurtmani qo'lingizga oldingizmi? Tasdiqlagach matoni baholash ochiladi.",
+    gotItDone: 'Rahmat! Endi matoni baholashingiz mumkin',
+    gotItErr: 'Tasdiqlash yuborilmadi',
     // ---- Bo'sh holatlar ----
     favEmpty: "Saralanganlar bo'sh",
     favEmptySub: "Yoqqan matolarni yurakcha tugmasi bilan belgilang — keyin shu yerdan topasiz.",
@@ -449,6 +453,10 @@ const STR = {
     refundLabel: 'К возврату:',
     disputeBtn: 'Обращение по проблеме',
     rateBtn: '★ Оценить',
+    gotItBtn: '📦 Заказ получен',
+    gotItAsk: 'Вы получили заказ? После подтверждения откроется оценка ткани.',
+    gotItDone: 'Спасибо! Теперь можно оценить ткань',
+    gotItErr: 'Не удалось отправить подтверждение',
     favEmpty: 'В избранном пусто',
     favEmptySub: 'Отмечайте понравившиеся ткани сердечком — они появятся здесь.',
     cartEmpty: 'Корзина пуста',
@@ -2198,6 +2206,11 @@ function orderRowHtml(o) {
             <span class="order-hist-txt">${esc(statusLabel(h.status))}</span>
             <span class="order-hist-date">${esc(h.date || '')}</span></li>`).join('')}
       </ol>` : ''}` : ''}
+
+      <!-- «Buyurtmani oldim» — faqat yo'ldagi (shipped) buyurtmada. Bosish
+           shipped → delivered o'tishini yozadi (server: handleOrderDelivered),
+           shundan keyin baholash tugmalari ochiladi. -->
+      ${o.status === 'shipped' ? `<button class="order-got-btn" data-action="confirmDelivered" data-arg="${esc(o.id)}">${t('gotItBtn')}</button>` : ''}
 
       <!-- Bahs: ochilgan bo'lsa holati, bo'lmasa tugma -->
       ${disp ? `
@@ -4575,6 +4588,28 @@ function submitDispute() {
       renderDrawer();
       showToast(e.message || 'Murojaat yuborilmadi');
     });
+}
+
+/* ── «Buyurtmani oldim» (2026-09-02) ──
+   shipped → delivered o'tishining amaldagi yagona ishlaydigan yo'li —
+   tafsilot serverda (`routes/orders.js` → `handleOrderDelivered`).
+   `window.confirm` SHART: bosish sharh va sotuvchi payout yo'lini ochadi,
+   ya'ni bu ko'rinish emas, pul oqimiga ta'sir qiladigan amal. */
+function confirmDelivered(orderId) {
+  if (!window.confirm(t('gotItAsk'))) return;
+  apiJson('/api/order-delivered', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ orderId }),
+  })
+    .then((d) => {
+      if (!d || d.ok !== true) throw new Error((d && d.error) || t('gotItErr'));
+      showToast(t('gotItDone'));
+      // Ro'yxat SERVERDAN qayta yuklanadi — lokal holatni qo'lda tuzatish
+      // o'rniga haqiqat manbai bazadan olinadi (tarix qatori ham yangilanadi).
+      loadMyOrders();
+    })
+    .catch((e) => showToast(e.message || t('gotItErr')));
 }
 
 /* ── Toast ── */

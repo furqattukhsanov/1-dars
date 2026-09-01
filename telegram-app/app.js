@@ -181,6 +181,8 @@ const STR = {
     needPoint: "Avval olish nuqtasini tanlang",
     commentPh: "Buyurtma uchun izoh (ixtiyoriy)", summary: "Buyurtma tarkibi", placeOrder: "Buyurtmani tasdiqlash",
     orders: "Buyurtmalarim", active: "Faol", past: "Tarix", noActive: "Faol buyurtma yo'q", track: "Kuzatish", reorder: "Qayta buyurtma",
+    gotIt: "Buyurtmani oldim", gotItAsk: "Buyurtmani qo'lingizga oldingizmi? Tasdiqlagach sharh yozish ochiladi.",
+    gotItDone: "Rahmat! Endi matoni baholashingiz mumkin",
     dispProblem: "Muammo bor", dispTitle: "Muammoni bildiring",
     dispSub: "Muammoni tanlang. Keyin bot rasm so'raydi — moderator ko'rib chiqadi.",
     dispCommentPh: "Qisqacha izoh (ixtiyoriy)", dispSend: "Yuborish", dispCancel: "Bekor qilish",
@@ -353,6 +355,8 @@ const STR = {
     needPoint: "Сначала выберите пункт выдачи",
     commentPh: "Комментарий к заказу (необязательно)", summary: "Состав заказа", placeOrder: "Подтвердить заказ",
     orders: "Мои заказы", active: "Активные", past: "История", noActive: "Нет активных заказов", track: "Отследить", reorder: "Повторить",
+    gotIt: "Заказ получен", gotItAsk: "Вы получили заказ? После подтверждения откроется оценка товара.",
+    gotItDone: "Спасибо! Теперь можно оценить ткань",
     dispProblem: "Есть проблема", dispTitle: "Сообщите о проблеме",
     dispSub: "Выберите проблему. Затем бот попросит фото — модератор рассмотрит.",
     dispCommentPh: "Краткий комментарий (необязательно)", dispSend: "Отправить", dispCancel: "Отмена",
@@ -3371,6 +3375,28 @@ async function loadDisputes() {
   } catch (e) { /* bahs yo'q yoki kirilmagan — jim o'tamiz */ }
 }
 
+// ============ XARIDOR «BUYURTMANI OLDIM» (2026-09-02) ============
+// `shipped` → `delivered` o'tishining amaldagi yagona ishlaydigan yo'li —
+// tafsilot server tomonida (`routes/orders.js` → `handleOrderDelivered`).
+// Tasdiq dialogi SHART: bosish sharh va sotuvchi payout yo'lini ochadi,
+// ya'ni bu shunchaki ko'rinish emas, PUL oqimiga ta'sir qiladigan amal.
+async function confirmDelivered(orderId) {
+  const T = STR[S.lang];
+  if (!(await askConfirm(T.gotItAsk))) return;
+  try {
+    await sellerFetch('/api/order-delivered', { method: 'POST', body: JSON.stringify({ orderId }) });
+    const o = ORDERS.find((x) => x.id === orderId);
+    if (o) { o.statusKey = 'delivered'; saveOrders(); }
+    // Yetkazilgan buyurtma «Tarix» varag'iga o'tadi — xaridor hozirgina
+    // bosgan kartasini (endi baholash tugmalari bilan) yo'qotib qo'ymasin.
+    S.ordersTab = 'past';
+    if (S.screen === 'orders') document.getElementById('screen-wrap').innerHTML = renderOrders();
+    showToast(T.gotItDone);
+  } catch (e) {
+    showToast(e.message);
+  }
+}
+
 // Xaridor buyurtma kartochkasidagi bahs bloki
 function disputeBlock(o) {
   const T = STR[S.lang];
@@ -3640,6 +3666,7 @@ function renderOrders() {
           <button data-action="toggleTrack" data-arg="${o.id}" style="flex:1;height:38px;border-radius:var(--radius-sm);border:1px solid var(--glass-border);background:var(--glass-fill-strong);font-size:13px;font-weight:600;color:var(--text-strong);cursor:pointer">${T.track}</button>
           <button data-action="reorderOrder" data-arg="${o.id}" style="flex:1;height:38px;border-radius:var(--radius-sm);border:1px solid var(--border-hair);background:transparent;font-size:13px;font-weight:600;color:var(--teal-600);cursor:pointer">${T.reorder}</button>
         </div>
+        ${o.statusKey === 'shipped' ? `<button data-action="confirmDelivered" data-arg="${o.id}" style="width:100%;margin-top:9px;height:40px;border:none;border-radius:var(--radius-sm);background:linear-gradient(135deg,var(--pom-600),var(--pom-800));font-size:13px;font-weight:600;color:#ffe9db;cursor:pointer;box-shadow:var(--shadow-sm)">📦 ${T.gotIt}</button>` : ''}
         ${S.trackOpen[o.id] ? (() => {
           const stageIdx = STATUS_STAGES.indexOf(o.statusKey);
           return `

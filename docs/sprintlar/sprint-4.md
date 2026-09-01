@@ -134,6 +134,49 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
 
 ## Qilingan ishlar
 
+- [2026-09-02] **«DELIVERED» YETIM HOLATI YOPILDI — XARIDORNING O'ZI
+  «BUYURTMANI OLDIM» DEB TASDIQLAYDI** (founder: «1 ni hal qilib yop»,
+  QOLDIQ dagi 2026-08-31 topilmasi). Muammo: `delivered` ga o'tkazadigan
+  AMALDA ISHLAYDIGAN yo'l yo'q edi — `/yetdi` admin buyrug'i azaldan bor,
+  lekin tarixda 0 marta ishlatilgan, 17 buyurtma `shipped` da qotgan.
+  Oqibat IKKI narsa jimgina to'silgan edi: sharh yozish
+  (`REVIEW_ALLOWED_ORDER_STATUS` `delivered|completed` talab qiladi) va
+  sotuvchi payout'i (`order_payout` `delivered` talab qiladi — panel
+  `payout_due` ni doim 0 ko'rsatardi). Yechim: matoni qo'lga olganini
+  biladigan yagona odam — XARIDORNING O'ZI, tasdiq unga berildi.
+  Yangi `POST /api/order-delivered` (`routes/orders.js` →
+  `handleOrderDelivered`): kimlik `requestUser` (sayt HAM, Mini App HAM —
+  `/api/disputes` darsi takrorlanmadi, Test 3f avtomatik qamraydi);
+  o'tish ATOMIK — `WITH prev ... FOR UPDATE` + `prev.status='shipped'`
+  sharti UPDATE ichida, egalik `tg_user_id` bilan bitta so'rovda (begona
+  buyurtmani «olib» bo'lmaydi); `recordStatusChange` (actorKind: buyer)
+  BITTA tranzaksiyada; takror bosish idempotent (allaqachon `delivered`
+  bo'lsa xato emas, `ok` qaytadi); admin chatga xabar — eng yaxshi
+  harakat, tranzaksiyadan tashqarida, xato yutilmaydi. Ikkala yuzda
+  `shipped` kartada «📦 Buyurtmani oldim» tugmasi (uz/ru): Mini App —
+  `askConfirm` dialogi, muvaffaqiyatda «Tarix» varag'iga o'tadi (u yerda
+  baholash ochiladi); sayt — `window.confirm`, muvaffaqiyatda
+  `loadMyOrders()` serverdan qayta yuklaydi (haqiqat manbai — baza).
+  BTS integratsiyasi kelsa webhook bu yo'lning YONIGA qo'shiladi, o'rnini
+  bosmaydi. **HISOBOTCHI MUSTAQIL O'LCHADI:** 91 test yashil (`✅ Test`
+  satrlari sanaldi; birinchi sanoq 92 chiqqan edi — `grep -c "✅"` yakuniy
+  «Hammasi PASS» qatorini ham qo'shib yuborgan, «32 test» darsining
+  kichik takrori, qayta o'lchandi); ikkala mutatsiyani O'ZI bajardi —
+  (1) `requestUser`→`authUser`:
+  Test 3f QIZIL (aynan kutilgan xabar bilan); (2) `recordStatusChange`
+  olib tashlandi: Test 12b QIZIL (inventar nomuvofiq); fayllar `cp`
+  nusxadan tiklandi, diff boshlang'ich holatda. `node --check` ikkala
+  frontendda toza; `data-action="confirmDelivered"` dispatcher'ga ulangani
+  tekshirildi (`window[action]`, ikkala funksiya top-level — Test 44
+  247 nishon bilan yashil). **Halol chegara:** (a) jonli/brauzer sinovi
+  YO'Q — endpoint production'da hali otilmagan; (b) egalik sharti
+  (`tg_user_id = $2`) uchun ALOHIDA qorovul test yozilmadi (Test 50 faqat
+  `order-status` ni qamraydi) — ochiq qarz. Kesh: `script.js` 58→59,
+  `style.css` 64→65 (uchala HTML birga), `app.js` 104→105,
+  `panel.js` 61→62 (Test 16 jadvali birga). 🔴 **DEPLOY: STATIK +
+  BACKEND** (`routes/orders.js`, `server.js`) — rsync (`--no-owner
+  --no-group` SHART) + servis restart; migratsiya YO'Q. PUSH YO'Q.
+
 - [2026-09-01] **SAYT FOOTERIDAGI HUQUQIY QATOR RASMIY REKVIZITLARGA
   ALMASHTIRILDI** (`index.html:798`): «© 2026 LolaMarket. Barcha huquqlar
   himoyalangan.» → «2026 © «LOLAMARKET GROUP» MCHJ. STIR 313296186. Barcha

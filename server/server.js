@@ -29,7 +29,7 @@ const {
 const { handleSavePickupPoint, handleMyPhoto, handleGetFavorites, handleSaveFavorite } = require('./routes/profile');
 const {
   handleCreateOrder, handleCreateWebOrder, handleGetOrders,
-  handleOrderNotify, handleOrderStatus,
+  handleOrderNotify, handleOrderStatus, handleOrderDelivered,
 } = require('./routes/orders');
 const {
   handleAuthTelegram, handleGetProducts, handleSubmitProduct,
@@ -346,6 +346,14 @@ function routeRequest(req, res) {
     if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
     if (req.method !== 'GET') return fail(res, 'method not allowed', 405);
     return handleOrderStatus(req, res, ip);
+  }
+
+  // Xaridor «Buyurtmani oldim» — shipped → delivered (sayt HAM, Mini App HAM)
+  if (path === '/api/order-delivered') {
+    cors(res, 'POST, OPTIONS');
+    if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
+    if (req.method !== 'POST') return fail(res, 'method not allowed', 405);
+    return handleOrderDelivered(req, res, ip);
   }
 
   // Mahsulot rasmi — ommaviy, imzolangan havola bilan (bot tokeni chiqmaydi)

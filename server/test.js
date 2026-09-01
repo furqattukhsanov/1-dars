@@ -818,7 +818,7 @@ const HISTORY_CALL = /recordStatusChange\s*\(/g;
 
 // Kutilgan inventar (2026-08-03). {status yozuvi, tarix chaqiruvi}
 const HISTORY_INVENTORY = {
-  'orders.js':  { writes: 0, records: 2 },  // ikkalasi INSERT (yaratish), UPDATE emas
+  'orders.js':  { writes: 1, records: 3 },  // 2 ta INSERT (yaratish) + xaridor «Buyurtmani oldim» (shipped → delivered)
   'seller.js':  { writes: 1, records: 1 },  // accept / reject / ship
   'webhook.js': { writes: 1, records: 1 },  // bot: /tasdiqla /yolga /yetdi
   'admin.js':   { writes: 3, records: 3 },  // payout, refund, dispute qarori
@@ -1389,8 +1389,8 @@ function testAssetVersionsAreFresh() {
     // esa butun kenglikda ikki qator bo'lib terildi.
     // 2026-08-16 (kechqurun, 2-tahrir): qator chiqqanda header yuqoriga
     // suriladi — ikkita qadalgan qator birga turmaydi.
-    'style.css': { v: 64, hash: 'e9718d3f4f24' },
-    'script.js': { v: 58, hash: '0241701cbc04' },
+    'style.css': { v: 65, hash: 'ce6f35948762' },
+    'script.js': { v: 59, hash: '2f75951d26d8' },
     'pwa.js': { v: 3, hash: 'dce9fcfee6cb' },
     // ⚠️ IKKINCHI BIRLASHTIRISH (2026-08-14): ikkala tomon panel.js ni 24,
     // app.js ni 87 ga ko'targan — AYNI raqamlar, TARKIB esa har xil.
@@ -1404,14 +1404,14 @@ function testAssetVersionsAreFresh() {
     // YUQORIGA suriladi: teng raqam qaytib kelgan foydalanuvchida keshdagi
     // BIR TOMONLAMA faylni qoldirardi — sevimlilar yoki chiqish tuzatishining
     // faqat bittasi bo'lgan `app.js`.
-    'panel.js': { v: 61, hash: '8f5e0fab563f' },
+    'panel.js': { v: 62, hash: '66c5280058b6' },
     // 2026-08-23: «Bot userlar» sahifasi, mahsulot jadvali, 7/30/90 oraliq.
     'admin/admin.css': { v: 22, hash: '2b63d25b1098' },
     'admin/admin.js': { v: 34, hash: '56844af79b82' },
     // 2026-08-25: `.nav-lens` o'tishi 480ms sakrashga QAYTARILDI (founder
     // telefonda sinab 280ms'ni rad etdi — sakrash brendga xos his).
     'telegram-app/styles.css': { v: 38, hash: '17e788357294' },
-    'telegram-app/app.js': { v: 104, hash: '8a223bf4fe02' },
+    'telegram-app/app.js': { v: 105, hash: '7bf6d8a3b66a' },
     'telegram-app/pwa.js': { v: 6, hash: '798ab85e1cde' },
   };
 

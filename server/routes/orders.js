@@ -1,11 +1,11 @@
-const { PREPAY_RATE, COMMISSION_RATE, DELIVERY_FEE_ESTIMATE } = require('../config');
+const { PREPAY_RATE, COMMISSION_RATE, DELIVERY_FEE_ESTIMATE, ADMIN_CHAT_ID } = require('../config');
 const { pool } = require('../db');
-const { authUser } = require('../lib/auth');
+const { authUser, requestUser } = require('../lib/auth');
 const { recordUserEvent } = require('../lib/user-events');
 const { escapeHtml, money, dateLabel } = require('../lib/format');
 const { validate, ClientError } = require('../lib/validate');
-const { rateLimited, readBody, sendJson, fail } = require('../lib/http');
-const { sendOrderNotifyMessage, sendBuyerConfirmMessage } = require('../lib/telegram-api');
+const { rateLimited, readBody, sendJson, fail, ok } = require('../lib/http');
+const { sendOrderNotifyMessage, sendBuyerConfirmMessage, notify } = require('../lib/telegram-api');
 const { recordStatusChange } = require('../lib/order-history');
 const { webSessionUser } = require('./web-auth');
 
@@ -547,7 +547,82 @@ async function handleOrderStatus(req, res, ip) {
   }
 }
 
+// ============ /api/order-delivered — xaridor «Buyurtmani oldim» ============
+// `delivered` holatining amaldagi yagona ISHLAYDIGAN yo'li (2026-09-02).
+// `/yetdi` admin buyrug'i azaldan bor, lekin u founder'ning qo'lda buyruq
+// yozishiga bog'liq va tarixda bir marta ham ishlatilmagan — buyurtmalar
+// `shipped`da qotib, sharh ham (`REVIEW_ALLOWED_ORDER_STATUS`), sotuvchi
+// payout'i ham (`delivered` talab qiladi) jimgina to'silgan edi. Matoni
+// qo'liga olganini biladigan yagona odam — XARIDORNING O'ZI, shuning uchun
+// tasdiq unga berildi. BTS integratsiyasi kelsa uning webhook'i bu yo'lning
+// YONIGA qo'shiladi, o'rnini bosmaydi (`/yetdi` ham joyida qoladi).
+//
+// Kimlik `requestUser` — sayt xaridori ham tasdiqlay olishi SHART: `authUser`
+// bo'lsa sayt jimgina 401 olardi (`/api/disputes` darsi, Test 3f qamraydi).
+async function handleOrderDelivered(req, res, ip) {
+  if (rateLimited(`orderdelivered:${ip}`, 20)) return fail(res, 'too many requests', 429);
+  const u = await requestUser(req);
+  if (!u) return fail(res, 'unauthorized', 401);
+  let client;
+  try {
+    const data = JSON.parse(await readBody(req, 5_000));
+    const v = validate(data, { orderId: { type: 'string', required: true, max: 40 } });
+    if (!v.ok) return fail(res, v.error, 400);
+    const orderId = v.data.orderId;
+
+    client = await pool.connect();
+    await client.query('BEGIN');
+    // Qorovul ATOMIK: `prev.status = 'shipped'` sharti UPDATE ichida turadi —
+    // ikki marta bosilsa ikkinchisi 0 qator oladi, tarixga ikki yozuv tushmaydi.
+    // Egalik ham shu yerda: `tg_user_id = $2` — begona buyurtmani "olib" bo'lmaydi.
+    const { rows } = await client.query(
+      `WITH prev AS (
+         SELECT id, status FROM orders
+          WHERE id = $1 AND tg_user_id = $2 FOR UPDATE)
+       UPDATE orders o SET status = 'delivered'
+         FROM prev
+        WHERE o.id = prev.id AND prev.status = 'shipped'
+        RETURNING prev.status AS from_status`,
+      [orderId, String(u.id)]
+    );
+    if (!rows.length) {
+      await client.query('ROLLBACK');
+      const { rows: cur } = await pool.query(
+        `SELECT status FROM orders WHERE id = $1 AND tg_user_id = $2`,
+        [orderId, String(u.id)]);
+      if (!cur.length) return fail(res, 'buyurtma topilmadi', 404);
+      // Takror bosish — xato emas: natija baribir "olindi". 400 qaytarilsa
+      // ikki marta bosgan xaridor sababsiz xato ko'rardi.
+      if (cur[0].status === 'delivered' || cur[0].status === 'completed') {
+        return ok(res, { id: orderId, status: cur[0].status });
+      }
+      return fail(res, "buyurtma hali yo'lga chiqmagan", 400);
+    }
+    await recordStatusChange(client, {
+      orderId, from: rows[0].from_status, to: 'delivered',
+      actorKind: 'buyer', actorTg: u.id, note: 'xaridor qabul qilganini tasdiqladi',
+    });
+    await client.query('COMMIT');
+
+    // Xabar — ENG YAXSHI HARAKAT va tranzaksiyadan TASHQARIDA: holat allaqachon
+    // o'zgargan, Telegram nosozligi xaridor javobini yiqitmasin. Xato esa
+    // YUTILMAYDI — alert kaliti doimiy (birinchi argument qoidasi).
+    notify(ADMIN_CHAT_ID,
+      `📦 <b>${escapeHtml(orderId)}</b> — xaridor buyurtmani olganini tasdiqladi.`)
+      .catch((e) => console.error('orderDelivered xabari xatosi:', e.message));
+
+    ok(res, { id: orderId, status: 'delivered' });
+  } catch (e) {
+    if (client) await client.query('ROLLBACK').catch(() => {});
+    console.error('orderDelivered xatosi:', e.message);
+    fail(res, 'server error', 500);
+  } finally {
+    if (client) client.release();
+  }
+}
+
 module.exports = {
   handleCreateOrder, handleCreateWebOrder, handleGetOrders, handleOrderNotify, handleOrderStatus,
+  handleOrderDelivered,
   decrementStock, restoreStock,
 };
