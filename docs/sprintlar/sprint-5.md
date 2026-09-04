@@ -24,6 +24,33 @@ Platformani mobil qurilmalarda ham qulay ishlashini ta'minlash. Ilovani telefong
 
 ## Qilingan ishlar
 
+- [2026-09-05] **Statik kesh `immutable` — TZ yozildi va founder Cloudflare'da
+  QO'LLADI (A yo'l), 4/4 jonli tekshiruv o'tdi.** Yangi hujjat
+  `docs/statik-kesh-immutable.md`: versiyalangan (`?v=` bor) `.js`/`.css`
+  fayllar 4 soatlik kesh o'rniga `public, max-age=31536000, immutable` oladi —
+  bu xavfsiz, chunki Test 16 «tarkib o'zgarsa `?v=` HAM oshadi» ni majburlaydi,
+  ya'ni berilgan URL tarkibi hech qachon o'zgarmaydi. Qo'llash: Cloudflare
+  Response Header Transform Rule (shart: kengaytma `.js`/`.css` VA query'da
+  `v=` bor) + Browser Cache TTL «4 hours» → «Respect existing headers».
+  Kengaytma bo'yicha EMAS, query bo'yicha — `sw.js`, `offline.js` (PRECACHE)
+  va HTML qoidaga tushmasligi uchun: ular muzlasa yangilanish yetib bormasdi.
+  **Hisobotchi jonli qayta o'lchadi (4/4):** `app.js?v=102`, `script.js?v=97`,
+  `style.css?v=65` → `immutable` ✅; `sw.js` → `no-cache, must-revalidate`
+  (immutable EMAS) ✅; `offline.js` va HTML → `Cache-Control` umuman yo'q,
+  muzlamagan ✅. ⚠️ Bitta mayda farq: TZ'ning tekshiruv izohida `sw.js` uchun
+  «kutilgan: max-age=14400, must-revalidate» deb yozilgan, jonlida esa
+  `no-cache, must-revalidate` — yuk ko'taruvchi mezon (immutable YO'Q,
+  revalidatsiya BOR) baribir bajarilgan, hujjat kutilmasi «Respect existing
+  headers»dan OLDINGI holatni aks ettirgan. 🟠 **Ochiq kuzatuv:** «Respect
+  existing headers»dan keyin `?v=`siz fayllar (rasmlar, `offline.js`)
+  origin'dan `Cache-Control`siz keladi (nginx yubormaydi) — brauzer taxminiy
+  keshi ishlaydi; shoshilinch emas, keyinroq nginx'da rasmlarga aniq
+  `max-age` bandi ochilishi mumkin. Yon tasdiq: `textile-12.png`
+  `content-length: 961644` — 04.09 dagi siqilgan nusxa CDN'da jonli.
+  Kod O'ZGARMADI, `?v=` oshirish KERAK EMAS (hisobot ishi `panel.js` ga
+  tegdi — 64→65, Test 16 jadvali birga). Qolgan reja bandlari: B3 (katalog
+  rasmlari webp), C1 (Google Fonts o'z serverga) — keyingi sessiyalarga.
+
 - [2026-09-04] **Katalog rasmlari joyida optimallashtirildi — papka 6.9 MB →
   3.26 MB (−53%), kod va bazaga TEGILMADI.** Avval tezlik o'lchandi (jonli
   `curl` + serverda ssh): backend 4–7 ms — juda tez, bot sog'lom (webhook
@@ -132,6 +159,14 @@ Platformani mobil qurilmalarda ham qulay ishlashini ta'minlash. Ilovani telefong
 ---
 
 ## Qarorlar
+
+- [2026-09-05] Qaror: **Versiyalangan statik kesh Cloudflare Transform Rule
+  bilan boshqariladi (A yo'l), nginx'ga tegilmadi.** Shart kengaytma bo'yicha
+  emas, **query bo'yicha** (`v=` bor `.js`/`.css`) — `sw.js`, PRECACHE
+  fayllari va HTML qoidaga tushmaydi va muzlamaydi. Yonida Browser Cache TTL
+  «Respect existing headers» ga o'tkazildi; buning yon ta'siri — `?v=`siz
+  fayllar (rasmlar) endi `Cache-Control`siz keladi (ochiq kuzatuv, shoshilinch
+  emas). Hujjat: `docs/statik-kesh-immutable.md`.
 
 - [2026-09-02] Qaror: **App Store yo'li ochildi va maxfiylik siyosati FAQAT real
   amaliyotni yozadi.** Founder ilovani App Store'ga chiqarishni boshladi
