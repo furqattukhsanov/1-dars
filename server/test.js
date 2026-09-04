@@ -1404,7 +1404,7 @@ function testAssetVersionsAreFresh() {
     // YUQORIGA suriladi: teng raqam qaytib kelgan foydalanuvchida keshdagi
     // BIR TOMONLAMA faylni qoldirardi — sevimlilar yoki chiqish tuzatishining
     // faqat bittasi bo'lgan `app.js`.
-    'panel.js': { v: 65, hash: 'a22567a770de' },
+    'panel.js': { v: 66, hash: 'a229e78b0034' },
     // 2026-08-23: «Bot userlar» sahifasi, mahsulot jadvali, 7/30/90 oraliq.
     'admin/admin.css': { v: 22, hash: '2b63d25b1098' },
     'admin/admin.js': { v: 34, hash: '56844af79b82' },
@@ -6456,6 +6456,7 @@ async function runTests() {
     await testCloudflareAnalyticsHonesty();
     await testAdminEndpointsActuallyRespond();
     await testOrderStatusScopedToOwner();
+    await testStatikWebpTanlovi();
 
     console.log('\n✅ Hammasi PASS — pul hisobi, imzo, route jadvali, xato alerti, buyurtma tarixi va AI rasmi joyida\n');
     process.exit(0);
@@ -6492,6 +6493,64 @@ async function testOrderStatusScopedToOwner() {
     'order-status IDOR: so\'rov EGAGA bog\'lanmagan (`WHERE ... tg_user_id = $2` yo\'q) — ' +
     'ID ketma-ket (#LM-N), ya\'ni begona odam buyurtma holatini sanay oladi.');
   console.log('✅ Test 50: order-status EGAGA bog\'langan (IDOR yopiq) — PASS');
+}
+
+// ============ TEST 53: statik rasm → webp tanlovi (2026-09-05, B3) ============
+// (52 EMAS: u raqam «users upsert tg_username» testiniki — hisobotchi
+// commit'dan oldin to'qnashuvni ushladi, 2026-09-05.)
+// Katalogning statik pog'onasi webp'ga FAQAT fayl diskda bor bo'lsa o'tadi
+// (`lib/statik-webp.js`). Qorovul uch narsani ushlaydi:
+// (1) tanlov MAVJUDLIKKA qaraydi — webp'siz rasm jpg'ligicha qoladi (aks holda
+//     404 rasm chizilardi); (2) statik bo'lmagan yo'llarga TEGILMAYDI (R2/proksi
+//     URL lari bu funksiyaga kirsa buzilmasin); (3) `productRowToVM` statik
+//     pog'onada aynan shu funksiyani chaqiradi (izohlar tozalanadi — Test 3f
+//     darsi) va repodagi har bir webp'ning ASL fayli yonida turadi (webp faqat
+//     VARIANT, almashtiruvchi emas — R2 bandidagi «bir tomonlama eshik» qoidasi).
+async function testStatikWebpTanlovi() {
+  const fs = require('fs');
+  const path = require('path');
+  const os = require('os');
+  const { statikWebp } = require('./lib/statik-webp');
+
+  // (1) mavjudlikka qarab tanlov — vaqtinchalik papka bilan
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lm-webp-'));
+  fs.writeFileSync(path.join(dir, 'bor.webp'), 'x');
+  assert.strictEqual(statikWebp('assets/products/bor.jpg', dir),
+    'assets/products/bor.webp', 'webp diskda BOR — yo\'l almashmadi');
+  assert.strictEqual(statikWebp('assets/products/yoq.jpg', dir),
+    'assets/products/yoq.jpg', 'webp diskda YO\'Q — yo\'l jpg\'da qolishi kerak edi (404 xavfi)');
+  assert.strictEqual(statikWebp('assets/products/bor.png', dir),
+    'assets/products/bor.webp', 'png ham qamralishi kerak (textile-12 darsi)');
+  // (2) statik bo'lmagan yo'llar tegilmaydi. ⚠️ URL ichida ATAYLAB
+  // `assets/products/` bo'lagi bor — regex boshidagi `^` olib tashlansa
+  // aynan shunday R2 URL ham qayta yozilib buzilardi (mutatsiya M3 darsi:
+  // bo'laksiz URL bu nuqsonni ko'rsata olmadi).
+  assert.strictEqual(statikWebp('https://cdn.lolamarket.uz/assets/products/bor.jpg', dir),
+    'https://cdn.lolamarket.uz/assets/products/bor.jpg', 'R2/tashqi URL ga tegilmasin');
+  assert.strictEqual(statikWebp(null, dir), null, 'null img yiqitmasin');
+  fs.rmSync(dir, { recursive: true, force: true });
+
+  // (3a) productRowToVM statik pog'onada statikWebp'ni chaqiradi
+  const strip = (s) => s
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .split('\n').filter((l) => !/^\s*\/\//.test(l)).join('\n');
+  const src = strip(fs.readFileSync(path.join(__dirname, 'routes', 'catalog.js'), 'utf8'));
+  const m = src.match(/function productRowToVM\b[\s\S]*?\n\}/);
+  assert.ok(m, 'productRowToVM topilmadi (nomi o\'zgardimi?)');
+  assert.ok(/statikWebp\s*\(\s*r\.img\s*\)/.test(m[0]),
+    'productRowToVM statik pog\'onada statikWebp(r.img) chaqirmayapti — ' +
+    'katalog webp\'siz og\'ir jpg tarqatadi.');
+
+  // (3b) har webp'ning asl fayli yonida — webp VARIANT, almashtiruvchi emas
+  const prodDir = path.join(__dirname, '..', 'telegram-app', 'assets', 'products');
+  const fayllar = fs.readdirSync(prodDir);
+  for (const f of fayllar.filter((x) => x.endsWith('.webp'))) {
+    const asos = f.slice(0, -'.webp'.length);
+    assert.ok(fayllar.some((x) => new RegExp(`^${asos}\\.(jpe?g|png)$`, 'i').test(x)),
+      `${f} ning ASL fayli yo'q — webp almashtiruvchi emas, variant bo'lishi kerak ` +
+      '(ogImage/seller/admin hamon jpg yo\'lini beradi).');
+  }
+  console.log('✅ Test 53: statik rasm webp tanlovi — mavjudlikka qaraydi, chetga tegmaydi — PASS');
 }
 
 runTests();

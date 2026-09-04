@@ -36,7 +36,7 @@
   barEl.style.width = foiz + "%";
   percentEl.textContent = foiz + "%";
   countEl.textContent = tugaganlar + " / " + sprintlar.length + " sprint";
-  updatedEl.textContent = "Yangilanish: 2026-09-05 (Statik kesh immutable: TZ docs/statik-kesh-immutable.md founder tomonidan Cloudflare'da qo'llandi — Transform Rule (?v= bor .js/.css → public, max-age=31536000, immutable) + Browser Cache TTL 'Respect existing headers'. 4/4 jonli tekshiruv: versiyalangan fayllar immutable, sw.js no-cache/must-revalidate, offline.js va HTML muzlamagan. Kod o'zgarmadi, deploy kerak emas — commit faqat hujjat + hisobot. PUSH YO'Q.)";
+  updatedEl.textContent = "Yangilanish: 2026-09-05 (B3: katalog rasmlari webp — papka 3.26 MB → 1.85 MB (−43%), kechagi 6.9 MB dan jami −73%. 11 webp (textile-04 ataylab jpg'da — yutuq ~5% edi), asl fayllar o'chirilmagan. server/lib/statik-webp.js: statik pog'onada webp fayli DISKDA bo'lsagina yo'l almashadi; ogImage/seller/admin jpg'da. Qorovul Test 53 (52 band edi — hisobotchi ushladi). 92 test, 2 mutatsiya hisobotchi tomonidan qayta sinaldi. Deploy tartibi: avval statik CI, KEYIN backend restart. PUSH YO'Q.)";
 
 
   sprintlar.forEach(s => {

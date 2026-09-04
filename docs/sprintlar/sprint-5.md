@@ -24,6 +24,43 @@ Platformani mobil qurilmalarda ham qulay ishlashini ta'minlash. Ilovani telefong
 
 ## Qilingan ishlar
 
+- [2026-09-05] **B3 yopildi: katalog rasmlari webp — papka 3.26 MB → 1.85 MB
+  (−43%), kechagi 6.9 MB dan jami −73%.** 11 ta yangi `.webp`
+  (`telegram-app/assets/products/`, `cwebp -q 75 -m 6`); `textile-04` uchun
+  webp ATAYLAB yasalmagan — yutuq atigi ~5% edi, u jpg'da qoladi. Asl
+  jpg/png fayllar O'CHIRILMAGAN — webp VARIANT, almashtiruvchi emas (R2
+  bandidagi «bir tomonlama eshik bo'lmasin» qoidasi). Server tomonda yangi
+  `server/lib/statik-webp.js`: uch pog'onali rasm zanjirining STATIK
+  pog'onasida `assets/products/x.jpg|png` yoniga diskda `x.webp` YOTGAN
+  bo'lsagina yo'l almashtiriladi — **ro'yxat qo'lda yozilmaydi, haqiqat
+  manbai faylning o'zi** (webp'siz rasm jpg'ligicha qoladi, 404 xavfi
+  yopiq); WEB_ROOT'siz muhitda no-op (Yandex/AI kaliti naqshi). Chaqiruv
+  bitta joyda: `routes/catalog.js` → `productRowToVM` — ikkala yuz (sayt +
+  Mini App) bitta nuqtadan qamraladi. `ogImage` (pdp.js) ATAYLAB jpg'da
+  (havola preview robotlari), seller/admin ro'yxatlari ham jpg'da.
+  ⚠️ **Ro'yxat lazy o'qiladi va jarayon umri davomida keshda — deploy
+  TARTIBI MUHIM:** (1) push + statik CI (webp'lar serverga tushadi),
+  (2) KEYIN backend rsync (`--no-owner --no-group`) + restart,
+  (3) tekshiruv: `/api/products` javobida `.webp` yo'llar va jonli webp
+  URL `200`/`image/webp`. Teskari tartibda ro'yxat bo'sh keshlanib jpg
+  tarqalaverardi (buzilish emas, yutuq restartgacha kechikardi).
+  Qorovul: **Test 53** — (1) tanlov MAVJUDLIKKA qaraydi, png ham
+  qamralgan; (2) `assets/products` bo'lagi BOR tashqi/R2 URL'ga
+  tegilmaydi; (3a) `productRowToVM` izohlar tozalangan holda
+  `statikWebp(r.img)` chaqiradi (Test 3f darsi); (3b) repodagi har
+  webp'ning asl fayli yonida. ⚠️ Test avval **52** deb nomlangan edi —
+  u raqam «users upsert tg_username» testiniki; hisobotchi to'qnashuvni
+  commit'dan OLDIN ushlab 53 ga o'tkazdi. **HISOBOTCHI MUSTAQIL O'LCHADI:**
+  92 test yashil (`✅ Test` satrlari bo'yicha o'zi sanadi, 91+1);
+  hajmlar `ls` dan qayta hisoblab tasdiqlandi (jpg/png yig'indisi
+  3 260 112 B, webp'lar + textile-04.jpg = 1 850 771 B); 2 mutatsiyani
+  O'ZI qayta bajardi — `statikWebp(r.img)` chaqiruvi olib tashlanganda
+  ham, regex boshidagi `^` olib tashlanganda ham Test 53 QIZIL berdi,
+  fayllar nusxadan tiklanib diff bilan tasdiqlandi. **Tekshirilmadi:**
+  PSNR 38.8–43 dB da'vosi (o'lchov vositasi yo'q) va «4 mutatsiya 4/4»
+  ning qolgan 2 tasi. Frontend JS/CSS/HTML'ga TEGILMADI → sayt `?v=`
+  oshirilmadi; webp'lar PRECACHE'da yo'q → `CACHE_VERSION` ham tegilmadi.
+
 - [2026-09-05] **Statik kesh `immutable` — TZ yozildi va founder Cloudflare'da
   QO'LLADI (A yo'l), 4/4 jonli tekshiruv o'tdi.** Yangi hujjat
   `docs/statik-kesh-immutable.md`: versiyalangan (`?v=` bor) `.js`/`.css`

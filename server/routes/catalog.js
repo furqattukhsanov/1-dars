@@ -11,6 +11,7 @@ const { rateLimited, readBody, sendJson, ok, fail } = require('../lib/http');
 const { sendOrderNotifyMessage, callTelegram, notify, tgGetFile, tgDownloadFile,
   MAX_DOWNLOAD_BYTES } = require('../lib/telegram-api');
 const { r2Put, r2PublicUrl, R2_ENABLED } = require('../lib/r2');
+const { statikWebp } = require('../lib/statik-webp');
 
 // ============ /api/auth/telegram — Telegram orqali kirish ============
 // initData'ni tekshiradi, foydalanuvchini users jadvaliga yozadi (yoki topadi).
@@ -416,7 +417,12 @@ function productRowToVM(r) {
     // Uch pog'ona, shu tartibda: R2 (eng tez, bot tokeniga bog'liq emas) →
     // Telegram proksi (eski yo'l) → repodagi statik rasm. `r2PublicUrl` domen
     // ulanmagan bo'lsa `null` qaytaradi, ya'ni pog'ona o'zi pastga tushadi.
-    img: r2PublicUrl(r.img_r2_key) || (r.img_file_id ? productPhotoUrl(r.img_file_id) : r.img),
+    // Statik pog'onada `statikWebp` diskda webp varianti bor rasmni webp'ga
+    // almashtiradi (2026-09-05, B3). FAQAT shu yerda: `ogImage` (pdp.js)
+    // ATAYLAB jpg'da qoladi — havola oldindan ko'rish robotlari webp'ni
+    // har doim ham tushunmaydi; seller/admin ro'yxatlari ham jpg'da (kam
+    // trafik, harakatlanuvchi qism kamroq bo'lsin).
+    img: r2PublicUrl(r.img_r2_key) || (r.img_file_id ? productPhotoUrl(r.img_file_id) : statikWebp(r.img)),
     price: Number(r.price),
     unit: r.unit,
     moq: Number(r.moq),
