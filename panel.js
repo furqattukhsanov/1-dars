@@ -10,7 +10,7 @@
     { num: 2, nom: "Ma'lumotlar bazasi / Backend", dars: "Dars 9",  holat: "tugadi", sana: "2026-07-23" },
     { num: 3, nom: "Foydalanuvchilar + rollar", dars: "Dars 10", holat: "tugadi", sana: "2026-08-16" },
     { num: 4, nom: "Asosiy funksiya",           dars: "Dars 11", holat: "jarayonda",  sana: "2026-09-02" },
-    { num: 5, nom: "Mobil / PWA",               dars: "Dars 12", holat: "jarayonda",  sana: "2026-09-02" },
+    { num: 5, nom: "Mobil / PWA",               dars: "Dars 12", holat: "jarayonda",  sana: "2026-09-04" },
     { num: 6, nom: "Integratsiyalar",           dars: "Dars 13", holat: "jarayonda",  sana: "2026-07-22" },
     { num: 7, nom: "Admin panel",               dars: "Dars 14", holat: "tugadi",  sana: "2026-08-31" },
     { num: 8, nom: "Sifat tekshiruvi",          dars: "Dars 15", holat: "jarayonda", sana: "2026-08-25" },
@@ -36,7 +36,7 @@
   barEl.style.width = foiz + "%";
   percentEl.textContent = foiz + "%";
   countEl.textContent = tugaganlar + " / " + sprintlar.length + " sprint";
-  updatedEl.textContent = "Yangilanish: 2026-09-02 (App Store yo'li boshlandi: yangi privacy.html — maxfiylik siyosati ikki tilda (uz+en), Apple Privacy Policy URL talabi uchun; matn faqat real amaliyotni aytadi (Telegram kimlik, kunlik hash, karta yig'ilmaydi). deploy.yml: source ro'yxatiga qo'shildi + check_html qorovuli. 91 test yashil, uchala HTML style.css?v=65 da mos. Deploy: faqat STATIK. PUSH YO'Q.)";
+  updatedEl.textContent = "Yangilanish: 2026-09-04 (Katalog rasmlari joyida siqildi: papka 6.9→3.26 MB (−53%), eng og'iri textile-12.png 4.3 MB→962 KB; kod, baza va ?v= tegilmadi — yo'l/nom o'zgarmagan, rasmlar PRECACHE'da yo'q, max-age=14400 CDN o'zi yangilaydi. Avval o'lchandi: backend 4–7 ms, bot sog'lom — sekinlik og'ir rasmlarda edi. 91 test yashil. Deploy: faqat STATIK. PUSH YO'Q.)";
 
 
   sprintlar.forEach(s => {

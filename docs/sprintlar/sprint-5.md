@@ -24,6 +24,33 @@ Platformani mobil qurilmalarda ham qulay ishlashini ta'minlash. Ilovani telefong
 
 ## Qilingan ishlar
 
+- [2026-09-04] **Katalog rasmlari joyida optimallashtirildi — papka 6.9 MB →
+  3.26 MB (−53%), kod va bazaga TEGILMADI.** Avval tezlik o'lchandi (jonli
+  `curl` + serverda ssh): backend 4–7 ms — juda tez, bot sog'lom (webhook
+  ishlovdan oldin 200, navbat 0), ya'ni sekinlik tarmoq + og'ir rasmlarda edi.
+  Eng katta og'irlik `textile-12.png` = 4.3 MB. To'rt fayl qayta siqildi
+  (`telegram-app/assets/products/`): `textile-04.jpg` 649→337 KB,
+  `textile-08.jpg` 167→107 KB, `textile-11.jpg` 426→223 KB, `textile-12.png`
+  4277→962 KB (−78%, 256-rang palitra + Floyd–Steinberg dither). Usul:
+  Pillow 11 (scratchpad venv, tizimga tegilmadi), maksimal kenglik 900px —
+  PDP retina 2x uchun yetarli (428px CSS × 2 = 856); JPEG q74 progressive.
+  `sips` ATAYLAB ishlatilmadi — uning kodeki faylni KATTALASHTIRDI
+  (251→324 KB). Qolgan 8 fayl ham sinab ko'rildi: allaqachon zich (q~80,
+  ≤850px), qayta siqish 6–9% berib avlod yo'qotishi qo'shardi — jami
+  tejamning ~97% i shu 4 faylda edi, shuning uchun ular tegilmadi.
+  ⚠️ **`?v=` va `CACHE_VERSION` ATAYLAB oshirilmadi va bu TO'G'RI:** hech
+  qanday js/css/html o'zgarmagan; rasmlar versiyalanmaydi (`max-age=14400` —
+  jonli sarlavhada tasdiqlandi, 4 soatdan keyin CDN o'zi yangilaydi, eski
+  nusxa vizual jihatdan AYNI rasm — zarar yo'q) va PRECACHE ro'yxatida YO'Q
+  (hisobotchi ikkala `sw.js` da grep bilan tekshirdi: 0 ta textile).
+  Rasm yo'llari/nomlari o'zgarmagani uchun bazadagi e'lonlar ham, `app.js`
+  zaxira massivi ham tegilmadi — kengaytma almashtirilsa (masalan .png→.webp)
+  baza UPDATE kerak bo'lardi, joyida siqish nol kod / nol baza berdi.
+  Sifat ko'z bilan tekshirildi (2 rasm ochib ko'rildi). 91 test yashil
+  (hisobotchi o'zi yugurtirdi — birinchi sanoq 92 chiqqan edi, `grep -c "✅"`
+  yakuniy «Hammasi PASS» qatorini ham qo'shgan; `✅ Test` bo'yicha qayta
+  sanaldi, 2026-09-02 dagi ayni tuzoqning takrori). Botga tegilmadi.
+
 - [2026-09-02] **Maxfiylik siyosati sahifasi (`privacy.html`) — App Store yo'lining
   birinchi kod qadami.** Founder App Store'ga ilova chiqarishni boshladi; Apple
   Developer enrollment jarayoni Privacy Policy URL talab qiladi — endi u
