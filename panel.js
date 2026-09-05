@@ -36,7 +36,7 @@
   barEl.style.width = foiz + "%";
   percentEl.textContent = foiz + "%";
   countEl.textContent = tugaganlar + " / " + sprintlar.length + " sprint";
-  updatedEl.textContent = "Yangilanish: 2026-09-05 (B3: katalog rasmlari webp — papka 3.26 MB → 1.85 MB (−43%), kechagi 6.9 MB dan jami −73%. 11 webp (textile-04 ataylab jpg'da — yutuq ~5% edi), asl fayllar o'chirilmagan. server/lib/statik-webp.js: statik pog'onada webp fayli DISKDA bo'lsagina yo'l almashadi; ogImage/seller/admin jpg'da. Qorovul Test 53 (52 band edi — hisobotchi ushladi). 92 test, 2 mutatsiya hisobotchi tomonidan qayta sinaldi. Deploy tartibi: avval statik CI, KEYIN backend restart. PUSH YO'Q.)";
+  updatedEl.textContent = "Yangilanish: 2026-09-05 (C1: Google Fonts o'z serverga — assets/fonts/ da 13 woff2 (~200 KiB) + fonts.css, unicode-range saqlangan. Uchala HTML bitta mutlaq /assets/fonts/fonts.css?v=1 ga o'tdi — brauzer keshi ham bitta. Test 16 da mutlaq-yo'l nuqsoni topilib tuzatildi. CSP ochilmadi (font-src 'self' allaqachon bor — jonlida o'lchandi). 92 test, 2 mutatsiya hisobotchi tomonidan bajarildi. Deploy: faqat statik CI, restart kerak emas. PUSH YO'Q.)";
 
 
   sprintlar.forEach(s => {

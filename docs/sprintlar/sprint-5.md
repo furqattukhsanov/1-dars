@@ -24,6 +24,45 @@ Platformani mobil qurilmalarda ham qulay ishlashini ta'minlash. Ilovani telefong
 
 ## Qilingan ishlar
 
+- [2026-09-05] **C1 yopildi: Google Fonts o'z serverga ko'chirildi — birinchi
+  tashrifda ikki tashqi domenga ulanish (DNS+TCP+TLS, nazariy ~100–300 ms)
+  yo'qoldi.** Yangi `assets/fonts/`: 13 ta woff2 (Bricolage 3, Hanken 4,
+  Geist Mono 6 subset; jami 204 744 bayt ≈ 200 KiB) + `fonts.css` — Google
+  css2 javobi asosida, faqat `url()` lar lokal; **unicode-range SAQLANGAN**,
+  brauzer avvalgidek faqat kerakli subsetni oladi (odatda latin, ~3 fayl
+  ~95 KB). Uchala HTML (`index.html`, `telegram-app/index.html`,
+  `admin/index.html`) googleapis preconnect + css2 havolasidan
+  `/assets/fonts/fonts.css?v=1` ga o'tdi; yo'l ATAYLAB mutlaq — Mini App
+  `/mini-app/` da yashaydi, lekin shrift ikkala yuzda AYNI URL'dan kelib
+  BITTA brauzer keshiga tushadi. `telegram.org` preconnect'iga tegilmagan.
+  **Yo'l-yo'lakay Test 16 da nuqson topilib tuzatildi:** `/` bilan
+  boshlanadigan (web-ildizga nisbatan) havolani `path.join` HTML papkasiga
+  nisbatan yechardi — mini-app'dagi `/assets/...` `telegram-app/assets/...`
+  deb o'qilardi. CSP ochilmadi: jonlida `font-src 'self'` va
+  `style-src 'self'` ALLAQACHON bor (hisobotchi `curl -sI` bilan qayta
+  o'qidi); CSP'dagi `fonts.googleapis`/`gstatic` ruxsatlari endi
+  ISHLATILMAYDI — olib tashlash founder'ning Cloudflare/nginx ishi (ochiq,
+  shoshilinch emas). `deploy.yml` da `assets/` allaqachon bor — «yangi ildiz
+  fayli» tuzog'i yo'q, workflow o'zgarmadi. Shriftlar endi `immutable`
+  qoidasi ostida (`fonts.css?v=1`; woff2'lar `?v=`siz — URL tarkibdan
+  o'zgarmas). PRECACHE'da shrift ham, HTML ham yo'q → `CACHE_VERSION`
+  tegilmadi (hisobotchi ikkala `sw.js` da o'qidi). Jarayonda skript nuqsoni
+  ham topilgan: regex `[a-z-]+` `symbols2` ni o'tkazib 12/13 yozgan —
+  `[a-z0-9-]+` + `assert` bilan qayta yasalgan. **HISOBOTCHI MUSTAQIL
+  O'LCHADI:** 92 test yashil (`✅ Test` satrlari sanaldi); fonts.css↔disk
+  13/13 harfma-harf mos, hamma fayl haqiqiy woff2 (magic bayt `wOF2`),
+  oilalar nomi `style.css`/`styles.css` tokenlari bilan mos; **2 mutatsiya
+  o'zi bajarildi** — (1) fonts.css tarkibi o'zgartirilganda Test 16 QIZIL
+  (hash `a475bdbb99ef` → boshqa), (2) mutlaq-yo'l tuzatish eski holga
+  qaytarilganda ham QIZIL («admin/assets/... jadvalda yo'q»); ikkala fayl
+  nusxadan bayt-bayt tiklandi. ⚠️ Sessiya da'vosidagi «~220 KB» o'lchovda
+  **200 KiB** chiqdi (204 744 bayt — `ls -l` yig'indisi; 236K esa `du`
+  blok qo'shimchasi bilan). **Tekshirilmadi:** fonts.css Google javobining
+  bayt-bayt nusxasi ekani (css2 UA'ga qarab har xil javob beradi — qayta
+  yuklab solishtirib bo'lmaydi) va woff2 baytlari gstatic asli bilan
+  aynanligi — brauzerda ko'z bilan tekshiruv deploy'dan keyin. Deploy:
+  faqat statik CI, backend/restart KERAK EMAS.
+
 - [2026-09-05] **B3 yopildi: katalog rasmlari webp — papka 3.26 MB → 1.85 MB
   (−43%), kechagi 6.9 MB dan jami −73%.** 11 ta yangi `.webp`
   (`telegram-app/assets/products/`, `cwebp -q 75 -m 6`); `textile-04` uchun

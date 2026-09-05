@@ -1404,7 +1404,11 @@ function testAssetVersionsAreFresh() {
     // YUQORIGA suriladi: teng raqam qaytib kelgan foydalanuvchida keshdagi
     // BIR TOMONLAMA faylni qoldirardi — sevimlilar yoki chiqish tuzatishining
     // faqat bittasi bo'lgan `app.js`.
-    'panel.js': { v: 66, hash: 'a229e78b0034' },
+    'panel.js': { v: 67, hash: 'a162b22b93a8' },
+    // 2026-09-05 (C1): shriftlar o'z serverdan — css2 javobining aynan o'zi,
+    // url() lar lokal (assets/fonts/*.woff2). Ikkala yuz BITTA faylni
+    // mutlaq yo'l bilan chaqiradi — brauzer keshi ham bitta.
+    'assets/fonts/fonts.css': { v: 1, hash: 'a475bdbb99ef' },
     // 2026-08-23: «Bot userlar» sahifasi, mahsulot jadvali, 7/30/90 oraliq.
     'admin/admin.css': { v: 22, hash: '2b63d25b1098' },
     'admin/admin.js': { v: 34, hash: '56844af79b82' },
@@ -1425,7 +1429,14 @@ function testAssetVersionsAreFresh() {
     for (const m of src.matchAll(/(?:src|href)="([^"]+?)\?v=(\d+)"/g)) {
       const [, ref, ver] = m;
       if (/^(https?:)?\/\//.test(ref)) continue;
-      const rel = path.posix.normalize(path.posix.join(path.posix.dirname(h), ref));
+      // `/...` — WEB ILDIZIGA nisbatan (repo ildizi = serverdagi
+      // /var/www/lolamarket). `path.join` buni bilmaydi va mini-app
+      // HTML'idagi `/assets/...` ni `telegram-app/assets/...` deb noto'g'ri
+      // yechardi (2026-09-05 da fonts.css bilan chiqdi — sayt va Mini App
+      // ATAYLAB bitta faylni mutlaq yo'l bilan chaqiradi, kesh ham bitta).
+      const rel = ref.startsWith('/')
+        ? path.posix.normalize(ref.slice(1))
+        : path.posix.normalize(path.posix.join(path.posix.dirname(h), ref));
       korilgan.add(rel);
 
       const kutilgan = KUTILGAN[rel];

@@ -28,8 +28,10 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="LolaMarket">
 
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <!-- Shriftlar O'Z serverdan (C1, 2026-09-05): Google'ga ikki qo'shimcha
+       ulanish (DNS+TCP+TLS ~100-300 ms) yo'qoldi. fonts.css — css2
+       javobining AYNAN o'zi, url() lar lokal; unicode-range saqlangan,
+       brauzer avvalgidek faqat kerakli subsetni oladi. -->
   <!-- telegram.org: ulanishning O'ZI ~200 ms turadi (DNS 4 + TCP 100 + TLS 100,
        2026-08-06 da o'lchandi) va bu SOF kechikish — landing esa aynan
        kechikishga bog'liq, tarmoq kengligiga emas.
@@ -38,7 +40,7 @@
        ulanish ochadi va skript undan foydalanmaydi — preconnect'ning eng
        ko'p uchraydigan xatosi shu. -->
   <link rel="preconnect" href="https://telegram.org">
-  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@24,600..800&family=Hanken+Grotesk:wght@400..700&family=Geist+Mono:wght@600..700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/fonts/fonts.css?v=1">
   <link rel="stylesheet" href="/style.css?v=65" />
   <!-- DIQQAT: uchala skript ham `defer` — TARTIB shu sababli saqlanadi
        (telegram → script.js → pwa.js). Bittasidan `defer` olib tashlansa,
