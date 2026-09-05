@@ -89,7 +89,22 @@ const STR = {
     mediaPhoto: 'Rasm', mediaVideo: 'Video',
     mediaPrev: 'Oldingi', mediaNext: 'Keyingi',
     specLead: 'Yetkazish muddati', specMoq: 'Minimal buyurtma',
+    specLen: 'Rulon uzunligi',
     days: 'kun', pcs: 'dona',
+    // ---- Bozor tadqiqoti funksiyalari (2026-09-05) ----
+    sampleBtn: "Namuna so'rash",
+    sampleSent: "So'rov yuborildi — siz bilan bog'lanamiz",
+    sampleErr: "So'rov yuborilmadi — qaytadan urinib ko'ring",
+    stockAlertBtn: 'Kelganda xabar berish',
+    stockAlertOn: 'Xabar beramiz — obuna qabul qilindi',
+    stockAlertErr: "Obuna bo'lmadi — qaytadan urinib ko'ring",
+    needLoginFirst: 'Avval saytga kiring',
+    reorderBtn: 'Qayta buyurtma',
+    reorderDone: 'Mahsulotlar savatga qo\'shildi',
+    reorderNone: 'Bu buyurtmadagi matolar hozir mavjud emas',
+    revPhotoAdd: 'Rasm biriktirish (ixtiyoriy)',
+    revPhotoOn: 'Rasm tanlandi ✓',
+    revPhotoBig: 'Rasm juda katta — 4 MB gacha bo\'lsin',
     reviews: 'Sharhlar',
     noReviews: "Hali sharh yo'q",
     noReviewsSub: 'Sharhni faqat shu matoni sotib olgan xaridor yoza oladi.',
@@ -252,6 +267,7 @@ const STR = {
     sVidRequested: "Telegram botga o'ting — video so'raldi",
     stPublished: 'Katalogda', stPending: 'Moderatsiyada', stRejected: 'Rad etilgan', stDraft: 'Yashirilgan',
     sName: 'Nomi', sPrice: "Narxi (so'm)", sMoq: 'Minimal buyurtma',
+    sWidth: 'Eni (masalan: 1.5 m)', sLen: 'Rulon uzunligi (masalan: 40 m)',
     sStockField: "Zaxira (bo'sh = cheksiz)", sType: 'Turi', sComp: 'Tarkibi',
     sFormHint: "Saqlangach e'lon moderatsiyaga yuboriladi va tekshiruvdan keyin katalogda ko'rinadi. Rasm Telegram bot orqali so'raladi.",
     sSave: 'Saqlash',
@@ -354,7 +370,22 @@ const STR = {
     mediaPhoto: 'Фото', mediaVideo: 'Видео',
     mediaPrev: 'Назад', mediaNext: 'Вперёд',
     specLead: 'Срок поставки', specMoq: 'Минимальный заказ',
+    specLen: 'Длина рулона',
     days: 'дн.', pcs: 'шт.',
+    // ---- Bozor tadqiqoti funksiyalari (2026-09-05) ----
+    sampleBtn: 'Запросить образец',
+    sampleSent: 'Запрос отправлен — мы свяжемся с вами',
+    sampleErr: 'Не удалось отправить запрос — попробуйте ещё раз',
+    stockAlertBtn: 'Сообщить о поступлении',
+    stockAlertOn: 'Сообщим — подписка принята',
+    stockAlertErr: 'Не удалось подписаться — попробуйте ещё раз',
+    needLoginFirst: 'Сначала войдите на сайт',
+    reorderBtn: 'Повторить заказ',
+    reorderDone: 'Товары добавлены в корзину',
+    reorderNone: 'Ткани из этого заказа сейчас недоступны',
+    revPhotoAdd: 'Прикрепить фото (по желанию)',
+    revPhotoOn: 'Фото выбрано ✓',
+    revPhotoBig: 'Фото слишком большое — до 4 МБ',
     reviews: 'Отзывы',
     noReviews: 'Пока нет отзывов',
     noReviewsSub: 'Отзыв может оставить только покупатель этой ткани.',
@@ -505,6 +536,7 @@ const STR = {
     sVidRequested: 'Перейдите в Telegram-бот — видео запрошено',
     stPublished: 'В каталоге', stPending: 'На модерации', stRejected: 'Отклонено', stDraft: 'Скрыто',
     sName: 'Название', sPrice: 'Цена (сум)', sMoq: 'Минимальный заказ',
+    sWidth: 'Ширина (напр.: 1.5 м)', sLen: 'Длина рулона (напр.: 40 м)',
     sStockField: 'Остаток (пусто = без ограничений)', sType: 'Тип', sComp: 'Состав',
     sFormHint: 'После сохранения объявление отправится на модерацию и появится в каталоге после проверки. Фото запросит Telegram-бот.',
     sSave: 'Сохранить',
@@ -2212,6 +2244,11 @@ function orderRowHtml(o) {
            shundan keyin baholash tugmalari ochiladi. -->
       ${o.status === 'shipped' ? `<button class="order-got-btn" data-action="confirmDelivered" data-arg="${esc(o.id)}">${t('gotItBtn')}</button>` : ''}
 
+      <!-- «Qayta buyurtma» (db/030, SwatchOn reorder darsi) — faqat YOPIQ
+           buyurtmada: ochiq buyurtmada takrorlash dublikat tug'dirardi. -->
+      ${['delivered', 'completed', 'cancelled', 'refunded'].includes(o.status)
+        ? `<button class="order-reorder-btn" data-action="reorderOrder" data-arg="${esc(o.id)}">🔁 ${t('reorderBtn')}</button>` : ''}
+
       <!-- Bahs: ochilgan bo'lsa holati, bo'lmasa tugma -->
       ${disp ? `
       <div class="order-disp">
@@ -3301,6 +3338,12 @@ function sellerFormHtml() {
       <label class="s-lbl">${t('sMoq')}</label>
       <input class="s-inp mono" id="pf-moq" type="number" inputmode="numeric" value="${p ? esc(String(p.moq || 1)) : '1'}" />
 
+      <label class="s-lbl">${t('sWidth')}</label>
+      <input class="s-inp" id="pf-width" value="${p && p.width ? esc(String(p.width)) : ''}" placeholder="1.5 m" />
+
+      <label class="s-lbl">${t('sLen')}</label>
+      <input class="s-inp" id="pf-len" value="${p && p.rollLength ? esc(String(p.rollLength)) : ''}" placeholder="40 m" />
+
       <label class="s-lbl">${t('sStockField')}</label>
       <input class="s-inp mono" id="pf-stock" type="number" inputmode="numeric" min="0" placeholder="cheksiz" value="${p && p.stock != null ? esc(String(p.stock)) : ''}" />
 
@@ -3349,6 +3392,11 @@ function saveProduct() {
   const price = parseInt(val('pf-price'), 10);
   const moq = parseInt(val('pf-moq'), 10) || 1;
   const comp = val('pf-comp');
+  // Bo'sh satr ham ATAYLAB yuboriladi: server "maydon kelganmi" ga qaraydi
+  // (`widthSent`, stock darsi) — bo'sh kelsa qiymat tozalanadi, kelmasa
+  // (eski keshlangan klient) mavjud qiymat tegilmaydi.
+  const width = val('pf-width');
+  const rollLen = val('pf-len');
   // Bo'sh qoldirilsa CHEKSIZ (null). `0` esa haqiqiy qiymat — "tugadi".
   const stockRaw = val('pf-stock');
   const stock = stockRaw === '' ? null : parseInt(stockRaw, 10);
@@ -3360,11 +3408,11 @@ function saveProduct() {
   const so4rov = sEditId
     ? sellerFetch('/api/seller/products', {
       method: 'PATCH',
-      body: JSON.stringify({ id: sEditId, name_uz: name, price, moq, comp_uz: comp, stock }),
+      body: JSON.stringify({ id: sEditId, name_uz: name, price, moq, comp_uz: comp, stock, width, roll_length: rollLen }),
     })
     : sellerFetch('/api/products', {
       method: 'POST',
-      body: JSON.stringify({ name_uz: name, price, moq, comp_uz: comp, stock, cat_key: pfCat || 'silk' }),
+      body: JSON.stringify({ name_uz: name, price, moq, comp_uz: comp, stock, cat_key: pfCat || 'silk', width, roll_length: rollLen }),
     });
 
   so4rov
@@ -3759,10 +3807,57 @@ function mountPdMedia() {
    "+" bosilganda butun `#pdp` qayta yozilsa galereya boshiga qaytardi va
    o'ynab turgan video uzilardi (tugun almashadi). Kartochkadagi
    `renderCardAction()` bilan bir xil naqsh — faqat o'z qutisi. */
+/* ── Namuna so'rovi va «kelganda xabar ber» (db/030) ──
+   Ikkalasi ham sessiya ichida bir martalik: bosilgach tugma o'rnini
+   tasdiq matni bosadi. Server tomonda ham idempotent (obuna UNIQUE juftlik,
+   namuna so'rovi esa founder/sotuvchiga alohida xabar bo'lib boradi). */
+const stockAlertOk = new Set();
+const sampleSentIds = new Set();
+
+function stockAlert(id) {
+  apiJson('/api/stock-alert', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ productId: id }),
+  }).then((d) => {
+    if (!d || d.ok !== true) throw new Error((d && d.error) || '');
+    stockAlertOk.add(id);
+    renderPdpAct();
+    showToast(t('stockAlertOn'));
+  }).catch((e) => {
+    showToast(/unauthorized/.test(String(e.message)) ? t('needLoginFirst') : t('stockAlertErr'));
+  });
+}
+
+function sampleRequest(id) {
+  apiJson('/api/sample-request', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ productId: id }),
+  }).then((d) => {
+    if (!d || d.ok !== true) throw new Error((d && d.error) || '');
+    sampleSentIds.add(id);
+    // Tugma joyida tasdiq matni — butun sahifani qayta chizish shart emas
+    document.querySelectorAll('.pdp-sample').forEach((b) => {
+      const div = document.createElement('div');
+      div.className = 'pdp-note sample-done';
+      div.textContent = `✂️ ${t('sampleSent')}`;
+      b.replaceWith(div);
+    });
+    showToast(t('sampleSent'));
+  }).catch((e) => {
+    showToast(/unauthorized/.test(String(e.message)) ? t('needLoginFirst') : t('sampleErr'));
+  });
+}
+
 function pdpActHtml(id) {
   const qty = cart[id] || 0;
   if (soldOutIds.has(id)) {
-    return `<button class="pd-add is-out" type="button" disabled>${esc(stockTxt('out'))}</button>`;
+    // «Kelganda xabar ber» (db/030) — tugagan mato o'lik nuqta bo'lmasin.
+    // Obuna serverda; shu sessiyada bosilgani `stockAlertOk` da turadi,
+    // shunda qayta chizishda tugma «obuna qabul qilindi» holatida qoladi.
+    return `<button class="pd-add is-out" type="button" disabled>${esc(stockTxt('out'))}</button>
+      ${stockAlertOk.has(id)
+        ? `<div class="pdp-note stock-alert-done">🔔 ${t('stockAlertOn')}</div>`
+        : `<button class="pdp-ghost stock-alert-btn" data-action="stockAlert" data-arg="${esc(id)}">🔔 ${t('stockAlertBtn')}</button>`}`;
   }
   if (!qty) {
     return `<button class="pd-add" data-action="addFromDetail" data-arg="${esc(id)}">${t('addToCart')}</button>`;
@@ -3806,6 +3901,10 @@ function pdpReviewsHtml(id) {
         <div class="pd-rev">
           <div class="pd-rev-top">${starsHtml(r.stars)}<span class="pd-rev-date">${esc(L(r.date))}</span></div>
           ${r.body ? `<div class="pd-rev-body">${esc(r.body)}</div>` : ''}
+          ${(r.photos || []).length ? `
+          <div class="pd-rev-photos">
+            ${r.photos.map((u) => `<img class="pd-rev-photo" src="${esc(u)}" loading="lazy" alt="">`).join('')}
+          </div>` : ''}
           <div class="pd-rev-who">${esc(r.author || '—')}</div>
         </div>`).join('')}
     </div>
@@ -3932,7 +4031,10 @@ function pdpSpecsHtml(id, m) {
   const catKey = bu ? bu.dataset.cat : '';
   const catNom = catKey ? t('cat' + catKey.charAt(0).toUpperCase() + catKey.slice(1)) : '';
   const specs = [
-    [t('specWidth'), m && m.width], [t('specWeight'), m && m.weight],
+    [t('specWidth'), m && m.width],
+    // Rulon uzunligi (db/030, founder tanlovi) — NULL bo'lsa qator yo'q
+    [t('specLen'), m && m.rollLength],
+    [t('specWeight'), m && m.weight],
     [t('specComp'), m ? L(m.comp) : ''],
     [t('pdpCat'), catNom && catNom.indexOf('cat') !== 0 ? catNom : ''],
     [t('specMoq'), m && m.moq ? m.moq + ' ' + t('pcs') : null],
@@ -4096,6 +4198,12 @@ function pdpHtml(id) {
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7 0l2-2a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-2 2a5 5 0 0 0 7 7l1-1"/></svg>
               ${t('pdpCopyLink')}
             </button>
+
+            <!-- Namuna so'rovi (db/030): buyurtma EMAS, so'rov — shartlar
+                 founder bilan kelishilgach buyurtma oqimiga ulanadi. -->
+            ${sampleSentIds.has(id)
+              ? `<div class="pdp-note sample-done">✂️ ${t('sampleSent')}</div>`
+              : `<button class="pdp-ghost pdp-sample" data-action="sampleRequest" data-arg="${esc(id)}">✂️ ${t('sampleBtn')}</button>`}
 
             <div class="pdp-note">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h11v8H3zM14 11h4l3 3v2h-7z"/><circle cx="7" cy="18" r="1.6"/><circle cx="17.5" cy="18" r="1.6"/></svg>
@@ -4407,6 +4515,9 @@ let reviewTarget = null;   // { orderId, productId, productName }
 let reviewStars = 5;
 let reviewBody = '';
 let reviewSending = false;
+/** Biriktirilgan rasm — data-URL (db/030). Ozon darsi: kelgan matoning
+    haqiqiy fotosi — eng kuchli ishonch signali. */
+let reviewPhoto = null;
 
 /** Shu buyurtmadagi shu mahsulotga sharh yozilganmi? */
 function reviewOf(orderId, productId) {
@@ -4422,6 +4533,7 @@ function openReview(arg) {
   reviewStars = 5;
   reviewBody = '';
   reviewSending = false;
+  reviewPhoto = null;
   drawerView = 'review';
   renderDrawer();
 }
@@ -4433,6 +4545,20 @@ function setReviewStars(n) {
 
 function onReviewBody(v) { reviewBody = v; }
 
+/* Fayl `change` delegatsiyasidan keladi — qiymat emas, faylning O'ZI kerak,
+   shuning uchun maydon id orqali o'qiladi. 4 MB chegarasi server bilan
+   bir xil (routes/reviews.js → MAX_REVIEW_PHOTO_BYTES): klientda katta
+   fayl darhol rad etiladi, server esa baribir O'ZI tekshiradi. */
+function onReviewPhoto() {
+  const inp = document.getElementById('rv-photo-inp');
+  const f = inp && inp.files && inp.files[0];
+  if (!f) { reviewPhoto = null; renderDrawer(); return; }
+  if (f.size > 4 * 1024 * 1024) { showToast(t('revPhotoBig')); inp.value = ''; return; }
+  const rd = new FileReader();
+  rd.onload = () => { reviewPhoto = String(rd.result || ''); renderDrawer(); };
+  rd.readAsDataURL(f);
+}
+
 /* Sharh va bahs formalari FAQAT buyurtma qatoridan ochiladi, ya'ni qaytish
    joyi — buyurtmalar ro'yxati, profil EMAS: profilga qaytarilsa foydalanuvchi
    baholaganidan keyin ro'yxatni qaytadan ochishga majbur bo'lardi.
@@ -4443,6 +4569,31 @@ function onReviewBody(v) { reviewBody = v; }
 function backToOrders() {
   drawerView = 'orders';
   renderDrawer();
+}
+
+/* ── «Qayta buyurtma» (db/030) ──
+   Buyurtmadagi matolar savatga qaytariladi. Faqat HOZIR mavjud (katalogda
+   bor va tugamagan) matolar tushadi — yo'qolganiga jimgina «qo'shildi»
+   deyilmaydi: bittasi ham tushmasa alohida xabar chiqadi. Miqdor eski
+   buyurtmadan olinadi, lekin MOQ dan kam bo'lmaydi (server baribir rad
+   etardi — xaridor sababini checkout oxirida emas, shu yerda ko'rsin). */
+function reorderOrder(orderId) {
+  const o = (myOrders || []).find((x) => x.id === orderId);
+  if (!o) return;
+  let qoshildi = 0;
+  (o.items || []).forEach((it) => {
+    if (!product(it.id) || soldOutIds.has(it.id)) return;
+    const q = Math.max(Number(it.qty) || 1, moqOf(it.id));
+    cart[it.id] = (cart[it.id] || 0) + q;
+    qoshildi += 1;
+    track('cart', 'cart', it.id);
+  });
+  if (!qoshildi) { showToast(t('reorderNone')); return; }
+  saveCart();
+  updateBadge();
+  drawerView = 'cart';
+  renderDrawer();
+  showToast(t('reorderDone'));
 }
 
 function reviewFormHtml() {
@@ -4460,6 +4611,12 @@ function reviewFormHtml() {
 
       <textarea class="rv-text" rows="4" placeholder="${t('reviewPh')}"
         data-input="onReviewBody">${esc(reviewBody)}</textarea>
+
+      <!-- Foto (ixtiyoriy, db/030). Fayl maydoni yashirin — label bosadi. -->
+      <label class="rv-photo${reviewPhoto ? ' on' : ''}">
+        <input id="rv-photo-inp" type="file" accept="image/*" data-change="onReviewPhoto">
+        📷 ${reviewPhoto ? t('revPhotoOn') : t('revPhotoAdd')}
+      </label>
 
       <div class="rv-btns">
         <button class="auth-ghost" data-action="backToOrders">${t('cancelShort')}</button>
@@ -4481,6 +4638,7 @@ function submitReview() {
       productId: nishon.productId,
       stars: reviewStars,
       body: reviewBody.trim() || undefined,
+      photo: reviewPhoto || undefined,
     }),
   })
     .then((d) => {

@@ -9,7 +9,7 @@
     { num: 1, nom: "Telegram Mini App MVP",     dars: "Dars 8",  holat: "tugadi",  sana: "2026-07-31" },
     { num: 2, nom: "Ma'lumotlar bazasi / Backend", dars: "Dars 9",  holat: "tugadi", sana: "2026-07-23" },
     { num: 3, nom: "Foydalanuvchilar + rollar", dars: "Dars 10", holat: "tugadi", sana: "2026-08-16" },
-    { num: 4, nom: "Asosiy funksiya",           dars: "Dars 11", holat: "jarayonda",  sana: "2026-09-02" },
+    { num: 4, nom: "Asosiy funksiya",           dars: "Dars 11", holat: "jarayonda",  sana: "2026-09-05" },
     { num: 5, nom: "Mobil / PWA",               dars: "Dars 12", holat: "jarayonda",  sana: "2026-09-05" },
     { num: 6, nom: "Integratsiyalar",           dars: "Dars 13", holat: "jarayonda",  sana: "2026-07-22" },
     { num: 7, nom: "Admin panel",               dars: "Dars 14", holat: "tugadi",  sana: "2026-08-31" },
@@ -36,7 +36,7 @@
   barEl.style.width = foiz + "%";
   percentEl.textContent = foiz + "%";
   countEl.textContent = tugaganlar + " / " + sprintlar.length + " sprint";
-  updatedEl.textContent = "Yangilanish: 2026-09-05 (C1: Google Fonts o'z serverga — assets/fonts/ da 13 woff2 (~200 KiB) + fonts.css, unicode-range saqlangan. Uchala HTML bitta mutlaq /assets/fonts/fonts.css?v=1 ga o'tdi — brauzer keshi ham bitta. Test 16 da mutlaq-yo'l nuqsoni topilib tuzatildi. CSP ochilmadi (font-src 'self' allaqachon bor — jonlida o'lchandi). 92 test, 2 mutatsiya hisobotchi tomonidan bajarildi. Deploy: faqat statik CI, restart kerak emas. PUSH YO'Q.)";
+  updatedEl.textContent = "Yangilanish: 2026-09-05 (Bozor funksiyalari: db/030 + engagement.js — eni/rulon uzunligi, namuna so'rovi, savat eslatmasi (72 soat qulf), sharh rasmi, «kelganda xabar ber» + saytda qayta buyurtma; MOQ allaqachon to'liq ekan. Test 54 yangi, 93 test yashil (hisobotchi sanadi), 1 mutatsiya hisobotchi tomonidan qayta bajarildi. Deploy: MIGRATSIYA (db/030) + statik CI + backend restart. PUSH YO'Q.)";
 
 
   sprintlar.forEach(s => {

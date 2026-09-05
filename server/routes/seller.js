@@ -8,6 +8,7 @@ const { callTelegram, notify } = require('../lib/telegram-api');
 const { recordStatusChange } = require('../lib/order-history');
 const { productPhotoUrl, videoVM } = require('./catalog');
 const { restoreStock } = require('./orders');
+const { notifyRestock } = require('./engagement');
 
 // ============ SOTUVCHI KABINETI ============
 // Rol tekshiruvi (currentSeller / requireSeller) lib/auth.js da.
@@ -106,6 +107,7 @@ async function handleSellerProducts(req, res, ip) {
   try {
     const { rows } = await pool.query(
       `SELECT id, name_uz, name_ru, price, unit, moq, cat_key, img, img_file_id, awaiting_image, stock, status, reject_reason, created_at,
+              width, roll_length,
               vid_r2_key, vid_poster_r2_key, vid_seconds, vid_bytes, awaiting_video
          FROM products WHERE seller_id = $1 ORDER BY created_at DESC LIMIT 200`,
       [me.seller_id]
@@ -117,6 +119,9 @@ async function handleSellerProducts(req, res, ip) {
       unit: r.unit,
       moq: Number(r.moq),
       catKey: r.cat_key,
+      // Tahrir formasi oldindan to'ldirishi uchun (db/030)
+      width: r.width,
+      rollLength: r.roll_length,
       img: r.img_file_id ? productPhotoUrl(r.img_file_id) : r.img,
       awaitingImage: r.awaiting_image,
       stock: r.stock === null ? null : Number(r.stock),
@@ -150,7 +155,7 @@ async function handleSellerProductUpdate(req, res, ip) {
 
     // Mahsulot shu sotuvchiniki ekanini tasdiqlaymiz (boshqaniki tahrirlanmasin)
     const { rows: own } = await pool.query(
-      `SELECT id, status, name_uz FROM products WHERE id = $1 AND seller_id = $2`,
+      `SELECT id, status, name_uz, stock FROM products WHERE id = $1 AND seller_id = $2`,
       [id, me.seller_id]
     );
     if (!own.length) return fail(res, 'mahsulot topilmadi', 404);
@@ -199,6 +204,9 @@ async function handleSellerProductUpdate(req, res, ip) {
       price:   { type: 'int', required: true, min: 1, max: 100000000000 },
       moq:     { type: 'int', required: false, min: 1, max: 100000, default: 1 },
       comp_uz: { type: 'string', required: false, max: 500 },
+      // Eni va rulon uzunligi (db/030) — yangi e'lon oqimi bilan bir xil shakl
+      width:       { type: 'string', required: false, max: 40 },
+      roll_length: { type: 'string', required: false, max: 40 },
       stock:   { type: 'int', required: false, min: 0, max: 1000000 },
     });
     if (!v.ok) return fail(res, v.error, 400);
@@ -208,13 +216,30 @@ async function handleSellerProductUpdate(req, res, ip) {
     // (= cheksiz) bo'lib chiqadi va tahrirlash jimgina zaxira cheklovini
     // o'chirib yuborardi. Yangi klient bo'sh maydonni ataylab null yuboradi.
     const stockSent = Object.prototype.hasOwnProperty.call(data, 'stock');
+    // `stock` darsi bilan bir xil (yuqoridagi izoh): eski keshlangan klient
+    // width/roll_length ni umuman yubormaydi — o'shanda mavjud qiymat
+    // jimgina NULL bo'lib ketmasin. Yangi klient bo'sh maydonni ham yuboradi
+    // (bo'sh = ataylab tozalash).
+    const widthSent = Object.prototype.hasOwnProperty.call(data, 'width');
+    const lenSent = Object.prototype.hasOwnProperty.call(data, 'roll_length');
     const { rows } = await pool.query(
       `UPDATE products SET name_uz=$1, name_ru=$2, price=$3, moq=$4, comp_uz=$5,
+              width       = CASE WHEN $9::boolean  THEN $10 ELSE width END,
+              roll_length = CASE WHEN $11::boolean THEN $12 ELSE roll_length END,
               stock = CASE WHEN $7::boolean THEN $8::int ELSE stock END,
               status='pending', reject_reason=NULL
          WHERE id=$6 RETURNING id, status`,
-      [d.name_uz, d.name_ru || null, d.price, d.moq, d.comp_uz || null, id, stockSent, d.stock]
+      [d.name_uz, d.name_ru || null, d.price, d.moq, d.comp_uz || null, id, stockSent, d.stock,
+       widthSent, d.width || null, lenSent, d.roll_length || null]
     );
+
+    // «Kelganda xabar ber» (db/030): stok ANIQ 0 dan >0 ga ko'tarilganda
+    // obunachilarga xabar. `null` (cheksiz) dan o'tish restok EMAS — u
+    // «tugagan» holat bo'lmagan. Kutilmaydi ham, yiqitmaydi ham — xato
+    // notifyRestock ichida alertga chiqadi.
+    if (stockSent && own[0].stock !== null && Number(own[0].stock) === 0 && Number(d.stock) > 0) {
+      notifyRestock(id);
+    }
     ok(res, rows[0]);
   } catch (e) {
     console.error('sellerProductUpdate xatosi:', e.message);

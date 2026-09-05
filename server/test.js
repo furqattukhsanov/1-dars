@@ -1389,8 +1389,10 @@ function testAssetVersionsAreFresh() {
     // esa butun kenglikda ikki qator bo'lib terildi.
     // 2026-08-16 (kechqurun, 2-tahrir): qator chiqqanda header yuqoriga
     // suriladi — ikkita qadalgan qator birga turmaydi.
-    'style.css': { v: 65, hash: 'ce6f35948762' },
-    'script.js': { v: 59, hash: '2f75951d26d8' },
+    // 2026-09-05: bozor tadqiqoti funksiyalari (db/030) — spec (uzunlik),
+    // namuna so'rovi, restok obunasi, sharh fotosi, saytda qayta buyurtma.
+    'style.css': { v: 66, hash: '40b6d0d53512' },
+    'script.js': { v: 60, hash: '5ded53aa6e81' },
     'pwa.js': { v: 3, hash: 'dce9fcfee6cb' },
     // ⚠️ IKKINCHI BIRLASHTIRISH (2026-08-14): ikkala tomon panel.js ni 24,
     // app.js ni 87 ga ko'targan — AYNI raqamlar, TARKIB esa har xil.
@@ -1404,7 +1406,7 @@ function testAssetVersionsAreFresh() {
     // YUQORIGA suriladi: teng raqam qaytib kelgan foydalanuvchida keshdagi
     // BIR TOMONLAMA faylni qoldirardi — sevimlilar yoki chiqish tuzatishining
     // faqat bittasi bo'lgan `app.js`.
-    'panel.js': { v: 67, hash: 'a162b22b93a8' },
+    'panel.js': { v: 68, hash: '1fa412e4c21d' },
     // 2026-09-05 (C1): shriftlar o'z serverdan — css2 javobining aynan o'zi,
     // url() lar lokal (assets/fonts/*.woff2). Ikkala yuz BITTA faylni
     // mutlaq yo'l bilan chaqiradi — brauzer keshi ham bitta.
@@ -1415,7 +1417,8 @@ function testAssetVersionsAreFresh() {
     // 2026-08-25: `.nav-lens` o'tishi 480ms sakrashga QAYTARILDI (founder
     // telefonda sinab 280ms'ni rad etdi — sakrash brendga xos his).
     'telegram-app/styles.css': { v: 38, hash: '17e788357294' },
-    'telegram-app/app.js': { v: 105, hash: '7bf6d8a3b66a' },
+    // 2026-09-05: bozor tadqiqoti funksiyalari (db/030) — yuqoridagi bilan birga.
+    'telegram-app/app.js': { v: 106, hash: 'faf049ff9dd5' },
     'telegram-app/pwa.js': { v: 6, hash: '798ab85e1cde' },
   };
 
@@ -6468,6 +6471,7 @@ async function runTests() {
     await testAdminEndpointsActuallyRespond();
     await testOrderStatusScopedToOwner();
     await testStatikWebpTanlovi();
+    await testBozorFunksiyalari();
 
     console.log('\n✅ Hammasi PASS — pul hisobi, imzo, route jadvali, xato alerti, buyurtma tarixi va AI rasmi joyida\n');
     process.exit(0);
@@ -6565,3 +6569,78 @@ async function testStatikWebpTanlovi() {
 }
 
 runTests();
+
+// ============ TEST 54: bozor funksiyalari qorovuli (2026-09-05, db/030) ============
+// To'rt band, har biri ALOHIDA sindirilishi mumkin bo'lgan va'dani qulflaydi:
+// (1) savat eslatmasi chastota QULFI — usiz bot spamga aylanadi va foydalanuvchi
+//     botni bloklaydi (kanal butunlay yo'qoladi); qulf YUBORISHDAN OLDIN
+//     yoziladi, aks holda yiqilgan xabar keyingi skanlarda qayta-qayta ketardi;
+// (2) restok obunasi belgilash va tanlash BITTA UPDATE...RETURNING'da —
+//     ikkiga bo'linsa parallel stok yangilanishi bitta obunachiga IKKI xabar
+//     yuborardi (SELECT+UPDATE ning aynan atomik stok darsi, faqat xabarda);
+// (3) sharh fotosi COMMIT'dan KEYIN va o'z try'ida — foto yiqilsa sharh
+//     YO'QOLMAYDI (R2/tasma «kreditni qaytarma» oilasi), xato esa yutilmaydi;
+// (4) restok iloviga chaqiruv faqat ANIQ 0 dan ko'tarilganda — null (cheksiz)
+//     dan o'tish restok emas, va tekshiruv olib tashlansa har stok tahriri
+//     obunachilarga xabar otardi.
+// Izohlar tahlildan oldin olib tashlanadi (Test 3f darsi: qorovul KODNI o'qisin).
+async function testBozorFunksiyalari() {
+  const fs = require('fs');
+  const path = require('path');
+  const strip = (s) => s
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .split('\n').filter((l) => !/^\s*\/\//.test(l)).join('\n');
+
+  // ---- 1-band: savat eslatmasi chastota qulfi ----
+  const eng = strip(fs.readFileSync(path.join(__dirname, 'routes', 'engagement.js'), 'utf8'));
+  const scan = eng.match(/async function scanCartReminders\b[\s\S]*?\n\}/);
+  assert.ok(scan, 'scanCartReminders topilmadi (nomi o\'zgardimi?)');
+  assert.ok(/cart_reminded_at\s+IS\s+NULL\s+OR\s+u\.cart_reminded_at\s*</i.test(scan[0]),
+    'savat eslatmasi: chastota qulfi yo\'q (`cart_reminded_at` sharti WHERE da emas) — ' +
+    'bitta foydalanuvchiga har skanda xabar ketadi va u botni bloklaydi.');
+  const qulf = scan[0].indexOf('SET cart_reminded_at');
+  const yubor = scan[0].indexOf('sendOpenAppMessage');
+  assert.ok(qulf !== -1 && yubor !== -1 && qulf < yubor,
+    'savat eslatmasi: qulf (`SET cart_reminded_at`) YUBORISHDAN OLDIN yozilishi ' +
+    'shart — aks holda yiqilgan xabar har 30 daqiqada qayta urinilardi.');
+  assert.ok(/interval '3 hours'/.test(scan[0]) && /interval '48 hours'/.test(scan[0]),
+    'savat eslatmasi: 3–48 soat oynasi yo\'qolgan — hali xarid qilayotgan odamga ' +
+    'yoki eskirgan niyatga xabar ketadi.');
+
+  // ---- 2-band: restok — belgilash va tanlash bitta atomik so'rovda ----
+  const restok = eng.match(/async function notifyRestock\b[\s\S]*?\n\}/);
+  assert.ok(restok, 'notifyRestock topilmadi (nomi o\'zgardimi?)');
+  assert.ok(/UPDATE stock_alerts SET notified_at = now\(\)[\s\S]*?notified_at IS NULL[\s\S]*?RETURNING/.test(restok[0]),
+    'restok: belgilash va obunachilarni olish BITTA `UPDATE ... RETURNING` bo\'lishi ' +
+    'shart — bo\'linsa parallel ikki stok tahriri bitta odamga ikki xabar yuboradi.');
+
+  // ---- 3-band: sharh fotosi sharhni yiqitmaydi ----
+  const rev = strip(fs.readFileSync(path.join(__dirname, 'routes', 'reviews.js'), 'utf8'));
+  const create = rev.match(/async function handleCreateReview\b[\s\S]*?\n\}/);
+  assert.ok(create, 'handleCreateReview topilmadi');
+  const commitIdx = create[0].indexOf("COMMIT");
+  const fotoIdx = create[0].indexOf('sendPhotoBytes');
+  assert.ok(commitIdx !== -1 && fotoIdx !== -1 && commitIdx < fotoIdx,
+    'sharh fotosi COMMIT\'dan KEYIN yuklanishi shart — tranzaksiya ichiga kirsa ' +
+    'foto xatosi butun sharhni yo\'qotadi.');
+  assert.ok(/console\.error\('sharh fotosi saqlanmadi:'/.test(create[0]),
+    'sharh fotosi xatosi YUTILMASIN — `console.error(\'sharh fotosi saqlanmadi:\'` ' +
+    'alert kaliti kerak (ALERT_CHAT_ID darsi).');
+
+  // ---- 4-band: restok chaqiruvi faqat ANIQ 0 dan ----
+  const sel = strip(fs.readFileSync(path.join(__dirname, 'routes', 'seller.js'), 'utf8'));
+  assert.ok(/notifyRestock\s*\(/.test(sel), 'seller.js da notifyRestock chaqiruvi yo\'q — ' +
+    '«kelganda xabar ber» obunasi hech qachon otmaydi (o\'lik tugma).');
+  assert.ok(/own\[0\]\.stock\s*!==\s*null\s*&&\s*Number\(own\[0\]\.stock\)\s*===\s*0/.test(sel),
+    'restok sharti buzilgan: faqat ANIQ 0 dan >0 ga o\'tish restok — null (cheksiz) ' +
+    'dan o\'tish yoki shartsiz chaqiruv har tahrirda xabar otadi.');
+
+  // ---- Parite: ikkala yuz ham yangi endpointlarni chaqiradi ----
+  const sayt = fs.readFileSync(path.join(__dirname, '..', 'script.js'), 'utf8');
+  const app = fs.readFileSync(path.join(__dirname, '..', 'telegram-app', 'app.js'), 'utf8');
+  for (const yol of ['/api/sample-request', '/api/stock-alert']) {
+    assert.ok(sayt.includes(yol), `saytda ${yol} chaqiruvi yo'q — funksiya bir yuzda qolgan (authUser oilasi)`);
+    assert.ok(app.includes(yol), `Mini App'da ${yol} chaqiruvi yo'q — funksiya bir yuzda qolgan (authUser oilasi)`);
+  }
+  console.log('✅ Test 54: bozor funksiyalari — eslatma qulfi, atomik restok, foto sharhni yiqitmaydi — PASS');
+}

@@ -436,6 +436,9 @@ function productRowToVM(r) {
     badgeTone: r.badge_tone,
     width: r.width,
     weight: r.weight,
+    // Rulon uzunligi (db/030) — `width` bilan bitta uslub: erkin matn
+    // («40 m»), NULL bo'lsa frontend qatorni umuman chizmaydi.
+    rollLength: r.roll_length,
     name: { uz: r.name_uz, ru: r.name_ru },
     supplier: { uz: r.business_name_uz, ru: r.business_name_ru },
     city: { uz: r.city_uz, ru: r.city_ru },
@@ -466,7 +469,7 @@ async function handleGetProducts(req, res, ip) {
     const { rows } = await pool.query(`
       SELECT p.id, p.cat_key, p.pattern, p.img, p.img_file_id, p.img_r2_key, p.price, p.unit, p.moq, p.lead_days,
              p.vid_r2_key, p.vid_poster_r2_key, p.vid_seconds, p.vid_bytes,
-             p.rating, p.reviews, p.stock_key, p.stock, p.badge_tone, p.width, p.weight,
+             p.rating, p.reviews, p.stock_key, p.stock, p.badge_tone, p.width, p.weight, p.roll_length,
              p.name_uz, p.name_ru, p.comp_uz, p.comp_ru, p.badge_uz, p.badge_ru,
              p.created_at,
              s.business_name_uz, s.business_name_ru, s.city_uz, s.city_ru, s.is_verified,
@@ -508,6 +511,10 @@ async function handleSubmitProduct(req, res, ip) {
       unit:    { type: 'string', required: false, max: 20, default: 'rulon' },
       moq:     { type: 'int', required: false, min: 1, max: 100000, default: 1 },
       comp_uz: { type: 'string', required: false, max: 500 },
+      // Eni va rulon uzunligi (db/030, founder tanlovi: specdan faqat shu
+      // ikkisi). Erkin matn — birlikni sotuvchi o'zi yozadi («1.5 m», «40 m»).
+      width:       { type: 'string', required: false, max: 40 },
+      roll_length: { type: 'string', required: false, max: 40 },
       // Bo'sh qoldirilsa null = CHEKSIZ (011 migratsiyasi). 0 esa haqiqiy
       // qiymat — "zaxirada tugadi".
       stock:   { type: 'int', required: false, min: 0, max: 1000000 },
@@ -523,9 +530,9 @@ async function handleSubmitProduct(req, res, ip) {
       // `awaiting_video` ham darrov ochiladi (db/023): sotuvchi videoni rasmdan
       // OLDIN yuborishi mumkin va o'sha video yo'qolib ketmasin. Eski
       // e'lonlarda bayroq rasm qabul qilinganda ochiladi.
-      `INSERT INTO products (id, seller_id, cat_key, price, unit, moq, name_uz, name_ru, comp_uz, stock, status, submitted_by_tg, awaiting_image, awaiting_video)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'pending',$11,true,true)`,
-      [id, sellerId, d.cat_key, d.price, d.unit || 'rulon', d.moq || 1, d.name_uz, d.name_ru, d.comp_uz, d.stock, String(u.id)]
+      `INSERT INTO products (id, seller_id, cat_key, price, unit, moq, name_uz, name_ru, comp_uz, stock, width, roll_length, status, submitted_by_tg, awaiting_image, awaiting_video)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'pending',$13,true,true)`,
+      [id, sellerId, d.cat_key, d.price, d.unit || 'rulon', d.moq || 1, d.name_uz, d.name_ru, d.comp_uz, d.stock, d.width || null, d.roll_length || null, String(u.id)]
     );
     sendOrderNotifyMessage(
       `🆕 <b>Yangi e'lon moderatsiyaga</b>\n\n<b>${escapeHtml(d.name_uz)}</b>\nNarx: ${escapeHtml(money(d.price))}\nID: <code>${escapeHtml(id)}</code>\n\nRo'yxat: <code>/moderatsiya</code>`

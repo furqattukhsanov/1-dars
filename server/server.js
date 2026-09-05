@@ -39,6 +39,9 @@ const {
   handleCreateReview, handleGetReviews, handleSellerReviews,
 } = require('./routes/reviews');
 const { handleAiImage, handleAiGallery, handleAiMy } = require('./routes/ai');
+const {
+  handleSampleRequest, handleStockAlert, scanCartReminders, CART_REMINDER_MS,
+} = require('./routes/engagement');
 const { handleTelegramWebhook } = require('./routes/webhook');
 const { handleProductPage } = require('./routes/pdp');
 const { OG_ENABLED } = require('./config');
@@ -117,6 +120,22 @@ function routeRequest(req, res) {
     if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
     if (req.method !== 'POST') return fail(res, 'method not allowed', 405);
     return handleTrack(req, res, ip);
+  }
+
+  /* Namuna so'rovi va «kelganda xabar ber» (db/030) — kimlik ikkala
+     kanaldan (`requestUser`), handler ichida tekshiriladi. */
+  if (path === '/api/sample-request') {
+    cors(res, 'POST, OPTIONS');
+    if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
+    if (req.method !== 'POST') return fail(res, 'method not allowed', 405);
+    return handleSampleRequest(req, res, ip);
+  }
+
+  if (path === '/api/stock-alert') {
+    cors(res, 'POST, OPTIONS');
+    if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
+    if (req.method !== 'POST') return fail(res, 'method not allowed', 405);
+    return handleStockAlert(req, res, ip);
   }
 
   if (path === '/api/products') {
@@ -448,6 +467,11 @@ if (require.main === module) {
   // 24 soatdan oshgan hal qilinmagan bahslar uchun eslatma skaneri.
   // unref() — bu taymer jarayonni tirik ushlab turmasin (to'xtatish toza bo'lsin).
   setInterval(scanStaleDisputes, DISPUTE_REMINDER_MS).unref();
+
+  // Savat eslatmasi skaneri (db/030): «savatga soldi, buyurtma bermadi»
+  // faktiga Telegram eslatma. Chastota qulflari skanerning O'Z ichida
+  // (3–48 soat oynasi + foydalanuvchi boshiga 72 soat).
+  setInterval(scanCartReminders, CART_REMINDER_MS).unref();
 }
 
 module.exports = { handleRequest, routeRequest };

@@ -48,6 +48,16 @@ document.addEventListener('input', (e) => {
   if (typeof fn === 'function') fn(e.target.value, el.dataset.arg);
 });
 
+// `change` delegatsiyasi — fayl maydoni uchun (`input` fayl tanlashda
+// otilmaydi). Sayt (`script.js`) bilan bir xil naqsh — ikki yuza
+// o'rtasidagi farq yopiq tursin (data-arg darsi bilan bitta oila).
+document.addEventListener('change', (e) => {
+  const el = e.target.closest('[data-change]');
+  if (!el) return;
+  const fn = window[el.dataset.change];
+  if (typeof fn === 'function') fn(e.target.value, el.dataset.arg);
+});
+
 // ============ TO'QIMA PATTERNLAR (CSS gradient) ============
 const PATTERNS = {
   adras:      "repeating-linear-gradient(96deg,#E84B40 0 16px,#EFA91F 16px 27px,#119DAB 27px 42px,#FBF6EC 42px 48px,#571814 48px 58px,#54D7E1 58px 70px)",
@@ -80,6 +90,10 @@ const STR = {
     priceBad: "Eng kam narx eng ko'pdan katta bo'lmasin", noProductsPrice: "Bu narx oralig'ida mato yo'q",
     somU: "so'm", priceFrom: "dan yuqori", priceTo: "gacha", priceRemove: "Narx filtrini olib tashlash",
     day: "kun", addCart: "Savatga qo'shish", order: "Buyurtma berish", specs: "Tafsilotlar", width: "Eni", weight: "Zichlik",
+    rollLen: "Rulon uzunligi",
+    sampleBtn: "Namuna so'rash", sampleSent: "So'rov yuborildi — siz bilan bog'lanamiz", sampleErr: "So'rov yuborilmadi — qaytadan urinib ko'ring",
+    stockAlertBtn: "Kelganda xabar berish", stockAlertOn: "Xabar beramiz — obuna qabul qilindi", stockAlertErr: "Obuna bo'lmadi — qaytadan urinib ko'ring",
+    revPhotoAdd: "Rasm biriktirish (ixtiyoriy)", revPhotoOn: "Rasm tanlandi ✓", revPhotoBig: "Rasm juda katta — 4 MB gacha",
     comp: "Tarkibi", leadTime: "Yetkazish muddati", minOrder: "Minimal buyurtma (MOQ)", supplierL: "Yetkazib beruvchi",
     mediaPhoto: "Rasm", mediaVideo: "Video",
     // To'liq ekran ko'rish — matoning ipini ko'rish uchun
@@ -253,6 +267,7 @@ const STR = {
     sDisputeSend: "Javob yuborish", sDisputeSent: "Javob yuborildi",
     sDisputeYours: "Sizning javobingiz", sDisputeNeed: "Javob matnini yozing",
     sSave: "Saqlash", sName: "Nomi", sPrice: "Narxi (so'm)", sMoq: "Minimal buyurtma", sCat: "Kategoriya",
+    sWidth: "Eni (masalan: 1.5 m)", sLen: "Rulon uzunligi (masalan: 40 m)",
     sComp: "Tarkibi", sSaved: "Saqlandi — moderatsiyaga yuborildi", sHidden2: "Mahsulot yashirildi",
     sShown: "Qayta ko'rsatishga yuborildi",
     sAccept: "Qabul qilish", sReject: "Rad etish", sShip: "Jo'natildi deb belgilash",
@@ -274,6 +289,10 @@ const STR = {
     priceBad: "Минимум не может быть больше максимума", noProductsPrice: "В этом диапазоне тканей нет",
     somU: "сум", priceFrom: "и выше", priceTo: "и ниже", priceRemove: "Убрать фильтр по цене",
     day: "дн.", addCart: "В корзину", order: "Оформить заказ", specs: "Характеристики", width: "Ширина", weight: "Плотность",
+    rollLen: "Длина рулона",
+    sampleBtn: "Запросить образец", sampleSent: "Запрос отправлен — мы свяжемся с вами", sampleErr: "Не удалось отправить запрос — попробуйте ещё раз",
+    stockAlertBtn: "Сообщить о поступлении", stockAlertOn: "Сообщим — подписка принята", stockAlertErr: "Не удалось подписаться — попробуйте ещё раз",
+    revPhotoAdd: "Прикрепить фото (по желанию)", revPhotoOn: "Фото выбрано ✓", revPhotoBig: "Фото слишком большое — до 4 МБ",
     comp: "Состав", leadTime: "Срок поставки", minOrder: "Мин. заказ (MOQ)", supplierL: "Поставщик",
     mediaPhoto: "Фото", mediaVideo: "Видео",
     pvHint: "Нажмите дважды или разведите пальцами",
@@ -419,6 +438,7 @@ const STR = {
     sDisputeSend: "Отправить ответ", sDisputeSent: "Ответ отправлен",
     sDisputeYours: "Ваш ответ", sDisputeNeed: "Напишите текст ответа",
     sSave: "Сохранить", sName: "Название", sPrice: "Цена (сум)", sMoq: "Мин. заказ", sCat: "Категория",
+    sWidth: "Ширина (напр.: 1.5 м)", sLen: "Длина рулона (напр.: 40 м)",
     sComp: "Состав", sSaved: "Сохранено — отправлено на модерацию", sHidden2: "Товар скрыт",
     sShown: "Отправлено на повторную проверку",
     sAccept: "Принять", sReject: "Отклонить", sShip: "Отметить отправленным",
@@ -723,6 +743,10 @@ const S = {
   revSheet: null,        // ochiq sheet: { orderId, productId }
   revStars: 5,
   revBody: '',
+  revPhoto: null,        // biriktirilgan rasm — data-URL (db/030)
+  // — Namuna so'rovi va restok obunasi (db/030), sessiya ichida bir martalik —
+  sampleSent: {},        // mahsulot id → true
+  stockAlertOk: {},      // mahsulot id → true
   sReviews: null,        // sotuvchi kabineti: { rating, count, items }
   // — Sotuvchi kabineti —
   role: 'buyer',        // serverdan (/api/me) keladi — mijoz o'zi belgilamaydi
@@ -898,6 +922,8 @@ function vm(p) {
     // qo'shilgan kuni bu yerni eslab qolish kerak bo'lardi.
     // `esc(null)` → `''`, ya'ni bo'sh qiymat qatorni ham o'chiradi.
     width: esc(p.width), weight: esc(p.weight),
+    // Rulon uzunligi (db/030) — width bilan bitta chegara va bitta sabab
+    rollLength: esc(p.rollLength),
     badge: p.badge ? esc(p.badge[L]) : null,
     bg: PATTERNS[p.pattern] || PATTERNS.plain,
     bgSize: pSize(p.pattern),
@@ -2074,6 +2100,18 @@ function renderDetail() {
         </button>
       </div>
 
+      <!-- Namuna so'rovi va «kelganda xabar ber» (db/030). Namuna — so'rov,
+           buyurtma EMAS (shartlar founder bilan kelishilgach ulanadi);
+           obuna tugmasi faqat mato TUGAGANDA chiqadi. -->
+      ${S.sampleSent[p.id]
+        ? `<div style="padding:11px 14px;border:1px solid var(--border-hair);border-radius:var(--radius-md);font-size:13px;font-weight:600;color:var(--pom-700);text-align:center">✂️ ${T.sampleSent}</div>`
+        : `<button data-action="sampleRequest" data-arg="${p.id}" style="width:100%;min-height:42px;border:1px solid var(--border-hair);border-radius:var(--radius-md);background:transparent;font-family:var(--font-sans);font-size:13.5px;font-weight:600;color:var(--text-body);cursor:pointer">✂️ ${T.sampleBtn}</button>`}
+      ${p.soldOut
+        ? (S.stockAlertOk[p.id]
+          ? `<div style="padding:11px 14px;border:1px solid var(--border-hair);border-radius:var(--radius-md);font-size:13px;font-weight:600;color:var(--pom-700);text-align:center">🔔 ${T.stockAlertOn}</div>`
+          : `<button data-action="stockAlert" data-arg="${p.id}" style="width:100%;min-height:42px;border:1px solid var(--border-hair);border-radius:var(--radius-md);background:transparent;font-family:var(--font-sans);font-size:13.5px;font-weight:600;color:var(--text-body);cursor:pointer">🔔 ${T.stockAlertBtn}</button>`)
+        : ''}
+
       ${(() => {
         // Tafsilot QATORI faqat qiymati bo'lganda chiziladi (2026-08-16).
         // Ilgari ro'yxat xom chizilardi va bazadan `null` kelgan mahsulotda
@@ -2083,7 +2121,7 @@ function renderDetail() {
         // ⚠️ Saytda (`script.js` → `specs`) bu ALLAQACHON to'g'ri edi va
         // izohi ham yozilgan — qoida bir yuzda o'rganilib, ikkinchisiga
         // tarqalmagan (`authUser()` naqshi bilan bitta oila).
-        const rows = [[T.width, p.width], [T.weight, p.weight], [T.comp, p.comp],
+        const rows = [[T.width, p.width], [T.rollLen, p.rollLength], [T.weight, p.weight], [T.comp, p.comp],
                       [T.leadTime, p.leadLabel], [T.minOrder, p.moqLabel]].filter(([, v]) => v);
         if (!rows.length) return '';
         return `
@@ -2625,6 +2663,10 @@ function reviewsSection(productId) {
                <span style="font-size:11.5px;color:var(--text-subtle)">${r.date[S.lang]}</span>
              </div>
              ${r.body ? `<div style="font-size:13px;color:var(--text-body);line-height:1.5;margin-top:7px">${esc(r.body)}</div>` : ''}
+             ${(r.photos || []).length ? `
+             <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+               ${r.photos.map(u => `<img src="${esc(u)}" loading="lazy" alt="" style="width:70px;height:70px;object-fit:cover;border-radius:var(--radius-sm);border:1px solid var(--border-hair)">`).join('')}
+             </div>` : ''}
              <div style="font-size:11.5px;color:var(--text-muted);margin-top:6px">${esc(r.author || '—')}</div>
            </div>`).join('')}
          </div>`}
@@ -3461,6 +3503,12 @@ function renderReviewSheet() {
     <textarea data-input="setRevBody" placeholder="${T.revPh}" rows="3"
       style="flex:none;margin-top:14px;width:100%;padding:12px;border:1px solid var(--border-hair);border-radius:var(--radius-sm);background:var(--glass-fill-strong);font-family:var(--font-sans);font-size:16px;color:var(--text-strong);outline:none;resize:none">${esc(S.revBody)}</textarea>
 
+    <!-- Foto (ixtiyoriy, db/030) — fayl maydoni yashirin, label bosadi -->
+    <label style="flex:none;display:block;margin-top:10px;padding:10px 12px;border:1.5px ${S.revPhoto ? 'solid' : 'dashed'} var(--border-hair);border-radius:var(--radius-sm);font-size:12.5px;font-weight:600;color:${S.revPhoto ? 'var(--pom-700)' : 'var(--text-muted)'};cursor:pointer">
+      <input id="rev-photo-inp" type="file" accept="image/*" data-change="onRevPhoto" style="display:none">
+      📷 ${S.revPhoto ? T.revPhotoOn : T.revPhotoAdd}
+    </label>
+
     <div style="flex:none;display:flex;gap:9px;margin-top:12px">
       <button data-action="closeReviewSheet" style="flex:1;height:50px;border-radius:var(--radius-md);border:1px solid var(--border-hair);background:transparent;font-family:var(--font-sans);font-size:15px;font-weight:600;color:var(--text-muted);cursor:pointer">${T.revCancel}</button>
       <button data-action="submitReview" style="flex:1.4;height:50px;border:none;border-radius:var(--radius-md);background:linear-gradient(135deg,var(--pom-600),var(--pom-800));color:#ffe9db;font-family:var(--font-sans);font-size:15px;font-weight:600;cursor:pointer;box-shadow:var(--shadow-sm)">${T.revSend}</button>
@@ -3472,6 +3520,7 @@ function openReviewSheet(orderId, productId) {
   S.revSheet = { orderId, productId };
   S.revStars = 5;
   S.revBody = '';
+  S.revPhoto = null;
   paintSheet();
 }
 // Ikki argument bitta `data-arg` ga sig'maydi — `|` bilan kodlanadi va
@@ -3490,6 +3539,20 @@ function setRevStars(n) {
 }
 function setRevBody(v) { S.revBody = v; }
 
+/* Fayl `change` delegatsiyasidan — qiymat emas, fayl KERAK, shuning uchun
+   maydon id orqali o'qiladi. 4 MB chegarasi server bilan bir xil
+   (routes/reviews.js → MAX_REVIEW_PHOTO_BYTES). */
+function onRevPhoto() {
+  const T = STR[S.lang];
+  const inp = document.getElementById('rev-photo-inp');
+  const f = inp && inp.files && inp.files[0];
+  if (!f) { S.revPhoto = null; paintSheet(); return; }
+  if (f.size > 4 * 1024 * 1024) { showToast(T.revPhotoBig); inp.value = ''; return; }
+  const rd = new FileReader();
+  rd.onload = () => { S.revPhoto = String(rd.result || ''); paintSheet(); };
+  rd.readAsDataURL(f);
+}
+
 async function submitReview() {
   const T = STR[S.lang];
   const sel = S.revSheet;
@@ -3499,8 +3562,10 @@ async function submitReview() {
     productId: sel.productId,
     stars: S.revStars,
     body: S.revBody.trim() || undefined,
+    photo: S.revPhoto || undefined,
   };
   closeReviewSheet();
+  S.revPhoto = null;
   try {
     await sellerFetch('/api/reviews', { method: 'POST', body: JSON.stringify(body) });
     showToast(T.revSent);
@@ -3512,6 +3577,33 @@ async function submitReview() {
     if (S.screen === 'orders') document.getElementById('screen-wrap').innerHTML = renderOrders();
   } catch (e) {
     showToast(e.message);
+  }
+}
+
+// ============ NAMUNA SO'ROVI VA RESTOK OBUNASI (db/030) ============
+// Ikkalasi sellerFetch bilan — kimlik imzolangan initData'da, server
+// `requestUser()` orqali tekshiradi (Test 3f oilasi).
+async function sampleRequest(id) {
+  const T = STR[S.lang];
+  try {
+    await sellerFetch('/api/sample-request', { method: 'POST', body: JSON.stringify({ productId: String(id) }) });
+    S.sampleSent[id] = true;
+    showToast(T.sampleSent);
+    if (S.screen === 'detail') document.getElementById('screen-wrap').innerHTML = renderDetail();
+  } catch (e) {
+    showToast(e.message || T.sampleErr);
+  }
+}
+
+async function stockAlert(id) {
+  const T = STR[S.lang];
+  try {
+    await sellerFetch('/api/stock-alert', { method: 'POST', body: JSON.stringify({ productId: String(id) }) });
+    S.stockAlertOk[id] = true;
+    showToast(T.stockAlertOn);
+    if (S.screen === 'detail') document.getElementById('screen-wrap').innerHTML = renderDetail();
+  } catch (e) {
+    showToast(e.message || T.stockAlertErr);
   }
 }
 
@@ -5077,6 +5169,12 @@ function renderProductForm() {
     <div><label style="${lbl}">${T.sMoq}</label>
       <input id="pf-moq" type="number" inputmode="numeric" value="${p ? p.moq : 1}" style="${inp};font-family:var(--font-mono)"></div>
 
+    <div><label style="${lbl}">${T.sWidth}</label>
+      <input id="pf-width" value="${p && p.width ? esc(String(p.width)) : ''}" placeholder="1.5 m" style="${inp}"></div>
+
+    <div><label style="${lbl}">${T.sLen}</label>
+      <input id="pf-len" value="${p && p.rollLength ? esc(String(p.rollLength)) : ''}" placeholder="40 m" style="${inp}"></div>
+
     <div><label style="${lbl}">${T.sStock}</label>
       <input id="pf-stock" type="number" inputmode="numeric" min="0" placeholder="${T.sStockPh}" value="${p && p.stock != null ? p.stock : ''}" style="${inp};font-family:var(--font-mono)"></div>
 
@@ -5132,6 +5230,10 @@ async function saveProduct() {
   // Bo'sh qoldirilsa — cheksiz (null). 0 esa haqiqiy qiymat: "tugadi".
   const stockRaw = document.getElementById('pf-stock')?.value.trim() ?? '';
   const stock = stockRaw === '' ? null : parseInt(stockRaw, 10);
+  // Bo'sh satr ham ATAYLAB yuboriladi (saytdagi bilan bir xil): server
+  // "maydon kelganmi"ga qaraydi — bo'sh kelsa tozalanadi, kelmasa tegilmaydi.
+  const width = document.getElementById('pf-width')?.value.trim() ?? '';
+  const rollLen = document.getElementById('pf-len')?.value.trim() ?? '';
   if (name.length < 2) return showToast(T.sName);
   if (!Number.isInteger(price) || price < 1) return showToast(T.sPrice);
   if (stock !== null && (!Number.isInteger(stock) || stock < 0)) return showToast(T.sStock);
@@ -5140,12 +5242,12 @@ async function saveProduct() {
     if (S.sEditId) {
       await sellerFetch('/api/seller/products', {
         method: 'PATCH',
-        body: JSON.stringify({ id: S.sEditId, name_uz: name, price, moq, comp_uz: comp, stock }),
+        body: JSON.stringify({ id: S.sEditId, name_uz: name, price, moq, comp_uz: comp, stock, width, roll_length: rollLen }),
       });
     } else {
       await sellerFetch('/api/products', {
         method: 'POST',
-        body: JSON.stringify({ name_uz: name, price, moq, comp_uz: comp, stock, cat_key: S.pfCat || 'silk' }),
+        body: JSON.stringify({ name_uz: name, price, moq, comp_uz: comp, stock, cat_key: S.pfCat || 'silk', width, roll_length: rollLen }),
       });
     }
     showToast(T.sSaved);

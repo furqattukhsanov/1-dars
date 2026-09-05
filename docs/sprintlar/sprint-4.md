@@ -134,6 +134,68 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
 
 ## Qilingan ishlar
 
+- [2026-09-05] **BOZOR TADQIQOTIDAN KELGAN FUNKSIYALAR TO'PLAMI — FOUNDER
+  TANLAGAN 6 BAND BIR COMMIT'DA** (15+ marketplace o'rganildi: SwatchOn,
+  Alibaba/1688, IndiaMART, Mood Fabrics, Uzum, WB, Ozon, Zood, Temu, Sello;
+  founder 2, 3, 4, 7, 8, 12-bandlarni tanladi; 5 — narx pog'onalari, 6 —
+  «Ko'p sotilganlar», 9 — sotuvchi mini-sahifasi KEYINGA qoldirildi).
+  Yangi migratsiya **`db/030_bozor_funksiyalari.sql`**: `products.roll_length`
+  (TEXT), `reviews.photo_file_ids` (TEXT[]), `stock_alerts` va
+  `sample_requests` jadvallari (ikkalasi `OWNER TO lola` + sekvensiya —
+  Test 43 darsi, hisobotchi faylda 4 ta OWNER qatorini o'z ko'zi bilan
+  ko'rdi), `users.cart_reminded_at`. Yangi **`routes/engagement.js`** —
+  kimlik HAMMA joyda `requestUser()` (ikkala kanal, `/api/disputes` darsi).
+  Bandlar: **(2) eni + rulon uzunligi** — `width` sxemada bor edi-yu sotuvchi
+  kirita olmasdi; endi ikkala frontend formasida maydonlar, server yangi
+  e'lon (`catalog.js`) va tahrirda (`seller.js`) qabul qiladi, PDP
+  tafsilotlarida «Rulon uzunligi» qatori; tahrirda «stock darsi» — maydon
+  so'rovda KELMASA mavjud qiymat tegilmaydi (`widthSent`/`lenSent`).
+  **(3) MOQ** — tekshirildi, TO'LIQ mavjud ekan (server validatsiyasi, PDP,
+  savat MOQ dan boshlanadi): founder haq edi, yangi kod YOZILMADI.
+  **(4) namuna so'rovi** — `POST /api/sample-request`: bu BUYURTMA EMAS,
+  SO'ROV (shartlar founder bilan hali kelishilmagan); yozuv `sample_requests`
+  ga, sotuvchi + `ADMIN_CHAT_ID` ga Telegram xabar; ikkala PDP'da
+  «✂️ Namuna so'rash» tugmasi. **(7) savat eslatmasi** —
+  `scanCartReminders`, `server.js` da 30 daqiqalik interval:
+  `user_events.cart_add` (3–48 soat oynasi) + shu vaqtdan keyin buyurtma ham,
+  `cart_remove` ham yo'q odamga «Savat sizni kutyapti» (nomlar FAKT —
+  o'sha odamning o'z `cart_add` yozuvlaridan, taxmin emas); chastota qulfi
+  72 soat (`users.cart_reminded_at`) va qulf YUBORISHDAN OLDIN yoziladi.
+  **(8) sharh rasmi** — POST'da ixtiyoriy `photo` (base64, 4 MB gacha) →
+  `sendPhotoBytes` bilan `ADMIN_CHAT_ID` ga (Telegram = omborxona +
+  moderatsiya ko'zi) → `photo_file_ids`; yuklash COMMIT'dan KEYIN va o'z
+  try'ida (hisobotchi manbada o'lchadi: COMMIT 154-qator, `sendPhotoBytes`
+  174-qator) — foto yiqilsa sharh YO'QOLMAYDI, xato alertga chiqadi;
+  ko'rsatish mavjud `/api/product-photo` imzoli proksisi orqali.
+  **(12) «kelganda xabar ber» + qayta buyurtma** — `POST /api/stock-alert`
+  (UNIQUE juftlik, qayta obuna `notified_at` ni NULL ga qaytaradi); sotuvchi
+  stokni ANIQ 0 dan >0 ga ko'targanda `notifyRestock`: belgilash va tanlash
+  BITTA `UPDATE...RETURNING` da (ikki xabar ketmaydi — atomik stock darsi);
+  tugma faqat mato tugaganda chiqadi; «Qayta buyurtma» Mini App'da
+  ALLAQACHON bor edi (`reorderOrder`), saytga qo'shildi — yopiq buyurtmada
+  matolar savatga MOQ hisobida qaytadi. Qorovul: **Test 54** (eslatma qulfi +
+  qulf yuborishdan oldin + oyna; atomik restok; foto COMMIT'dan keyin va
+  alert kaliti; restok faqat aniq 0 dan; ikkala yuz parite — izohlar
+  tahlildan oldin olib tashlanadi, Test 3f darsi).
+  **HISOBOTCHI MUSTAQIL O'LCHADI:** **93** test yashil (`✅ Test` satrlari
+  sanaldi — `grep -c "✅"` 94 beradi, yakuniy «Hammasi PASS» qatori bilan,
+  «32 test» darsining navbatdagi takrori); **bitta mutatsiyani O'ZI
+  bajardi** — restok UPDATE'idan `notified_at IS NULL` olib tashlandi →
+  Test 54 QIZIL (exit 1, aynan kutilgan xabar), fayl `cp` nusxadan tiklandi,
+  testlar yana yashil; `node --check` uchala o'zgargan JS'da toza;
+  db/030 dagi OWNER qatorlari, `requestUser` importi, qulf-yuborish tartibi
+  va `?v=` mosligi (uchala HTML) manbadan o'qib tasdiqlandi.
+  **Tekshirilmadi:** sessiyaning «4 mutatsiya 4/4» da'vosining qolgan 3 tasi
+  (hisobotchi 1 tasini qayta bajardi); marketplace tadqiqoti; brauzerda
+  jonli ko'rinish (tugmalar production'da hali bosilmagan).
+  ⚠️ **Halol chegara:** migratsiya serverga HALI QO'LLANMAGAN — deploy'gacha
+  `stock_alerts`/`sample_requests` jadvallari yo'q va yangi endpointlar
+  yiqiladi. Kesh: `style.css` 65→**66**, `script.js` 59→**60** (uchala HTML
+  birga), `app.js` 105→**106**, `panel.js` 67→**68** (Test 16 jadvali birga).
+  🔴 **DEPLOY: MIGRATSIYA + STATIK + BACKEND** — (1) db/030 `sudo -u postgres
+  psql` bilan (OWNER qatorlari ichida), (2) statik CI, (3) backend rsync
+  (`--no-owner --no-group` SHART) + servis restart. PUSH YO'Q.
+
 - [2026-09-02] **«DELIVERED» YETIM HOLATI YOPILDI — XARIDORNING O'ZI
   «BUYURTMANI OLDIM» DEB TASDIQLAYDI** (founder: «1 ni hal qilib yop»,
   QOLDIQ dagi 2026-08-31 topilmasi). Muammo: `delivered` ga o'tkazadigan
@@ -3518,6 +3580,18 @@ LolaMarket ning yuragi — xaridor rulonni topadi, buyurtma beradi, escrow orqal
 ---
 
 ## Qarorlar
+
+- [2026-09-05] Qaror (founder): **marketplace tadqiqotidan 2, 3, 4, 7, 8,
+  12-bandlar QILINADI; 5 (narx pog'onalari), 6 («Ko'p sotilganlar»),
+  9 (sotuvchi mini-sahifasi) KEYINGA qoldirildi** — qoldirilganlar jimgina
+  qayta ochilmasin, founder o'zi qaytarsa ochiladi. Shu qaror ichida ikki
+  kichik qaror: (a) **namuna so'rovi buyurtma EMAS, SO'ROV** — narxi va
+  yetkazish shartlari founder bilan hali kelishilmagani uchun pul oqimiga
+  tegilmadi, faqat yozuv + Telegram xabar; (b) **savat eslatmasi xabari
+  faqat FAKTNI aytadi** — savat tarkibi o'sha foydalanuvchining o'z
+  `cart_add` yozuvlaridan olinadi, taxminiy jumla yozilmaydi («jimgina
+  yolg'on» oilasi) va chastota qulfi 72 soat — usiz bot spamga aylanib
+  bloklanardi (kanalning o'zi yo'qolardi).
 
 - [2026-08-25] Qaror (founder): **`.nav-lens` surilishi 480ms sakrash
   (spring) bo'lib QOLADI — 280ms «tez va aniq» varianti telefonda sinovda

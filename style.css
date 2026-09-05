@@ -2156,6 +2156,24 @@ body {
   cursor: pointer;
 }
 
+/* «Qayta buyurtma» (db/030) — yopiq buyurtma qatorida. Ikkinchi darajali
+   amal: to'ldirilgan emas, chegarali — «oldim» tugmasi bilan vizual
+   raqobatlashmasin. */
+.order-reorder-btn {
+  display: block;
+  width: 100%;
+  margin-top: 10px;
+  min-height: 36px;
+  border: 1.5px solid var(--border-hair);
+  border-radius: var(--radius-sm, 10px);
+  background: transparent;
+  font-family: inherit;
+  font-size: 13px; font-weight: 600;
+  color: var(--pom-700);
+  cursor: pointer;
+}
+.order-reorder-btn:hover { border-color: var(--pom-600); }
+
 .order-hist {
   list-style: none;
   margin: 9px 0 0;
@@ -2621,6 +2639,32 @@ body { padding-bottom: calc(var(--dock-h) + env(safe-area-inset-bottom, 0px)); }
 .pd-rev-body { margin-top: 7px; font-size: 13px; line-height: 1.55; color: var(--text-body); }
 .pd-rev-who { margin-top: 6px; font-size: 11.5px; color: var(--text-muted); }
 
+/* Sharh rasmlari (db/030) — kichik oldindan ko'rish, bosilsa yangi oynada
+   ochiladi kerak emas: rasm o'zi dalil, katta ko'rish keyingi band. */
+.pd-rev-photos { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+.pd-rev-photo {
+  width: 74px; height: 74px;
+  object-fit: cover;
+  border-radius: var(--radius-sm, 10px);
+  border: 1px solid var(--border-hair);
+}
+
+/* Sharh formasida foto biriktirish (db/030). Fayl maydoni yashirin —
+   `[hidden]` emas (u muallif displayidan yutqazadi, CLAUDE.md),
+   shuning uchun to'g'ridan-to'g'ri display:none. */
+.rv-photo {
+  display: block;
+  margin-top: 10px;
+  padding: 9px 12px;
+  border: 1.5px dashed var(--border-hair);
+  border-radius: var(--radius-sm, 10px);
+  font-size: 12.5px; font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.rv-photo.on { border-style: solid; color: var(--pom-700); }
+.rv-photo input[type="file"] { display: none; }
+
 /* ====================================================
    MAHSULOT SAHIFASI (`#pdp`, 2026-08-16)
 
@@ -2752,6 +2796,10 @@ body.pdp-bar-on #nav { transform: translateY(-100%); }
 }
 .pdp-bar-act { flex: none; width: 208px; }
 .pdp-bar-act .pd-add { min-height: 42px; font-size: 14px; }
+/* Qadalgan qator TOR — obuna tugmasi/tasdiq matni faqat asosiy qutida
+   qoladi (db/030). `pdpActHtml` ikkala idishga bir xil chiziladi (Test 41),
+   ya'ni farq HTML'da emas, shu yerda. */
+.pdp-bar-act .stock-alert-btn, .pdp-bar-act .stock-alert-done { display: none; }
 .pdp-bar-act .qty-row { justify-content: space-between; }
 .pdp-bar-act .qty-num {
   font-family: var(--font-mono);
